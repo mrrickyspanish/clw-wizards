@@ -5,18 +5,22 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-heading font-bold uppercase tracking-wider ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 min-h-11 min-w-11 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 transition-all duration-300",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-body font-bold uppercase tracking-wider ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 min-h-11 min-w-11 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 transition-all duration-300",
   {
     variants: {
       variant: {
-        default: "bg-brand-orange text-brand-light hover:bg-brand-orange-dark",
-        premium: "bg-brand-orange text-brand-light font-bold shadow-lg hover:bg-brand-orange-dark hover:shadow-xl hover:scale-105 transform",
-        outline: "border-2 border-brand-navy text-brand-navy bg-transparent hover:bg-brand-navy hover:text-brand-light",
-        secondary: "bg-brand-light text-brand-navy-secondary hover:bg-brand-beige",
-        ghost: "hover:bg-brand-beige hover:text-brand-navy",
-        link: "text-brand-orange underline-offset-4 hover:underline font-semibold",
-        hero: "bg-brand-orange text-brand-light font-bold text-lg shadow-2xl hover:bg-brand-orange-dark hover:shadow-[0_12px_30px_hsl(var(--brand-orange)/0.35)] hover:scale-105 transform transition-all duration-500",
-        navy: "bg-brand-navy text-brand-light hover:bg-brand-navy-secondary",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        premium:
+          "bg-primary text-primary-foreground font-bold shadow-lg hover:bg-primary/90 hover:shadow-xl hover:scale-105 transform",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline:
+          "border-2 border-primary text-primary bg-transparent hover:bg-primary hover:text-primary-foreground",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        ghost: "text-foreground hover:bg-accent hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline font-semibold normal-case tracking-normal",
+        hero:
+          "bg-primary text-primary-foreground font-bold text-lg shadow-2xl hover:bg-primary/90 hover:shadow-[0_12px_30px_hsl(var(--primary)/0.35)] hover:scale-105 transform transition-all duration-500",
+        navy: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
       },
       size: {
         default: "h-12 px-6 py-3",
