@@ -23,6 +23,7 @@ export type Profile = {
   consent_text: string | null
   email_unsubscribe_token: string
   is_active: boolean
+  onboarding_completed_at: string | null
   created_at: string
   updated_at: string
 }

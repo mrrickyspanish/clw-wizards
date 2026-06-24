@@ -58,6 +58,10 @@ CREATE TABLE public.profiles (
   consent_text TEXT,
   email_unsubscribe_token UUID NOT NULL DEFAULT gen_random_uuid(),
   is_active BOOLEAN NOT NULL DEFAULT true,
+  -- NULL = parent hasn't been through post-confirmation onboarding yet (a
+  -- separate flag from phone, since phone is optional forever and shouldn't
+  -- re-trigger the prompt just because it's empty).
+  onboarding_completed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
