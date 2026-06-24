@@ -1,8 +1,9 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LogOut, type LucideIcon } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { createBrowserSupabase } from '@/lib/supabase/browser'
@@ -11,7 +12,7 @@ import { ORG } from '@/config/org.config'
 export interface NavItem {
   href: string
   label: string
-  icon: LucideIcon
+  icon: ReactNode
 }
 
 interface DashboardNavProps {
@@ -40,7 +41,6 @@ export function DashboardNav({ title, items, userName, role }: DashboardNavProps
 
       <nav className="flex-1 p-4 space-y-1">
         {items.map((item) => {
-          const Icon = item.icon
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
 
           return (
@@ -52,7 +52,7 @@ export function DashboardNav({ title, items, userName, role }: DashboardNavProps
                 isActive ? 'bg-clw-gold/10 text-clw-gold' : 'text-clw-white/70 hover:bg-clw-gold/5 hover:text-clw-white'
               )}
             >
-              <Icon className="w-4 h-4" />
+              {item.icon}
               {item.label}
             </Link>
           )

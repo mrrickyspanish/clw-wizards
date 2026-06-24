@@ -4,12 +4,12 @@ import { createServerSupabase } from '@/lib/supabase/server'
 import { DashboardNav, type NavItem } from '@/components/layout/DashboardNav'
 
 const ADMIN_NAV: NavItem[] = [
-  { href: '/admin', label: 'Overview', icon: LayoutDashboard },
-  { href: '/admin/families', label: 'Families', icon: Users },
-  { href: '/admin/tournaments', label: 'Tournaments', icon: Trophy },
-  { href: '/admin/dues', label: 'Dues', icon: HandCoins },
-  { href: '/admin/sponsors', label: 'Sponsors', icon: Handshake },
-  { href: '/admin/communications', label: 'Communications', icon: Megaphone },
+  { href: '/admin', label: 'Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
+  { href: '/admin/families', label: 'Families', icon: <Users className="w-4 h-4" /> },
+  { href: '/admin/tournaments', label: 'Tournaments', icon: <Trophy className="w-4 h-4" /> },
+  { href: '/admin/dues', label: 'Dues', icon: <HandCoins className="w-4 h-4" /> },
+  { href: '/admin/sponsors', label: 'Sponsors', icon: <Handshake className="w-4 h-4" /> },
+  { href: '/admin/communications', label: 'Communications', icon: <Megaphone className="w-4 h-4" /> },
 ]
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

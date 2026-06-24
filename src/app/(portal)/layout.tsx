@@ -4,11 +4,11 @@ import { createServerSupabase } from '@/lib/supabase/server'
 import { DashboardNav, type NavItem } from '@/components/layout/DashboardNav'
 
 const PORTAL_NAV: NavItem[] = [
-  { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
-  { href: '/athletes', label: 'My Athletes', icon: Users },
-  { href: '/tournaments', label: 'Tournaments', icon: Trophy },
-  { href: '/dues', label: 'Dues', icon: HandCoins },
-  { href: '/documents', label: 'Documents', icon: FolderOpen },
+  { href: '/dashboard', label: 'Home', icon: <LayoutDashboard className="w-4 h-4" /> },
+  { href: '/athletes', label: 'My Athletes', icon: <Users className="w-4 h-4" /> },
+  { href: '/tournaments', label: 'Tournaments', icon: <Trophy className="w-4 h-4" /> },
+  { href: '/dues', label: 'Dues', icon: <HandCoins className="w-4 h-4" /> },
+  { href: '/documents', label: 'Documents', icon: <FolderOpen className="w-4 h-4" /> },
 ]
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {

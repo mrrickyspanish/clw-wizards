@@ -4,9 +4,9 @@ import { createServerSupabase } from '@/lib/supabase/server'
 import { DashboardNav, type NavItem } from '@/components/layout/DashboardNav'
 
 const STAFF_NAV: NavItem[] = [
-  { href: '/staff', label: 'Overview', icon: LayoutDashboard },
-  { href: '/staff/athletes', label: 'Athletes', icon: Users },
-  { href: '/staff/tournaments', label: 'Tournaments', icon: Trophy },
+  { href: '/staff', label: 'Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
+  { href: '/staff/athletes', label: 'Athletes', icon: <Users className="w-4 h-4" /> },
+  { href: '/staff/tournaments', label: 'Tournaments', icon: <Trophy className="w-4 h-4" /> },
 ]
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
