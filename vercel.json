@@ -1,0 +1,8 @@
+{
+  "crons": [
+    { "path": "/api/crons/wednesday-reminder", "schedule": "0 14 * * 3" },
+    { "path": "/api/crons/weigh-in-alert", "schedule": "0 7 * * *" },
+    { "path": "/api/crons/monday-digest", "schedule": "0 8 * * 1" },
+    { "path": "/api/crons/dues-reminder", "schedule": "0 9 * * 1" }
+  ]
+}
