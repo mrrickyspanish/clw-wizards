@@ -1,17 +1,19 @@
 import { createServerSupabase } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ContactPrefsForm } from './ContactPrefsForm'
 
 export default async function ParentDashboardPage() {
   const supabase = await createServerSupabase()
   const { data: auth } = await supabase.auth.getUser()
 
-  const [{ data: athletes }, { data: dues }] = await Promise.all([
+  const [{ data: athletes }, { data: dues }, { data: profile }] = await Promise.all([
     supabase.from('athletes').select('id, first_name, last_name, practice_group').eq('parent_id', auth.user?.id ?? ''),
     supabase
       .from('dues_payments')
       .select('amount_cents, amount_paid_cents')
       .eq('parent_id', auth.user?.id ?? '')
       .in('status', ['pending', 'partial', 'overdue']),
+    supabase.from('profiles').select('phone, sms_opt_in').eq('id', auth.user?.id ?? '').single(),
   ])
 
   const outstandingCents = (dues ?? []).reduce((sum, d) => sum + (d.amount_cents - d.amount_paid_cents), 0)
@@ -50,6 +52,15 @@ export default async function ParentDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border-clw-gold/10 bg-clw-black sm:max-w-md">
+        <CardHeader>
+          <CardTitle className="text-sm font-medium text-clw-gray">Contact & SMS preferences</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ContactPrefsForm initialPhone={profile?.phone ?? null} initialSmsOptIn={profile?.sms_opt_in ?? false} />
+        </CardContent>
+      </Card>
     </div>
   )
 }
