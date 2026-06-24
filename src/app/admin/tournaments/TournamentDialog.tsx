@@ -58,6 +58,29 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
     setGroups((prev) => (checked ? [...prev, group] : prev.filter((g) => g !== group)))
   }
 
+  // Reset fields to the source values each time the dialog opens, so a create
+  // form doesn't retain the previous entry and an edit form reflects the latest
+  // saved values.
+  function handleOpenChange(next: boolean) {
+    if (next) {
+      setError(null)
+      setName(tournament?.name ?? '')
+      setDate(tournament?.date ?? '')
+      setLocation(tournament?.location ?? '')
+      setCity(tournament?.city ?? '')
+      setState(tournament?.state ?? 'IL')
+      setStatus(tournament?.status ?? 'open')
+      setStartTime(tournament?.start_time ?? '')
+      setWeighInDate(tournament?.weigh_in_date ?? '')
+      setWeighInTime(tournament?.weigh_in_time ?? '')
+      setPlatform(tournament?.external_platform ?? PLATFORM_NONE)
+      setRegUrl(tournament?.external_registration_url ?? '')
+      setGroups(tournament?.practice_groups ?? [])
+      setNotes(tournament?.notes ?? '')
+    }
+    setOpen(next)
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
@@ -95,7 +118,7 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {isEdit ? (
           <Button variant="ghost" size="sm" className="text-clw-gray hover:text-clw-gold">

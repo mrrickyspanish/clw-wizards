@@ -30,8 +30,11 @@ export default async function AdminFamiliesPage({
     .eq('role', 'parent')
     .order('full_name', { ascending: true })
 
-  if (query) {
-    familiesQuery = familiesQuery.or(`full_name.ilike.%${query}%,email.ilike.%${query}%`)
+  // Strip characters that have meaning in the PostgREST `or()` filter grammar
+  // (comma separates conditions; parens group them) before interpolating.
+  const safeQuery = query.replace(/[,()*\\]/g, ' ').trim()
+  if (safeQuery) {
+    familiesQuery = familiesQuery.or(`full_name.ilike.%${safeQuery}%,email.ilike.%${safeQuery}%`)
   }
 
   const [{ data: families, error }, { data: athletes }] = await Promise.all([
