@@ -67,6 +67,7 @@ otherwise it rolls to the fast-follow.
 | **SMS comms** | Twilio A2P 10DLC carrier approval lead time; email covers launch |
 | Staff live check-in / weigh-in entry | |
 | Recurring tournaments, waitlists, payment plans | |
+| **Card-on-file at onboarding** | Possible client requirement — capture a payment method during the onboarding wizard (e.g. Stripe SetupIntent) for later dues/fees. Confirm with Will whether CLW wants pay-/card-to-register before building. |
 | Full marketing site + Sanity CMS | |
 
 ## Week-by-week
