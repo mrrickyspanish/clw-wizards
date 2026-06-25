@@ -252,6 +252,37 @@ checkout now returns to `/?donation=success|cancelled` (was a non-existent
 
 ---
 
+## Section 11 — Design/UX pass (V2 inspiration)
+
+**What was built (no new deps; CSS + IntersectionObserver):**
+- **Landing:** cinematic full-bleed hero with a `public/hero.mp4`(+`hero.jpg`)
+  media slot, sticky transparent→blur header w/ anchor nav + "Join" CTA,
+  scroll-reveal + card hover-lift across sections. Reduced-motion respected.
+- **Onboarding:** stepped wizard (Your info → Wrestlers → Review) with a
+  numbered stepper, per-step validation, and slide-in transitions.
+- **Parent dashboard:** "Next up" card (next registered tournament) + dues
+  card with a "Pay now" CTA (red accent when a balance is owed).
+- **Admin overview:** icon metric cards (families, wrestlers, open
+  tournaments, **$ outstanding dues**) that link to their sections.
+
+**QC — testable now:**
+- [ ] Landing: header is transparent over hero, blurs on scroll; anchor links
+      jump to sections; cards lift on hover; sections fade/slide in on scroll.
+- [ ] Hero: with no media it shows the gradient; dropping `public/hero.mp4`
+      (and `public/hero.jpg`) makes it play/poster with no code change.
+- [ ] Onboarding: stepper advances Your info → Wrestlers → Review; "Next" on
+      Wrestlers is blocked until each has first/last/DOB; Review shows a
+      correct summary; Finish saves and lands on the dashboard; "Skip for now"
+      still works from step 1.
+- [ ] Parent dashboard: "Next up" shows the soonest tournament you're
+      registered for (or a Browse CTA); dues card turns red + shows "Pay now"
+      when a balance is owed.
+- [ ] Admin overview: four metric cards show correct counts and the dues
+      dollar total; each links to its section.
+- [ ] Whole site usable with `prefers-reduced-motion` (no animations).
+
+---
+
 ## Cross-cutting QC (run once an environment is up)
 
 - [ ] `npm run build` passes (currently green).
