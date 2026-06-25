@@ -1,5 +1,6 @@
 import { ORG } from '@/config/org.config'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Reveal } from './Reveal'
 
 // Short blurbs per group; falls back to a generic line for any group without
 // one so adding a group in config never leaves an empty card.
@@ -12,22 +13,26 @@ const GROUP_BLURBS: Record<string, string> = {
 
 export function PracticeGroups() {
   return (
-    <section className="border-b border-clw-gold/10 bg-clw-black">
-      <div className="mx-auto max-w-5xl px-6 py-20">
-        <h2 className="font-display text-3xl text-clw-gold">Practice groups</h2>
-        <p className="mt-2 text-clw-gray">A place for every wrestler, whatever their level.</p>
+    <section id="groups" className="scroll-mt-20 border-b border-clw-gold/10 bg-clw-black">
+      <div className="mx-auto max-w-5xl px-6 py-24">
+        <Reveal>
+          <h2 className="font-display text-4xl text-clw-gold">Practice groups</h2>
+          <p className="mt-2 text-clw-gray">A place for every wrestler, whatever their level.</p>
+        </Reveal>
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {ORG.practiceGroups.map((group) => (
-            <Card key={group} className="border-clw-gold/10 bg-clw-black-2">
-              <CardHeader>
-                <CardTitle className="text-clw-white">{group}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-clw-gray">
-                  {GROUP_BLURBS[group] ?? 'A training group within the club.'}
-                </p>
-              </CardContent>
-            </Card>
+          {ORG.practiceGroups.map((group, i) => (
+            <Reveal key={group} delay={i * 80}>
+              <Card className="lift h-full border-clw-gold/10 bg-clw-black-2">
+                <CardHeader>
+                  <CardTitle className="text-clw-white">{group}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-clw-gray">
+                    {GROUP_BLURBS[group] ?? 'A training group within the club.'}
+                  </p>
+                </CardContent>
+              </Card>
+            </Reveal>
           ))}
         </div>
       </div>

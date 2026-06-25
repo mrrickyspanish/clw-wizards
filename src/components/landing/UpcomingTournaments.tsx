@@ -1,5 +1,6 @@
 import type { Tournament } from '@/types/database'
 import { Card, CardContent } from '@/components/ui/card'
+import { Reveal } from './Reveal'
 
 function formatDate(value: string) {
   return new Date(`${value}T00:00:00`).toLocaleDateString('en-US', {
@@ -12,15 +13,18 @@ function formatDate(value: string) {
 
 export function UpcomingTournaments({ tournaments }: { tournaments: Tournament[] }) {
   return (
-    <section className="border-b border-clw-gold/10 bg-clw-black-2">
-      <div className="mx-auto max-w-5xl px-6 py-20">
-        <h2 className="font-display text-3xl text-clw-gold">Upcoming tournaments</h2>
+    <section id="tournaments" className="scroll-mt-20 border-b border-clw-gold/10 bg-clw-black-2">
+      <div className="mx-auto max-w-5xl px-6 py-24">
+        <Reveal>
+          <h2 className="font-display text-4xl text-clw-gold">Upcoming tournaments</h2>
+        </Reveal>
         {tournaments.length === 0 ? (
           <p className="mt-4 text-clw-gray">No upcoming tournaments are posted right now — check back soon.</p>
         ) : (
           <div className="mt-8 space-y-3">
-            {tournaments.map((t) => (
-              <Card key={t.id} className="border-clw-gold/10 bg-clw-black">
+            {tournaments.map((t, i) => (
+              <Reveal key={t.id} delay={i * 70}>
+              <Card className="lift border-clw-gold/10 bg-clw-black">
                 <CardContent className="flex flex-wrap items-center justify-between gap-2 py-4">
                   <div>
                     <p className="font-medium text-clw-white">{t.name}</p>
@@ -31,6 +35,7 @@ export function UpcomingTournaments({ tournaments }: { tournaments: Tournament[]
                   <p className="text-sm text-clw-gold">{formatDate(t.date)}</p>
                 </CardContent>
               </Card>
+              </Reveal>
             ))}
           </div>
         )}

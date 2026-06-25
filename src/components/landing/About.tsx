@@ -1,11 +1,12 @@
 import { ORG } from '@/config/org.config'
+import { Reveal } from './Reveal'
 
 // Placeholder copy — the club can swap this wording without code changes.
 export function About() {
   return (
-    <section className="border-b border-clw-gold/10 bg-clw-black-2">
-      <div className="mx-auto max-w-4xl px-6 py-20">
-        <h2 className="font-display text-3xl text-clw-gold">About the club</h2>
+    <section id="about" className="scroll-mt-20 border-b border-clw-gold/10 bg-clw-black-2">
+      <Reveal className="mx-auto max-w-4xl px-6 py-24">
+        <h2 className="font-display text-4xl text-clw-gold">About the club</h2>
         <div className="mt-6 space-y-4 text-clw-gray">
           <p>
             {ORG.name} develops young wrestlers of every level — from first-timers to seasoned competitors — in a
@@ -17,7 +18,7 @@ export function About() {
             Create an account to get started, or sign in if you already have one.
           </p>
         </div>
-      </div>
+      </Reveal>
     </section>
   )
 }

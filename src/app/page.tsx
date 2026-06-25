@@ -1,6 +1,7 @@
 import { createServerSupabase } from '@/lib/supabase/server'
 import { chicagoDateString } from '@/lib/chicago-time'
 import type { Tournament, Sponsor } from '@/types/database'
+import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Hero } from '@/components/landing/Hero'
 import { About } from '@/components/landing/About'
 import { PracticeGroups } from '@/components/landing/PracticeGroups'
@@ -34,8 +35,9 @@ export default async function HomePage({
 
   return (
     <main className="min-h-screen bg-clw-black">
+      <SiteHeader />
       {donation === 'success' && (
-        <div className="mx-auto max-w-5xl px-6 pt-6">
+        <div className="mx-auto max-w-5xl px-6 pt-24">
           <Alert className="border-clw-gold/40 bg-clw-gold/10">
             <AlertDescription className="text-clw-gold">
               Thank you for your donation — it means a lot to our wrestlers!
@@ -44,7 +46,7 @@ export default async function HomePage({
         </div>
       )}
       {donation === 'cancelled' && (
-        <div className="mx-auto max-w-5xl px-6 pt-6">
+        <div className="mx-auto max-w-5xl px-6 pt-24">
           <Alert>
             <AlertDescription className="text-clw-gray">Donation cancelled — no payment was made.</AlertDescription>
           </Alert>

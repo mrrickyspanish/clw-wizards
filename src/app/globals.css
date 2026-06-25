@@ -43,3 +43,55 @@
     @apply bg-background text-foreground font-body;
   }
 }
+
+@layer utilities {
+  /* Scroll-reveal: elements start hidden + nudged down, then the Reveal
+     component adds .is-visible (via IntersectionObserver) to ease them in. */
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    will-change: opacity, transform;
+  }
+  .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Card lift + gold glow on hover (the Sketchplay/HWC interaction feel). */
+  .lift {
+    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out;
+  }
+  .lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px -12px rgba(240, 192, 32, 0.35);
+  }
+
+  /* Slow zoom for hero background imagery (Ken Burns). */
+  .animate-kenburns {
+    animation: kenburns 24s ease-in-out infinite alternate;
+  }
+  @keyframes kenburns {
+    from {
+      transform: scale(1);
+    }
+    to {
+      transform: scale(1.12);
+    }
+  }
+}
+
+/* Honor users who prefer no motion. */
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .lift:hover {
+    transform: none;
+  }
+  .animate-kenburns {
+    animation: none;
+  }
+}

@@ -1,4 +1,5 @@
 import type { Sponsor, SponsorTier } from '@/types/database'
+import { Reveal } from './Reveal'
 
 const TIER_LABELS: Record<SponsorTier, string> = {
   platinum: 'Platinum',
@@ -21,9 +22,9 @@ export function SponsorsShowcase({ sponsors }: { sponsors: Sponsor[] }) {
   })).filter((group) => group.items.length > 0)
 
   return (
-    <section className="border-b border-clw-gold/10 bg-clw-black">
-      <div className="mx-auto max-w-5xl px-6 py-20">
-        <h2 className="font-display text-3xl text-clw-gold">Our sponsors</h2>
+    <section id="sponsors" className="scroll-mt-20 border-b border-clw-gold/10 bg-clw-black">
+      <Reveal className="mx-auto max-w-5xl px-6 py-24">
+        <h2 className="font-display text-4xl text-clw-gold">Our sponsors</h2>
         <p className="mt-2 text-clw-gray">Thank you to the businesses that support our wrestlers.</p>
         <div className="mt-8 space-y-8">
           {byTier.map((group) => (
@@ -59,7 +60,7 @@ export function SponsorsShowcase({ sponsors }: { sponsors: Sponsor[] }) {
             </div>
           ))}
         </div>
-      </div>
+      </Reveal>
     </section>
   )
 }
