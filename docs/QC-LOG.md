@@ -186,6 +186,43 @@ normally created by an admin/import; for QC, insert sample rows in Supabase.
 
 ---
 
+## Section 8 — Parent documents view (`/documents`)
+
+**What was built:** A read-only status view. For each of the parent's
+athletes it lists the two required documents (birth certificate, USA Wrestling
+card) with a status badge — verified / pending review / not uploaded — read
+from `athlete_documents`. Self-service upload is a follow-up; the page directs
+parents to contact an admin to submit paperwork.
+
+**QC — testable now (needs sample data):**
+- [ ] A parent with athletes sees a card per athlete, each listing both
+      required docs.
+- [ ] With no `athlete_documents` rows, both show "not uploaded."
+- [ ] Insert a doc row (verified=false) → that doc shows "pending review" with
+      its file name; set verified=true → shows "verified."
+- [ ] A parent only sees their OWN documents (RLS).
+- [ ] A parent with no athletes sees the empty state.
+
+---
+
+## Section 9 — Read-only staff roster (`/staff/athletes`)
+
+**What was built:** The active club roster as a table (athlete, practice group,
+age, weight, family name), with practice-group filter chips. Sorted by group
+then last name. Uses the service-role client server-side (staff lack RLS read
+on other families' profiles) inside the staff-gated route, exposing only
+roster-appropriate fields.
+
+**QC — testable now (needs sample data):**
+- [ ] As staff, the roster lists all ACTIVE athletes; inactive ones are
+      excluded.
+- [ ] Group filter chips narrow the list; "All groups" clears the filter.
+- [ ] Age computes from DOB; missing weight shows "—"; family name resolves.
+- [ ] A parent cannot reach `/staff/athletes` (middleware redirect).
+- [ ] Empty states show for an empty group and an empty roster.
+
+---
+
 ## Cross-cutting QC (run once an environment is up)
 
 - [ ] `npm run build` passes (currently green).
