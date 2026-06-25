@@ -69,7 +69,15 @@ export function OnboardingForm({
     const result = await completeOnboarding({
       phone,
       smsOptIn,
-      athletes: athletes.map(({ key: _key, ...rest }) => rest),
+      athletes: athletes.map((a) => ({
+        first_name: a.first_name,
+        last_name: a.last_name,
+        date_of_birth: a.date_of_birth,
+        practice_group: a.practice_group,
+        weight_class: a.weight_class,
+        usa_wrestling_card_number: a.usa_wrestling_card_number,
+        shirt_size: a.shirt_size,
+      })),
     })
 
     setLoading(false)
