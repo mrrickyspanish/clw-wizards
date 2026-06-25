@@ -1,21 +1,63 @@
-import Link from 'next/link'
-import { ORG } from '@/config/org.config'
+import { createServerSupabase } from '@/lib/supabase/server'
+import { chicagoDateString } from '@/lib/chicago-time'
+import type { Tournament, Sponsor } from '@/types/database'
+import { Hero } from '@/components/landing/Hero'
+import { About } from '@/components/landing/About'
+import { PracticeGroups } from '@/components/landing/PracticeGroups'
+import { UpcomingTournaments } from '@/components/landing/UpcomingTournaments'
+import { SponsorsShowcase } from '@/components/landing/SponsorsShowcase'
+import { DonateSection } from '@/components/landing/DonateSection'
+import { SiteFooter } from '@/components/landing/SiteFooter'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
-export default function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ donation?: string }>
+}) {
+  const { donation } = await searchParams
+  const supabase = await createServerSupabase()
+  const today = chicagoDateString()
+
+  // Public reads — tournaments (public_read) and active sponsors
+  // (public_read_active_sponsors) need no auth.
+  const [{ data: tournaments }, { data: sponsors }] = await Promise.all([
+    supabase
+      .from('tournaments')
+      .select('*')
+      .eq('status', 'open')
+      .gte('date', today)
+      .order('date', { ascending: true })
+      .limit(4),
+    supabase.from('sponsors').select('*').eq('active', true),
+  ])
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-clw-black px-4 text-center">
-      <h1 className="text-5xl font-display text-clw-gold mb-4">{ORG.name}</h1>
-      <p className="text-clw-white/70 max-w-xl mb-8">
-        The public website is being built out — for now, parents and staff can sign in to the portal below.
-      </p>
-      <div className="flex gap-4">
-        <Link href="/login" className="px-6 py-3 rounded-lg bg-clw-gold text-clw-black font-medium">
-          Sign In
-        </Link>
-        <Link href="/signup" className="px-6 py-3 rounded-lg border border-clw-gold text-clw-gold font-medium">
-          Create Account
-        </Link>
-      </div>
+    <main className="min-h-screen bg-clw-black">
+      {donation === 'success' && (
+        <div className="mx-auto max-w-5xl px-6 pt-6">
+          <Alert className="border-clw-gold/40 bg-clw-gold/10">
+            <AlertDescription className="text-clw-gold">
+              Thank you for your donation — it means a lot to our wrestlers!
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+      {donation === 'cancelled' && (
+        <div className="mx-auto max-w-5xl px-6 pt-6">
+          <Alert>
+            <AlertDescription className="text-clw-gray">Donation cancelled — no payment was made.</AlertDescription>
+          </Alert>
+        </div>
+      )}
+
+      <Hero />
+      <About />
+      <PracticeGroups />
+      <UpcomingTournaments tournaments={(tournaments ?? []) as Tournament[]} />
+      <SponsorsShowcase sponsors={(sponsors ?? []) as Sponsor[]} />
+      <DonateSection />
+      <SiteFooter />
     </main>
   )
 }

@@ -22,8 +22,24 @@ const barlowCondensed = Barlow_Condensed({
 })
 
 export const metadata: Metadata = {
-  title: ORG.name,
+  metadataBase: new URL(`https://${ORG.domain}`),
+  title: {
+    default: ORG.name,
+    template: `%s · ${ORG.shortName}`,
+  },
   description: ORG.tagline,
+  openGraph: {
+    title: ORG.name,
+    description: ORG.tagline,
+    url: `https://${ORG.domain}`,
+    siteName: ORG.name,
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: ORG.name,
+    description: ORG.tagline,
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

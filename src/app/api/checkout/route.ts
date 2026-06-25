@@ -110,8 +110,8 @@ async function checkoutDonation(stripe: Stripe, body: DonationCheckoutBody, site
   const session = await stripe.checkout.sessions.create({
     mode: body.recurring ? 'subscription' : 'payment',
     customer_email: body.donorEmail,
-    success_url: `${siteOrigin}/sponsors?donation=success`,
-    cancel_url: `${siteOrigin}/sponsors?donation=cancelled`,
+    success_url: `${siteOrigin}/?donation=success`,
+    cancel_url: `${siteOrigin}/?donation=cancelled`,
     line_items: [
       {
         quantity: 1,

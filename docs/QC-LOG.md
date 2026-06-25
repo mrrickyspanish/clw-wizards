@@ -223,6 +223,35 @@ roster-appropriate fields.
 
 ---
 
+## Section 10 — Public landing page (`/`)
+
+**What was built:** A real public front door (was just two links). Sections:
+hero with Create Account / Sign In CTAs, about, the four practice groups, a
+live **upcoming tournaments** strip (open + future, soonest first, max 4), a
+live **active sponsors** showcase grouped by tier, a **donate** section wired
+to the existing donation Stripe checkout (presets + custom, one-time/monthly),
+and a footer. Plus OG/Twitter metadata in the root layout. The donation
+checkout now returns to `/?donation=success|cancelled` (was a non-existent
+`/sponsors` page).
+
+**QC — mostly testable now:**
+- [ ] `/` renders all sections, logged out, on desktop and mobile widths.
+- [ ] Create Account / Sign In CTAs go to `/signup` and `/login`.
+- [ ] With open, future tournaments seeded, the strip lists them soonest-first
+      (max 4); with none, it shows the "check back soon" copy.
+- [ ] With active sponsors seeded, the showcase groups them by tier; with none,
+      the whole section is hidden.
+- [ ] Donate: presets select, custom amount overrides a preset, monthly toggle
+      changes the button label.
+- [ ] Visiting `/?donation=success` shows the thank-you banner; `cancelled`
+      shows the muted banner.
+
+**Blocked on credentials:**
+- The donate button itself hits Stripe — "Stripe is not configured yet" until
+  live keys are set (same as dues). Everything up to the redirect is testable.
+
+---
+
 ## Cross-cutting QC (run once an environment is up)
 
 - [ ] `npm run build` passes (currently green).
