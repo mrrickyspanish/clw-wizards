@@ -156,6 +156,36 @@ first) with date, location, weigh-in/start details, status, and notes.
 
 ---
 
+## Section 7 — Parent dues payment (`/dues`)
+
+**What was built:** "Dues" now shows the parent's outstanding balance, a list
+of every dues record (season, athlete, amount, amount paid, due date, status),
+and a **Pay [amount]** button on each unpaid record that launches Stripe
+checkout for the full remaining balance. On return, a success/cancelled banner
+shows based on the `?checkout=` param. The Stripe webhook (already built)
+applies the payment and emails a receipt.
+
+**QC — needs live Stripe + sample data:**
+- [ ] Insert a `dues_payments` row for the parent (status pending/overdue) →
+      it shows with a "Pay $X" button; outstanding balance reflects it.
+- [ ] Click Pay → redirected to Stripe checkout for the right amount.
+- [ ] Complete payment → redirected back to `/dues?checkout=success` with the
+      green banner.
+- [ ] After the webhook fires, refresh → status flips to paid, button gone,
+      balance drops to $0; a receipt email is logged/sent.
+- [ ] Cancel at Stripe → returns to `/dues?checkout=cancelled` with the muted
+      banner; nothing charged.
+- [ ] Paid/waived rows show no Pay button.
+- [ ] A parent only sees their OWN dues (RLS); the checkout endpoint rejects a
+      dues id that isn't theirs (403).
+
+**Blocked on credentials:** needs the club's live Stripe keys
+(`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`) wired in. Without them the Pay
+button returns a clean "Stripe is not configured yet" error. Dues rows are
+normally created by an admin/import; for QC, insert sample rows in Supabase.
+
+---
+
 ## Cross-cutting QC (run once an environment is up)
 
 - [ ] `npm run build` passes (currently green).
