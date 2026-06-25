@@ -37,19 +37,10 @@ export async function completeOnboarding(values: OnboardingInput): Promise<Actio
 
   const { phone, smsOptIn, athletes } = parsed.data
 
-  const { error: profileError } = await supabase
-    .from('profiles')
-    .update({
-      phone: phone || null,
-      sms_opt_in: smsOptIn,
-      sms_opt_in_at: smsOptIn ? new Date().toISOString() : null,
-      consent_text: smsOptIn ? SMS_CONSENT_TEXT : null,
-      onboarding_completed_at: new Date().toISOString(),
-    })
-    .eq('id', auth.user.id)
-
-  if (profileError) return { ok: false, error: profileError.message }
-
+  // Insert athletes BEFORE stamping onboarding_completed_at. If this write
+  // fails, the parent stays un-onboarded and middleware keeps them on this
+  // page for a clean retry — rather than being flagged complete with no
+  // athletes on file (which onboarding exists to prevent).
   const { error: athletesError } = await supabase.from('athletes').insert(
     athletes.map((a) => ({
       parent_id: auth.user.id,
@@ -64,6 +55,19 @@ export async function completeOnboarding(values: OnboardingInput): Promise<Actio
   )
 
   if (athletesError) return { ok: false, error: athletesError.message }
+
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .update({
+      phone: phone || null,
+      sms_opt_in: smsOptIn,
+      sms_opt_in_at: smsOptIn ? new Date().toISOString() : null,
+      consent_text: smsOptIn ? SMS_CONSENT_TEXT : null,
+      onboarding_completed_at: new Date().toISOString(),
+    })
+    .eq('id', auth.user.id)
+
+  if (profileError) return { ok: false, error: profileError.message }
 
   revalidatePath('/dashboard')
   return { ok: true }
