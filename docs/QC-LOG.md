@@ -111,6 +111,51 @@ amount, contact, active status, website link). (Editing is a follow-up.)
 
 ---
 
+## Section 5 — Parent athlete detail view (`/athletes`)
+
+**What was built:** "My Athletes" now shows a detail card per wrestler on the
+parent's roster — practice group, date of birth (with computed age), weight
+class, shirt size, USA Wrestling card #, active/inactive. Read-only; editing
+stays with admins for now.
+
+**QC — testable now:**
+- [ ] A parent with athletes sees one card each, oldest-added first.
+- [ ] Every field renders; blanks show "—" rather than empty.
+- [ ] Age is computed correctly from date of birth (check one before/after a
+      birthday boundary).
+- [ ] A parent with no athletes sees the empty state.
+- [ ] A parent only ever sees their OWN athletes (RLS) — never another family's.
+
+---
+
+## Section 6 — Parent tournament browse + registration (`/tournaments`)
+
+**What was built:** Upcoming tournaments (today forward, Chicago time, soonest
+first) with date, location, weigh-in/start details, status, and notes.
+- Tournaments with an external registration URL show a "Register on
+  [platform]" link out.
+- Open internal tournaments show inline per-athlete **Register / Withdraw**
+  controls wired to the existing registrations backend.
+- Closed/cancelled internal tournaments show "Registration is closed."
+
+**QC — testable now (needs sample tournaments):**
+- [ ] Create an OPEN internal tournament (no external URL) in admin → it shows
+      on the parent page with Register buttons for each active athlete.
+- [ ] Register an athlete → button flips to a "registered" badge + Withdraw.
+- [ ] Withdraw → flips back to a "Register again" button; re-registering works
+      (idempotent, no duplicate-key error).
+- [ ] Create a tournament WITH an external URL → parent sees the external link,
+      no inline register controls.
+- [ ] Set a tournament to closed/cancelled → parent sees "Registration is
+      closed/cancelled," no register buttons.
+- [ ] Past-dated tournaments do NOT appear (upcoming-only filter).
+- [ ] A parent with no athletes sees "Add an athlete to your roster first."
+- [ ] Attempting to register for a closed or external tournament via a stale
+      page is rejected server-side with a clear message.
+- [ ] A parent can't register another family's athlete (ownership check + RLS).
+
+---
+
 ## Cross-cutting QC (run once an environment is up)
 
 - [ ] `npm run build` passes (currently green).
