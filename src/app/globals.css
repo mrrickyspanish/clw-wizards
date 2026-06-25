@@ -67,6 +67,22 @@
     box-shadow: 0 12px 32px -12px rgba(240, 192, 32, 0.35);
   }
 
+  /* Wizard step transition — new step slides in from the right + fades.
+     Keyed by step in React so it replays on each step change. */
+  .animate-step-in {
+    animation: step-in 0.35s ease-out;
+  }
+  @keyframes step-in {
+    from {
+      opacity: 0;
+      transform: translateX(24px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
   /* Slow zoom for hero background imagery (Ken Burns). */
   .animate-kenburns {
     animation: kenburns 24s ease-in-out infinite alternate;
@@ -92,6 +108,9 @@
     transform: none;
   }
   .animate-kenburns {
+    animation: none;
+  }
+  .animate-step-in {
     animation: none;
   }
 }
