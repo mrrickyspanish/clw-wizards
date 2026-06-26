@@ -41,7 +41,7 @@ export function SiteHeader() {
           scrolled ? 'border-b border-clw-gold/10 bg-clw-black/85 backdrop-blur-md' : 'bg-transparent'
         }`}
       >
-        <div className="mx-auto flex w-[min(96vw,1800px)] items-center justify-between py-4">
+        <div className="flex w-full items-center justify-between px-5 py-4 sm:px-8 lg:px-12 xl:px-16 2xl:px-20">
           <Link href="/" className="font-display text-2xl tracking-wide text-clw-gold">
             {ORG.shortName}
             <span className="ml-2 hidden align-middle text-xs font-body uppercase tracking-[0.2em] text-clw-gray sm:inline">
