@@ -38,68 +38,68 @@ export function SiteHeader() {
       <div ref={sentinelRef} aria-hidden className="pointer-events-none absolute left-0 top-0 h-24 w-px" />
       <header
         className={`fixed inset-x-0 top-0 z-50 transition-colors duration-300 ${
-          scrolled ? 'border-b border-clw-gold/10 bg-clw-black/80 backdrop-blur-md' : 'bg-transparent'
+          scrolled ? 'border-b border-clw-gold/10 bg-clw-black/85 backdrop-blur-md' : 'bg-transparent'
         }`}
       >
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        <Link href="/" className="font-display text-2xl tracking-wide text-clw-gold">
-          {ORG.shortName}
-          <span className="ml-2 hidden align-middle text-xs font-body uppercase tracking-[0.2em] text-clw-gray sm:inline">
-            Wrestling Club
-          </span>
-        </Link>
-
-        <nav className="hidden items-center gap-7 lg:flex">
-          {NAV_LINKS.map((link) => (
-            <a key={link.label} href={link.href} className="text-sm text-clw-white/80 transition-colors hover:text-clw-gold">
-              {link.label}
-            </a>
-          ))}
-        </nav>
-
-        <div className="hidden items-center gap-4 lg:flex">
-          <Link href="/login" className="text-sm text-clw-white/80 transition-colors hover:text-clw-gold">
-            Parent / Staff Login
+        <div className="mx-auto flex w-[min(96vw,1800px)] items-center justify-between py-4">
+          <Link href="/" className="font-display text-2xl tracking-wide text-clw-gold">
+            {ORG.shortName}
+            <span className="ml-2 hidden align-middle text-xs font-body uppercase tracking-[0.2em] text-clw-gray sm:inline">
+              Wrestling Club
+            </span>
           </Link>
-          <Button asChild size="sm">
-            <Link href="/signup">Join the Wizards</Link>
-          </Button>
-        </div>
 
-        <button
-          type="button"
-          className="text-clw-white lg:hidden"
-          onClick={() => setOpen((v) => !v)}
-          aria-label="Toggle menu"
-        >
-          {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
-      </div>
-
-      {open && (
-        <div className="border-t border-clw-gold/10 bg-clw-black/95 px-6 py-4 lg:hidden">
-          <nav className="flex flex-col gap-4">
+          <nav className="hidden items-center gap-7 lg:flex xl:gap-9">
             {NAV_LINKS.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                onClick={() => setOpen(false)}
-                className="text-clw-white/80 hover:text-clw-gold"
-              >
+              <a key={link.label} href={link.href} className="text-sm text-clw-white/80 transition-colors hover:text-clw-gold">
                 {link.label}
               </a>
             ))}
-            <div className="mt-2 flex gap-3">
-              <Button asChild variant="outline" size="sm" className="flex-1">
-                <Link href="/login">Login</Link>
-              </Button>
-              <Button asChild size="sm" className="flex-1">
-                <Link href="/signup">Join</Link>
-              </Button>
-            </div>
           </nav>
+
+          <div className="hidden items-center gap-4 lg:flex">
+            <Link href="/login" className="text-sm text-clw-white/80 transition-colors hover:text-clw-gold">
+              Parent / Staff Login
+            </Link>
+            <Button asChild size="sm" className="chamfer-sm rounded-none px-5">
+              <Link href="/signup">Join the Wizards</Link>
+            </Button>
+          </div>
+
+          <button
+            type="button"
+            className="text-clw-white lg:hidden"
+            onClick={() => setOpen((v) => !v)}
+            aria-label="Toggle menu"
+          >
+            {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
         </div>
-      )}
+
+        {open && (
+          <div className="border-t border-clw-gold/10 bg-clw-black/95 px-6 py-4 lg:hidden">
+            <nav className="flex flex-col gap-4">
+              {NAV_LINKS.map((link) => (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  onClick={() => setOpen(false)}
+                  className="text-clw-white/80 hover:text-clw-gold"
+                >
+                  {link.label}
+                </a>
+              ))}
+              <div className="mt-2 flex gap-3">
+                <Button asChild variant="outline" size="sm" className="flex-1">
+                  <Link href="/login">Login</Link>
+                </Button>
+                <Button asChild size="sm" className="flex-1">
+                  <Link href="/signup">Join</Link>
+                </Button>
+              </div>
+            </nav>
+          </div>
+        )}
       </header>
     </>
   )
