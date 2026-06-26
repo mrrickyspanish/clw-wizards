@@ -41,7 +41,7 @@ export default async function HomePage({
     <main className="min-h-screen overflow-x-hidden bg-clw-black">
       <SiteHeader />
       {donation === 'success' && (
-        <div className="mx-auto w-[min(96vw,1800px)] pt-24">
+        <div className="px-4 pt-24 sm:px-6 lg:px-8">
           <Alert className="border-clw-gold/40 bg-clw-gold/10">
             <AlertDescription className="text-clw-gold">
               Thank you for your donation. It means a lot to our wrestlers!
@@ -50,7 +50,7 @@ export default async function HomePage({
         </div>
       )}
       {donation === 'cancelled' && (
-        <div className="mx-auto w-[min(96vw,1800px)] pt-24">
+        <div className="px-4 pt-24 sm:px-6 lg:px-8">
           <Alert>
             <AlertDescription className="text-clw-gray">Donation cancelled. No payment was made.</AlertDescription>
           </Alert>
@@ -59,26 +59,24 @@ export default async function HomePage({
 
       <Hero />
 
-      <section className="bg-clw-black pb-14 pt-4 md:pb-20 md:pt-5">
-        <div className="mx-auto w-[min(96vw,1800px)]">
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-            <div id="groups" className="scroll-mt-24 lg:col-span-4">
-              <PracticeGroups />
-            </div>
-            <div id="events" className="scroll-mt-24 lg:col-span-4">
-              <UpcomingTournaments tournaments={(tournaments ?? []) as Tournament[]} />
-            </div>
-            <div id="why" className="scroll-mt-24 flex flex-col gap-4 lg:col-span-4">
-              <ClubNumbers />
-              <WhyCLW />
-            </div>
+      <section className="bg-clw-black px-3 pb-14 pt-3 sm:px-4 md:pb-20 lg:px-5 xl:px-6">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 lg:gap-4">
+          <div id="groups" className="scroll-mt-24 lg:col-span-4">
+            <PracticeGroups />
+          </div>
+          <div id="events" className="scroll-mt-24 lg:col-span-4">
+            <UpcomingTournaments tournaments={(tournaments ?? []) as Tournament[]} />
+          </div>
+          <div id="why" className="scroll-mt-24 flex flex-col gap-3 lg:col-span-4 lg:gap-4">
+            <ClubNumbers />
+            <WhyCLW />
+          </div>
 
-            <div id="sponsors" className="scroll-mt-24 lg:col-span-8">
-              <SponsorsShowcase sponsors={sponsorRows} />
-            </div>
-            <div id="donate" className="scroll-mt-24 lg:col-span-4">
-              <DonateSection />
-            </div>
+          <div id="sponsors" className="scroll-mt-24 lg:col-span-8">
+            <SponsorsShowcase sponsors={sponsorRows} />
+          </div>
+          <div id="donate" className="scroll-mt-24 lg:col-span-4">
+            <DonateSection />
           </div>
         </div>
       </section>
