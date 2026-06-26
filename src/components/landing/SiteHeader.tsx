@@ -8,7 +8,7 @@ import { ORG } from '@/config/org.config'
 import { Button } from '@/components/ui/button'
 
 const NAV_LINKS = [
-  { href: '#why', label: 'About' },
+  { href: '/about', label: 'About' },
   { href: '#groups', label: 'Practice Groups' },
   { href: '#events', label: 'Tournaments' },
   { href: '#why', label: 'Parent Portal' },

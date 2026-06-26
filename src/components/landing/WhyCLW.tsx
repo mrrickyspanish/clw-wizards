@@ -1,9 +1,9 @@
 import { CheckCircle2 } from 'lucide-react'
 
 const POINTS = [
-  'USA Wrestling certified',
-  'Experienced state-level coaching',
-  'Technique, character, and team focus',
+  'USA Wrestling certified club',
+  'IKWF & Crystal Lake Park District affiliated',
+  '501(c)(3) nonprofit, run by volunteers',
   'Family first. Wizard proud.',
 ]
 

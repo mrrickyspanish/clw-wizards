@@ -1,10 +1,10 @@
-import { Award, Trophy, UserCheck, Users } from 'lucide-react'
+import { Award, History, UserCheck, Users } from 'lucide-react'
 
 const STATS = [
   { label: 'Active wrestlers', value: '120+', icon: Users },
-  { label: 'Dedicated coaches', value: '18', icon: UserCheck },
-  { label: 'Tournament wins', value: '43', icon: Trophy },
-  { label: 'State qualifiers', value: '6', icon: Award },
+  { label: 'Years running', value: '40+', icon: History },
+  { label: 'Ages welcome', value: '5-14', icon: UserCheck },
+  { label: 'Affiliated league', value: 'IKWF', icon: Award },
 ]
 
 export function ClubNumbers() {
