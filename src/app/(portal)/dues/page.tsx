@@ -62,17 +62,17 @@ export default async function DuesPage({
       {checkout === 'success' && (
         <Alert className="border-clw-gold/40 bg-clw-gold/10">
           <AlertDescription className="text-clw-gold-ink">
-            Payment received — thank you! Your balance will update in a moment once the payment is confirmed.
+            Payment received, thank you! Your balance updates in a moment once the payment is confirmed.
           </AlertDescription>
         </Alert>
       )}
       {checkout === 'cancelled' && (
         <Alert>
-          <AlertDescription className="text-clw-gray">Checkout cancelled — no payment was made.</AlertDescription>
+          <AlertDescription className="text-clw-gray">Checkout cancelled. No payment was made.</AlertDescription>
         </Alert>
       )}
 
-      <Card className="border-clw-gold/10 bg-clw-black sm:max-w-xs">
+      <Card className="border-clw-gold/10 bg-clw-black-3 sm:max-w-xs">
         <CardHeader>
           <CardTitle className="text-sm font-medium text-clw-gray">Outstanding balance</CardTitle>
         </CardHeader>
@@ -88,7 +88,7 @@ export default async function DuesPage({
       )}
 
       {!error && rows.length === 0 && (
-        <div className="rounded-md border border-clw-gold/10 bg-clw-black p-10 text-center">
+        <div className="rounded-md border border-clw-gold/10 bg-clw-black-3 p-10 text-center">
           <p className="text-clw-gray">No dues on file yet.</p>
         </div>
       )}
@@ -100,7 +100,7 @@ export default async function DuesPage({
           const payable = PAYABLE.includes(d.status) && remaining > 0
           const dueDate = formatDate(d.due_date)
           return (
-            <Card key={d.id} className="border-clw-gold/10 bg-clw-black">
+            <Card key={d.id} className="border-clw-gold/10 bg-clw-black-3">
               <CardContent className="flex items-center justify-between gap-4 py-4">
                 <div>
                   <div className="flex items-center gap-2">

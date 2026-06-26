@@ -86,7 +86,7 @@ export default async function AthletesPage() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {rows.map((a) => (
-          <Card key={a.id} className="border-clw-gold/10 bg-clw-black">
+          <Card key={a.id} className="border-clw-gold/10 bg-clw-black-3">
             <CardHeader>
               <div className="flex items-center justify-between gap-2">
                 <CardTitle className="text-clw-white">

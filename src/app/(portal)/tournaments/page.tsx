@@ -70,14 +70,14 @@ export default async function TournamentsPage() {
       )}
 
       {!error && tournamentRows.length === 0 && (
-        <div className="rounded-md border border-clw-gold/10 bg-clw-black p-10 text-center">
+        <div className="rounded-md border border-clw-gold/10 bg-clw-black-3 p-10 text-center">
           <p className="text-clw-gray">No upcoming tournaments scheduled.</p>
         </div>
       )}
 
       <div className="space-y-4">
         {tournamentRows.map((t) => (
-          <Card key={t.id} className="border-clw-gold/10 bg-clw-black">
+          <Card key={t.id} className="border-clw-gold/10 bg-clw-black-3">
             <CardHeader>
               <div className="flex items-start justify-between gap-3">
                 <div>

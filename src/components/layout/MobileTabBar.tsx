@@ -30,8 +30,8 @@ export function MobileTabBar() {
                 }`}
               >
                 <span
-                  className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
-                    active ? 'bg-clw-gold/15' : ''
+                  className={`flex items-center justify-center rounded-full transition-all ${
+                    active ? 'h-11 w-11 bg-clw-gold/20' : 'h-9 w-9'
                   }`}
                 >
                   <Icon className="h-5 w-5" />

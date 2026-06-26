@@ -33,9 +33,10 @@
     --sidebar-accent-foreground: 0 0% 5%;
     --sidebar-border: 0 0% 16%;
 
-    /* Brand color tokens (space-separated RGB). Default = dark. The portal
-       flips these to a soft-light set under [data-theme='light']. Marketing
-       and auth pages never set data-theme, so they stay dark. */
+    /* Brand color tokens (space-separated RGB). :root = the ultra-dark
+       cinematic palette used by the public marketing + auth pages (they never
+       set data-theme). The portal always sets data-theme, so it uses the
+       slightly-lifted dark set or the soft-light set below. */
     --clw-black: 13 13 13;
     --clw-black-2: 20 20 20;
     --clw-black-3: 28 28 28;
@@ -48,15 +49,28 @@
     --card-shadow: 0 10px 28px -18px rgb(0 0 0 / 0.9);
   }
 
-  /* Soft-light theme (intentionally NOT pure white, to avoid the glare). */
+  /* Portal dark: lifted off pure black so surfaces read as layered, muted
+     text brightened for legibility. */
+  [data-theme='dark'] {
+    --clw-black: 18 18 18; /* page #121212 */
+    --clw-black-2: 26 26 28; /* canvas / rows #1A1A1C */
+    --clw-black-3: 31 31 34; /* cards #1F1F22 */
+    --clw-gold-ink: 240 192 32;
+    --clw-white: 255 255 255;
+    --clw-gray: 138 138 138; /* brighter muted text */
+    --card-shadow: 0 12px 30px rgb(0 0 0 / 0.45);
+  }
+
+  /* Soft-light: warm off-white page with white cards that float (Apple-style),
+     intentionally NOT pure white at the page level to avoid glare. */
   [data-theme='light'] {
-    --clw-black: 236 237 239; /* page: soft light grey */
-    --clw-black-2: 246 247 248; /* rows / secondary surface */
-    --clw-black-3: 252 252 253; /* cards: near-white */
+    --clw-black: 248 248 246; /* page #F8F8F6 (warm off-white) */
+    --clw-black-2: 241 241 239; /* canvas / rows */
+    --clw-black-3: 255 255 255; /* cards: white, float via shadow */
     --clw-gold-ink: 138 109 16; /* gold-as-text: darker, AA-legible on light */
     --clw-white: 26 26 30; /* "white" text -> near-black */
     --clw-gray: 90 96 106; /* muted text */
-    --card-shadow: 0 10px 26px -18px rgb(0 0 0 / 0.22);
+    --card-shadow: 0 10px 25px rgb(0 0 0 / 0.1);
   }
 }
 
