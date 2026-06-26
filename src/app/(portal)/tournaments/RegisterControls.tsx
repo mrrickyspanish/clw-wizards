@@ -55,7 +55,7 @@ export function RegisterControls({
             <span className="text-sm text-clw-white">{a.name}</span>
             {isRegistered ? (
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="border-clw-gold/40 bg-clw-gold/10 text-clw-gold">
+                <Badge variant="outline" className="border-clw-gold/40 bg-clw-gold/10 text-clw-gold-ink">
                   {reg.status}
                 </Badge>
                 <Button

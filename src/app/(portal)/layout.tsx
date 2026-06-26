@@ -4,6 +4,7 @@ import { createServerSupabase } from '@/lib/supabase/server'
 import { DashboardNav, type NavItem } from '@/components/layout/DashboardNav'
 import { MobileTopBar } from '@/components/layout/MobileTopBar'
 import { MobileTabBar } from '@/components/layout/MobileTabBar'
+import { ThemeScope } from '@/components/layout/ThemeScope'
 
 const PORTAL_NAV: NavItem[] = [
   { href: '/dashboard', label: 'Home', icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -22,7 +23,7 @@ export default async function PortalLayout({ children }: { children: React.React
     : { data: null }
 
   return (
-    <div className="flex min-h-[100dvh] bg-clw-black-2">
+    <ThemeScope className="flex min-h-[100dvh] bg-clw-black-2">
       <DashboardNav
         title="Parent Portal"
         items={PORTAL_NAV}
@@ -34,6 +35,6 @@ export default async function PortalLayout({ children }: { children: React.React
         <main className="flex-1 p-4 pb-28 md:p-8 md:pb-8">{children}</main>
       </div>
       <MobileTabBar />
-    </div>
+    </ThemeScope>
   )
 }

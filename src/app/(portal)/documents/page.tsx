@@ -17,7 +17,7 @@ function statusFor(doc: AthleteDocument | undefined): DocStatus {
 }
 
 const STATUS_STYLES: Record<DocStatus, string> = {
-  verified: 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold',
+  verified: 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold-ink',
   pending: 'border-blue-500/40 bg-blue-500/10 text-blue-400',
   missing: 'border-clw-gray/40 bg-clw-gray/10 text-clw-gray',
 }
@@ -52,7 +52,7 @@ export default async function DocumentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-display text-clw-gold">Documents</h1>
+        <h1 className="text-2xl font-display text-clw-gold-ink">Documents</h1>
         <p className="text-sm text-clw-gray">Required paperwork for each of your wrestlers.</p>
       </div>
 

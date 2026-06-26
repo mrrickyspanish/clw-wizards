@@ -61,7 +61,7 @@ export function ContactPrefsForm({
         <Button type="submit" size="sm" disabled={loading}>
           {loading ? 'Saving…' : 'Save'}
         </Button>
-        {saved && <p className="text-xs text-clw-gold">Saved</p>}
+        {saved && <p className="text-xs text-clw-gold-ink">Saved</p>}
       </div>
     </form>
   )

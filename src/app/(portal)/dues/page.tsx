@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { PayButton } from './PayButton'
 
 const STATUS_STYLES: Record<DuesPayment['status'], string> = {
-  paid: 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold',
+  paid: 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold-ink',
   partial: 'border-blue-500/40 bg-blue-500/10 text-blue-400',
   pending: 'border-clw-gray/40 bg-clw-gray/10 text-clw-gray',
   overdue: 'border-red-500/40 bg-red-500/10 text-red-400',
@@ -55,13 +55,13 @@ export default async function DuesPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-display text-clw-gold">Dues</h1>
+        <h1 className="text-2xl font-display text-clw-gold-ink">Dues</h1>
         <p className="text-sm text-clw-gray">Your club dues and payment history.</p>
       </div>
 
       {checkout === 'success' && (
         <Alert className="border-clw-gold/40 bg-clw-gold/10">
-          <AlertDescription className="text-clw-gold">
+          <AlertDescription className="text-clw-gold-ink">
             Payment received — thank you! Your balance will update in a moment once the payment is confirmed.
           </AlertDescription>
         </Alert>

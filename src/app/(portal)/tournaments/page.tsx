@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { RegisterControls, type RegistrationState } from './RegisterControls'
 
 const STATUS_STYLES: Record<Tournament['status'], string> = {
-  open: 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold',
+  open: 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold-ink',
   closed: 'border-clw-gray/40 bg-clw-gray/10 text-clw-gray',
   cancelled: 'border-red-500/40 bg-red-500/10 text-red-400',
 }
@@ -59,7 +59,7 @@ export default async function TournamentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-display text-clw-gold">Tournaments</h1>
+        <h1 className="text-2xl font-display text-clw-gold-ink">Tournaments</h1>
         <p className="text-sm text-clw-gray">Browse the schedule and register your wrestlers.</p>
       </div>
 

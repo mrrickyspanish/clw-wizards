@@ -26,7 +26,7 @@ export function MobileTabBar() {
               <Link
                 href={tab.href}
                 className={`flex flex-col items-center gap-1 py-2 text-[11px] transition-colors ${
-                  active ? 'text-clw-gold' : 'text-clw-gray'
+                  active ? 'text-clw-gold-ink' : 'text-clw-gray'
                 }`}
               >
                 <span

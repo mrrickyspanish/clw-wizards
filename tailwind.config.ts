@@ -54,14 +54,19 @@ const config: Config = {
           border: 'hsl(var(--sidebar-border))',
         },
         clw: {
-          black: '#0D0D0D',
-          'black-2': '#141414',
-          'black-3': '#1C1C1C',
-          gold: '#F0C020',
-          'gold-l': '#F5CE50',
-          'gold-dim': '#B8911A',
-          white: '#FFFFFF',
-          gray: '#6B6B6B',
+          // Themeable via CSS vars (see globals.css): default dark, with a
+          // light override under [data-theme='light'] scoped to the portal.
+          black: 'rgb(var(--clw-black) / <alpha-value>)',
+          'black-2': 'rgb(var(--clw-black-2) / <alpha-value>)',
+          'black-3': 'rgb(var(--clw-black-3) / <alpha-value>)',
+          gold: 'rgb(var(--clw-gold) / <alpha-value>)',
+          'gold-l': 'rgb(var(--clw-gold-l) / <alpha-value>)',
+          'gold-dim': 'rgb(var(--clw-gold-dim) / <alpha-value>)',
+          // Gold used as text/icon: bright gold on dark, darker gold on light
+          // (gold fails contrast as text on light surfaces).
+          'gold-ink': 'rgb(var(--clw-gold-ink) / <alpha-value>)',
+          white: 'rgb(var(--clw-white) / <alpha-value>)',
+          gray: 'rgb(var(--clw-gray) / <alpha-value>)',
         },
       },
       borderRadius: {

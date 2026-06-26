@@ -8,6 +8,7 @@ import { LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createBrowserSupabase } from '@/lib/supabase/browser'
 import { ORG } from '@/config/org.config'
+import { ThemeToggle } from './ThemeToggle'
 
 export interface NavItem {
   href: string
@@ -35,7 +36,7 @@ export function DashboardNav({ title, items, userName, role }: DashboardNavProps
   return (
     <aside className="hidden md:flex w-64 flex-col bg-clw-black border-r border-clw-gold/10">
       <div className="p-6 border-b border-clw-gold/10">
-        <p className="text-lg font-display text-clw-gold">{ORG.shortName}</p>
+        <p className="text-lg font-display text-clw-gold-ink">{ORG.shortName}</p>
         <p className="text-xs text-clw-gray">{title}</p>
       </div>
 
@@ -49,7 +50,7 @@ export function DashboardNav({ title, items, userName, role }: DashboardNavProps
               href={item.href}
               className={cn(
                 'flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                isActive ? 'bg-clw-gold/10 text-clw-gold' : 'text-clw-white/70 hover:bg-clw-gold/5 hover:text-clw-white'
+                isActive ? 'bg-clw-gold/10 text-clw-gold-ink' : 'text-clw-white/70 hover:bg-clw-gold/5 hover:text-clw-white'
               )}
             >
               {item.icon}
@@ -65,13 +66,16 @@ export function DashboardNav({ title, items, userName, role }: DashboardNavProps
             <p className="text-sm font-medium text-clw-white truncate">{userName ?? 'User'}</p>
             <p className="text-xs text-clw-gray capitalize">{role}</p>
           </div>
-          <button
-            onClick={handleSignOut}
-            className="text-clw-white/60 hover:text-clw-gold transition-colors"
-            aria-label="Sign out"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <button
+              onClick={handleSignOut}
+              className="text-clw-white/60 hover:text-clw-gold-ink transition-colors"
+              aria-label="Sign out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
     </aside>

@@ -32,6 +32,31 @@
     --sidebar-accent: 45 83% 53%;
     --sidebar-accent-foreground: 0 0% 5%;
     --sidebar-border: 0 0% 16%;
+
+    /* Brand color tokens (space-separated RGB). Default = dark. The portal
+       flips these to a soft-light set under [data-theme='light']. Marketing
+       and auth pages never set data-theme, so they stay dark. */
+    --clw-black: 13 13 13;
+    --clw-black-2: 20 20 20;
+    --clw-black-3: 28 28 28;
+    --clw-gold: 240 192 32;
+    --clw-gold-l: 245 206 80;
+    --clw-gold-dim: 184 145 26;
+    --clw-gold-ink: 240 192 32;
+    --clw-white: 255 255 255;
+    --clw-gray: 107 107 107;
+    --card-shadow: 0 10px 28px -18px rgb(0 0 0 / 0.9);
+  }
+
+  /* Soft-light theme (intentionally NOT pure white, to avoid the glare). */
+  [data-theme='light'] {
+    --clw-black: 236 237 239; /* page: soft light grey */
+    --clw-black-2: 246 247 248; /* rows / secondary surface */
+    --clw-black-3: 252 252 253; /* cards: near-white */
+    --clw-gold-ink: 138 109 16; /* gold-as-text: darker, AA-legible on light */
+    --clw-white: 26 26 30; /* "white" text -> near-black */
+    --clw-gray: 90 96 106; /* muted text */
+    --card-shadow: 0 10px 26px -18px rgb(0 0 0 / 0.22);
   }
 }
 
@@ -61,10 +86,8 @@
   /* Premium card depth: faint top highlight + vertical gradient + soft shadow,
      so cards read as raised rather than flat outlines. */
   .card-depth {
-    background-image: linear-gradient(180deg, hsl(0 0% 100% / 0.025), transparent 38%);
-    box-shadow:
-      inset 0 1px 0 hsl(0 0% 100% / 0.05),
-      0 10px 28px -18px hsl(0 0% 0% / 0.9);
+    background-image: linear-gradient(180deg, rgb(255 255 255 / 0.03), transparent 38%);
+    box-shadow: var(--card-shadow);
   }
 
   /* Card lift + gold glow on hover (the Sketchplay/HWC interaction feel). */

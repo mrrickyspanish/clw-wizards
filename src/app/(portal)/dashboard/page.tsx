@@ -135,12 +135,12 @@ export default async function ParentDashboardPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <h1 className="hidden font-display text-3xl text-clw-white md:block">
-        {greeting()}, <span className="text-clw-gold">{firstNameOf(profile?.full_name ?? null)}</span>
+        {greeting()}, <span className="text-clw-gold-ink">{firstNameOf(profile?.full_name ?? null)}</span>
       </h1>
 
       {/* HERO: next practice (the "where do I go, when") */}
       <section className="card-depth rounded-2xl border border-clw-gold/15 bg-clw-black-3 p-6">
-        <p className="text-xs font-medium uppercase tracking-[0.18em] text-clw-gold">
+        <p className="text-xs font-medium uppercase tracking-[0.18em] text-clw-gold-ink">
           {next ? 'Next practice' : nextEvent ? 'Next event' : 'Your week'}
         </p>
         {next ? (
@@ -149,7 +149,7 @@ export default async function ParentDashboardPage() {
               {next.label} · {formatTime(next.practice.start_time)}
             </p>
             <p className="mt-2 flex items-center gap-1.5 text-clw-gray">
-              <MapPin className="h-4 w-4 shrink-0 text-clw-gold" />
+              <MapPin className="h-4 w-4 shrink-0 text-clw-gold-ink" />
               {next.practice.location}
             </p>
             <p className="mt-1 text-sm text-clw-gray">{next.practice.practice_group} group</p>
@@ -182,7 +182,7 @@ export default async function ParentDashboardPage() {
             <p className="font-display text-5xl leading-none text-clw-white">
               ${(outstandingCents / 100).toFixed(0)}
             </p>
-            <span className="rounded-lg bg-clw-gold px-4 py-2 text-sm font-medium text-clw-black">Pay now</span>
+            <span className="rounded-lg bg-clw-gold px-4 py-2 text-sm font-medium text-[#0D0D0D]">Pay now</span>
           </div>
         </Link>
       )}
@@ -197,7 +197,7 @@ export default async function ParentDashboardPage() {
               href={s.href}
               className="card-depth flex flex-col gap-3 rounded-2xl border border-clw-gold/10 bg-clw-black-3 p-4 active:scale-[0.98]"
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-clw-gold/10 text-clw-gold">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-clw-gold/10 text-clw-gold-ink">
                 <Icon className="h-[18px] w-[18px]" />
               </span>
               <span>
@@ -214,7 +214,7 @@ export default async function ParentDashboardPage() {
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-medium text-clw-white">My wrestlers</h2>
           {athleteRows.length > 0 && (
-            <Link href="/athletes" className="text-sm text-clw-gold">
+            <Link href="/athletes" className="text-sm text-clw-gold-ink">
               View all
             </Link>
           )}
@@ -224,7 +224,7 @@ export default async function ParentDashboardPage() {
             {athleteRows.map((a) => (
               <li key={a.id}>
                 <Link href="/athletes" className="flex items-center gap-3 rounded-xl bg-clw-black px-3 py-3 active:bg-clw-black-2">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-clw-gold/30 font-display text-clw-gold">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-clw-gold/30 font-display text-clw-gold-ink">
                     {initials(a.first_name, a.last_name)}
                   </span>
                   <span className="min-w-0 flex-1">
@@ -252,7 +252,7 @@ export default async function ParentDashboardPage() {
       {myPractices.length > 0 && (
         <section className="card-depth rounded-2xl border border-clw-gold/10 bg-clw-black-3 p-5">
           <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-clw-white">
-            <CalendarDays className="h-4 w-4 text-clw-gold" /> This week
+            <CalendarDays className="h-4 w-4 text-clw-gold-ink" /> This week
           </h2>
           <ul className="space-y-2">
             {myPractices.map((p) => (
@@ -261,7 +261,7 @@ export default async function ParentDashboardPage() {
                   <span className="block font-medium text-clw-white">{WEEKDAYS[p.weekday]}</span>
                   <span className="block text-sm text-clw-gray">{p.location}</span>
                 </span>
-                <span className="text-sm text-clw-gold">{formatTime(p.start_time)}</span>
+                <span className="text-sm text-clw-gold-ink">{formatTime(p.start_time)}</span>
               </li>
             ))}
           </ul>
@@ -278,7 +278,7 @@ export default async function ParentDashboardPage() {
               href={a.href}
               className="card-depth flex flex-col items-center gap-2 rounded-2xl border border-clw-gold/10 bg-clw-black-3 px-3 py-4 text-center active:scale-[0.98]"
             >
-              <Icon className="h-5 w-5 text-clw-gold" />
+              <Icon className="h-5 w-5 text-clw-gold-ink" />
               <span className="text-sm text-clw-white">{a.label}</span>
             </Link>
           )

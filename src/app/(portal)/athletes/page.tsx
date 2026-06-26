@@ -44,7 +44,7 @@ export default async function AthletesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-display text-clw-gold">My Athletes</h1>
+        <h1 className="text-2xl font-display text-clw-gold-ink">My Athletes</h1>
         <p className="text-sm text-clw-gray">Your registered wrestlers and their details.</p>
       </div>
 
@@ -72,7 +72,7 @@ export default async function AthletesPage() {
                   variant="outline"
                   className={
                     a.active
-                      ? 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold'
+                      ? 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold-ink'
                       : 'border-clw-gray/40 bg-clw-gray/10 text-clw-gray'
                   }
                 >

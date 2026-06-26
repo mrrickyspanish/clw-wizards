@@ -33,17 +33,17 @@ export default async function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
-      <h1 className="hidden font-display text-3xl text-clw-gold md:block">Profile</h1>
+      <h1 className="hidden font-display text-3xl text-clw-gold-ink md:block">Profile</h1>
 
       {/* Identity */}
       <div className="flex items-center gap-4 rounded-2xl border border-clw-gold/10 bg-clw-black-3 p-5">
-        <span className="flex h-14 w-14 items-center justify-center rounded-full border border-clw-gold/30 font-display text-xl text-clw-gold">
+        <span className="flex h-14 w-14 items-center justify-center rounded-full border border-clw-gold/30 font-display text-xl text-clw-gold-ink">
           {initials(profile?.full_name ?? null)}
         </span>
         <div className="min-w-0">
           <p className="truncate font-display text-xl text-clw-white">{profile?.full_name ?? 'Wizard family'}</p>
           <p className="truncate text-sm text-clw-gray">{profile?.email ?? ''}</p>
-          <p className="mt-0.5 text-xs capitalize text-clw-gold">{profile?.role ?? 'parent'}</p>
+          <p className="mt-0.5 text-xs capitalize text-clw-gold-ink">{profile?.role ?? 'parent'}</p>
         </div>
       </div>
 
@@ -60,7 +60,7 @@ export default async function ProfilePage() {
               }`}
             >
               <span className="flex items-center gap-3 text-clw-white">
-                <Icon className="h-5 w-5 text-clw-gold" /> {link.label}
+                <Icon className="h-5 w-5 text-clw-gold-ink" /> {link.label}
               </span>
               <ChevronRight className="h-5 w-5 text-clw-gray" />
             </Link>
