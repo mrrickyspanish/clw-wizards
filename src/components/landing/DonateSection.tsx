@@ -47,15 +47,15 @@ export function DonateSection() {
   }
 
   return (
-    <div className="chamfer-md card-depth flex h-full flex-col border border-clw-gold/20 bg-clw-black-2 p-7">
+    <div className="chamfer-md card-depth flex h-full flex-col border border-clw-gold/20 bg-clw-black-2 p-5 sm:p-7">
       <div className="flex items-center gap-3">
         <HandCoins className="h-6 w-6 text-clw-gold-ink" />
-        <h2 className="font-display text-4xl uppercase tracking-wide text-clw-white">Support the Wizards</h2>
+        <h2 className="font-display text-3xl uppercase tracking-wide text-clw-white sm:text-4xl">Support the Wizards</h2>
       </div>
       <p className="mt-1 text-base leading-relaxed text-clw-gray">Every gift goes straight back to the wrestlers.</p>
 
-      <form onSubmit={handleSubmit} className="mt-5 flex flex-1 flex-col">
-        <div className="grid grid-cols-5 gap-2.5">
+      <form onSubmit={handleSubmit} className="mt-5 flex flex-1 flex-col gap-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
           {PRESETS.map((preset) => (
             <button
               key={preset}
@@ -78,8 +78,8 @@ export function DonateSection() {
             onClick={() => setShowCustom(true)}
             className={
               showCustom
-                ? 'rounded-md border border-clw-gold bg-clw-gold/15 py-3 text-base font-semibold text-clw-gold'
-                : 'rounded-md border border-clw-gold/20 py-3 text-base text-clw-gray hover:border-clw-gold/50 hover:text-clw-gold'
+                ? 'col-span-2 rounded-md border border-clw-gold bg-clw-gold/15 py-3 text-base font-semibold text-clw-gold sm:col-span-1'
+                : 'col-span-2 rounded-md border border-clw-gold/20 py-3 text-base text-clw-gray hover:border-clw-gold/50 hover:text-clw-gold sm:col-span-1'
             }
           >
             Other
@@ -95,13 +95,13 @@ export function DonateSection() {
             placeholder="Amount (USD)"
             value={custom}
             onChange={(e) => setCustom(e.target.value)}
-            className="mt-3 text-base"
+            className="text-base"
           />
         )}
 
-        {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+        {error && <p className="text-sm text-red-400">{error}</p>}
 
-        <Button type="submit" disabled={loading} className="chamfer-sm mt-auto h-12 w-full rounded-none text-base font-semibold">
+        <Button type="submit" disabled={loading} className="chamfer-sm h-12 w-full rounded-none text-base font-semibold">
           {loading ? 'Starting checkout...' : `Donate $${effectiveDollars || 0}`}
         </Button>
       </form>
