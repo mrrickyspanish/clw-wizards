@@ -1,50 +1,42 @@
+import Link from 'next/link'
+
 import { ORG } from '@/config/org.config'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Reveal } from './Reveal'
 
-// Short blurbs per group; falls back to a generic line for any group without
-// one so adding a group in config never leaves an empty card.
 const GROUP_BLURBS: Record<string, string> = {
-  Black: 'Our most competitive group: experienced wrestlers training for travel and high-level tournaments.',
-  Gold: 'Developing competitors building technique and mat time at regional events.',
-  White: 'New and younger wrestlers learning the fundamentals in a fun, encouraging setting.',
-  'Wizard for Life': 'Alumni and lifelong members who keep the Wizards community going.',
-}
-
-// Left-edge accent per group for visual variation (taste rule 4.7), tied to
-// each group's own name where it maps to a color.
-const GROUP_ACCENTS: Record<string, string> = {
-  Black: 'border-l-clw-white/40',
-  Gold: 'border-l-clw-gold',
-  White: 'border-l-clw-white',
-  'Wizard for Life': 'border-l-clw-gold/50',
+  Black: 'Advanced travel group.',
+  Gold: 'Developing competitors.',
+  White: 'Foundations and fundamentals.',
+  'Wizard for Life': 'Alumni and lifelong members.',
 }
 
 export function PracticeGroups() {
   return (
-    <section id="groups" className="scroll-mt-20 border-b border-clw-gold/10 bg-clw-black">
-      <div className="mx-auto max-w-5xl px-6 py-16 md:py-24">
-        <Reveal>
-          <h2 className="font-display text-4xl text-clw-gold">Practice groups</h2>
-          <p className="mt-2 text-clw-gray">A place for every wrestler, whatever their level.</p>
-        </Reveal>
-        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {ORG.practiceGroups.map((group, i) => (
-            <Reveal key={group} delay={i * 80}>
-              <Card className={`lift h-full border-l-4 border-clw-gold/10 bg-clw-black-2 ${GROUP_ACCENTS[group] ?? 'border-l-clw-gold'}`}>
-                <CardHeader>
-                  <CardTitle className="text-clw-white">{group}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-clw-gray">
-                    {GROUP_BLURBS[group] ?? 'A training group within the club.'}
-                  </p>
-                </CardContent>
-              </Card>
-            </Reveal>
-          ))}
-        </div>
+    <div className="chamfer-md card-depth flex h-full min-h-[390px] flex-col border border-clw-gold/20 bg-clw-black-2 p-7">
+      <h2 className="font-display text-4xl uppercase tracking-wide text-clw-white">Practice groups</h2>
+      <p className="mt-1 text-base leading-relaxed text-clw-gray">A place for every level.</p>
+
+      <div className="mt-6 space-y-2.5">
+        {ORG.practiceGroups.map((group) => (
+          <Link
+            key={group}
+            href="/signup"
+            className="group flex items-center gap-4 rounded-md border border-clw-gold/20 bg-clw-black/55 px-4 py-4 transition-colors hover:border-clw-gold/50 hover:bg-clw-black/80"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-clw-gold/15 text-clw-gold-ink">●</span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-base font-semibold leading-tight text-clw-white">{group}</span>
+              <span className="mt-0.5 block truncate text-sm leading-snug text-clw-gray">
+                {GROUP_BLURBS[group] ?? 'Training group.'}
+              </span>
+            </span>
+            <span className="text-clw-gray group-hover:text-clw-gold">›</span>
+          </Link>
+        ))}
       </div>
-    </section>
+
+      <Link href="/signup" className="mt-auto inline-flex items-center gap-2 pt-6 text-sm font-semibold uppercase tracking-[0.16em] text-clw-gold hover:text-clw-gold-l">
+        View all groups ›
+      </Link>
+    </div>
   )
 }
