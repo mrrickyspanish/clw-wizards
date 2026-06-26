@@ -61,8 +61,8 @@ export default async function HomePage({
       <Hero />
       <ProgramIntro />
 
-      <section className="bg-clw-black px-3 pb-14 pt-3 sm:px-4 md:pb-20 lg:px-5 xl:px-6">
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 lg:gap-4">
+      <section className="bg-clw-black px-5 pb-14 pt-3 sm:px-8 md:pb-20 lg:px-12 xl:px-16 2xl:px-20">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 lg:items-start lg:gap-4">
           <div id="groups" className="scroll-mt-24 lg:col-span-4">
             <PracticeGroups />
           </div>
