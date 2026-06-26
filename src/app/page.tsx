@@ -3,6 +3,7 @@ import { chicagoDateString } from '@/lib/chicago-time'
 import type { Tournament, Sponsor } from '@/types/database'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Hero } from '@/components/landing/Hero'
+import { ProgramIntro } from '@/components/landing/ProgramIntro'
 import { PracticeGroups } from '@/components/landing/PracticeGroups'
 import { UpcomingTournaments } from '@/components/landing/UpcomingTournaments'
 import { ClubNumbers } from '@/components/landing/ClubNumbers'
@@ -58,6 +59,7 @@ export default async function HomePage({
       )}
 
       <Hero />
+      <ProgramIntro />
 
       <section className="bg-clw-black px-3 pb-14 pt-3 sm:px-4 md:pb-20 lg:px-5 xl:px-6">
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 lg:gap-4">
