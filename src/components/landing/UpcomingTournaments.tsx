@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 
 import type { Tournament } from '@/types/database'
@@ -20,9 +21,9 @@ export function UpcomingTournaments({ tournaments }: { tournaments: Tournament[]
           <h2 className="font-display text-3xl uppercase tracking-wide text-clw-white">Upcoming events</h2>
           <p className="mt-1 text-sm text-clw-gray">The next stops on the schedule.</p>
         </div>
-        <a href="/login" className="hidden text-xs font-semibold uppercase tracking-[0.14em] text-clw-gold hover:text-clw-gold-l sm:block">
+        <Link href="/login" className="hidden text-xs font-semibold uppercase tracking-[0.14em] text-clw-gold hover:text-clw-gold-l sm:block">
           View all
-        </a>
+        </Link>
       </div>
 
       {rows.length === 0 ? (
