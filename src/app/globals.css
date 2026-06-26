@@ -58,6 +58,15 @@
     transform: none;
   }
 
+  /* Premium card depth: faint top highlight + vertical gradient + soft shadow,
+     so cards read as raised rather than flat outlines. */
+  .card-depth {
+    background-image: linear-gradient(180deg, hsl(0 0% 100% / 0.025), transparent 38%);
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.05),
+      0 10px 28px -18px hsl(0 0% 0% / 0.9);
+  }
+
   /* Card lift + gold glow on hover (the Sketchplay/HWC interaction feel). */
   .lift {
     transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out;
