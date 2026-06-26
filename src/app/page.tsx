@@ -38,10 +38,10 @@ export default async function HomePage({
   const sponsorRows = (sponsors ?? []) as Sponsor[]
 
   return (
-    <main className="min-h-screen bg-clw-black">
+    <main className="min-h-screen overflow-x-hidden bg-clw-black">
       <SiteHeader />
       {donation === 'success' && (
-        <div className="mx-auto max-w-5xl px-6 pt-24">
+        <div className="mx-auto w-[min(96vw,1800px)] pt-24">
           <Alert className="border-clw-gold/40 bg-clw-gold/10">
             <AlertDescription className="text-clw-gold">
               Thank you for your donation. It means a lot to our wrestlers!
@@ -50,7 +50,7 @@ export default async function HomePage({
         </div>
       )}
       {donation === 'cancelled' && (
-        <div className="mx-auto max-w-5xl px-6 pt-24">
+        <div className="mx-auto w-[min(96vw,1800px)] pt-24">
           <Alert>
             <AlertDescription className="text-clw-gray">Donation cancelled. No payment was made.</AlertDescription>
           </Alert>
@@ -59,26 +59,24 @@ export default async function HomePage({
 
       <Hero />
 
-      <section className="bg-clw-black">
-        <div className="mx-auto max-w-7xl px-6 py-10 md:py-14">
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+      <section className="bg-clw-black pb-14 pt-4 md:pb-20 md:pt-5">
+        <div className="mx-auto w-[min(96vw,1800px)]">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
             <div id="groups" className="scroll-mt-24 lg:col-span-4">
               <PracticeGroups />
             </div>
             <div id="events" className="scroll-mt-24 lg:col-span-4">
               <UpcomingTournaments tournaments={(tournaments ?? []) as Tournament[]} />
             </div>
-            <div id="why" className="scroll-mt-24 flex flex-col gap-5 lg:col-span-4">
+            <div id="why" className="scroll-mt-24 flex flex-col gap-4 lg:col-span-4">
               <ClubNumbers />
               <WhyCLW />
             </div>
 
-            {sponsorRows.length > 0 && (
-              <div className="lg:col-span-8">
-                <SponsorsShowcase sponsors={sponsorRows} />
-              </div>
-            )}
-            <div id="donate" className={`scroll-mt-24 ${sponsorRows.length > 0 ? 'lg:col-span-4' : 'lg:col-span-6'}`}>
+            <div id="sponsors" className="scroll-mt-24 lg:col-span-8">
+              <SponsorsShowcase sponsors={sponsorRows} />
+            </div>
+            <div id="donate" className="scroll-mt-24 lg:col-span-4">
               <DonateSection />
             </div>
           </div>
