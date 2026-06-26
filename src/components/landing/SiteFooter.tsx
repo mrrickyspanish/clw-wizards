@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Facebook } from 'lucide-react'
 
 import { ORG } from '@/config/org.config'
 
@@ -21,6 +22,17 @@ export function SiteFooter() {
             Contact
           </a>
         </nav>
+        {ORG.social.facebook && (
+          <a
+            href={ORG.social.facebook}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Crystal Lake Wizards on Facebook"
+            className="text-clw-gray hover:text-clw-gold"
+          >
+            <Facebook className="h-5 w-5" />
+          </a>
+        )}
         <p>
           <a href={`mailto:${ORG.contactEmail}`} className="hover:text-clw-gold">
             {ORG.contactEmail}
