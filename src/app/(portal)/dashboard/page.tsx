@@ -10,6 +10,8 @@ import {
   Upload,
   Mail,
   CheckCircle2,
+  UserPlus,
+  Plus,
 } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
@@ -120,8 +122,11 @@ export default async function ParentDashboardPage() {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 4)
 
+  const noAthletes = athleteRows.length === 0
   const stats = [
-    { href: '/athletes', label: 'Wrestlers', value: String(athleteRows.length), icon: Users },
+    noAthletes
+      ? { href: '/athletes/new', label: 'Add wrestler', value: '+', icon: UserPlus }
+      : { href: '/athletes', label: 'Wrestlers', value: String(athleteRows.length), icon: Users },
     { href: '/tournaments', label: 'Events', value: String(upcoming.length), icon: Trophy },
     { href: '/documents', label: 'Documents', value: String(docCount ?? 0), icon: FolderOpen },
   ]
@@ -242,9 +247,15 @@ export default async function ParentDashboardPage() {
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-clw-gray">
-            No wrestlers on file yet. Add them during setup, or ask a club admin to help.
-          </p>
+          <div>
+            <p className="text-sm text-clw-gray">Add your wrestler to register for practices, events, and dues.</p>
+            <Link
+              href="/athletes/new"
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-clw-gold px-4 py-2 text-sm font-medium text-[#0D0D0D]"
+            >
+              <Plus className="h-4 w-4" /> Add wrestler
+            </Link>
+          </div>
         )}
       </section>
 

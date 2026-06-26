@@ -1,6 +1,10 @@
+import Link from 'next/link'
+import { Plus, UserPlus } from 'lucide-react'
+
 import { createServerSupabase } from '@/lib/supabase/server'
 import type { Athlete } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 function formatDate(value: string) {
@@ -43,9 +47,18 @@ export default async function AthletesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-display text-clw-gold-ink">My Athletes</h1>
-        <p className="text-sm text-clw-gray">Your registered wrestlers and their details.</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-display text-clw-gold-ink">My Athletes</h1>
+          <p className="text-sm text-clw-gray">Your registered wrestlers and their details.</p>
+        </div>
+        {rows.length > 0 && (
+          <Button asChild size="sm">
+            <Link href="/athletes/new">
+              <Plus className="mr-1.5 h-4 w-4" /> Add wrestler
+            </Link>
+          </Button>
+        )}
       </div>
 
       {error && (
@@ -55,8 +68,19 @@ export default async function AthletesPage() {
       )}
 
       {!error && rows.length === 0 && (
-        <div className="rounded-md border border-clw-gold/10 bg-clw-black p-10 text-center">
-          <p className="text-clw-gray">No athletes on file yet.</p>
+        <div className="card-depth rounded-2xl border border-clw-gold/10 bg-clw-black-3 p-10 text-center">
+          <span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-clw-gold/10 text-clw-gold-ink">
+            <UserPlus className="h-6 w-6" />
+          </span>
+          <p className="font-medium text-clw-white">No wrestlers added yet</p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-clw-gray">
+            Add your first wrestler to register for practices and tournaments and to upload their documents.
+          </p>
+          <Button asChild className="mt-5">
+            <Link href="/athletes/new">
+              <Plus className="mr-1.5 h-4 w-4" /> Add wrestler
+            </Link>
+          </Button>
         </div>
       )}
 
@@ -98,7 +122,7 @@ export default async function AthletesPage() {
 
       {rows.length > 0 && (
         <p className="text-xs text-clw-gray/70">
-          Need to update an athlete or add another? Contact a club admin — self-service editing is coming in a follow-up build.
+          Need to edit a wrestler&apos;s details? Contact a club admin. Self-service editing is coming in a follow-up build.
         </p>
       )}
     </div>
