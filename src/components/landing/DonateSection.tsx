@@ -52,7 +52,7 @@ export function DonateSection() {
       }
       window.location.href = data.url
     } catch {
-      setError('Network error — please try again.')
+      setError('Network error. Please try again.')
       setLoading(false)
     }
   }

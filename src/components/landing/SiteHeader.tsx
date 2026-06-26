@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Menu, X } from 'lucide-react'
 
 import { ORG } from '@/config/org.config'
@@ -17,20 +17,29 @@ const NAV_LINKS = [
 export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
+  const sentinelRef = useRef<HTMLDivElement>(null)
 
+  // Detect "scrolled past the top" via IntersectionObserver on a sentinel at
+  // the document top (no scroll listener; see taste rules 5.D).
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24)
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    const el = sentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(([entry]) => setScrolled(!entry.isIntersecting), {
+      rootMargin: '0px',
+      threshold: 0,
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
   }, [])
 
   return (
-    <header
-      className={`fixed inset-x-0 top-0 z-50 transition-colors duration-300 ${
-        scrolled ? 'border-b border-clw-gold/10 bg-clw-black/80 backdrop-blur-md' : 'bg-transparent'
-      }`}
-    >
+    <>
+      <div ref={sentinelRef} aria-hidden className="pointer-events-none absolute left-0 top-0 h-24 w-px" />
+      <header
+        className={`fixed inset-x-0 top-0 z-50 transition-colors duration-300 ${
+          scrolled ? 'border-b border-clw-gold/10 bg-clw-black/80 backdrop-blur-md' : 'bg-transparent'
+        }`}
+      >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <Link href="/" className="font-display text-2xl tracking-wide text-clw-gold">
           {ORG.shortName}
@@ -90,6 +99,7 @@ export function SiteHeader() {
           </nav>
         </div>
       )}
-    </header>
+      </header>
+    </>
   )
 }

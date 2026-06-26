@@ -19,7 +19,7 @@ export function UpcomingTournaments({ tournaments }: { tournaments: Tournament[]
           <h2 className="font-display text-4xl text-clw-gold">Upcoming tournaments</h2>
         </Reveal>
         {tournaments.length === 0 ? (
-          <p className="mt-4 text-clw-gray">No upcoming tournaments are posted right now — check back soon.</p>
+          <p className="mt-4 text-clw-gray">No upcoming tournaments are posted right now. Check back soon.</p>
         ) : (
           <div className="mt-8 space-y-3">
             {tournaments.map((t, i) => (

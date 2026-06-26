@@ -95,6 +95,28 @@
       transform: scale(1.12);
     }
   }
+
+  /* Sponsor "lazy river": a continuous logo marquee. The track holds two
+     identical copies of the list; translating it -50% loops seamlessly.
+     Pauses on hover; edge-fades via mask. */
+  .marquee-track {
+    animation: marquee 38s linear infinite;
+  }
+  .marquee-group:hover .marquee-track {
+    animation-play-state: paused;
+  }
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  .marquee-mask {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+    mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+  }
 }
 
 /* Honor users who prefer no motion. */
@@ -111,6 +133,9 @@
     animation: none;
   }
   .animate-step-in {
+    animation: none;
+  }
+  .marquee-track {
     animation: none;
   }
 }

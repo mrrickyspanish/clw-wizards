@@ -20,7 +20,7 @@ export default async function HomePage({
   const supabase = await createServerSupabase()
   const today = chicagoDateString()
 
-  // Public reads — tournaments (public_read) and active sponsors
+  // Public reads: tournaments (public_read) and active sponsors
   // (public_read_active_sponsors) need no auth.
   const [{ data: tournaments }, { data: sponsors }] = await Promise.all([
     supabase
@@ -40,7 +40,7 @@ export default async function HomePage({
         <div className="mx-auto max-w-5xl px-6 pt-24">
           <Alert className="border-clw-gold/40 bg-clw-gold/10">
             <AlertDescription className="text-clw-gold">
-              Thank you for your donation — it means a lot to our wrestlers!
+              Thank you for your donation. It means a lot to our wrestlers!
             </AlertDescription>
           </Alert>
         </div>
@@ -48,7 +48,7 @@ export default async function HomePage({
       {donation === 'cancelled' && (
         <div className="mx-auto max-w-5xl px-6 pt-24">
           <Alert>
-            <AlertDescription className="text-clw-gray">Donation cancelled — no payment was made.</AlertDescription>
+            <AlertDescription className="text-clw-gray">Donation cancelled. No payment was made.</AlertDescription>
           </Alert>
         </div>
       )}

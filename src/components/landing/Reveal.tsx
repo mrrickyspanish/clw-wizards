@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 /**
  * Wraps content in a scroll-reveal: hidden + nudged down until it scrolls into
- * view, then eases in once. Pure IntersectionObserver — no animation library.
+ * view, then eases in once. Pure IntersectionObserver, no animation library.
  * `delay` (ms) staggers siblings; reduced-motion is handled in globals.css.
  */
 export function Reveal({
