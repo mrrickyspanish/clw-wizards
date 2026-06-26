@@ -262,9 +262,14 @@ export default async function ParentDashboardPage() {
       {/* THIS WEEK */}
       {myPractices.length > 0 && (
         <section className="card-depth rounded-2xl border border-clw-gold/10 bg-clw-black-3 p-5">
-          <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-clw-white">
-            <CalendarDays className="h-4 w-4 text-clw-gold-ink" /> This week
-          </h2>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-sm font-medium text-clw-white">
+              <CalendarDays className="h-4 w-4 text-clw-gold-ink" /> This week
+            </h2>
+            <Link href="/schedule" className="text-sm text-clw-gold-ink">
+              Full schedule
+            </Link>
+          </div>
           <ul className="space-y-2">
             {myPractices.map((p) => (
               <li key={p.id} className="flex items-center justify-between rounded-xl bg-clw-black px-3 py-3">

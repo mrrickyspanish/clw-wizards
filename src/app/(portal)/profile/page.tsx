@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { FolderOpen, Users, ChevronRight } from 'lucide-react'
+import { FolderOpen, Users, ChevronRight, CalendarDays } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { ContactPrefsForm } from '../dashboard/ContactPrefsForm'
@@ -17,6 +17,7 @@ function initials(name: string | null): string {
 
 const LINKS = [
   { href: '/athletes', label: 'My wrestlers', icon: Users },
+  { href: '/schedule', label: 'Weekly schedule', icon: CalendarDays },
   { href: '/documents', label: 'Documents', icon: FolderOpen },
 ]
 
