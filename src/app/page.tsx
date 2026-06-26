@@ -3,9 +3,10 @@ import { chicagoDateString } from '@/lib/chicago-time'
 import type { Tournament, Sponsor } from '@/types/database'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Hero } from '@/components/landing/Hero'
-import { About } from '@/components/landing/About'
 import { PracticeGroups } from '@/components/landing/PracticeGroups'
 import { UpcomingTournaments } from '@/components/landing/UpcomingTournaments'
+import { ClubNumbers } from '@/components/landing/ClubNumbers'
+import { WhyCLW } from '@/components/landing/WhyCLW'
 import { SponsorsShowcase } from '@/components/landing/SponsorsShowcase'
 import { DonateSection } from '@/components/landing/DonateSection'
 import { SiteFooter } from '@/components/landing/SiteFooter'
@@ -34,6 +35,8 @@ export default async function HomePage({
     supabase.from('sponsors').select('*').eq('active', true),
   ])
 
+  const sponsorRows = (sponsors ?? []) as Sponsor[]
+
   return (
     <main className="min-h-screen bg-clw-black">
       <SiteHeader />
@@ -55,11 +58,33 @@ export default async function HomePage({
       )}
 
       <Hero />
-      <About />
-      <PracticeGroups />
-      <UpcomingTournaments tournaments={(tournaments ?? []) as Tournament[]} />
-      <SponsorsShowcase sponsors={(sponsors ?? []) as Sponsor[]} />
-      <DonateSection />
+
+      <section className="bg-clw-black">
+        <div className="mx-auto max-w-7xl px-6 py-10 md:py-14">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+            <div id="groups" className="scroll-mt-24 lg:col-span-4">
+              <PracticeGroups />
+            </div>
+            <div id="events" className="scroll-mt-24 lg:col-span-4">
+              <UpcomingTournaments tournaments={(tournaments ?? []) as Tournament[]} />
+            </div>
+            <div id="why" className="scroll-mt-24 flex flex-col gap-5 lg:col-span-4">
+              <ClubNumbers />
+              <WhyCLW />
+            </div>
+
+            {sponsorRows.length > 0 && (
+              <div className="lg:col-span-8">
+                <SponsorsShowcase sponsors={sponsorRows} />
+              </div>
+            )}
+            <div id="donate" className={`scroll-mt-24 ${sponsorRows.length > 0 ? 'lg:col-span-4' : 'lg:col-span-6'}`}>
+              <DonateSection />
+            </div>
+          </div>
+        </div>
+      </section>
+
       <SiteFooter />
 
       {/* Spacer so the footer clears the sticky mobile CTA bar. */}

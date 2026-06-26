@@ -8,9 +8,10 @@ import { ORG } from '@/config/org.config'
 import { Button } from '@/components/ui/button'
 
 const NAV_LINKS = [
-  { href: '#about', label: 'About' },
+  { href: '#why', label: 'About' },
   { href: '#groups', label: 'Practice Groups' },
-  { href: '#tournaments', label: 'Tournaments' },
+  { href: '#events', label: 'Tournaments' },
+  { href: '#why', label: 'Parent Portal' },
   { href: '#donate', label: 'Support' },
 ]
 
@@ -40,7 +41,7 @@ export function SiteHeader() {
           scrolled ? 'border-b border-clw-gold/10 bg-clw-black/80 backdrop-blur-md' : 'bg-transparent'
         }`}
       >
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         <Link href="/" className="font-display text-2xl tracking-wide text-clw-gold">
           {ORG.shortName}
           <span className="ml-2 hidden align-middle text-xs font-body uppercase tracking-[0.2em] text-clw-gray sm:inline">
@@ -48,17 +49,17 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-8 md:flex">
+        <nav className="hidden items-center gap-7 lg:flex">
           {NAV_LINKS.map((link) => (
-            <a key={link.href} href={link.href} className="text-sm text-clw-white/80 transition-colors hover:text-clw-gold">
+            <a key={link.label} href={link.href} className="text-sm text-clw-white/80 transition-colors hover:text-clw-gold">
               {link.label}
             </a>
           ))}
         </nav>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-4 lg:flex">
           <Link href="/login" className="text-sm text-clw-white/80 transition-colors hover:text-clw-gold">
-            Sign in
+            Parent / Staff Login
           </Link>
           <Button asChild size="sm">
             <Link href="/signup">Join the Wizards</Link>
@@ -67,7 +68,7 @@ export function SiteHeader() {
 
         <button
           type="button"
-          className="text-clw-white md:hidden"
+          className="text-clw-white lg:hidden"
           onClick={() => setOpen((v) => !v)}
           aria-label="Toggle menu"
         >
@@ -76,11 +77,11 @@ export function SiteHeader() {
       </div>
 
       {open && (
-        <div className="border-t border-clw-gold/10 bg-clw-black/95 px-6 py-4 md:hidden">
+        <div className="border-t border-clw-gold/10 bg-clw-black/95 px-6 py-4 lg:hidden">
           <nav className="flex flex-col gap-4">
             {NAV_LINKS.map((link) => (
               <a
-                key={link.href}
+                key={link.label}
                 href={link.href}
                 onClick={() => setOpen(false)}
                 className="text-clw-white/80 hover:text-clw-gold"
@@ -90,7 +91,7 @@ export function SiteHeader() {
             ))}
             <div className="mt-2 flex gap-3">
               <Button asChild variant="outline" size="sm" className="flex-1">
-                <Link href="/login">Sign in</Link>
+                <Link href="/login">Login</Link>
               </Button>
               <Button asChild size="sm" className="flex-1">
                 <Link href="/signup">Join</Link>

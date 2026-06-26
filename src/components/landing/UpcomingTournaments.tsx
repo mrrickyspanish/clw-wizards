@@ -1,48 +1,47 @@
 import type { Tournament } from '@/types/database'
-import { Card, CardContent } from '@/components/ui/card'
-import { Reveal } from './Reveal'
 
-function formatDate(value: string) {
-  return new Date(`${value}T00:00:00`).toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
+function dayParts(value: string) {
+  const d = new Date(`${value}T00:00:00`)
+  return {
+    month: d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(),
+    day: d.toLocaleDateString('en-US', { day: 'numeric' }),
+  }
 }
 
 export function UpcomingTournaments({ tournaments }: { tournaments: Tournament[] }) {
+  const rows = tournaments.slice(0, 3)
+
   return (
-    <section id="tournaments" className="scroll-mt-20 border-b border-clw-gold/10 bg-clw-black-2">
-      <div className="mx-auto max-w-5xl px-6 py-16 md:py-24">
-        <Reveal>
-          <h2 className="font-display text-4xl text-clw-gold">Upcoming tournaments</h2>
-        </Reveal>
-        {tournaments.length === 0 ? (
-          <p className="mt-4 text-clw-gray">No upcoming tournaments are posted right now. Check back soon.</p>
-        ) : (
-          <div className="mt-8 space-y-3">
-            {tournaments.map((t, i) => (
-              <Reveal key={t.id} delay={i * 70}>
-              <Card className="lift border-clw-gold/10 bg-clw-black">
-                <CardContent className="flex flex-wrap items-center justify-between gap-2 py-4">
-                  <div>
-                    <p className="font-medium text-clw-white">{t.name}</p>
-                    <p className="text-sm text-clw-gray">
-                      {t.location}, {t.city}, {t.state}
-                    </p>
-                  </div>
-                  <p className="text-sm text-clw-gold">{formatDate(t.date)}</p>
-                </CardContent>
-              </Card>
-              </Reveal>
-            ))}
-          </div>
-        )}
-        <p className="mt-6 text-sm text-clw-gray">
-          Members can register from the <span className="text-clw-gold">parent portal</span> after signing in.
-        </p>
-      </div>
-    </section>
+    <div className="chamfer-md card-depth flex h-full flex-col border border-clw-gold/10 bg-clw-black-2 p-6">
+      <h2 className="font-display text-2xl uppercase tracking-wide text-clw-white">Upcoming events</h2>
+      <p className="mt-1 text-sm text-clw-gray">The next stops on the schedule.</p>
+
+      {rows.length === 0 ? (
+        <p className="mt-6 text-sm text-clw-gray">Nothing on the calendar yet. Check back soon.</p>
+      ) : (
+        <div className="mt-5 flex-1 space-y-2">
+          {rows.map((t) => {
+            const { month, day } = dayParts(t.date)
+            return (
+              <div
+                key={t.id}
+                className="flex items-center gap-3 rounded-md border border-clw-gold/10 bg-clw-black/40 px-3 py-3"
+              >
+                <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-md bg-clw-gold/10">
+                  <span className="font-cond text-[0.65rem] uppercase tracking-wide text-clw-gold-ink">{month}</span>
+                  <span className="font-display text-lg leading-none text-clw-white">{day}</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-clw-white">{t.name}</p>
+                  <p className="truncate text-xs text-clw-gray">
+                    {t.location}, {t.city}
+                  </p>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
   )
 }

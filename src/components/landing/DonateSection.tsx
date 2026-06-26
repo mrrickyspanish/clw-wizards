@@ -1,33 +1,28 @@
 'use client'
 
 import { useState, type FormEvent } from 'react'
+import { HandCoins } from 'lucide-react'
 
-import { ORG } from '@/config/org.config'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
 
 const PRESETS = [25, 50, 100, 250]
 
 export function DonateSection() {
   const [amount, setAmount] = useState<number>(50)
   const [custom, setCustom] = useState('')
-  const [recurring, setRecurring] = useState(false)
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
+  const [showCustom, setShowCustom] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // A non-empty custom amount wins over the preset selection.
-  const effectiveDollars = custom.trim() ? Number(custom) : amount
+  const effectiveDollars = showCustom ? Number(custom) : amount
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
 
     if (!Number.isFinite(effectiveDollars) || effectiveDollars < 1) {
-      setError('Enter a donation amount of at least $1.')
+      setError('Enter an amount of at least $1.')
       return
     }
 
@@ -36,13 +31,7 @@ export function DonateSection() {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          flow: 'donation',
-          amountCents: Math.round(effectiveDollars * 100),
-          recurring,
-          donorName: name || undefined,
-          donorEmail: email || undefined,
-        }),
+        body: JSON.stringify({ flow: 'donation', amountCents: Math.round(effectiveDollars * 100) }),
       })
       const data = await res.json()
       if (!res.ok || !data.url) {
@@ -58,70 +47,64 @@ export function DonateSection() {
   }
 
   return (
-    <section id="donate" className="border-b border-clw-gold/10 bg-clw-black-2">
-      <div className="mx-auto max-w-2xl px-6 py-16 md:py-20">
-        <h2 className="font-display text-3xl text-clw-gold">Support the club</h2>
-        <p className="mt-2 text-clw-gray">
-          Donations help keep {ORG.shortName} affordable and growing. Every bit goes back to the wrestlers.
-        </p>
-
-        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-          <div className="flex flex-wrap gap-2">
-            {PRESETS.map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => {
-                  setAmount(preset)
-                  setCustom('')
-                }}
-                className={
-                  !custom.trim() && amount === preset
-                    ? 'rounded-md border border-clw-gold bg-clw-gold/10 px-4 py-2 text-sm font-medium text-clw-gold'
-                    : 'rounded-md border border-clw-gold/20 px-4 py-2 text-sm text-clw-gray hover:text-clw-gold'
-                }
-              >
-                ${preset}
-              </button>
-            ))}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="custom">Or enter an amount</Label>
-            <Input
-              id="custom"
-              type="number"
-              min="1"
-              step="1"
-              placeholder="Custom amount (USD)"
-              value={custom}
-              onChange={(e) => setCustom(e.target.value)}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="donorName">Name (optional)</Label>
-              <Input id="donorName" value={name} onChange={(e) => setName(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="donorEmail">Email (optional)</Label>
-              <Input id="donorEmail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-            </div>
-          </div>
-
-          <label className="flex items-center gap-2 text-sm text-clw-gray">
-            <Checkbox checked={recurring} onCheckedChange={(checked) => setRecurring(checked === true)} />
-            Make this a monthly donation
-          </label>
-
-          {error && <p className="text-sm text-red-400">{error}</p>}
-
-          <Button type="submit" size="lg" disabled={loading}>
-            {loading ? 'Starting checkout…' : `Donate $${effectiveDollars || 0}${recurring ? '/mo' : ''}`}
-          </Button>
-        </form>
+    <div className="chamfer-md card-depth flex h-full flex-col border border-clw-gold/10 bg-clw-black-2 p-6">
+      <div className="flex items-center gap-2">
+        <HandCoins className="h-5 w-5 text-clw-gold-ink" />
+        <h2 className="font-display text-2xl uppercase tracking-wide text-clw-white">Support the Wizards</h2>
       </div>
-    </section>
+      <p className="mt-1 text-sm text-clw-gray">Every gift goes straight back to the wrestlers.</p>
+
+      <form onSubmit={handleSubmit} className="mt-4 flex flex-1 flex-col">
+        <div className="grid grid-cols-5 gap-2">
+          {PRESETS.map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              onClick={() => {
+                setAmount(preset)
+                setShowCustom(false)
+              }}
+              className={
+                !showCustom && amount === preset
+                  ? 'rounded-md border border-clw-gold bg-clw-gold/10 py-2 text-sm font-medium text-clw-gold'
+                  : 'rounded-md border border-clw-gold/15 py-2 text-sm text-clw-gray hover:border-clw-gold/40 hover:text-clw-gold'
+              }
+            >
+              ${preset}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setShowCustom(true)}
+            className={
+              showCustom
+                ? 'rounded-md border border-clw-gold bg-clw-gold/10 py-2 text-sm font-medium text-clw-gold'
+                : 'rounded-md border border-clw-gold/15 py-2 text-sm text-clw-gray hover:border-clw-gold/40 hover:text-clw-gold'
+            }
+          >
+            Other
+          </button>
+        </div>
+
+        {showCustom && (
+          <Input
+            type="number"
+            min="1"
+            step="1"
+            autoFocus
+            placeholder="Amount (USD)"
+            value={custom}
+            onChange={(e) => setCustom(e.target.value)}
+            className="mt-3"
+          />
+        )}
+
+        {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
+
+        <Button type="submit" disabled={loading} className="chamfer-sm mt-auto w-full rounded-none">
+          {loading ? 'Starting checkout…' : `Donate $${effectiveDollars || 0}`}
+        </Button>
+      </form>
+    </div>
   )
 }

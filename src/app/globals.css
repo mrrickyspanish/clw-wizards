@@ -163,6 +163,20 @@
     -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
     mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
   }
+
+  /* Chamfered (cut-corner) panels: industrial-athletic edge, not a rounded
+     SaaS card and not a sci-fi beveled one. Three sizes by panel weight —
+     lg for the hero feature panel, md for bento card chrome, sm for the two
+     hero CTAs. Border/background follow the same clip path. */
+  .chamfer-lg {
+    clip-path: polygon(0 0, calc(100% - 32px) 0, 100% 32px, 100% 100%, 32px 100%, 0 calc(100% - 32px));
+  }
+  .chamfer-md {
+    clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+  }
+  .chamfer-sm {
+    clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 9px 100%, 0 calc(100% - 9px));
+  }
 }
 
 /* Honor users who prefer no motion. */
