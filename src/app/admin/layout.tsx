@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Trophy, Megaphone, HandCoins, Handshake } from 'lucide-react'
+import { LayoutDashboard, Users, Trophy, Megaphone, HandCoins, Handshake, CalendarClock } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { DashboardNav, type NavItem } from '@/components/layout/DashboardNav'
@@ -7,6 +7,7 @@ const ADMIN_NAV: NavItem[] = [
   { href: '/admin', label: 'Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
   { href: '/admin/families', label: 'Families', icon: <Users className="w-4 h-4" /> },
   { href: '/admin/tournaments', label: 'Tournaments', icon: <Trophy className="w-4 h-4" /> },
+  { href: '/admin/practices', label: 'Practices', icon: <CalendarClock className="w-4 h-4" /> },
   { href: '/admin/dues', label: 'Dues', icon: <HandCoins className="w-4 h-4" /> },
   { href: '/admin/sponsors', label: 'Sponsors', icon: <Handshake className="w-4 h-4" /> },
   { href: '/admin/communications', label: 'Communications', icon: <Megaphone className="w-4 h-4" /> },

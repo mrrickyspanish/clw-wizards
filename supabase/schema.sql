@@ -211,6 +211,21 @@ CREATE TABLE public.donations (
 );
 ALTER TABLE public.donations ENABLE ROW LEVEL SECURITY;
 
+-- practices (recurring weekly schedule) -------------------------------------
+CREATE TABLE public.practices (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  practice_group TEXT NOT NULL,
+  weekday SMALLINT NOT NULL CHECK (weekday BETWEEN 0 AND 6), -- 0 = Sunday ... 6 = Saturday
+  start_time TEXT NOT NULL, -- 'HH:MM' 24-hour
+  end_time TEXT,            -- 'HH:MM' 24-hour, optional
+  location TEXT NOT NULL,
+  notes TEXT,
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE public.practices ENABLE ROW LEVEL SECURITY;
+
 -- ============================================================================
 -- Functions that depend on the tables above
 -- ============================================================================
@@ -244,6 +259,8 @@ CREATE TRIGGER update_tournaments_updated_at BEFORE UPDATE ON public.tournaments
 CREATE TRIGGER update_dues_payments_updated_at BEFORE UPDATE ON public.dues_payments
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 CREATE TRIGGER update_sponsors_updated_at BEFORE UPDATE ON public.sponsors
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+CREATE TRIGGER update_practices_updated_at BEFORE UPDATE ON public.practices
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users
@@ -316,6 +333,12 @@ CREATE POLICY "admin_write_athlete_docs" ON public.athlete_documents
 -- donations (writes are service-role only, by design)
 CREATE POLICY "admin_read_donations" ON public.donations
   FOR SELECT USING (public.has_role(auth.uid(), 'admin'));
+
+-- practices (public schedule, admin-managed)
+CREATE POLICY "public_read_practices" ON public.practices
+  FOR SELECT USING (true);
+CREATE POLICY "admin_write_practices" ON public.practices
+  FOR ALL USING (public.has_role(auth.uid(), 'admin'));
 
 -- ============================================================================
 -- Storage: private bucket for athlete documents (birth certs, USAW cards)

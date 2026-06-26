@@ -32,3 +32,22 @@ export function chicagoHour(now: Date = new Date()): number {
   }).formatToParts(now)
   return Number(parts.find((p) => p.type === 'hour')?.value ?? 0) % 24
 }
+
+/** Day of week in Chicago time: 0 = Sunday ... 6 = Saturday. */
+export function chicagoWeekday(now: Date = new Date()): number {
+  const short = new Intl.DateTimeFormat('en-US', { timeZone: TIMEZONE, weekday: 'short' }).format(now)
+  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(short)
+}
+
+/** Minutes since midnight in Chicago time (DST-safe). */
+export function chicagoMinutesSinceMidnight(now: Date = new Date()): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: TIMEZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(now)
+  const h = Number(parts.find((p) => p.type === 'hour')?.value ?? 0) % 24
+  const m = Number(parts.find((p) => p.type === 'minute')?.value ?? 0)
+  return h * 60 + m
+}

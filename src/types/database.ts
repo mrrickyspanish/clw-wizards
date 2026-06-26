@@ -141,6 +141,19 @@ export type AthleteDocument = {
   uploaded_at: string
 }
 
+export type Practice = {
+  id: string
+  practice_group: string
+  weekday: number
+  start_time: string
+  end_time: string | null
+  location: string
+  notes: string | null
+  active: boolean
+  created_at: string
+  updated_at: string
+}
+
 export type Donation = {
   id: string
   donor_name: string | null
@@ -210,6 +223,12 @@ export type Database = {
         Row: Donation
         Insert: Partial<Donation>
         Update: Partial<Donation>
+        Relationships: []
+      }
+      practices: {
+        Row: Practice
+        Insert: Partial<Practice>
+        Update: Partial<Practice>
         Relationships: []
       }
     }
