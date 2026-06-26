@@ -65,7 +65,7 @@ export default async function SponsorshipPage() {
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {SPONSOR_TIERS.map((tier) => (
             <div key={tier.name} className="chamfer-md card-depth border border-clw-gold/10 bg-clw-black-2 p-5">
-              <p className="font-cond text-xs uppercase tracking-[0.2em] text-clw-gold-ink">{tier.name} Sponsor</p>
+              <p className="font-cond text-sm uppercase tracking-[0.2em] text-clw-gold-ink">{tier.name} Sponsor</p>
               <p className="mt-2 font-display text-3xl text-clw-white">{tier.amount}</p>
             </div>
           ))}
@@ -77,9 +77,9 @@ export default async function SponsorshipPage() {
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {GOLF_TIERS.map((tier) => (
             <div key={tier.name} className="chamfer-md card-depth flex flex-col border border-clw-gold/10 bg-clw-black-2 p-5">
-              <p className="font-cond text-xs uppercase tracking-[0.2em] text-clw-gold-ink">{tier.name}</p>
+              <p className="font-cond text-sm uppercase tracking-[0.2em] text-clw-gold-ink">{tier.name}</p>
               <p className="mt-2 font-display text-3xl text-clw-white">{tier.amount}</p>
-              <p className="mt-3 flex-1 text-xs leading-relaxed text-clw-gray">{tier.includes}</p>
+              <p className="mt-3 flex-1 text-base leading-relaxed text-clw-gray">{tier.includes}</p>
             </div>
           ))}
         </div>
@@ -90,7 +90,7 @@ export default async function SponsorshipPage() {
           <HandHeart className="h-6 w-6 shrink-0 text-clw-gold-ink" />
           <div>
             <p className="font-display text-xl uppercase tracking-wide text-clw-white">Become a sponsor</p>
-            <p className="text-sm text-clw-gray">Reach out and we&apos;ll get you set up for this season.</p>
+            <p className="text-base text-clw-gray">Reach out and we&apos;ll get you set up for this season.</p>
           </div>
         </div>
         <Button asChild size="lg" className="chamfer-sm w-full rounded-none sm:w-auto">

@@ -30,7 +30,7 @@ export function PracticeGroups() {
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-base font-semibold leading-tight text-clw-white">{group}</span>
-              <span className="mt-0.5 block truncate text-sm leading-snug text-clw-gray">
+              <span className="mt-0.5 block truncate text-base leading-snug text-clw-gray">
                 {GROUP_BLURBS[group] ?? 'A training group within the club.'}
               </span>
             </span>

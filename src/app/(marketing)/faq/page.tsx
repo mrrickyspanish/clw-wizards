@@ -60,7 +60,7 @@ export default function FaqPage() {
               <AccordionTrigger className="text-left text-clw-white hover:no-underline hover:text-clw-gold">
                 {q}
               </AccordionTrigger>
-              <AccordionContent className="text-sm leading-relaxed text-clw-gray">{a}</AccordionContent>
+              <AccordionContent className="text-base leading-relaxed text-clw-gray">{a}</AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>

@@ -19,7 +19,7 @@ export function WhyCLW() {
           </li>
         ))}
       </ul>
-      <p className="mt-5 border-t border-clw-gold/15 pt-5 text-sm leading-relaxed text-clw-gray">
+      <p className="mt-5 border-t border-clw-gold/15 pt-5 text-base leading-relaxed text-clw-gray">
         Families register, manage wrestlers, and handle dues from one parent portal.
       </p>
     </div>

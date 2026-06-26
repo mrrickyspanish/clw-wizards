@@ -46,7 +46,7 @@ export function UpcomingTournaments({ tournaments }: { tournaments: Tournament[]
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-base font-semibold leading-tight text-clw-white">{t.name}</p>
-                  <p className="mt-0.5 truncate text-sm text-clw-gray">
+                  <p className="mt-0.5 truncate text-base text-clw-gray">
                     {t.location}, {t.city}
                   </p>
                 </div>
@@ -57,7 +57,7 @@ export function UpcomingTournaments({ tournaments }: { tournaments: Tournament[]
         </div>
       )}
 
-      <p className="mt-auto border-t border-clw-gold/15 pt-5 text-sm leading-relaxed text-clw-gray">
+      <p className="mt-auto border-t border-clw-gold/15 pt-5 text-base leading-relaxed text-clw-gray">
         Members register and manage event details from the parent portal.
       </p>
     </div>
