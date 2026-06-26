@@ -39,7 +39,7 @@ export function UpcomingTournaments({ tournaments }: { tournaments: Tournament[]
                 key={t.id}
                 className="group flex items-center gap-3 rounded-md border border-clw-gold/10 bg-clw-black/40 px-3.5 py-3.5 transition-colors hover:border-clw-gold/40 hover:bg-clw-black/70"
               >
-                <div className="flex h-13 w-13 shrink-0 flex-col items-center justify-center rounded-md bg-clw-gold/10 px-3 py-2">
+                <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-md bg-clw-gold/10 px-3 py-2">
                   <span className="font-cond text-[0.65rem] uppercase tracking-wide text-clw-gold-ink">{month}</span>
                   <span className="font-display text-xl leading-none text-clw-white">{day}</span>
                 </div>
