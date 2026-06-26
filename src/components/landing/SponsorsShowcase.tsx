@@ -44,7 +44,7 @@ export function SponsorsShowcase({ sponsors }: { sponsors: Sponsor[] }) {
   const track = [...sponsors, ...sponsors]
 
   return (
-    <section id="sponsors" className="scroll-mt-20 border-b border-clw-gold/10 bg-clw-black py-24">
+    <section id="sponsors" className="scroll-mt-20 border-b border-clw-gold/10 bg-clw-black py-16 md:py-24">
       <Reveal className="mx-auto max-w-5xl px-6">
         <h2 className="font-display text-4xl text-clw-gold">Our sponsors</h2>
         <p className="mt-2 text-clw-gray">Thank you to the businesses that back our wrestlers.</p>

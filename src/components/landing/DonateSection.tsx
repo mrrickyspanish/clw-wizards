@@ -59,7 +59,7 @@ export function DonateSection() {
 
   return (
     <section id="donate" className="border-b border-clw-gold/10 bg-clw-black-2">
-      <div className="mx-auto max-w-2xl px-6 py-20">
+      <div className="mx-auto max-w-2xl px-6 py-16 md:py-20">
         <h2 className="font-display text-3xl text-clw-gold">Support the club</h2>
         <p className="mt-2 text-clw-gray">
           Donations help keep {ORG.shortName} affordable and growing. Every bit goes back to the wrestlers.

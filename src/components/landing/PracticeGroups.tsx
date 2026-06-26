@@ -23,7 +23,7 @@ const GROUP_ACCENTS: Record<string, string> = {
 export function PracticeGroups() {
   return (
     <section id="groups" className="scroll-mt-20 border-b border-clw-gold/10 bg-clw-black">
-      <div className="mx-auto max-w-5xl px-6 py-24">
+      <div className="mx-auto max-w-5xl px-6 py-16 md:py-24">
         <Reveal>
           <h2 className="font-display text-4xl text-clw-gold">Practice groups</h2>
           <p className="mt-2 text-clw-gray">A place for every wrestler, whatever their level.</p>

@@ -14,7 +14,7 @@ function formatDate(value: string) {
 export function UpcomingTournaments({ tournaments }: { tournaments: Tournament[] }) {
   return (
     <section id="tournaments" className="scroll-mt-20 border-b border-clw-gold/10 bg-clw-black-2">
-      <div className="mx-auto max-w-5xl px-6 py-24">
+      <div className="mx-auto max-w-5xl px-6 py-16 md:py-24">
         <Reveal>
           <h2 className="font-display text-4xl text-clw-gold">Upcoming tournaments</h2>
         </Reveal>

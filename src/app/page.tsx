@@ -9,6 +9,7 @@ import { UpcomingTournaments } from '@/components/landing/UpcomingTournaments'
 import { SponsorsShowcase } from '@/components/landing/SponsorsShowcase'
 import { DonateSection } from '@/components/landing/DonateSection'
 import { SiteFooter } from '@/components/landing/SiteFooter'
+import { MobileCtaBar } from '@/components/landing/MobileCtaBar'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 export default async function HomePage({
@@ -60,6 +61,10 @@ export default async function HomePage({
       <SponsorsShowcase sponsors={(sponsors ?? []) as Sponsor[]} />
       <DonateSection />
       <SiteFooter />
+
+      {/* Spacer so the footer clears the sticky mobile CTA bar. */}
+      <div className="h-24 md:hidden" />
+      <MobileCtaBar />
     </main>
   )
 }

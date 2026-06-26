@@ -5,7 +5,7 @@ import { Reveal } from './Reveal'
 export function About() {
   return (
     <section id="about" className="scroll-mt-20 border-b border-clw-gold/10 bg-clw-black-2">
-      <Reveal className="mx-auto max-w-4xl px-6 py-24">
+      <Reveal className="mx-auto max-w-4xl px-6 py-16 md:py-24">
         <h2 className="font-display text-4xl text-clw-gold">About the club</h2>
         <div className="mt-6 space-y-4 text-clw-gray">
           <p>
