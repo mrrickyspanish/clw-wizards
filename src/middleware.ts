@@ -5,7 +5,7 @@ import { getSessionRole, homeForRole } from '@/lib/auth/session'
 
 const PUBLIC_AUTH_PATHS = ['/login', '/signup', '/forgot-password', '/update-password']
 
-const PORTAL_PATHS = ['/dashboard', '/athletes', '/documents', '/dues', '/tournaments']
+const PORTAL_PATHS = ['/dashboard', '/athletes', '/documents', '/dues', '/tournaments', '/profile']
 const ONBOARDING_PATH = '/onboarding'
 
 function matchesPrefix(pathname: string, prefixes: string[]) {
@@ -70,6 +70,7 @@ export const config = {
     '/documents/:path*',
     '/dues/:path*',
     '/tournaments/:path*',
+    '/profile/:path*',
     '/onboarding',
   ],
 }

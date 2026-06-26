@@ -1,7 +1,13 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Bebas_Neue, Barlow, Barlow_Condensed } from 'next/font/google'
 import { ORG } from '@/config/org.config'
 import './globals.css'
+
+// viewport-fit=cover lets the mobile portal use env(safe-area-inset-*) so the
+// top bar clears the notch and the bottom tab bar clears the home indicator.
+export const viewport: Viewport = {
+  viewportFit: 'cover',
+}
 
 const bebasNeue = Bebas_Neue({
   subsets: ['latin'],

@@ -1,12 +1,9 @@
 import Link from 'next/link'
-import { CalendarDays, Users, Wallet, ArrowRight } from 'lucide-react'
+import { CalendarDays, Users, Wallet, Trophy, FolderOpen, ArrowRight, ChevronRight } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { chicagoDateString } from '@/lib/chicago-time'
 import type { Tournament, TournamentRegistration } from '@/types/database'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { ContactPrefsForm } from './ContactPrefsForm'
 
 function formatDate(value: string) {
   return new Date(`${value}T00:00:00`).toLocaleDateString('en-US', {
@@ -16,133 +13,170 @@ function formatDate(value: string) {
   })
 }
 
+type Tile = {
+  href: string
+  label: string
+  value: string
+  icon: typeof Users
+  tint: string
+}
+
+function StatTile({ tile }: { tile: Tile }) {
+  const Icon = tile.icon
+  return (
+    <Link
+      href={tile.href}
+      className="lift flex flex-col gap-3 rounded-2xl border border-clw-gold/10 bg-clw-black-3 p-4 active:scale-[0.98]"
+    >
+      <span className={`flex h-9 w-9 items-center justify-center rounded-full ${tile.tint}`}>
+        <Icon className="h-5 w-5" />
+      </span>
+      <span>
+        <span className="block font-display text-3xl leading-none text-clw-white">{tile.value}</span>
+        <span className="mt-1 block text-sm text-clw-gray">{tile.label}</span>
+      </span>
+    </Link>
+  )
+}
+
 export default async function ParentDashboardPage() {
   const supabase = await createServerSupabase()
   const { data: auth } = await supabase.auth.getUser()
   const userId = auth.user?.id ?? ''
   const today = chicagoDateString()
 
-  const [{ data: athletes }, { data: dues }, { data: profile }, { data: regs }] = await Promise.all([
+  const [{ data: athletes }, { data: dues }, { data: regs }, { count: docCount }] = await Promise.all([
     supabase.from('athletes').select('id, first_name, last_name, practice_group').eq('parent_id', userId),
     supabase
       .from('dues_payments')
       .select('amount_cents, amount_paid_cents')
       .eq('parent_id', userId)
       .in('status', ['pending', 'partial', 'overdue']),
-    supabase.from('profiles').select('phone, sms_opt_in').eq('id', userId).single(),
     supabase
       .from('tournament_registrations')
       .select('tournament_id, status')
       .eq('parent_id', userId)
       .in('status', ['registered', 'confirmed']),
+    supabase.from('athlete_documents').select('id', { count: 'exact', head: true }).eq('parent_id', userId),
   ])
 
   const outstandingCents = (dues ?? []).reduce((sum, d) => sum + (d.amount_cents - d.amount_paid_cents), 0)
+  const athleteRows = athletes ?? []
 
-  // Next upcoming tournament this family is registered for (today forward).
   const registeredIds = [
     ...new Set(((regs ?? []) as Pick<TournamentRegistration, 'tournament_id'>[]).map((r) => r.tournament_id)),
   ]
-  let nextEvent: Pick<Tournament, 'id' | 'name' | 'date' | 'city' | 'state'> | null = null
+  let upcoming: Pick<Tournament, 'id' | 'name' | 'date' | 'city' | 'state'>[] = []
   if (registeredIds.length) {
-    const { data: upcoming } = await supabase
+    const { data } = await supabase
       .from('tournaments')
       .select('id, name, date, city, state')
       .in('id', registeredIds)
       .gte('date', today)
       .order('date', { ascending: true })
-      .limit(1)
-    nextEvent = (upcoming ?? [])[0] ?? null
+    upcoming = data ?? []
   }
+  const nextEvent = upcoming[0] ?? null
+
+  const tiles: Tile[] = [
+    {
+      href: '/athletes',
+      label: 'Wrestlers',
+      value: String(athleteRows.length),
+      icon: Users,
+      tint: 'bg-clw-gold/15 text-clw-gold',
+    },
+    {
+      href: '/dues',
+      label: 'Dues balance',
+      value: `$${(outstandingCents / 100).toFixed(0)}`,
+      icon: Wallet,
+      tint: outstandingCents > 0 ? 'bg-red-500/15 text-red-400' : 'bg-emerald-500/15 text-emerald-400',
+    },
+    {
+      href: '/tournaments',
+      label: 'Registered events',
+      value: String(upcoming.length),
+      icon: Trophy,
+      tint: 'bg-sky-500/15 text-sky-400',
+    },
+    {
+      href: '/documents',
+      label: 'Docs on file',
+      value: String(docCount ?? 0),
+      icon: FolderOpen,
+      tint: 'bg-violet-500/15 text-violet-400',
+    },
+  ]
 
   return (
-    <div className="space-y-6">
-      <h1 className="font-display text-3xl text-clw-gold">Welcome back</h1>
+    <div className="mx-auto max-w-3xl space-y-5">
+      {/* Redundant with the mobile top bar; shown on desktop only. */}
+      <h1 className="hidden font-display text-3xl text-clw-gold md:block">Welcome back</h1>
 
-      {/* Top row: the two things a parent comes here to check — what's next, what's owed. */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card className="lift border-l-4 border-l-clw-gold border-clw-gold/10 bg-clw-black">
-          <CardHeader className="flex flex-row items-center gap-2 space-y-0">
-            <CalendarDays className="h-4 w-4 text-clw-gold" />
-            <CardTitle className="text-sm font-medium text-clw-gray">Next up</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {nextEvent ? (
-              <>
-                <p className="text-lg font-medium text-clw-white">{nextEvent.name}</p>
-                <p className="mt-1 text-sm text-clw-gray">
-                  {formatDate(nextEvent.date)} · {nextEvent.city}, {nextEvent.state}
-                </p>
-              </>
-            ) : (
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm text-clw-gray">No upcoming registrations.</p>
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/tournaments">
-                    Browse <ArrowRight className="ml-1 h-3 w-3" />
-                  </Link>
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card
-          className={`lift border-l-4 border-clw-gold/10 bg-clw-black ${
-            outstandingCents > 0 ? 'border-l-red-500' : 'border-l-clw-gold'
-          }`}
-        >
-          <CardHeader className="flex flex-row items-center gap-2 space-y-0">
-            <Wallet className="h-4 w-4 text-clw-gold" />
-            <CardTitle className="text-sm font-medium text-clw-gray">Dues balance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-end justify-between gap-2">
-              <div>
-                <p className="text-3xl font-display text-clw-white">${(outstandingCents / 100).toFixed(2)}</p>
-                <p className="mt-1 text-xs text-clw-gray">Outstanding balance</p>
-              </div>
-              {outstandingCents > 0 && (
-                <Button asChild size="sm">
-                  <Link href="/dues">Pay now</Link>
-                </Button>
-              )}
+      {/* Hero: next event */}
+      <Link
+        href="/tournaments"
+        className="lift block rounded-2xl border border-clw-gold/20 bg-gradient-to-br from-clw-black-2 to-clw-black p-5 active:scale-[0.99]"
+      >
+        <div className="flex items-center gap-2 text-clw-gold">
+          <CalendarDays className="h-4 w-4" />
+          <span className="text-sm font-medium uppercase tracking-wide">Next up</span>
+        </div>
+        {nextEvent ? (
+          <div className="mt-3 flex items-end justify-between gap-3">
+            <div>
+              <p className="font-display text-2xl text-clw-white">{nextEvent.name}</p>
+              <p className="mt-1 text-sm text-clw-gray">
+                {formatDate(nextEvent.date)} · {nextEvent.city}, {nextEvent.state}
+              </p>
             </div>
-          </CardContent>
-        </Card>
+            <ChevronRight className="h-5 w-5 shrink-0 text-clw-gold" />
+          </div>
+        ) : (
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <p className="text-clw-gray">No upcoming registrations.</p>
+            <span className="inline-flex items-center gap-1 text-sm font-medium text-clw-gold">
+              Browse <ArrowRight className="h-4 w-4" />
+            </span>
+          </div>
+        )}
+      </Link>
+
+      {/* Quick stats */}
+      <div className="grid grid-cols-2 gap-3">
+        {tiles.map((tile) => (
+          <StatTile key={tile.href} tile={tile} />
+        ))}
       </div>
 
-      <Card className="lift border-clw-gold/10 bg-clw-black">
-        <CardHeader className="flex flex-row items-center gap-2 space-y-0">
-          <Users className="h-4 w-4 text-clw-gold" />
-          <CardTitle className="text-sm font-medium text-clw-gray">My wrestlers</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {athletes?.length ? (
-            <ul className="space-y-1 text-clw-white">
-              {athletes.map((a) => (
-                <li key={a.id} className="flex items-center justify-between">
-                  <span>
-                    {a.first_name} {a.last_name}
-                  </span>
-                  <span className="text-sm text-clw-gray">{a.practice_group}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-clw-gray">No athletes on file yet.</p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="border-clw-gold/10 bg-clw-black sm:max-w-md">
-        <CardHeader>
-          <CardTitle className="text-sm font-medium text-clw-gray">Contact & SMS preferences</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ContactPrefsForm initialPhone={profile?.phone ?? null} initialSmsOptIn={profile?.sms_opt_in ?? false} />
-        </CardContent>
-      </Card>
+      {/* My wrestlers */}
+      <div className="rounded-2xl border border-clw-gold/10 bg-clw-black-3 p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-sm font-medium text-clw-gray">
+            <Users className="h-4 w-4 text-clw-gold" /> My wrestlers
+          </h2>
+          <Link href="/athletes" className="text-sm text-clw-gold">
+            View all
+          </Link>
+        </div>
+        {athleteRows.length ? (
+          <ul className="space-y-2">
+            {athleteRows.map((a) => (
+              <li key={a.id} className="flex items-center justify-between rounded-xl bg-clw-black px-4 py-3">
+                <span className="font-medium text-clw-white">
+                  {a.first_name} {a.last_name}
+                </span>
+                <span className="rounded-full border border-clw-gold/30 px-2.5 py-0.5 text-xs text-clw-gold">
+                  {a.practice_group}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-clw-gray">No wrestlers on file yet.</p>
+        )}
+      </div>
     </div>
   )
 }

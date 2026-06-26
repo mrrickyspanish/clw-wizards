@@ -1,7 +1,9 @@
-import { LayoutDashboard, Users, FolderOpen, HandCoins, Trophy } from 'lucide-react'
+import { LayoutDashboard, Users, FolderOpen, HandCoins, Trophy, User } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { DashboardNav, type NavItem } from '@/components/layout/DashboardNav'
+import { MobileTopBar } from '@/components/layout/MobileTopBar'
+import { MobileTabBar } from '@/components/layout/MobileTabBar'
 
 const PORTAL_NAV: NavItem[] = [
   { href: '/dashboard', label: 'Home', icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -9,6 +11,7 @@ const PORTAL_NAV: NavItem[] = [
   { href: '/tournaments', label: 'Tournaments', icon: <Trophy className="w-4 h-4" /> },
   { href: '/dues', label: 'Dues', icon: <HandCoins className="w-4 h-4" /> },
   { href: '/documents', label: 'Documents', icon: <FolderOpen className="w-4 h-4" /> },
+  { href: '/profile', label: 'Profile', icon: <User className="w-4 h-4" /> },
 ]
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
@@ -19,14 +22,18 @@ export default async function PortalLayout({ children }: { children: React.React
     : { data: null }
 
   return (
-    <div className="flex min-h-screen bg-clw-black-2">
+    <div className="flex min-h-[100dvh] bg-clw-black-2">
       <DashboardNav
         title="Parent Portal"
         items={PORTAL_NAV}
         userName={profile?.full_name ?? null}
         role={profile?.role ?? null}
       />
-      <main className="flex-1 p-8">{children}</main>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <MobileTopBar name={profile?.full_name ?? null} />
+        <main className="flex-1 p-4 pb-28 md:p-8 md:pb-8">{children}</main>
+      </div>
+      <MobileTabBar />
     </div>
   )
 }
