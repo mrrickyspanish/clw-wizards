@@ -19,7 +19,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   return (
     <div className="flex min-h-screen bg-clw-black-2">
       <DashboardNav title="Staff" items={STAFF_NAV} userName={profile?.full_name ?? null} role={profile?.role ?? null} />
-      <main className="flex-1 p-8">{children}</main>
+      <main className="min-w-0 flex-1 p-4 md:p-8">{children}</main>
     </div>
   )
 }

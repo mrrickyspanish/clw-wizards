@@ -21,9 +21,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     : { data: null }
 
   return (
-    <div className="flex min-h-screen bg-clw-black-2">
+    <div className="flex min-h-[100dvh] bg-clw-black-2">
       <DashboardNav title="Admin" items={ADMIN_NAV} userName={profile?.full_name ?? null} role={profile?.role ?? null} />
-      <main className="flex-1 p-8">{children}</main>
+      <main className="min-w-0 flex-1 p-4 md:p-8">{children}</main>
     </div>
   )
 }

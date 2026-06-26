@@ -2,6 +2,7 @@ import { ExternalLink } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { chicagoDateString } from '@/lib/chicago-time'
+import { formatTime } from '@/lib/practice'
 import type { Tournament, Athlete, TournamentRegistration } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -88,8 +89,8 @@ export default async function TournamentsPage() {
                   {(t.weigh_in_date || t.weigh_in_time || t.start_time) && (
                     <p className="mt-1 text-xs text-clw-gray/70">
                       {t.weigh_in_date && `Weigh-in ${formatDate(t.weigh_in_date)}`}
-                      {t.weigh_in_time && ` at ${t.weigh_in_time}`}
-                      {t.start_time && ` · Starts ${t.start_time}`}
+                      {t.weigh_in_time && ` at ${formatTime(t.weigh_in_time)}`}
+                      {t.start_time && ` · Starts ${formatTime(t.start_time)}`}
                     </p>
                   )}
                 </div>

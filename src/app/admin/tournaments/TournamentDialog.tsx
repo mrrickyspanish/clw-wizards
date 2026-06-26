@@ -151,19 +151,14 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
             <Input id="name" required value={name} onChange={(e) => setName(e.target.value)} />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="min-w-0 space-y-2">
               <Label htmlFor="date">Date</Label>
               <Input id="date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
-            <div className="space-y-2">
+            <div className="min-w-0 space-y-2">
               <Label htmlFor="start_time">Start time</Label>
-              <Input
-                id="start_time"
-                placeholder="9:00 AM"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-              />
+              <Input id="start_time" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
             </div>
           </div>
 
@@ -183,8 +178,8 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="min-w-0 space-y-2">
               <Label htmlFor="weigh_in_date">Weigh-in date</Label>
               <Input
                 id="weigh_in_date"
@@ -193,11 +188,11 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
                 onChange={(e) => setWeighInDate(e.target.value)}
               />
             </div>
-            <div className="space-y-2">
+            <div className="min-w-0 space-y-2">
               <Label htmlFor="weigh_in_time">Weigh-in time</Label>
               <Input
                 id="weigh_in_time"
-                placeholder="7:30 AM"
+                type="time"
                 value={weighInTime}
                 onChange={(e) => setWeighInTime(e.target.value)}
               />
