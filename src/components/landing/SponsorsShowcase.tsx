@@ -1,5 +1,80 @@
 import type { Sponsor } from '@/types/database'
 
+const SPONSOR_PLACEHOLDERS: Sponsor[] = [
+  {
+    id: 'placeholder-1',
+    name: 'Sponsor Slot',
+    tier: 'yellow',
+    logo_url: null,
+    website_url: null,
+    contact_name: null,
+    contact_email: null,
+    amount_cents: null,
+    recurring: false,
+    stripe_customer_id: null,
+    stripe_subscription_id: null,
+    active: true,
+    golf_outing_hole: false,
+    notes: null,
+    created_at: '',
+    updated_at: '',
+  },
+  {
+    id: 'placeholder-2',
+    name: 'Community Partner',
+    tier: 'yellow',
+    logo_url: null,
+    website_url: null,
+    contact_name: null,
+    contact_email: null,
+    amount_cents: null,
+    recurring: false,
+    stripe_customer_id: null,
+    stripe_subscription_id: null,
+    active: true,
+    golf_outing_hole: false,
+    notes: null,
+    created_at: '',
+    updated_at: '',
+  },
+  {
+    id: 'placeholder-3',
+    name: 'Local Supporter',
+    tier: 'yellow',
+    logo_url: null,
+    website_url: null,
+    contact_name: null,
+    contact_email: null,
+    amount_cents: null,
+    recurring: false,
+    stripe_customer_id: null,
+    stripe_subscription_id: null,
+    active: true,
+    golf_outing_hole: false,
+    notes: null,
+    created_at: '',
+    updated_at: '',
+  },
+  {
+    id: 'placeholder-4',
+    name: 'Family Business',
+    tier: 'yellow',
+    logo_url: null,
+    website_url: null,
+    contact_name: null,
+    contact_email: null,
+    amount_cents: null,
+    recurring: false,
+    stripe_customer_id: null,
+    stripe_subscription_id: null,
+    active: true,
+    golf_outing_hole: false,
+    notes: null,
+    created_at: '',
+    updated_at: '',
+  },
+]
+
 // One chip per sponsor: real logo when provided, otherwise a monogram + name
 // (these are local businesses, not known brands, so a wordmark chip is the
 // honest credibility, per the logo-wall guidance).
@@ -37,14 +112,24 @@ function SponsorChip({ sponsor }: { sponsor: Sponsor }) {
 }
 
 export function SponsorsShowcase({ sponsors }: { sponsors: Sponsor[] }) {
-  if (sponsors.length === 0) return null
-
+  const hasSponsors = sponsors.length > 0
+  const sponsorList = hasSponsors ? sponsors : SPONSOR_PLACEHOLDERS
   // Two identical copies of the list make the -50% translate loop seamlessly.
-  const track = [...sponsors, ...sponsors]
+  const track = [...sponsorList, ...sponsorList]
 
   return (
-    <div className="chamfer-md card-depth flex h-full flex-col border border-clw-gold/10 bg-clw-black-2 p-6">
-      <h2 className="font-display text-2xl uppercase tracking-wide text-clw-white">Supported by our community</h2>
+    <div className="chamfer-md card-depth flex h-full min-h-[170px] flex-col border border-clw-gold/10 bg-clw-black-2 p-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="font-display text-3xl uppercase tracking-wide text-clw-white">Supported by our community</h2>
+          <p className="mt-1 text-sm text-clw-gray">
+            {hasSponsors ? 'Thank you to the businesses that back our wrestlers.' : 'Sponsor logos will live here as partners come on board.'}
+          </p>
+        </div>
+        <a href="#donate" className="hidden text-xs font-semibold uppercase tracking-[0.14em] text-clw-gold hover:text-clw-gold-l sm:block">
+          Sponsor CLW
+        </a>
+      </div>
 
       {/* The "lazy river": a continuous, edge-faded marquee that pauses on hover. */}
       <div className="marquee-group marquee-mask mt-5 flex-1 overflow-hidden">
