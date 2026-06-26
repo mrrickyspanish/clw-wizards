@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AuthBrand } from '@/components/layout/AuthBrand'
 import { ORG } from '@/config/org.config'
 
 export default function ForgotPasswordPage() {
@@ -37,7 +38,8 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-clw-black px-4">
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-clw-black px-4 py-12">
+      <AuthBrand />
       <Card className="w-full max-w-md border-clw-gold/20 bg-clw-black-2">
         <CardHeader>
           <CardTitle className="text-clw-gold">Reset your password</CardTitle>

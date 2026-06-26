@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AuthBrand } from '@/components/layout/AuthBrand'
 import { ORG } from '@/config/org.config'
 
 export default function SignupPage() {
@@ -40,7 +41,7 @@ export default function SignupPage() {
     }
 
     // handle_new_user() creates the profiles row server-side. Contact info
-    // and the athlete roster are collected afterward in /onboarding — never
+    // and the athlete roster are collected afterward in /onboarding, never
     // here, since signUp() may not return a session yet (email confirmation
     // required) and there'd be nowhere authenticated for that data to land.
     if (data.session) {
@@ -55,7 +56,8 @@ export default function SignupPage() {
 
   if (needsConfirmation) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-clw-black px-4">
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-clw-black px-4 py-12">
+        <AuthBrand />
         <Card className="w-full max-w-md border-clw-gold/20 bg-clw-black-2">
           <CardHeader>
             <CardTitle className="text-clw-gold">Check your email</CardTitle>
@@ -74,7 +76,8 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-clw-black px-4 py-12">
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-clw-black px-4 py-12">
+      <AuthBrand />
       <Card className="w-full max-w-md border-clw-gold/20 bg-clw-black-2">
         <CardHeader>
           <CardTitle className="text-clw-gold">Create your {ORG.shortName} account</CardTitle>
