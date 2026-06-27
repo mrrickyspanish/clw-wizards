@@ -4,6 +4,7 @@ import type { Tournament, Sponsor } from '@/types/database'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Hero } from '@/components/landing/Hero'
 import { ProgramIntro } from '@/components/landing/ProgramIntro'
+import { MobileActionSlideshow } from '@/components/landing/MobileActionSlideshow'
 import { PracticeGroups } from '@/components/landing/PracticeGroups'
 import { UpcomingTournaments } from '@/components/landing/UpcomingTournaments'
 import { ClubNumbers } from '@/components/landing/ClubNumbers'
@@ -60,6 +61,7 @@ export default async function HomePage({
 
       <Hero />
       <ProgramIntro />
+      <MobileActionSlideshow />
 
       <section className="bg-clw-black px-5 pb-14 pt-3 sm:px-8 md:pb-20 lg:px-12 xl:px-16 2xl:px-20">
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 lg:items-start lg:gap-4">
