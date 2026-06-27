@@ -37,8 +37,8 @@ export function Hero() {
           <p className="hidden font-cond text-sm uppercase tracking-[0.34em] text-clw-gold md:block">
             Crystal Lake Wizards Wrestling Club
           </p>
-          <h1 className="max-w-3xl font-display text-[4.5rem] uppercase leading-[0.88] text-clw-white sm:text-[5.4rem] md:mt-4 lg:text-[7.2rem] xl:text-[9.6rem]">
-            Wrestle like a <span className="text-clw-gold">Wizard</span>.
+          <h1 className="max-w-3xl font-display text-[5.625rem] uppercase leading-[0.88] text-clw-white sm:text-[6.75rem] md:mt-4 lg:text-[9rem] xl:text-[12rem]">
+            Work. Compete. <span className="text-clw-gold">Repeat.</span>
           </h1>
           <div className="mt-9 hidden gap-3 md:flex md:items-center md:gap-4">
             <Button asChild size="lg" className="chamfer-sm h-12 rounded-none px-8">
