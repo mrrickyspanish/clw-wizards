@@ -9,6 +9,7 @@ import { PracticeGroups } from '@/components/landing/PracticeGroups'
 import { UpcomingTournaments } from '@/components/landing/UpcomingTournaments'
 import { ClubNumbers } from '@/components/landing/ClubNumbers'
 import { WhyCLW } from '@/components/landing/WhyCLW'
+import { LocationCard } from '@/components/landing/LocationCard'
 import { SponsorsShowcase } from '@/components/landing/SponsorsShowcase'
 import { DonateSection } from '@/components/landing/DonateSection'
 import { SiteFooter } from '@/components/landing/SiteFooter'
@@ -74,6 +75,10 @@ export default async function HomePage({
           <div id="why" className="scroll-mt-24 flex flex-col gap-3 lg:col-span-4 lg:gap-4">
             <ClubNumbers />
             <WhyCLW />
+          </div>
+
+          <div id="location" className="scroll-mt-24 lg:col-span-12">
+            <LocationCard />
           </div>
 
           <div id="sponsors" className="scroll-mt-24 lg:col-span-8">
