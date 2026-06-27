@@ -5,6 +5,8 @@ export interface OrgConfig {
   tagline: string
   domain: string
   contactEmail: string
+  ein: string
+  mailingAddress: string
   practiceGroups: readonly string[]
   social: {
     facebook?: string
@@ -25,6 +27,8 @@ export const CRYSTAL_LAKE_WIZARDS: OrgConfig = {
   tagline: 'Crystal Lake Wizards Wrestling Club',
   domain: 'crystallakewizards.com',
   contactEmail: 'arfont37@sbcglobal.net',
+  ein: '45-5192515',
+  mailingAddress: '1807 Black Oak Drive, McHenry, IL 60050',
   practiceGroups: ['Black', 'Gold', 'White'],
   social: {
     facebook: 'https://www.facebook.com/share/1BXKLgHReZ/?mibextid=wwXIfr',
