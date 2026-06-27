@@ -40,9 +40,6 @@ export function Hero() {
           <h1 className="max-w-3xl font-display text-[4.5rem] uppercase leading-[0.88] text-clw-white sm:text-[5.4rem] md:mt-4 lg:text-[7.2rem] xl:text-[9.6rem]">
             Wrestle like a <span className="text-clw-gold">Wizard</span>.
           </h1>
-          <p className="mt-4 font-cond text-sm uppercase tracking-[0.34em] text-clw-gold md:hidden">
-            Crystal Lake Wizards Wrestling Club
-          </p>
           <div className="mt-9 hidden gap-3 md:flex md:items-center md:gap-4">
             <Button asChild size="lg" className="chamfer-sm h-12 rounded-none px-8">
               <Link href="/signup">Join the Wizards</Link>
@@ -62,6 +59,10 @@ export function Hero() {
         <span aria-hidden className="absolute left-5 top-5 h-5 w-5 border-l-2 border-t-2 border-clw-gold/50" />
         <span aria-hidden className="absolute bottom-5 right-5 h-5 w-5 border-b-2 border-r-2 border-clw-gold/50" />
       </div>
+
+      <p className="px-5 py-4 font-cond text-sm uppercase tracking-[0.34em] text-clw-gold sm:px-8 md:hidden">
+        Crystal Lake Wizards Wrestling Club
+      </p>
     </section>
   )
 }
