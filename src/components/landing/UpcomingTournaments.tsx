@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { ChevronRight } from 'lucide-react'
 
 import type { Tournament } from '@/types/database'
 
@@ -28,7 +29,7 @@ export function UpcomingTournaments({ tournaments }: { tournaments: Tournament[]
       {rows.length === 0 ? (
         <div className="mt-6 flex flex-1 flex-col justify-center rounded-md border border-dashed border-clw-gold/25 bg-clw-black/45 p-6">
           <p className="text-base font-semibold text-clw-white">No public events posted yet.</p>
-          <p className="mt-2 text-base leading-relaxed text-clw-gray">Once the schedule is live, events and parent meetings will appear here.</p>
+          <p className="mt-2 text-base leading-relaxed text-clw-gray">Once the schedule is live, tournaments, open mats, and parent meetings will appear here.</p>
         </div>
       ) : (
         <div className="mt-6 flex-1 space-y-2.5">
@@ -45,18 +46,18 @@ export function UpcomingTournaments({ tournaments }: { tournaments: Tournament[]
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-base font-semibold leading-tight text-clw-white">{t.name}</p>
-                  <p className="mt-0.5 truncate text-sm text-clw-gray">
+                  <p className="mt-0.5 truncate text-base text-clw-gray">
                     {t.location}, {t.city}
                   </p>
                 </div>
-                <span className="text-clw-gray group-hover:text-clw-gold">›</span>
+                <ChevronRight className="h-5 w-5 shrink-0 text-clw-gray transition-colors group-hover:text-clw-gold" />
               </div>
             )
           })}
         </div>
       )}
 
-      <p className="mt-auto border-t border-clw-gold/15 pt-5 text-sm leading-relaxed text-clw-gray">
+      <p className="mt-auto border-t border-clw-gold/15 pt-5 text-base leading-relaxed text-clw-gray">
         Members register and manage event details from the parent portal.
       </p>
     </div>

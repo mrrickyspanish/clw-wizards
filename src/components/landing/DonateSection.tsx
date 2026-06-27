@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, type FormEvent } from 'react'
+import { HandCoins } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -47,8 +48,11 @@ export function DonateSection() {
 
   return (
     <div className="chamfer-md card-depth flex h-full flex-col border border-clw-gold/20 bg-clw-black-2 p-5 sm:p-7">
-      <h2 className="font-display text-3xl uppercase tracking-wide text-clw-white sm:text-4xl">Support the Wizards</h2>
-      <p className="mt-1 text-base leading-relaxed text-clw-gray">Help keep the club affordable and growing.</p>
+      <div className="flex items-center gap-3">
+        <HandCoins className="h-6 w-6 text-clw-gold-ink" />
+        <h2 className="font-display text-3xl uppercase tracking-wide text-clw-white sm:text-4xl">Support the Wizards</h2>
+      </div>
+      <p className="mt-1 text-base leading-relaxed text-clw-gray">Every gift goes straight back to the wrestlers.</p>
 
       <form onSubmit={handleSubmit} className="mt-5 flex flex-1 flex-col gap-4">
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">

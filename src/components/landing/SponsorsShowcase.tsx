@@ -55,6 +55,24 @@ const SPONSOR_PLACEHOLDERS: Sponsor[] = [
     created_at: '',
     updated_at: '',
   },
+  {
+    id: 'placeholder-4',
+    name: 'Family Business',
+    tier: 'yellow',
+    logo_url: null,
+    website_url: null,
+    contact_name: null,
+    contact_email: null,
+    amount_cents: null,
+    recurring: false,
+    stripe_customer_id: null,
+    stripe_subscription_id: null,
+    active: true,
+    golf_outing_hole: false,
+    notes: null,
+    created_at: '',
+    updated_at: '',
+  },
 ]
 
 function SponsorChip({ sponsor }: { sponsor: Sponsor }) {
@@ -66,6 +84,7 @@ function SponsorChip({ sponsor }: { sponsor: Sponsor }) {
     .toUpperCase()
 
   const inner = sponsor.logo_url ? (
+    // eslint-disable-next-line @next/next/no-img-element -- arbitrary external host, next/image allowlist impractical
     <img src={sponsor.logo_url} alt={sponsor.name} className="h-8 w-auto object-contain" />
   ) : (
     <span className="flex items-center gap-2.5">
@@ -100,7 +119,7 @@ export function SponsorsShowcase({ sponsors }: { sponsors: Sponsor[] }) {
         <div>
           <h2 className="font-display text-4xl uppercase tracking-wide text-clw-white">Supported by our community</h2>
           <p className="mt-1 text-base leading-relaxed text-clw-gray">
-            {hasSponsors ? 'Thank you to the businesses that back our athletes.' : 'Sponsor logos will live here as partners come on board.'}
+            {hasSponsors ? 'Thank you to the businesses that back our wrestlers.' : 'Sponsor logos will live here as partners come on board.'}
           </p>
         </div>
         <a href="#donate" className="hidden text-sm font-semibold uppercase tracking-[0.14em] text-clw-gold hover:text-clw-gold-l sm:block">

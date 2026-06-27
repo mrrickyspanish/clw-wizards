@@ -167,6 +167,13 @@
     mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
   }
 
+  /* Content-page frame: caps line length on text-heavy marketing pages
+     (About/FAQ/Sponsorship) while matching the header/hero horizontal
+     padding scale so left edges line up across the whole site. */
+  .mission-frame {
+    @apply mx-auto max-w-7xl px-5 sm:px-8 lg:px-12 xl:px-16 2xl:px-20;
+  }
+
   /* Chamfered (cut-corner) panels: industrial-athletic edge, not a rounded
      SaaS card and not a sci-fi beveled one. Three sizes by panel weight —
      lg for the hero feature panel, md for bento card chrome, sm for the two
