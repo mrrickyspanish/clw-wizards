@@ -12,9 +12,9 @@ export function Hero() {
     <section className="relative isolate overflow-hidden border-b border-clw-gold/10 bg-clw-black pt-24 md:pt-28">
       <div className="relative min-h-[560px] overflow-hidden bg-clw-black-2">
         <div className="absolute inset-0 lg:left-[34%]">
-          {/* eslint-disable-next-line @next/next/no-img-element -- decorative placeholder photo, swap for club media */}
+          {/* eslint-disable-next-line @next/next/no-img-element -- real club team photo */}
           <img
-            src="https://picsum.photos/seed/clw-wrestling-mat/2200/1000"
+            src="/images/real/team_march2025.jpg"
             alt=""
             aria-hidden
             className="animate-kenburns absolute inset-0 h-full w-full object-cover opacity-70"
