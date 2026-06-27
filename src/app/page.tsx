@@ -64,29 +64,44 @@ export default async function HomePage({
       <ProgramIntro />
       <MobileActionSlideshow />
 
-      <section className="bg-clw-black px-5 pb-14 pt-3 sm:px-8 md:pb-20 lg:px-12 xl:px-16 2xl:px-20">
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 lg:items-start lg:gap-4">
-          <div id="groups" className="scroll-mt-24 lg:col-span-4">
+      {/* Dark operational core: practice groups + upcoming events. */}
+      <section className="bg-clw-black px-5 py-10 sm:px-8 sm:py-12 lg:px-12 xl:px-16 2xl:px-20">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-start lg:gap-4">
+          <div id="groups" className="scroll-mt-24">
             <PracticeGroups />
           </div>
-          <div id="events" className="scroll-mt-24 lg:col-span-4">
+          <div id="events" className="scroll-mt-24">
             <UpcomingTournaments tournaments={(tournaments ?? []) as Tournament[]} />
           </div>
-          <div id="why" className="scroll-mt-24 flex flex-col gap-3 lg:col-span-4 lg:gap-4">
-            <ClubNumbers />
-            <WhyCLW />
-          </div>
+        </div>
+      </section>
 
-          <div id="location" className="scroll-mt-24 lg:col-span-12">
-            <LocationCard />
-          </div>
+      {/* Light proof band: club numbers + why CLW. */}
+      <section className="section-light bg-clw-cream px-5 py-12 sm:px-8 sm:py-16 lg:px-12 xl:px-16 2xl:px-20">
+        <div id="why" className="scroll-mt-24 grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-start lg:gap-4">
+          <ClubNumbers />
+          <WhyCLW />
+        </div>
+      </section>
 
-          <div id="sponsors" className="scroll-mt-24 lg:col-span-8">
-            <SponsorsShowcase sponsors={sponsorRows} />
-          </div>
-          <div id="donate" className="scroll-mt-24 lg:col-span-4">
-            <DonateSection />
-          </div>
+      {/* Dark utility tile: where we practice. */}
+      <section className="bg-clw-black px-5 py-10 sm:px-8 sm:py-12 lg:px-12 xl:px-16 2xl:px-20">
+        <div id="location" className="scroll-mt-24">
+          <LocationCard />
+        </div>
+      </section>
+
+      {/* Light community band: sponsors. */}
+      <section className="section-light bg-clw-cream px-5 py-12 sm:px-8 sm:py-16 lg:px-12 xl:px-16 2xl:px-20">
+        <div id="sponsors" className="scroll-mt-24">
+          <SponsorsShowcase sponsors={sponsorRows} />
+        </div>
+      </section>
+
+      {/* Dark closing CTA: donate. */}
+      <section className="bg-clw-black px-5 py-12 sm:px-8 sm:py-16 lg:px-12 xl:px-16 2xl:px-20">
+        <div id="donate" className="scroll-mt-24 mx-auto max-w-2xl">
+          <DonateSection />
         </div>
       </section>
 

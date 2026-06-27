@@ -67,6 +67,12 @@ const config: Config = {
           'gold-ink': 'rgb(var(--clw-gold-ink) / <alpha-value>)',
           white: 'rgb(var(--clw-white) / <alpha-value>)',
           gray: 'rgb(var(--clw-gray) / <alpha-value>)',
+          // Warm light-section tokens (see .section-light in globals.css).
+          cream: 'rgb(var(--clw-cream) / <alpha-value>)',
+          paper: 'rgb(var(--clw-paper) / <alpha-value>)',
+          ink: 'rgb(var(--clw-ink) / <alpha-value>)',
+          'muted-dark': 'rgb(var(--clw-muted-dark) / <alpha-value>)',
+          'line-light': 'rgba(17, 17, 17, 0.12)',
         },
       },
       borderRadius: {
