@@ -104,9 +104,19 @@ export default function AboutPage() {
 
       <section className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-12">
         <div className="chamfer-md card-depth border border-clw-gold/10 bg-clw-black-2 p-6 lg:col-span-8">
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-clw-gold-ink" />
-            <h2 className="font-display text-2xl uppercase tracking-wide text-clw-white">Leadership & coaches</h2>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-clw-gold-ink" />
+              <h2 className="font-display text-2xl uppercase tracking-wide text-clw-white">Leadership & coaches</h2>
+            </div>
+            <div className="overflow-hidden rounded-md border border-clw-gold/10 sm:w-40 sm:shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element -- real coaches photo */}
+              <img
+                src="/images/real/coaches_trophy.jpg"
+                alt="Two Wizards coaches holding a first-place tournament trophy"
+                className="h-32 w-full object-cover"
+              />
+            </div>
           </div>
 
           <h3 className="mt-5 font-cond text-sm uppercase tracking-[0.2em] text-clw-gray">Board</h3>
@@ -135,6 +145,14 @@ export default function AboutPage() {
           <div className="flex items-center gap-2">
             <MapPin className="h-5 w-5 text-clw-gold-ink" />
             <h2 className="font-display text-2xl uppercase tracking-wide text-clw-white">Visit us</h2>
+          </div>
+          <div className="mt-4 overflow-hidden rounded-md border border-clw-gold/10">
+            {/* eslint-disable-next-line @next/next/no-img-element -- real club facility photo */}
+            <img
+              src="/images/real/facility_pano.jpg"
+              alt="The Wizards practice room, mats, and Wall of Fame"
+              className="h-28 w-full object-cover sm:h-32"
+            />
           </div>
           <p className="mt-4 text-base text-clw-white">975 Nimco Dr, Unit L</p>
           <p className="text-base text-clw-white">Crystal Lake, IL 60014</p>

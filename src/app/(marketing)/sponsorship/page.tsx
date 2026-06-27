@@ -71,17 +71,27 @@ export default async function SponsorshipPage() {
 
   return (
     <main className="mission-frame py-10 lg:py-14">
-      <header className="max-w-2xl">
-        <p className="font-cond text-sm uppercase tracking-[0.3em] text-clw-gold">Crystal Lake, Illinois</p>
-        <h1 className="mt-3 font-display text-5xl uppercase leading-[0.95] text-clw-white sm:text-6xl">
-          Sponsorship opportunities
-        </h1>
-        <p className="mt-4 text-clw-gray">
-          Crystal Lake Wizards Wrestling Club is a 501(c)(3) nonprofit run 100% by volunteers. To keep the program
-          running and registration affordable for every family, we rely on local businesses to sponsor our season
-          and our golf outing. Your support funds our facility, uniforms, equipment, training, and end-of-year
-          banquet — and puts your business in front of the community.
-        </p>
+      <header className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="lg:col-span-8">
+          <p className="font-cond text-sm uppercase tracking-[0.3em] text-clw-gold">Crystal Lake, Illinois</p>
+          <h1 className="mt-3 font-display text-5xl uppercase leading-[0.95] text-clw-white sm:text-6xl">
+            Sponsorship opportunities
+          </h1>
+          <p className="mt-4 max-w-2xl text-clw-gray">
+            Crystal Lake Wizards Wrestling Club is a 501(c)(3) nonprofit run 100% by volunteers. To keep the program
+            running and registration affordable for every family, we rely on local businesses to sponsor our season
+            and our golf outing. Your support funds our facility, uniforms, equipment, training, and end-of-year
+            banquet — and puts your business in front of the community.
+          </p>
+        </div>
+        <div className="chamfer-md card-depth overflow-hidden border border-clw-gold/10 bg-clw-black-2 lg:col-span-4">
+          {/* eslint-disable-next-line @next/next/no-img-element -- real team photo */}
+          <img
+            src="/images/real/team_tournament.jpg"
+            alt="The Wizards wrestling team gathered on the mat at a tournament"
+            className="h-64 w-full object-cover sm:h-72 lg:h-full"
+          />
+        </div>
       </header>
 
       <section className="mt-10">
