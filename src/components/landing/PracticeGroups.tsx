@@ -9,7 +9,6 @@ const GROUP_BLURBS: Record<string, string> = {
   Black: 'Travel-level wrestlers training for high-level tournaments.',
   Gold: 'Developing competitors building technique and mat time.',
   White: 'New and younger wrestlers learning the fundamentals.',
-  'Wizard for Life': 'Alumni and lifelong members of the Wizards community.',
 }
 
 export function PracticeGroups() {

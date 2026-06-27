@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 export function Hero() {
   return (
     <section className="relative isolate overflow-hidden border-b border-clw-gold/10 bg-clw-black pt-24 md:pt-28">
-      <div className="relative min-h-[560px] overflow-hidden bg-clw-black-2">
+      <div className="relative overflow-hidden bg-clw-black-2 lg:min-h-[560px]">
         <div className="absolute inset-0 lg:left-[34%]">
           {/* eslint-disable-next-line @next/next/no-img-element -- real club team photo */}
           <img
@@ -33,7 +33,7 @@ export function Hero() {
           <div className="absolute inset-0 bg-gradient-to-t from-clw-black-2/95 via-clw-black/25 to-clw-black/30" />
         </div>
 
-        <div className="relative z-10 flex min-h-[560px] max-w-4xl flex-col justify-center px-5 py-12 sm:px-8 lg:px-12 xl:px-16 2xl:px-20">
+        <div className="relative z-10 flex max-w-4xl flex-col justify-center px-5 py-12 sm:px-8 lg:px-12 xl:px-16 2xl:px-20 lg:min-h-[560px]">
           <p className="font-cond text-sm uppercase tracking-[0.34em] text-clw-gold">Crystal Lake, Illinois</p>
           <h1 className="mt-4 max-w-3xl font-display text-6xl uppercase leading-[0.88] text-clw-white sm:text-7xl lg:text-8xl xl:text-9xl">
             Wrestle like a <span className="text-clw-gold">Wizard</span>.

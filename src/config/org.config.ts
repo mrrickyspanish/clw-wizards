@@ -25,7 +25,7 @@ export const CRYSTAL_LAKE_WIZARDS: OrgConfig = {
   tagline: 'Crystal Lake Wizards Wrestling Club',
   domain: 'crystallakewizards.com',
   contactEmail: 'arfont37@sbcglobal.net',
-  practiceGroups: ['Black', 'Gold', 'White', 'Wizard for Life'],
+  practiceGroups: ['Black', 'Gold', 'White'],
   social: {
     facebook: 'https://www.facebook.com/share/1BXKLgHReZ/?mibextid=wwXIfr',
   },
