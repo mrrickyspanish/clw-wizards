@@ -5,6 +5,7 @@ import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Hero } from '@/components/landing/Hero'
 import { ProgramIntro } from '@/components/landing/ProgramIntro'
 import { ProgramStructure } from '@/components/landing/ProgramStructure'
+import { HomeSupportIntro } from '@/components/landing/HomeSupportIntro'
 import { MobileActionSlideshow } from '@/components/landing/MobileActionSlideshow'
 import { PracticeGroups } from '@/components/landing/PracticeGroups'
 import { UpcomingTournaments } from '@/components/landing/UpcomingTournaments'
@@ -62,6 +63,7 @@ export default async function HomePage({
       <Hero />
       <ProgramIntro />
       <ProgramStructure />
+      <HomeSupportIntro />
       <MobileActionSlideshow />
 
       <section className="bg-clw-black px-5 py-12 sm:px-8 sm:py-16 lg:px-12 xl:px-16 2xl:px-20">
