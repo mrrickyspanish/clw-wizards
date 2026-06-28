@@ -73,30 +73,26 @@ export default async function SponsorshipPage() {
 
   return (
     <main>
-      {/* Dark hero band: who we are + the ask. */}
-      <section className="bg-clw-black py-10 lg:py-14">
-        <div className="mission-frame">
-          <header className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-            <div className="lg:col-span-8">
-              <p className="font-cond text-sm uppercase tracking-[0.3em] text-clw-gold">Crystal Lake, Illinois</p>
-              <h1 className="mt-3 font-display text-5xl uppercase leading-[0.95] text-clw-white sm:text-6xl">
-                Sponsorship opportunities
-              </h1>
-              <p className="mt-4 max-w-2xl text-base leading-relaxed text-clw-gray">
-                Crystal Lake Wizards Wrestling Club is a 501(c)(3) nonprofit, run 100% by volunteers, now in our fifth
-                decade. Sponsorship is what keeps registration affordable for our 120+ wrestlers, ages 5–14 — it funds
-                the mats, the travel, the coaching, and the season itself. In return, your business gets in front of
-                every Wizards family, all season long.
-              </p>
-            </div>
-            <div className="chamfer-md card-depth overflow-hidden border border-clw-gold/10 bg-clw-black-2 lg:col-span-4">
-              {/* eslint-disable-next-line @next/next/no-img-element -- real team photo */}
-              <img
-                src="/images/real/team_tournament.jpg"
-                alt="The Wizards wrestling team gathered on the mat at a tournament"
-                className="h-64 w-full object-cover sm:h-72 lg:h-full"
-              />
-            </div>
+      {/* Full-bleed hero: empty-gym panoramic with centered headline + CTA overlay. */}
+      <section className="relative isolate overflow-hidden border-b border-clw-gold/10 bg-clw-black pt-24 lg:pt-28">
+        <div className="relative flex min-h-[420px] items-center justify-center overflow-hidden bg-clw-black-2 lg:min-h-[520px]">
+          {/* eslint-disable-next-line @next/next/no-img-element -- real facility photo */}
+          <img
+            src="/images/real/facility_pano.jpg"
+            alt=""
+            aria-hidden
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-clw-black/60" />
+          <div className="absolute inset-0 bg-gradient-to-t from-clw-black via-clw-black/30 to-clw-black/10" />
+
+          <header className="relative z-10 mx-auto flex max-w-3xl flex-col items-center px-5 py-12 text-center sm:px-8">
+            <h1 className="font-display text-5xl uppercase leading-[0.95] text-clw-white sm:text-6xl">
+              Join the Wizards family today
+            </h1>
+            <Button asChild size="lg" className="chamfer-sm mt-7 rounded-none px-8">
+              <a href={`mailto:${ORG.contactEmail}?subject=Sponsorship%20Inquiry`}>Become a Sponsor</a>
+            </Button>
           </header>
         </div>
       </section>
