@@ -37,7 +37,7 @@ export function HomeSupportIntro() {
       </span>
 
       <div className="relative mx-auto max-w-7xl">
-        <div className="grid gap-10 lg:grid-cols-[0.92fr_1.08fr] lg:items-end">
+        <div className="grid gap-8 lg:grid-cols-[0.92fr_1.08fr] lg:items-end">
           <div>
             <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-ink">Support</p>
             <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-ink">
@@ -50,45 +50,38 @@ export function HomeSupportIntro() {
             </h2>
           </div>
 
-          <div className="max-w-2xl space-y-5 text-xl leading-relaxed text-clw-muted-dark sm:text-2xl sm:leading-relaxed lg:justify-self-end">
+          <div className="max-w-2xl text-xl leading-relaxed text-clw-muted-dark sm:text-2xl sm:leading-relaxed lg:justify-self-end">
             <p>
-              Wizards Wrestling Club exists because families, alumni, local businesses, and community partners choose to invest in young wrestlers.
-            </p>
-            <p>
-              Your support helps provide coaching resources, tournament opportunities, equipment, scholarships, and the everyday needs that keep the program moving.
+              Wizards Wrestling Club exists because families, alumni, local businesses, and community partners like you choose to invest in young wrestlers.
             </p>
           </div>
         </div>
 
-        <div className="mt-10 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="mt-9 grid grid-cols-1 gap-3 lg:grid-cols-3">
           {SUPPORT_OPTIONS.map(({ title, body, href, cta, Icon }) => (
             <Link
               key={title}
               href={href}
-              className="group flex min-h-[280px] flex-col border border-clw-gold/45 bg-clw-black p-6 text-clw-white shadow-2xl shadow-clw-black/10 transition hover:-translate-y-1 hover:border-clw-gold"
+              className="group flex min-h-[210px] flex-col border border-clw-gold/45 bg-[#0B0B0B] p-5 text-white shadow-2xl shadow-clw-black/10 transition hover:-translate-y-1 hover:border-clw-gold sm:min-h-[230px] sm:p-6"
             >
               <div className="flex items-center justify-between gap-6">
-                <Icon className="h-12 w-12 text-clw-gold" strokeWidth={2.35} />
-                <span className="font-cond text-xs uppercase tracking-[0.24em] text-clw-gold/80">Support path</span>
+                <Icon className="h-10 w-10 text-clw-gold sm:h-11 sm:w-11" strokeWidth={2.35} />
               </div>
-              <h3 className="mt-10 font-display text-5xl uppercase leading-none tracking-wide text-clw-white sm:text-6xl">
+              <h3 className="mt-7 font-display text-4xl uppercase leading-none tracking-wide text-white sm:text-5xl">
                 {title}
               </h3>
-              <p className="mt-5 text-lg leading-relaxed text-clw-gray">
+              <p className="mt-4 text-base leading-relaxed text-white/68 sm:text-lg">
                 {body}
               </p>
-              <span className="mt-auto pt-8 font-cond text-lg uppercase tracking-[0.2em] text-clw-gold transition group-hover:text-clw-gold-l">
+              <span className="mt-auto pt-6 font-cond text-base uppercase tracking-[0.2em] text-clw-gold transition group-hover:text-clw-gold-l sm:text-lg">
                 {cta} →
               </span>
             </Link>
           ))}
         </div>
 
-        <div className="mt-8 flex flex-col gap-4 border-t border-clw-gold/35 pt-7 sm:flex-row sm:items-center sm:justify-between">
-          <p className="max-w-2xl text-base leading-relaxed text-clw-muted-dark sm:text-lg">
-            Donations, boosters, and sponsors all help make the season stronger for every wrestler who walks into the room.
-          </p>
-          <Link href="/sponsorship" className="shrink-0 font-cond text-xl uppercase tracking-[0.18em] text-clw-gold-ink underline-offset-4 hover:text-clw-ink hover:underline">
+        <div className="mt-8 flex justify-start border-t border-clw-gold/35 pt-7">
+          <Link href="/sponsorship" className="font-cond text-xl uppercase tracking-[0.18em] text-clw-gold-ink underline-offset-4 hover:text-clw-ink hover:underline">
             View sponsorship page →
           </Link>
         </div>
