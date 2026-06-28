@@ -1,16 +1,5 @@
 import type { Metadata } from 'next'
-import {
-  BadgeDollarSign,
-  Building2,
-  CircleDollarSign,
-  HandHeart,
-  HeartHandshake,
-  Mail,
-  MapPin,
-  Trophy,
-  Users,
-  Wand2,
-} from 'lucide-react'
+import { CircleDollarSign, HandHeart, HeartHandshake, Mail, MapPin, Users } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { ORG } from '@/config/org.config'
@@ -21,25 +10,33 @@ const SUPPORT_CARDS = [
   {
     title: 'ONE-TIME\nDONATION',
     cta: 'DONATE TODAY',
-    imageLabel: 'PLACEHOLDER IMAGE · Team practice wide hero',
+    imageSrc: '/images/real/team_march2025.jpg',
+    imageAlt: 'Crystal Lake Wizards team photo',
+    imagePosition: 'center',
     Icon: CircleDollarSign,
   },
   {
     title: 'MONTHLY\nBOOSTER',
     cta: 'JOIN THE BOOSTERS',
-    imageLabel: 'PLACEHOLDER IMAGE · Kids celebrating after tournament',
+    imageSrc: '/images/real/facility_pano.jpg',
+    imageAlt: 'Crystal Lake Wizards practice facility',
+    imagePosition: 'center',
     Icon: HandHeart,
   },
   {
     title: 'CORPORATE\nSPONSORSHIP',
     cta: 'VIEW PACKAGES',
-    imageLabel: 'PLACEHOLDER IMAGE · Coach shaking sponsor hand',
+    imageSrc: '/images/real/coaches_trophy.jpg',
+    imageAlt: 'Crystal Lake Wizards coaches with trophy',
+    imagePosition: 'center',
     Icon: HeartHandshake,
   },
   {
     title: 'VOLUNTEER\nWITH US',
     cta: 'GET INVOLVED',
-    imageLabel: 'PLACEHOLDER IMAGE · Parents cheering in stands',
+    imageSrc: '/images/real/team_march2025.jpg',
+    imageAlt: 'Crystal Lake Wizards wrestling team',
+    imagePosition: 'center top',
     Icon: Users,
   },
 ]
@@ -92,22 +89,20 @@ export const metadata: Metadata = {
   description: 'Donation, booster, sponsorship, and volunteer opportunities for Crystal Lake Wizards Wrestling Club.',
 }
 
-function PlaceholderImage({ label, className = '' }: { label: string; className?: string }) {
+function MediaImage({ src, alt, className = '', position = 'center' }: { src: string; alt: string; className?: string; position?: string }) {
   return (
     <div className={`relative overflow-hidden bg-clw-black-3 ${className}`}>
-      <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.12),rgba(255,255,255,0.02)_42%,rgba(240,192,32,0.16))]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.12),transparent_28%),radial-gradient(circle_at_80%_70%,rgba(240,192,32,0.18),transparent_30%)]" />
-      <div className="absolute inset-0 flex items-center justify-center px-8 text-center font-cond text-xs uppercase tracking-[0.22em] text-clw-white/45">
-        {label}
-      </div>
+      {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
+      <img src={src} alt={alt} className="absolute inset-0 h-full w-full object-cover grayscale" style={{ objectPosition: position }} />
+      <div className="absolute inset-0 bg-clw-black/20" />
     </div>
   )
 }
 
-function TornEdge({ flip = false }: { flip?: boolean }) {
+function TornEdge({ flip = false, color = 'bg-clw-black' }: { flip?: boolean; color?: string }) {
   return (
     <div
-      className={`h-10 bg-clw-black ${flip ? 'rotate-180' : ''}`}
+      className={`h-10 ${color} ${flip ? 'rotate-180' : ''}`}
       style={{ clipPath: 'polygon(0 0, 7% 22%, 15% 9%, 25% 31%, 35% 14%, 48% 27%, 58% 10%, 70% 25%, 82% 8%, 92% 20%, 100% 0, 100% 100%, 0 100%)' }}
     />
   )
@@ -131,10 +126,10 @@ export default async function SponsorshipPage() {
 
       <section className="bg-clw-white px-6 pb-16 sm:px-8">
         <div className="mx-auto flex max-w-3xl flex-col gap-10">
-          {SUPPORT_CARDS.map(({ title, cta, imageLabel, Icon }) => (
+          {SUPPORT_CARDS.map(({ title, cta, imageSrc, imageAlt, imagePosition, Icon }) => (
             <a key={title} href={`mailto:${ORG.contactEmail}?subject=${encodeURIComponent(title.replace('\n', ' '))}`} className="group block border border-clw-gold bg-clw-black text-clw-white">
               <div className="relative min-h-[315px] overflow-hidden">
-                <PlaceholderImage label={imageLabel} className="absolute inset-0" />
+                <MediaImage src={imageSrc} alt={imageAlt} position={imagePosition} className="absolute inset-0" />
                 <div className="absolute inset-0 bg-clw-black/70" />
                 <div className="absolute inset-x-0 top-16 flex justify-center">
                   <Icon className="h-16 w-16 text-clw-gold" strokeWidth={2.4} />
@@ -170,9 +165,9 @@ export default async function SponsorshipPage() {
         <div className="mx-auto max-w-3xl">
           <a href={`mailto:${ORG.contactEmail}?subject=Booster%20Club`} className="block bg-clw-gold px-8 py-6 text-center font-display text-2xl uppercase tracking-wide text-clw-black">Join the booster club</a>
           <div className="relative mt-16 min-h-[520px]">
-            <PlaceholderImage label="PLACEHOLDER IMAGE · Historic team photo" className="absolute right-0 top-0 h-48 w-[74%]" />
-            <div className="absolute left-0 top-40 h-64 w-[72%]"><PlaceholderImage label="PLACEHOLDER IMAGE · Youth wrestler drilling" className="h-full w-full" /></div>
-            <div className="absolute bottom-0 right-0 flex h-56 w-56 rotate-[-13deg] items-center justify-center rounded-full border-[10px] border-clw-gold text-center font-display text-5xl uppercase leading-none text-clw-gold sm:h-72 sm:w-72">
+            <MediaImage src="/images/real/team_march2025.jpg" alt="Crystal Lake Wizards team photo" className="absolute right-0 top-0 h-48 w-[74%]" position="center top" />
+            <div className="absolute left-0 top-40 h-64 w-[72%]"><MediaImage src="/images/real/coaches_trophy.jpg" alt="Crystal Lake Wizards coaches with trophy" className="h-full w-full" position="center" /></div>
+            <div className="absolute bottom-0 right-0 flex h-56 w-56 rotate-[-13deg] items-center justify-center rounded-full border-[10px] border-clw-gold bg-clw-black/85 text-center font-display text-5xl uppercase leading-none text-clw-gold sm:h-72 sm:w-72">
               CLW
             </div>
           </div>
@@ -182,7 +177,7 @@ export default async function SponsorshipPage() {
       <TornEdge />
       <section className="bg-clw-white px-7 py-16 text-center text-clw-black sm:px-10">
         <div className="mx-auto max-w-3xl">
-          <PlaceholderImage label="PLACEHOLDER IMAGE · Coach instructing athlete" className="mx-auto h-72 w-full max-w-lg" />
+          <MediaImage src="/images/real/coaches_trophy.jpg" alt="Crystal Lake Wizards coaches with trophy" className="mx-auto h-72 w-full max-w-lg" position="center" />
           <div className="mx-auto mt-12 h-4 w-36 bg-clw-gold" />
           <h2 className="mt-12 font-cond text-6xl uppercase leading-[0.9] tracking-wide sm:text-7xl">
             Make a one time <span className="block font-display font-black">donation</span>
@@ -191,11 +186,11 @@ export default async function SponsorshipPage() {
             Every dollar goes directly toward helping our athletes succeed. Donations help cover tournament fees, practice equipment, scholarships, travel assistance, facility improvements, and the resources needed to keep wrestling affordable for every family.
           </p>
           <a href={`mailto:${ORG.contactEmail}?subject=One-Time%20Donation`} className="mt-10 inline-block bg-clw-gold px-16 py-6 font-display text-2xl uppercase tracking-wide text-clw-black">Donate</a>
-          <PlaceholderImage label="PLACEHOLDER IMAGE · Championship medal ceremony" className="mt-16 h-80 w-full" />
+          <MediaImage src="/images/real/team_march2025.jpg" alt="Crystal Lake Wizards team photo" className="mt-16 h-80 w-full" position="center" />
         </div>
       </section>
 
-      <TornEdge flip />
+      <TornEdge flip color="bg-clw-white" />
       <section className="relative overflow-hidden bg-clw-black px-7 py-20 text-center sm:px-10">
         <div className="absolute inset-0 opacity-35 [background-image:radial-gradient(circle_at_center,rgba(240,192,32,.22),transparent_32%),linear-gradient(135deg,rgba(255,255,255,.08),transparent_44%)]" />
         <div className="relative mx-auto max-w-3xl">
@@ -211,31 +206,32 @@ export default async function SponsorshipPage() {
         </div>
       </section>
 
-      <section className="bg-clw-black px-7 py-16 sm:px-10">
+      <TornEdge />
+      <section className="bg-clw-white px-7 py-16 text-clw-black sm:px-10">
         <div className="mx-auto max-w-3xl">
-          <p className="text-center font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Monthly & Annual Donations</p>
-          <div className="mt-10 space-y-12">
+          <p className="text-center font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-dim">Monthly & Annual Donations</p>
+          <div className="mt-10 space-y-5">
             {BOOSTER_LEVELS.map((level) => (
-              <div key={level.name}>
-                <h3 className="text-3xl font-bold text-clw-white">{level.name}</h3>
-                <p className="mt-3 font-cond text-2xl tracking-[0.18em] text-clw-gold">{level.amount}</p>
-                <p className="mt-6 text-xl leading-relaxed text-clw-gray">{level.body}</p>
+              <div key={level.name} className="border-l-4 border-clw-gold bg-clw-black/[0.04] px-6 py-7">
+                <h3 className="text-3xl font-bold text-clw-black">{level.name}</h3>
+                <p className="mt-3 font-cond text-2xl tracking-[0.18em] text-clw-gold-dim">{level.amount}</p>
+                <p className="mt-6 text-xl leading-relaxed text-clw-black/70">{level.body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="bg-clw-black px-7 pb-16 sm:px-10">
-        <div className="mx-auto max-w-3xl border-t border-clw-gold/20 pt-14">
-          <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Business Support</p>
-          <h2 className="mt-6 font-display text-5xl uppercase leading-none text-clw-white sm:text-6xl">Corporate Sponsorship</h2>
-          <p className="mt-8 text-xl leading-relaxed text-clw-gray">
+      <section className="bg-clw-gold px-7 py-16 text-clw-black sm:px-10">
+        <div className="mx-auto max-w-3xl">
+          <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-black/70">Business Support</p>
+          <h2 className="mt-6 font-display text-5xl uppercase leading-none text-clw-black sm:text-6xl">Corporate Sponsorship</h2>
+          <p className="mt-8 text-xl leading-relaxed text-clw-black/75">
             Local business sponsors help keep the Wizards affordable, competitive, and visible in the community. Sponsorship can include gym signage, website recognition, social media features, tournament support, event visibility, and direct goodwill with wrestling families across Crystal Lake.
           </p>
-          <div className="mt-10 space-y-6">
+          <div className="mt-10 space-y-5">
             {SPONSOR_TIERS.map((tier) => (
-              <div key={tier.name} className="border border-clw-gold/20 bg-clw-black-2 p-6">
+              <div key={tier.name} className="bg-clw-black px-6 py-7 text-clw-white shadow-xl">
                 <div className="flex items-start justify-between gap-6">
                   <div>
                     <h3 className="font-display text-3xl uppercase text-clw-white">{tier.name}</h3>
@@ -246,13 +242,13 @@ export default async function SponsorshipPage() {
               </div>
             ))}
           </div>
-          <a href={`mailto:${ORG.contactEmail}?subject=Corporate%20Sponsorship`} className="mt-10 block bg-clw-gold px-8 py-6 text-center font-display text-xl uppercase tracking-wide text-clw-black">Download Sponsorship Guide</a>
+          <a href={`mailto:${ORG.contactEmail}?subject=Corporate%20Sponsorship`} className="mt-10 block bg-clw-black px-8 py-6 text-center font-display text-xl uppercase tracking-wide text-clw-gold">Download Sponsorship Guide</a>
         </div>
       </section>
 
       <section className="bg-clw-white px-7 py-16 text-clw-black sm:px-10">
         <div className="mx-auto max-w-3xl text-center">
-          <PlaceholderImage label="PLACEHOLDER IMAGE · Parents and volunteers at event table" className="h-72 w-full" />
+          <MediaImage src="/images/real/facility_pano.jpg" alt="Crystal Lake Wizards practice facility" className="h-72 w-full" position="center" />
           <h2 className="mt-12 font-display text-5xl uppercase leading-none sm:text-6xl">Volunteer With Us</h2>
           <p className="mx-auto mt-8 max-w-[34rem] text-xl leading-relaxed text-clw-black/70">
             The Wizards are powered by people who show up. Volunteers help with tournaments, fundraising, communications, setup, photography, team meals, and the small details that make a wrestling club feel like a real community.
