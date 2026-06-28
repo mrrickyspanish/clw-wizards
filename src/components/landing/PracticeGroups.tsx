@@ -4,16 +4,15 @@ import { ChevronRight, Shield } from 'lucide-react'
 import { ORG } from '@/config/org.config'
 
 const GROUP_BLURBS: Record<string, string> = {
-  Black: 'Advanced competitors training for higher-level events.',
+  Black: 'Travel-level wrestlers training for high-level tournaments.',
   Gold: 'Developing competitors building technique and mat time.',
-  White: 'Newer wrestlers learning stance, motion, and fundamentals.',
+  White: 'New and younger wrestlers learning the fundamentals.',
 }
 
 export function PracticeGroups() {
   return (
     <div className="chamfer-md card-depth flex h-full min-h-[410px] flex-col border border-clw-gold/20 bg-clw-black-2 p-7 shadow-2xl shadow-black/20">
-      <p className="font-cond text-sm uppercase tracking-[0.3em] text-clw-gold">Training Groups</p>
-      <h2 className="mt-4 font-display text-5xl uppercase leading-none tracking-wide text-clw-white">Practice groups</h2>
+      <h2 className="font-display text-5xl uppercase leading-none tracking-wide text-clw-white">Practice groups</h2>
       <p className="mt-4 text-lg leading-relaxed text-clw-gray">A place for every wrestler, whatever their level.</p>
 
       <div className="mt-7 space-y-3">
