@@ -18,8 +18,7 @@ export function UpcomingTournaments({ tournaments }: { tournaments: Tournament[]
     <div className="chamfer-md card-depth flex h-full min-h-[410px] flex-col border border-clw-gold/20 bg-clw-black-2 p-7 shadow-2xl shadow-black/20">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="font-cond text-sm uppercase tracking-[0.3em] text-clw-gold">Schedule</p>
-          <h2 className="mt-4 font-display text-5xl uppercase leading-none tracking-wide text-clw-white">Upcoming events</h2>
+          <h2 className="font-display text-5xl uppercase leading-none tracking-wide text-clw-white">Upcoming events</h2>
           <p className="mt-4 text-lg leading-relaxed text-clw-gray">The next stops on the schedule.</p>
         </div>
         <Link href="/login" className="hidden font-display text-lg uppercase tracking-wide text-clw-gold hover:text-clw-gold-l sm:block">
@@ -30,7 +29,7 @@ export function UpcomingTournaments({ tournaments }: { tournaments: Tournament[]
       {rows.length === 0 ? (
         <div className="mt-7 flex flex-1 flex-col justify-center border border-dashed border-clw-gold/25 bg-clw-black/45 p-6">
           <p className="text-lg font-semibold text-clw-white">No public events posted yet.</p>
-          <p className="mt-3 text-lg leading-relaxed text-clw-gray">Once the schedule is live, events and parent meetings will appear here.</p>
+          <p className="mt-3 text-lg leading-relaxed text-clw-gray">Once the schedule is live, tournaments, open mats, and parent meetings will appear here.</p>
         </div>
       ) : (
         <div className="mt-7 flex-1 space-y-3">
