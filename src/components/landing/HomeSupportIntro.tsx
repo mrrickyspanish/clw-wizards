@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { CircleDollarSign, HandHeart, HeartHandshake } from 'lucide-react'
+import { CircleDollarSign, HandHeart, HeartHandshake, Users } from 'lucide-react'
 
 const SUPPORT_OPTIONS = [
   {
@@ -22,6 +22,13 @@ const SUPPORT_OPTIONS = [
     href: '/sponsorship#boosters',
     cta: 'Join the boosters',
     Icon: HandHeart,
+  },
+  {
+    title: 'Volunteer',
+    body: 'Help with tournaments, fundraising, communications, setup, team events, and the details that keep the club running.',
+    href: '/sponsorship#volunteer',
+    cta: 'Get involved',
+    Icon: Users,
   },
 ]
 
@@ -57,7 +64,7 @@ export function HomeSupportIntro() {
           </div>
         </div>
 
-        <div className="mt-9 grid grid-cols-1 gap-3 lg:grid-cols-3">
+        <div className="mt-9 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {SUPPORT_OPTIONS.map(({ title, body, href, cta, Icon }) => (
             <Link
               key={title}
@@ -67,13 +74,13 @@ export function HomeSupportIntro() {
               <div className="flex items-center justify-between gap-6">
                 <Icon className="h-10 w-10 text-clw-gold sm:h-11 sm:w-11" strokeWidth={2.35} />
               </div>
-              <h3 className="mt-7 font-display text-4xl uppercase leading-none tracking-wide text-white sm:text-5xl">
+              <h3 className="mt-7 font-display text-4xl uppercase leading-none tracking-wide text-white sm:text-5xl lg:text-4xl xl:text-5xl">
                 {title}
               </h3>
-              <p className="mt-4 text-base leading-relaxed text-white/68 sm:text-lg">
+              <p className="mt-4 text-base leading-relaxed text-white/68">
                 {body}
               </p>
-              <span className="mt-auto pt-6 font-cond text-base uppercase tracking-[0.2em] text-clw-gold transition group-hover:text-clw-gold-l sm:text-lg">
+              <span className="mt-auto pt-6 font-cond text-base uppercase tracking-[0.2em] text-clw-gold transition group-hover:text-clw-gold-l sm:text-lg lg:text-base xl:text-lg">
                 {cta} →
               </span>
             </Link>
