@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 export function Hero() {
   return (
     <section className="relative isolate overflow-hidden border-b border-clw-gold/10 bg-clw-black pt-24 md:pt-28">
-      <div className="relative min-h-[480px] overflow-hidden bg-clw-black-2 lg:min-h-[560px]">
+      <div className="relative flex min-h-[480px] overflow-hidden bg-clw-black-2 lg:min-h-[560px]">
         <div className="absolute inset-0 lg:left-[34%]">
           {/* eslint-disable-next-line @next/next/no-img-element -- real club team photo */}
           <img
@@ -33,7 +33,7 @@ export function Hero() {
           <div className="absolute inset-0 bg-gradient-to-t from-clw-black-2/75 via-clw-black/10 to-clw-black/10" />
         </div>
 
-        <div className="relative z-10 flex max-w-4xl flex-col justify-center px-5 py-12 sm:px-8 lg:px-12 xl:px-16 2xl:px-20 lg:min-h-[560px]">
+        <div className="relative z-10 flex max-w-4xl flex-col justify-end px-5 py-12 sm:px-8 lg:px-12 xl:px-16 2xl:px-20 lg:min-h-[560px]">
           <p className="hidden font-cond text-sm uppercase tracking-[0.34em] text-clw-gold md:block">
             Crystal Lake Wizards Wrestling Club
           </p>
