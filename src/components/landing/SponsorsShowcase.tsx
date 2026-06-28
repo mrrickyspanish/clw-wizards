@@ -117,10 +117,9 @@ export function SponsorsShowcase({ sponsors }: { sponsors: Sponsor[] }) {
     <div className="chamfer-md card-depth flex h-full min-h-[220px] flex-col border border-clw-gold/20 bg-clw-black-2 p-7 shadow-2xl shadow-black/20">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="font-cond text-sm uppercase tracking-[0.3em] text-clw-gold">Community</p>
-          <h2 className="mt-4 font-display text-5xl uppercase leading-none tracking-wide text-clw-white">Supported by our community</h2>
+          <h2 className="font-display text-5xl uppercase leading-none tracking-wide text-clw-white">Supported by our community</h2>
           <p className="mt-4 text-lg leading-relaxed text-clw-gray">
-            {hasSponsors ? 'Thank you to the businesses that back the club.' : 'Sponsor logos will live here as partners come on board.'}
+            {hasSponsors ? 'Thank you to the businesses that back our wrestlers.' : 'Sponsor logos will live here as partners come on board.'}
           </p>
         </div>
         <a href="/sponsorship" className="hidden font-display text-lg uppercase tracking-wide text-clw-gold-ink underline-offset-4 hover:underline sm:block">
