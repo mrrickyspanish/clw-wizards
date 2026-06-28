@@ -115,7 +115,10 @@ export default async function SponsorshipPage() {
 
   return (
     <main className="bg-clw-black text-clw-white">
-      <section className="bg-clw-white px-6 pb-12 pt-16 text-center text-clw-black sm:px-8">
+      <section className="bg-clw-white px-6 pb-12 pt-8 text-center text-clw-black sm:px-8">
+        <div className="mx-auto max-w-3xl">
+          <MediaImage src="/images/real/team_march2025.jpg" alt="Crystal Lake Wizards team photo" className="mb-12 h-64 w-full sm:h-80" position="center" />
+        </div>
         <p className="mx-auto max-w-[21rem] font-cond text-5xl uppercase leading-[0.9] tracking-wide sm:max-w-xl sm:text-7xl">
           There are many ways <span className="font-display font-black">you can get involved</span>
         </p>
@@ -125,20 +128,20 @@ export default async function SponsorshipPage() {
       </section>
 
       <section className="bg-clw-white px-6 pb-16 sm:px-8">
-        <div className="mx-auto flex max-w-3xl flex-col gap-10">
+        <div className="mx-auto flex max-w-3xl flex-col gap-8">
           {SUPPORT_CARDS.map(({ title, cta, imageSrc, imageAlt, imagePosition, Icon }) => (
             <a key={title} href={`mailto:${ORG.contactEmail}?subject=${encodeURIComponent(title.replace('\n', ' '))}`} className="group block border border-clw-gold bg-clw-black text-clw-white">
-              <div className="relative min-h-[315px] overflow-hidden">
+              <div className="relative min-h-[268px] overflow-hidden">
                 <MediaImage src={imageSrc} alt={imageAlt} position={imagePosition} className="absolute inset-0" />
                 <div className="absolute inset-0 bg-clw-black/70" />
-                <div className="absolute inset-x-0 top-16 flex justify-center">
-                  <Icon className="h-16 w-16 text-clw-gold" strokeWidth={2.4} />
+                <div className="absolute inset-x-0 top-12 flex justify-center">
+                  <Icon className="h-14 w-14 text-clw-gold" strokeWidth={2.4} />
                 </div>
-                <div className="absolute inset-x-0 bottom-16 px-8 text-center font-display text-5xl uppercase leading-[0.9] tracking-wide">
+                <div className="absolute inset-x-0 bottom-12 px-8 text-center font-display text-5xl uppercase leading-[0.9] tracking-wide">
                   {title.split('\n').map((line) => <span key={line} className="block">{line}</span>)}
                 </div>
               </div>
-              <div className="bg-clw-black px-6 py-8 text-center font-display text-2xl uppercase tracking-wide transition group-hover:bg-clw-gold group-hover:text-clw-black">
+              <div className="bg-clw-black px-6 py-7 text-center font-display text-2xl uppercase tracking-wide transition group-hover:bg-clw-gold group-hover:text-clw-black">
                 {cta}
               </div>
             </a>
