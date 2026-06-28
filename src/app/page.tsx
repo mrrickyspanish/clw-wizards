@@ -4,6 +4,7 @@ import type { Tournament, Sponsor } from '@/types/database'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Hero } from '@/components/landing/Hero'
 import { ProgramIntro } from '@/components/landing/ProgramIntro'
+import { ProgramStructure } from '@/components/landing/ProgramStructure'
 import { MobileActionSlideshow } from '@/components/landing/MobileActionSlideshow'
 import { PracticeGroups } from '@/components/landing/PracticeGroups'
 import { UpcomingTournaments } from '@/components/landing/UpcomingTournaments'
@@ -60,6 +61,7 @@ export default async function HomePage({
 
       <Hero />
       <ProgramIntro />
+      <ProgramStructure />
       <MobileActionSlideshow />
 
       <section className="bg-clw-black px-5 py-12 sm:px-8 sm:py-16 lg:px-12 xl:px-16 2xl:px-20">
