@@ -25,8 +25,6 @@ export default async function HomePage({
   const supabase = await createServerSupabase()
   const today = chicagoDateString()
 
-  // Public reads: tournaments (public_read) and active sponsors
-  // (public_read_active_sponsors) need no auth.
   const [{ data: tournaments }, { data: sponsors }] = await Promise.all([
     supabase
       .from('tournaments')
@@ -64,9 +62,8 @@ export default async function HomePage({
       <ProgramIntro />
       <MobileActionSlideshow />
 
-      {/* Dark operational core: practice groups + upcoming events. */}
-      <section className="bg-clw-black px-5 py-10 sm:px-8 sm:py-12 lg:px-12 xl:px-16 2xl:px-20">
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-start lg:gap-4">
+      <section className="bg-clw-black px-5 py-12 sm:px-8 sm:py-16 lg:px-12 xl:px-16 2xl:px-20">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
           <div id="groups" className="scroll-mt-24">
             <PracticeGroups />
           </div>
@@ -76,30 +73,30 @@ export default async function HomePage({
         </div>
       </section>
 
-      {/* Light proof band: club numbers + why CLW. */}
-      <section className="section-light bg-clw-cream px-5 py-12 sm:px-8 sm:py-16 lg:px-12 xl:px-16 2xl:px-20">
-        <div id="why" className="scroll-mt-24 grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-start lg:gap-4">
+      <div className="h-px bg-clw-gold/40" />
+
+      <section className="section-light bg-[#EEECE7] px-5 py-14 sm:px-8 sm:py-18 lg:px-12 xl:px-16 2xl:px-20">
+        <div id="why" className="scroll-mt-24 grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
           <ClubNumbers />
           <WhyCLW />
         </div>
       </section>
 
-      {/* Dark utility tile: where we practice. */}
-      <section className="bg-clw-black px-5 py-10 sm:px-8 sm:py-12 lg:px-12 xl:px-16 2xl:px-20">
+      <section className="bg-clw-black px-5 py-12 sm:px-8 sm:py-16 lg:px-12 xl:px-16 2xl:px-20">
         <div id="location" className="scroll-mt-24">
           <LocationCard />
         </div>
       </section>
 
-      {/* Light community band: sponsors. */}
-      <section className="section-light bg-clw-cream px-5 py-12 sm:px-8 sm:py-16 lg:px-12 xl:px-16 2xl:px-20">
+      <div className="h-px bg-clw-gold/40" />
+
+      <section className="section-light bg-[#F6F5F2] px-5 py-14 sm:px-8 sm:py-18 lg:px-12 xl:px-16 2xl:px-20">
         <div id="sponsors" className="scroll-mt-24">
           <SponsorsShowcase sponsors={sponsorRows} />
         </div>
       </section>
 
-      {/* Dark closing CTA: donate. */}
-      <section className="bg-clw-black px-5 py-12 sm:px-8 sm:py-16 lg:px-12 xl:px-16 2xl:px-20">
+      <section className="bg-clw-black px-5 py-14 sm:px-8 sm:py-18 lg:px-12 xl:px-16 2xl:px-20">
         <div id="donate" className="scroll-mt-24 mx-auto max-w-2xl">
           <DonateSection />
         </div>
@@ -107,7 +104,6 @@ export default async function HomePage({
 
       <SiteFooter />
 
-      {/* Spacer so the footer clears the sticky mobile CTA bar. */}
       <div className="h-24 md:hidden" />
       <MobileCtaBar />
     </main>
