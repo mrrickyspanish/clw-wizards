@@ -65,7 +65,7 @@ const BOOSTER_LEVELS = [
   {
     name: 'Champion Circle',
     amount: '$250 / Month',
-    body: 'Provides transformational support that helps fund scholarships, major equipment purchases, facility improvements, and long-term growth of the Crystal Lake Wizards Wrestling Club. This is how a local club becomes a lasting program.',
+    body: 'Provides transformational support that helps fund scholarships, major equipment purchases, and long-term growth of the Crystal Lake Wizards Wrestling Club. This is how a local club becomes a lasting program.',
   },
 ]
 
@@ -175,7 +175,7 @@ export default async function SponsorshipPage() {
 
       <GoldRule />
 
-      <section id="donate" className="scroll-mt-28 bg-[#F6F5F2] px-7 py-16 text-center text-clw-black sm:px-10 sm:py-20">
+      <section id="donate" className="scroll-mt-28 bg-[#F7F7F7] px-7 py-16 text-center text-clw-black sm:px-10 sm:py-20">
         <div className="mx-auto max-w-3xl">
           <MediaImage src="/images/real/coaches_trophy.jpg" alt="Crystal Lake Wizards coaches with trophy" className="mx-auto h-72 w-full max-w-lg shadow-2xl shadow-clw-black/15" position="center" dim="bg-clw-black/10" />
           <div className="mx-auto mt-12 h-2 w-28 bg-clw-gold" />
@@ -207,7 +207,7 @@ export default async function SponsorshipPage() {
         </div>
       </section>
 
-      <section className="bg-[#EEECE7] px-7 py-16 text-clw-black sm:px-10 sm:py-20">
+      <section className="bg-[#EFEFEF] px-7 py-16 text-clw-black sm:px-10 sm:py-20">
         <div className="mx-auto max-w-3xl">
           <p className="text-center font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-dim">Monthly & Annual Donations</p>
           <h2 className="mx-auto mt-6 max-w-xl text-center font-display text-5xl uppercase leading-none sm:text-6xl">Choose your level of support</h2>
@@ -265,7 +265,7 @@ export default async function SponsorshipPage() {
         </div>
       </section>
 
-      <section className="bg-[#F6F5F2] px-7 py-16 text-clw-black sm:px-10 sm:py-20">
+      <section className="bg-[#F7F7F7] px-7 py-16 text-clw-black sm:px-10 sm:py-20">
         <div className="mx-auto max-w-3xl">
           <h2 className="font-display text-5xl uppercase leading-none text-clw-black">Questions</h2>
           <div className="mt-8 divide-y divide-clw-black/15 border-y border-clw-black/15">
