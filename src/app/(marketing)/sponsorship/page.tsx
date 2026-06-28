@@ -110,9 +110,9 @@ export default async function SponsorshipPage() {
 
   return (
     <main className="bg-clw-black text-clw-white">
-      <section className="bg-clw-white text-center text-clw-black">
+      <section className="bg-clw-black pt-24 text-center text-clw-black md:pt-28">
         <MediaImage src="/images/real/team_march2025.jpg" alt="Crystal Lake Wizards team photo" className="h-72 w-full sm:h-[30rem]" position="center" dim="bg-clw-black/10" />
-        <div className="px-6 pb-12 pt-12 sm:px-8 sm:pb-16">
+        <div className="bg-clw-white px-6 pb-12 pt-12 sm:px-8 sm:pb-16">
           <p className="mx-auto max-w-[21rem] font-cond text-5xl uppercase leading-[0.9] tracking-wide sm:max-w-xl sm:text-7xl">
             There are many ways <span className="font-display font-black">you can get involved</span>
           </p>
@@ -162,7 +162,7 @@ export default async function SponsorshipPage() {
 
       <section className="relative overflow-hidden bg-clw-black px-7 pb-20 sm:px-10 sm:pb-24">
         <div className="mx-auto max-w-3xl">
-          <a href={`mailto:${ORG.contactEmail}?subject=Booster%20Club`} className="block border border-clw-gold bg-clw-black px-8 py-6 text-center font-display text-2xl uppercase tracking-wide text-clw-gold transition hover:bg-clw-gold hover:text-clw-black">Join the booster club</a>
+          <a href="#boosters" className="block border border-clw-gold bg-clw-black px-8 py-6 text-center font-display text-2xl uppercase tracking-wide text-clw-gold transition hover:bg-clw-gold hover:text-clw-black">Join the booster club</a>
           <div className="relative mt-16 min-h-[520px]">
             <MediaImage src="/images/real/team_march2025.jpg" alt="Crystal Lake Wizards team photo" className="absolute right-0 top-0 h-48 w-[74%]" position="center top" dim="bg-clw-black/10" />
             <div className="absolute left-0 top-40 h-64 w-[72%]"><MediaImage src="/images/real/coaches_trophy.jpg" alt="Crystal Lake Wizards coaches with trophy" className="h-full w-full" position="center" dim="bg-clw-black/10" /></div>
@@ -175,7 +175,7 @@ export default async function SponsorshipPage() {
 
       <GoldRule />
 
-      <section className="bg-[#F6F5F2] px-7 py-16 text-center text-clw-black sm:px-10 sm:py-20">
+      <section id="donate" className="scroll-mt-28 bg-[#F6F5F2] px-7 py-16 text-center text-clw-black sm:px-10 sm:py-20">
         <div className="mx-auto max-w-3xl">
           <MediaImage src="/images/real/coaches_trophy.jpg" alt="Crystal Lake Wizards coaches with trophy" className="mx-auto h-72 w-full max-w-lg shadow-2xl shadow-clw-black/15" position="center" dim="bg-clw-black/10" />
           <div className="mx-auto mt-12 h-2 w-28 bg-clw-gold" />
@@ -192,7 +192,7 @@ export default async function SponsorshipPage() {
 
       <GoldRule />
 
-      <section className="relative overflow-hidden bg-clw-black px-7 py-20 text-center sm:px-10 sm:py-24">
+      <section id="boosters" className="scroll-mt-28 relative overflow-hidden bg-clw-black px-7 py-20 text-center sm:px-10 sm:py-24">
         <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_center,rgba(255,255,255,.16),transparent_30%),linear-gradient(135deg,rgba(255,255,255,.08),transparent_44%)]" />
         <div className="relative mx-auto max-w-3xl">
           <div className="absolute left-1/2 top-12 h-80 w-80 -translate-x-1/2 rounded-full border border-clw-gold/45 sm:h-[30rem] sm:w-[30rem]" />
@@ -225,7 +225,7 @@ export default async function SponsorshipPage() {
 
       <GoldRule />
 
-      <section className="bg-clw-white px-7 py-16 text-clw-black sm:px-10 sm:py-20">
+      <section id="sponsors" className="scroll-mt-28 bg-clw-white px-7 py-16 text-clw-black sm:px-10 sm:py-20">
         <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
           <div>
             <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-dim">Business Support</p>
@@ -251,16 +251,15 @@ export default async function SponsorshipPage() {
         </div>
       </section>
 
-      <section className="relative overflow-hidden bg-clw-black text-clw-white">
-        <MediaImage src="/images/real/facility_pano.jpg" alt="Crystal Lake Wizards practice facility" className="h-80 w-full sm:h-[32rem]" position="center" dim="bg-clw-black/55" />
-        <div className="absolute inset-0 flex items-center px-7 sm:px-10">
-          <div className="mx-auto max-w-3xl text-center">
-            <h2 className="font-display text-5xl uppercase leading-none sm:text-7xl">Volunteer With Us</h2>
-            <p className="mx-auto mt-8 max-w-[34rem] text-xl leading-relaxed text-clw-gray">
-              The Wizards are powered by people who show up. Volunteers help with tournaments, fundraising, communications, setup, photography, team meals, and the small details that make a wrestling club feel like a real community.
-            </p>
-            <a href={`mailto:${ORG.contactEmail}?subject=Volunteer%20With%20CLW`} className="mt-10 inline-block bg-clw-gold px-14 py-6 font-display text-xl uppercase tracking-wide text-clw-black transition hover:bg-clw-white">Become a Volunteer</a>
-          </div>
+      <section className="relative overflow-hidden bg-clw-black px-7 py-20 text-center text-clw-white sm:px-10 sm:py-24">
+        <MediaImage src="/images/real/facility_pano.jpg" alt="Crystal Lake Wizards practice facility" className="absolute inset-0 h-full w-full" position="center" dim="bg-clw-black/65" />
+        <div className="absolute inset-0 bg-gradient-to-t from-clw-black via-clw-black/50 to-clw-black/15" />
+        <div className="relative mx-auto max-w-3xl">
+          <h2 className="font-display text-5xl uppercase leading-none sm:text-7xl">Volunteer With Us</h2>
+          <p className="mx-auto mt-8 max-w-[34rem] text-xl leading-relaxed text-clw-gray">
+            The Wizards are powered by people who show up. Volunteers help with tournaments, fundraising, communications, setup, photography, team meals, and the small details that make a wrestling club feel like a real community.
+          </p>
+          <a href={`mailto:${ORG.contactEmail}?subject=Volunteer%20With%20CLW`} className="mt-10 inline-block bg-clw-gold px-14 py-6 font-display text-xl uppercase tracking-wide text-clw-black transition hover:bg-clw-white">Become a Volunteer</a>
         </div>
       </section>
 
@@ -317,10 +316,13 @@ export default async function SponsorshipPage() {
         </section>
       )}
 
-      <div className="fixed inset-x-3 bottom-3 z-50 grid grid-cols-3 overflow-hidden rounded-full border border-clw-gold/30 bg-clw-black/90 text-center text-xs font-display uppercase tracking-wide text-clw-white shadow-2xl backdrop-blur md:hidden">
-        <a href={`mailto:${ORG.contactEmail}?subject=Donation`} className="py-4 text-clw-gold">Donate</a>
-        <a href={`mailto:${ORG.contactEmail}?subject=Sponsorship`} className="border-x border-clw-gold/20 py-4">Sponsor</a>
-        <a href={`mailto:${ORG.contactEmail}?subject=Booster%20Club`} className="py-4">Boosters</a>
+      <div className="h-24 md:hidden" />
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-clw-gold/10 bg-clw-black/95 px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 backdrop-blur-md md:hidden">
+        <div className="grid grid-cols-3 gap-3">
+          <a href="#donate" className="flex h-14 items-center justify-center rounded-md bg-clw-gold px-3 text-center font-display text-base uppercase tracking-wide text-clw-black">Donate</a>
+          <a href="#sponsors" className="flex h-14 items-center justify-center rounded-md border border-clw-gold/80 px-3 text-center font-display text-base uppercase tracking-wide text-clw-gold">Sponsor</a>
+          <a href="#boosters" className="flex h-14 items-center justify-center rounded-md border border-clw-gold/80 px-3 text-center font-display text-base uppercase tracking-wide text-clw-gold">Boosters</a>
+        </div>
       </div>
     </main>
   )
