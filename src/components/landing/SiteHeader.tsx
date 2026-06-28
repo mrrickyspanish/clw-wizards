@@ -12,7 +12,7 @@ const NAV_LINKS = [
   { href: '#groups', label: 'Practice Groups' },
   { href: '#events', label: 'Tournaments' },
   { href: '#why', label: 'Parent Portal' },
-  { href: '#donate', label: 'Support' },
+  { href: '/sponsorship', label: 'Support' },
 ]
 
 export function SiteHeader() {
@@ -100,30 +100,44 @@ export function SiteHeader() {
           </div>
         </div>
 
-        {open && (
-          <div className="border-t border-clw-gold/10 bg-clw-black/95 px-6 py-4 lg:hidden">
-            <nav className="flex flex-col gap-4">
-              {NAV_LINKS.map((link) => (
-                <a
-                  key={link.label}
-                  href={link.href}
-                  onClick={() => setOpen(false)}
-                  className="text-base text-clw-white/85 hover:text-clw-gold"
-                >
-                  {link.label}
-                </a>
-              ))}
-              <div className="mt-2 flex gap-3">
-                <Button asChild variant="outline" size="sm" className="flex-1">
-                  <Link href="/login">Login</Link>
-                </Button>
-                <Button asChild size="sm" className="flex-1">
-                  <Link href="/signup">Join</Link>
-                </Button>
-              </div>
-            </nav>
-          </div>
-        )}
+        {/* Always mounted so the open/close transitions actually play — grid-rows
+            animates the panel height like an accordion, and each row fades/slides
+            in with an increasing delay so the list cascades open one row at a time
+            instead of appearing in bulk. */}
+        <div
+          className={`grid overflow-hidden transition-[grid-template-rows] duration-300 ease-out lg:hidden ${
+            open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+          }`}
+        >
+          <nav inert={!open} className="min-h-0 overflow-hidden border-t border-clw-gold/10 bg-clw-black/95">
+            {NAV_LINKS.map((link, i) => (
+              <a
+                key={link.label}
+                href={link.href}
+                onClick={() => setOpen(false)}
+                className={`block border-b border-clw-white/10 px-6 py-5 font-display text-4xl uppercase tracking-wide text-clw-white transition-all duration-300 ease-out hover:text-clw-gold ${
+                  open ? 'translate-y-0 opacity-100' : '-translate-y-3 opacity-0'
+                }`}
+                style={{ transitionDelay: open ? `${120 + i * 70}ms` : '0ms' }}
+              >
+                {link.label}
+              </a>
+            ))}
+            <div
+              className={`flex gap-3 px-6 py-5 transition-all duration-300 ease-out ${
+                open ? 'translate-y-0 opacity-100' : '-translate-y-3 opacity-0'
+              }`}
+              style={{ transitionDelay: open ? `${120 + NAV_LINKS.length * 70}ms` : '0ms' }}
+            >
+              <Button asChild variant="outline" size="lg" className="flex-1 text-base">
+                <Link href="/login">Login</Link>
+              </Button>
+              <Button asChild size="lg" className="flex-1 text-base">
+                <Link href="/signup">Join</Link>
+              </Button>
+            </div>
+          </nav>
+        </div>
       </header>
     </>
   )
