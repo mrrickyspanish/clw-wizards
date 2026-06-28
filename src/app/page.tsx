@@ -5,6 +5,7 @@ import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Hero } from '@/components/landing/Hero'
 import { ProgramIntro } from '@/components/landing/ProgramIntro'
 import { ProgramStructure } from '@/components/landing/ProgramStructure'
+import { HomeEventsSection } from '@/components/landing/HomeEventsSection'
 import { HomeSupportIntro } from '@/components/landing/HomeSupportIntro'
 import { MobileActionSlideshow } from '@/components/landing/MobileActionSlideshow'
 import { PracticeGroups } from '@/components/landing/PracticeGroups'
@@ -38,6 +39,7 @@ export default async function HomePage({
     supabase.from('sponsors').select('*').eq('active', true),
   ])
 
+  const tournamentRows = (tournaments ?? []) as Tournament[]
   const sponsorRows = (sponsors ?? []) as Sponsor[]
 
   return (
@@ -63,6 +65,7 @@ export default async function HomePage({
       <Hero />
       <ProgramIntro />
       <ProgramStructure />
+      <HomeEventsSection tournaments={tournamentRows} />
       <HomeSupportIntro />
       <MobileActionSlideshow />
 
@@ -71,8 +74,8 @@ export default async function HomePage({
           <div id="groups" className="scroll-mt-24">
             <PracticeGroups />
           </div>
-          <div id="events" className="scroll-mt-24">
-            <UpcomingTournaments tournaments={(tournaments ?? []) as Tournament[]} />
+          <div id="events-detail" className="scroll-mt-24">
+            <UpcomingTournaments tournaments={tournamentRows} />
           </div>
         </div>
       </section>
