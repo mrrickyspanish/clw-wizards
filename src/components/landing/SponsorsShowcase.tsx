@@ -4,7 +4,7 @@ const SPONSOR_PLACEHOLDERS: Sponsor[] = [
   {
     id: 'placeholder-1',
     name: 'Sponsor Slot',
-    tier: 'gold',
+    tier: 'yellow',
     logo_url: null,
     website_url: null,
     contact_name: null,
@@ -22,7 +22,7 @@ const SPONSOR_PLACEHOLDERS: Sponsor[] = [
   {
     id: 'placeholder-2',
     name: 'Community Partner',
-    tier: 'gold',
+    tier: 'yellow',
     logo_url: null,
     website_url: null,
     contact_name: null,
@@ -40,7 +40,7 @@ const SPONSOR_PLACEHOLDERS: Sponsor[] = [
   {
     id: 'placeholder-3',
     name: 'Local Supporter',
-    tier: 'gold',
+    tier: 'yellow',
     logo_url: null,
     website_url: null,
     contact_name: null,
@@ -58,7 +58,7 @@ const SPONSOR_PLACEHOLDERS: Sponsor[] = [
   {
     id: 'placeholder-4',
     name: 'Family Business',
-    tier: 'gold',
+    tier: 'yellow',
     logo_url: null,
     website_url: null,
     contact_name: null,
