@@ -10,17 +10,17 @@ import { Button } from '@/components/ui/button'
 export function Hero() {
   return (
     <section className="relative isolate overflow-hidden border-b border-clw-gold/10 bg-clw-black pt-24 md:pt-28">
-      <div className="relative min-h-[560px] overflow-hidden bg-clw-black-2">
+      <div className="relative flex min-h-[480px] overflow-hidden bg-clw-black-2 lg:min-h-[560px]">
         <div className="absolute inset-0 lg:left-[34%]">
           {/* eslint-disable-next-line @next/next/no-img-element -- real club team photo */}
           <img
             src="/images/real/team_march2025.jpg"
             alt=""
             aria-hidden
-            className="animate-kenburns absolute inset-0 h-full w-full object-cover opacity-70"
+            className="animate-kenburns absolute inset-0 h-full w-full object-cover opacity-90"
           />
           <video
-            className="absolute inset-0 h-full w-full object-cover opacity-85"
+            className="absolute inset-0 h-full w-full object-cover opacity-95"
             autoPlay
             muted
             loop
@@ -29,23 +29,22 @@ export function Hero() {
           >
             <source src="/hero.mp4" type="video/mp4" />
           </video>
-          <div className="absolute inset-0 bg-gradient-to-r from-clw-black-2 via-clw-black-2/70 to-clw-black/10" />
-          <div className="absolute inset-0 bg-gradient-to-t from-clw-black-2/95 via-clw-black/25 to-clw-black/30" />
+          <div className="absolute inset-0 bg-gradient-to-r from-clw-black-2/80 via-clw-black-2/45 to-clw-black/5" />
+          <div className="absolute inset-0 bg-gradient-to-t from-clw-black-2/75 via-clw-black/10 to-clw-black/10" />
         </div>
 
-        <div className="relative z-10 flex min-h-[560px] max-w-4xl flex-col justify-center px-5 py-12 sm:px-8 lg:px-12 xl:px-16 2xl:px-20">
-          <p className="font-cond text-sm uppercase tracking-[0.34em] text-clw-gold">Crystal Lake, Illinois</p>
-          <h1 className="mt-4 max-w-3xl font-display text-6xl uppercase leading-[0.88] text-clw-white sm:text-7xl lg:text-8xl xl:text-9xl">
-            Wrestle like a <span className="text-clw-gold">Wizard</span>.
-          </h1>
-          <p className="mt-6 max-w-lg text-lg leading-relaxed text-clw-gray">
-            Develop technique, toughness, and team, on and off the mat.
+        <div className="relative z-10 flex max-w-4xl flex-col justify-end px-5 py-12 sm:px-8 lg:px-12 xl:px-16 2xl:px-20 lg:min-h-[560px]">
+          <p className="hidden font-cond text-sm uppercase tracking-[0.34em] text-clw-gold md:block">
+            Crystal Lake Wizards Wrestling Club
           </p>
-          <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-            <Button asChild size="lg" className="chamfer-sm h-12 w-full rounded-none px-8 sm:w-auto">
+          <h1 className="max-w-3xl font-display text-[5.625rem] uppercase leading-[0.88] text-clw-white sm:text-[6.75rem] md:mt-4 lg:text-[9rem] xl:text-[12rem]">
+            Work. Compete. <span className="text-clw-gold">Repeat.</span>
+          </h1>
+          <div className="mt-9 hidden gap-3 md:flex md:items-center md:gap-4">
+            <Button asChild size="lg" className="chamfer-sm h-12 rounded-none px-8">
               <Link href="/signup">Join the Wizards</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="chamfer-sm h-12 w-full rounded-none px-8 sm:w-auto">
+            <Button asChild size="lg" variant="outline" className="chamfer-sm h-12 rounded-none px-8">
               <Link href="/login">Parent Portal Login</Link>
             </Button>
           </div>
@@ -60,6 +59,10 @@ export function Hero() {
         <span aria-hidden className="absolute left-5 top-5 h-5 w-5 border-l-2 border-t-2 border-clw-gold/50" />
         <span aria-hidden className="absolute bottom-5 right-5 h-5 w-5 border-b-2 border-r-2 border-clw-gold/50" />
       </div>
+
+      <p className="px-5 py-4 font-cond text-sm uppercase tracking-[0.34em] text-clw-gold sm:px-8 md:hidden">
+        Crystal Lake Wizards Wrestling Club
+      </p>
     </section>
   )
 }

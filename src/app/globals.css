@@ -47,6 +47,14 @@
     --clw-white: 255 255 255;
     --clw-gray: 176 176 176;
     --card-shadow: 0 16px 42px -22px rgb(0 0 0 / 0.95);
+
+    /* Warm light tokens: used to break up the public marketing pages with
+       off-white "clarity" bands between the dark "authority" bands, without
+       reverting to pure white (avoids glare, stays premium). */
+    --clw-cream: 247 244 234;
+    --clw-paper: 255 253 247;
+    --clw-ink: 17 17 17;
+    --clw-muted-dark: 79 79 70;
   }
 
   /* Portal dark: lifted off pure black so surfaces read as layered, muted
@@ -71,6 +79,22 @@
     --clw-white: 26 26 30; /* "white" text -> near-black */
     --clw-gray: 90 96 106; /* muted text */
     --card-shadow: 0 10px 25px rgb(0 0 0 / 0.1);
+  }
+
+  /* Light section band for the public marketing pages (About/trust, proof
+     stats, sponsors). Scopes the same --clw-* vars the dark bento cards
+     already key off of, so PracticeGroups/ClubNumbers/WhyCLW/SponsorsShowcase
+     relight correctly inside it with zero per-component edits — same trick
+     as [data-theme='light'] above, just opt-in via class instead of the
+     portal's data-attribute. */
+  .section-light {
+    --clw-black: var(--clw-cream);
+    --clw-black-2: var(--clw-paper);
+    --clw-black-3: 255 255 255;
+    --clw-gold-ink: 138 109 16;
+    --clw-white: var(--clw-ink);
+    --clw-gray: var(--clw-muted-dark);
+    --card-shadow: 0 10px 25px rgb(0 0 0 / 0.08);
   }
 }
 

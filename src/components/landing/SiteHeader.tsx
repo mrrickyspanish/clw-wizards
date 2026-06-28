@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { Menu, X } from 'lucide-react'
+import { ArrowUpRight, X } from 'lucide-react'
 
 import { ORG } from '@/config/org.config'
 import { Button } from '@/components/ui/button'
@@ -12,7 +12,7 @@ const NAV_LINKS = [
   { href: '#groups', label: 'Practice Groups' },
   { href: '#events', label: 'Tournaments' },
   { href: '#why', label: 'Parent Portal' },
-  { href: '#donate', label: 'Support' },
+  { href: '/sponsorship', label: 'Support' },
 ]
 
 export function SiteHeader() {
@@ -39,65 +39,105 @@ export function SiteHeader() {
           scrolled ? 'border-b border-clw-gold/15 bg-clw-black/90 backdrop-blur-md' : 'bg-clw-black/55 backdrop-blur-sm'
         }`}
       >
-        <div className="flex w-full items-center justify-between px-5 py-4 sm:px-8 lg:px-12 xl:px-16 2xl:px-20">
-          <Link href="/" className="font-display text-3xl tracking-wide text-clw-gold">
-            {ORG.shortName}
-            <span className="ml-2 hidden align-middle text-sm font-body uppercase tracking-[0.2em] text-clw-gray sm:inline">
-              Wrestling Club
-            </span>
-          </Link>
+        <div className="px-5 py-4 sm:px-8 lg:px-12 xl:px-16 2xl:px-20">
+          {/* Mobile/tablet bar: waffle menu left, centered CLW lockup, Join Now CTA right. */}
+          <div className="grid grid-cols-3 items-center lg:hidden">
+            <button
+              type="button"
+              className="flex flex-col justify-self-start gap-1.5 text-clw-white"
+              onClick={() => setOpen((v) => !v)}
+              aria-label="Toggle menu"
+            >
+              {open ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <>
+                  <span className="block h-0.5 w-12 bg-clw-white" />
+                  <span className="block h-0.5 w-12 bg-clw-white" />
+                  <span className="block h-0.5 w-12 bg-clw-white" />
+                </>
+              )}
+            </button>
 
-          <nav className="hidden items-center gap-7 lg:flex xl:gap-9">
-            {NAV_LINKS.map((link) => (
-              <a key={link.label} href={link.href} className="text-base font-medium text-clw-white/85 transition-colors hover:text-clw-gold">
-                {link.label}
-              </a>
-            ))}
-          </nav>
-
-          <div className="hidden items-center gap-4 lg:flex">
-            <Link href="/login" className="text-base font-medium text-clw-white/85 transition-colors hover:text-clw-gold">
-              Parent / Staff Login
+            <Link href="/" className="justify-self-center font-display text-4xl tracking-wide text-clw-gold">
+              {ORG.shortName}
             </Link>
-            <Button asChild size="sm" className="chamfer-sm h-10 rounded-none px-5 text-sm font-semibold">
-              <Link href="/signup">Join the Wizards</Link>
-            </Button>
+
+            <Link
+              href="/signup"
+              className="flex items-center justify-self-end gap-1 text-sm font-semibold uppercase tracking-wide text-clw-white"
+            >
+              Join Now
+              <ArrowUpRight className="h-4 w-4 text-clw-gold" />
+            </Link>
           </div>
 
-          <button
-            type="button"
-            className="text-clw-white lg:hidden"
-            onClick={() => setOpen((v) => !v)}
-            aria-label="Toggle menu"
-          >
-            {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
-        </div>
+          {/* Desktop bar: full lockup, nav links, login + join CTA. */}
+          <div className="hidden items-center justify-between lg:flex">
+            <Link href="/" className="font-display text-3xl tracking-wide text-clw-gold">
+              {ORG.shortName}
+              <span className="ml-2 align-middle text-sm font-body uppercase tracking-[0.2em] text-clw-gray">
+                Wrestling Club
+              </span>
+            </Link>
 
-        {open && (
-          <div className="border-t border-clw-gold/10 bg-clw-black/95 px-6 py-4 lg:hidden">
-            <nav className="flex flex-col gap-4">
+            <nav className="flex items-center gap-7 xl:gap-9">
               {NAV_LINKS.map((link) => (
-                <a
-                  key={link.label}
-                  href={link.href}
-                  onClick={() => setOpen(false)}
-                  className="text-base text-clw-white/85 hover:text-clw-gold"
-                >
+                <a key={link.label} href={link.href} className="text-base font-medium text-clw-white/85 transition-colors hover:text-clw-gold">
                   {link.label}
                 </a>
               ))}
-              <div className="mt-2 flex gap-3">
-                <Button asChild variant="outline" size="sm" className="flex-1">
-                  <Link href="/login">Login</Link>
-                </Button>
-                <Button asChild size="sm" className="flex-1">
-                  <Link href="/signup">Join</Link>
-                </Button>
-              </div>
             </nav>
+
+            <div className="flex items-center gap-4">
+              <Link href="/login" className="text-base font-medium text-clw-white/85 transition-colors hover:text-clw-gold">
+                Parent / Staff Login
+              </Link>
+              <Button asChild size="sm" className="chamfer-sm h-10 rounded-none px-5 text-sm font-semibold">
+                <Link href="/signup">Join the Wizards</Link>
+              </Button>
+            </div>
           </div>
-        )}
+        </div>
+
+        {/* Always mounted so the open/close transitions actually play — grid-rows
+            animates the panel height like an accordion, and each row fades/slides
+            in with an increasing delay so the list cascades open one row at a time
+            instead of appearing in bulk. */}
+        <div
+          className={`grid overflow-hidden transition-[grid-template-rows] duration-300 ease-out lg:hidden ${
+            open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+          }`}
+        >
+          <nav inert={!open} className="min-h-0 overflow-hidden border-t border-clw-gold/10 bg-clw-black/95">
+            {NAV_LINKS.map((link, i) => (
+              <a
+                key={link.label}
+                href={link.href}
+                onClick={() => setOpen(false)}
+                className={`block border-b border-clw-white/10 px-6 py-5 font-display text-4xl uppercase tracking-wide text-clw-white transition-all duration-300 ease-out hover:text-clw-gold ${
+                  open ? 'translate-y-0 opacity-100' : '-translate-y-3 opacity-0'
+                }`}
+                style={{ transitionDelay: open ? `${120 + i * 70}ms` : '0ms' }}
+              >
+                {link.label}
+              </a>
+            ))}
+            <div
+              className={`flex gap-3 px-6 py-5 transition-all duration-300 ease-out ${
+                open ? 'translate-y-0 opacity-100' : '-translate-y-3 opacity-0'
+              }`}
+              style={{ transitionDelay: open ? `${120 + NAV_LINKS.length * 70}ms` : '0ms' }}
+            >
+              <Button asChild variant="outline" size="lg" className="flex-1 text-base">
+                <Link href="/login">Login</Link>
+              </Button>
+              <Button asChild size="lg" className="flex-1 text-base">
+                <Link href="/signup">Join</Link>
+              </Button>
+            </div>
+          </nav>
+        </div>
       </header>
     </>
   )

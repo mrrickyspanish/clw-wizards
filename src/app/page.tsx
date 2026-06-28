@@ -4,10 +4,12 @@ import type { Tournament, Sponsor } from '@/types/database'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Hero } from '@/components/landing/Hero'
 import { ProgramIntro } from '@/components/landing/ProgramIntro'
+import { MobileActionSlideshow } from '@/components/landing/MobileActionSlideshow'
 import { PracticeGroups } from '@/components/landing/PracticeGroups'
 import { UpcomingTournaments } from '@/components/landing/UpcomingTournaments'
 import { ClubNumbers } from '@/components/landing/ClubNumbers'
 import { WhyCLW } from '@/components/landing/WhyCLW'
+import { LocationCard } from '@/components/landing/LocationCard'
 import { SponsorsShowcase } from '@/components/landing/SponsorsShowcase'
 import { DonateSection } from '@/components/landing/DonateSection'
 import { SiteFooter } from '@/components/landing/SiteFooter'
@@ -23,8 +25,6 @@ export default async function HomePage({
   const supabase = await createServerSupabase()
   const today = chicagoDateString()
 
-  // Public reads: tournaments (public_read) and active sponsors
-  // (public_read_active_sponsors) need no auth.
   const [{ data: tournaments }, { data: sponsors }] = await Promise.all([
     supabase
       .from('tournaments')
@@ -60,32 +60,50 @@ export default async function HomePage({
 
       <Hero />
       <ProgramIntro />
+      <MobileActionSlideshow />
 
-      <section className="bg-clw-black px-5 pb-14 pt-3 sm:px-8 md:pb-20 lg:px-12 xl:px-16 2xl:px-20">
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-12 lg:items-start lg:gap-4">
-          <div id="groups" className="scroll-mt-24 lg:col-span-4">
+      <section className="bg-clw-black px-5 py-12 sm:px-8 sm:py-16 lg:px-12 xl:px-16 2xl:px-20">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
+          <div id="groups" className="scroll-mt-24">
             <PracticeGroups />
           </div>
-          <div id="events" className="scroll-mt-24 lg:col-span-4">
+          <div id="events" className="scroll-mt-24">
             <UpcomingTournaments tournaments={(tournaments ?? []) as Tournament[]} />
           </div>
-          <div id="why" className="scroll-mt-24 flex flex-col gap-3 lg:col-span-4 lg:gap-4">
-            <ClubNumbers />
-            <WhyCLW />
-          </div>
+        </div>
+      </section>
 
-          <div id="sponsors" className="scroll-mt-24 lg:col-span-8">
-            <SponsorsShowcase sponsors={sponsorRows} />
-          </div>
-          <div id="donate" className="scroll-mt-24 lg:col-span-4">
-            <DonateSection />
-          </div>
+      <div className="h-px bg-clw-gold/40" />
+
+      <section className="section-light bg-[#EEECE7] px-5 py-14 sm:px-8 sm:py-20 lg:px-12 xl:px-16 2xl:px-20">
+        <div id="why" className="scroll-mt-24 grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
+          <ClubNumbers />
+          <WhyCLW />
+        </div>
+      </section>
+
+      <section className="bg-clw-black px-5 py-12 sm:px-8 sm:py-16 lg:px-12 xl:px-16 2xl:px-20">
+        <div id="location" className="scroll-mt-24">
+          <LocationCard />
+        </div>
+      </section>
+
+      <div className="h-px bg-clw-gold/40" />
+
+      <section className="section-light bg-[#F6F5F2] px-5 py-14 sm:px-8 sm:py-20 lg:px-12 xl:px-16 2xl:px-20">
+        <div id="sponsors" className="scroll-mt-24">
+          <SponsorsShowcase sponsors={sponsorRows} />
+        </div>
+      </section>
+
+      <section className="bg-clw-black px-5 py-14 sm:px-8 sm:py-20 lg:px-12 xl:px-16 2xl:px-20">
+        <div id="donate" className="scroll-mt-24 mx-auto max-w-2xl">
+          <DonateSection />
         </div>
       </section>
 
       <SiteFooter />
 
-      {/* Spacer so the footer clears the sticky mobile CTA bar. */}
       <div className="h-24 md:hidden" />
       <MobileCtaBar />
     </main>

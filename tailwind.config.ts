@@ -54,19 +54,22 @@ const config: Config = {
           border: 'hsl(var(--sidebar-border))',
         },
         clw: {
-          // Themeable via CSS vars (see globals.css): default dark, with a
-          // light override under [data-theme='light'] scoped to the portal.
           black: 'rgb(var(--clw-black) / <alpha-value>)',
           'black-2': 'rgb(var(--clw-black-2) / <alpha-value>)',
           'black-3': 'rgb(var(--clw-black-3) / <alpha-value>)',
           gold: 'rgb(var(--clw-gold) / <alpha-value>)',
           'gold-l': 'rgb(var(--clw-gold-l) / <alpha-value>)',
           'gold-dim': 'rgb(var(--clw-gold-dim) / <alpha-value>)',
-          // Gold used as text/icon: bright gold on dark, darker gold on light
-          // (gold fails contrast as text on light surfaces).
           'gold-ink': 'rgb(var(--clw-gold-ink) / <alpha-value>)',
           white: 'rgb(var(--clw-white) / <alpha-value>)',
           gray: 'rgb(var(--clw-gray) / <alpha-value>)',
+          cream: 'rgb(var(--clw-cream) / <alpha-value>)',
+          paper: 'rgb(var(--clw-paper) / <alpha-value>)',
+          ink: 'rgb(var(--clw-ink) / <alpha-value>)',
+          'muted-dark': 'rgb(var(--clw-muted-dark) / <alpha-value>)',
+          warm: '#F6F5F2',
+          stone: '#EEECE7',
+          'line-light': 'rgba(17, 17, 17, 0.12)',
         },
       },
       borderRadius: {

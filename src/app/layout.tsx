@@ -5,7 +5,12 @@ import './globals.css'
 
 // viewport-fit=cover lets the mobile portal use env(safe-area-inset-*) so the
 // top bar clears the notch and the bottom tab bar clears the home indicator.
+// width/initialScale must be set explicitly — Next doesn't merge a custom
+// viewport export with its defaults, so omitting them drops
+// width=device-width and breaks responsive text wrapping on real phones.
 export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
   viewportFit: 'cover',
 }
 
