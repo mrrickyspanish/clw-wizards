@@ -178,7 +178,7 @@ export default async function SponsorshipPage() {
       </section>
 
       <TornEdge />
-      <section className="bg-clw-white px-7 py-16 text-center text-clw-black sm:px-10">
+      <section className="bg-[#F6F5F2] px-7 py-16 text-center text-clw-black sm:px-10">
         <div className="mx-auto max-w-3xl">
           <MediaImage src="/images/real/coaches_trophy.jpg" alt="Crystal Lake Wizards coaches with trophy" className="mx-auto h-72 w-full max-w-lg" position="center" />
           <div className="mx-auto mt-12 h-4 w-36 bg-clw-gold" />
@@ -193,7 +193,7 @@ export default async function SponsorshipPage() {
         </div>
       </section>
 
-      <TornEdge flip color="bg-clw-white" />
+      <TornEdge flip color="bg-[#F6F5F2]" />
       <section className="relative overflow-hidden bg-clw-black px-7 py-20 text-center sm:px-10">
         <div className="absolute inset-0 opacity-35 [background-image:radial-gradient(circle_at_center,rgba(240,192,32,.22),transparent_32%),linear-gradient(135deg,rgba(255,255,255,.08),transparent_44%)]" />
         <div className="relative mx-auto max-w-3xl">
@@ -210,12 +210,12 @@ export default async function SponsorshipPage() {
       </section>
 
       <TornEdge />
-      <section className="bg-clw-white px-7 py-16 text-clw-black sm:px-10">
+      <section className="bg-[#EEECE7] px-7 py-16 text-clw-black sm:px-10">
         <div className="mx-auto max-w-3xl">
           <p className="text-center font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-dim">Monthly & Annual Donations</p>
           <div className="mt-10 space-y-5">
             {BOOSTER_LEVELS.map((level) => (
-              <div key={level.name} className="border-l-4 border-clw-gold bg-clw-black/[0.04] px-6 py-7">
+              <div key={level.name} className="border-l-4 border-clw-gold bg-clw-white px-6 py-7 shadow-sm">
                 <h3 className="text-3xl font-bold text-clw-black">{level.name}</h3>
                 <p className="mt-3 font-cond text-2xl tracking-[0.18em] text-clw-gold-dim">{level.amount}</p>
                 <p className="mt-6 text-xl leading-relaxed text-clw-black/70">{level.body}</p>
@@ -225,9 +225,9 @@ export default async function SponsorshipPage() {
         </div>
       </section>
 
-      <section className="bg-clw-gold px-7 py-16 text-clw-black sm:px-10">
+      <section className="bg-[#F6F5F2] px-7 py-16 text-clw-black sm:px-10">
         <div className="mx-auto max-w-3xl">
-          <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-black/70">Business Support</p>
+          <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-dim">Business Support</p>
           <h2 className="mt-6 font-display text-5xl uppercase leading-none text-clw-black sm:text-6xl">Corporate Sponsorship</h2>
           <p className="mt-8 text-xl leading-relaxed text-clw-black/75">
             Local business sponsors help keep the Wizards affordable, competitive, and visible in the community. Sponsorship can include gym signage, website recognition, social media features, tournament support, event visibility, and direct goodwill with wrestling families across Crystal Lake.
