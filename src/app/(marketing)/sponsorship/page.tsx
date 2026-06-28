@@ -1,11 +1,37 @@
 import type { Metadata } from 'next'
-import { HandHeart, Mail } from 'lucide-react'
+import Link from 'next/link'
+import { Dumbbell, GraduationCap, HandHeart, HeartHandshake, History, Mail, Plane, ShieldCheck, Users } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { ORG } from '@/config/org.config'
 import type { Sponsor } from '@/types/database'
 import { SponsorsShowcase } from '@/components/landing/SponsorsShowcase'
 import { Button } from '@/components/ui/button'
+
+const REASONS_TO_BELIEVE = [
+  { label: '40+ years running', icon: History },
+  { label: '100% volunteer-run', icon: HeartHandshake },
+  { label: '501(c)(3) nonprofit, EIN #45-5192515', icon: ShieldCheck },
+  { label: '120+ wrestlers funded each season', icon: Users },
+]
+
+const IMPACT_AREAS = [
+  {
+    name: 'Equipment & Facility',
+    icon: Dumbbell,
+    description: 'Mats, headgear, singlets, and the gear that keeps a volunteer-run program running season after season.',
+  },
+  {
+    name: 'Tournament & Travel Support',
+    icon: Plane,
+    description: 'Entry fees and travel costs so no wrestler sits out a tournament because of cost.',
+  },
+  {
+    name: 'Coaching & Development',
+    icon: GraduationCap,
+    description: 'Certifications and training for the volunteer coaches who show up every practice.',
+  },
+]
 
 const SPONSOR_TIERS = [
   {
@@ -35,33 +61,9 @@ const SPONSOR_TIERS = [
   },
 ]
 
-const GOLF_TIERS = [
-  {
-    name: 'Individual Golfer',
-    amount: '$150',
-    includes: '18 holes, cart, range, gift bag, 10 raffle tickets, food & drink.',
-  },
-  {
-    name: 'Foursome',
-    amount: '$600',
-    includes: '18 holes, 2 carts, range, 4 gift bags, 15 raffle tickets per golfer, food & drink.',
-  },
-  {
-    name: 'Corporate Foursome',
-    amount: '$1,000',
-    includes: 'Everything in Foursome, plus 20 raffle tickets per golfer and hole sponsorship.',
-  },
-  {
-    name: 'Wizard VIP Corporate Sponsor',
-    amount: '$2,500',
-    includes:
-      'A golf foursome, 2 carts, range, 4 gift bags, and 30 raffle tickets per golfer, plus hole sponsorship, a banquet book ad, a VIP sponsor golf sign, and homepage banner placement. Includes the sausage bar at the turn, two drink tickets, dinner, a logo tumbler, and a Wizards golf outing polo.',
-  },
-]
-
 export const metadata: Metadata = {
   title: 'Sponsorship',
-  description: 'Sponsorship and golf outing opportunities that help underwrite the Crystal Lake Wizards.',
+  description: 'Sponsorship opportunities that help underwrite the Crystal Lake Wizards.',
 }
 
 export default async function SponsorshipPage() {
@@ -78,10 +80,10 @@ export default async function SponsorshipPage() {
             Sponsorship opportunities
           </h1>
           <p className="mt-4 max-w-2xl text-clw-gray">
-            Crystal Lake Wizards Wrestling Club is a 501(c)(3) nonprofit run 100% by volunteers. To keep the program
-            running and registration affordable for every family, we rely on local businesses to sponsor our season
-            and our golf outing. Your support funds our facility, uniforms, equipment, training, and end-of-year
-            banquet — and puts your business in front of the community.
+            Crystal Lake Wizards Wrestling Club is a 501(c)(3) nonprofit, run 100% by volunteers, now in our fifth
+            decade. Sponsorship is what keeps registration affordable for our 120+ wrestlers, ages 5–14 — it funds
+            the mats, the travel, the coaching, and the season itself. In return, your business gets in front of
+            every Wizards family, all season long.
           </p>
         </div>
         <div className="chamfer-md card-depth overflow-hidden border border-clw-gold/10 bg-clw-black-2 lg:col-span-4">
@@ -93,6 +95,31 @@ export default async function SponsorshipPage() {
           />
         </div>
       </header>
+
+      <section className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {REASONS_TO_BELIEVE.map((reason) => (
+          <div
+            key={reason.label}
+            className="chamfer-md card-depth flex items-center gap-3 border border-clw-gold/10 bg-clw-black-2 p-5"
+          >
+            <reason.icon className="h-6 w-6 shrink-0 text-clw-gold-ink" />
+            <p className="text-base text-clw-gray">{reason.label}</p>
+          </div>
+        ))}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="font-display text-2xl uppercase tracking-wide text-clw-white">Where your sponsorship goes</h2>
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {IMPACT_AREAS.map((area) => (
+            <div key={area.name} className="chamfer-md card-depth flex flex-col border border-clw-gold/10 bg-clw-black-2 p-5">
+              <area.icon className="h-6 w-6 text-clw-gold-ink" />
+              <p className="mt-3 font-display text-lg uppercase tracking-wide text-clw-white">{area.name}</p>
+              <p className="mt-2 flex-1 text-base leading-relaxed text-clw-gray">{area.description}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <section className="mt-10">
         <h2 className="font-display text-2xl uppercase tracking-wide text-clw-white">Club sponsorship</h2>
@@ -108,25 +135,29 @@ export default async function SponsorshipPage() {
         </div>
       </section>
 
-      <section className="mt-8">
-        <h2 className="font-display text-2xl uppercase tracking-wide text-clw-white">Golf outing</h2>
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {GOLF_TIERS.map((tier) => (
-            <div key={tier.name} className="chamfer-md card-depth flex flex-col border border-clw-gold/10 bg-clw-black-2 p-5">
-              <p className="font-cond text-sm uppercase tracking-[0.2em] text-clw-gold-ink">{tier.name}</p>
-              <p className="mt-2 font-display text-3xl text-clw-white">{tier.amount}</p>
-              <p className="mt-3 flex-1 text-base leading-relaxed text-clw-gray">{tier.includes}</p>
-            </div>
-          ))}
+      <section className="mt-8 chamfer-md card-depth flex flex-col items-start gap-4 border border-clw-gold/10 bg-clw-black-2 p-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="font-display text-xl uppercase tracking-wide text-clw-white">Golf outing — every August</p>
+          <p className="text-base text-clw-gray">
+            Our annual golf outing — every August. Sponsor a hole, grab a foursome, or come golf with us.
+          </p>
         </div>
+        <Button asChild size="lg" variant="outline" className="chamfer-sm w-full rounded-none sm:w-auto">
+          <Link href="/golf-outing">See golf outing details</Link>
+        </Button>
       </section>
 
       <section className="mt-8 chamfer-lg card-depth flex flex-col items-start gap-4 border border-clw-gold/15 bg-clw-black-2 p-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <HandHeart className="h-6 w-6 shrink-0 text-clw-gold-ink" />
           <div>
-            <p className="font-display text-xl uppercase tracking-wide text-clw-white">Become a sponsor</p>
-            <p className="text-base text-clw-gray">Reach out and we&apos;ll get you set up for this season.</p>
+            <p className="font-display text-xl uppercase tracking-wide text-clw-white">
+              Own a business? Become a Corporate Partner.
+            </p>
+            <p className="text-base text-clw-gray">
+              Reach out and we&apos;ll get your business set up as a season sponsor — banner placement, website
+              recognition, and a direct line to Crystal Lake wrestling families.
+            </p>
           </div>
         </div>
         <Button asChild size="lg" className="chamfer-sm w-full rounded-none sm:w-auto">
@@ -155,7 +186,10 @@ export default async function SponsorshipPage() {
 
       {sponsorRows.length > 0 && (
         <section className="mt-8">
-          <SponsorsShowcase sponsors={sponsorRows} />
+          <p className="text-base text-clw-gray">Join the local businesses already backing the Wizards.</p>
+          <div className="mt-4">
+            <SponsorsShowcase sponsors={sponsorRows} />
+          </div>
         </section>
       )}
     </main>
