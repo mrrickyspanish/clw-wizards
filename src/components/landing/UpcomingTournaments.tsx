@@ -41,7 +41,7 @@ export function UpcomingTournaments({ tournaments }: { tournaments: Tournament[]
                 className="group flex items-center gap-4 rounded-md border border-clw-gold/20 bg-clw-black/55 px-4 py-4 transition-colors hover:border-clw-gold/50 hover:bg-clw-black/80"
               >
                 <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-md bg-clw-gold/15 px-3 py-2">
-                  <span className="font-cond text-xs uppercase tracking-wide text-clw-gold-ink">{month}</span>
+                  <span className="font-cond text-sm uppercase tracking-wide text-clw-gold-ink">{month}</span>
                   <span className="font-display text-2xl leading-none text-clw-white">{day}</span>
                 </div>
                 <div className="min-w-0 flex-1">

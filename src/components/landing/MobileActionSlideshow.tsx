@@ -44,7 +44,7 @@ export function MobileActionSlideshow() {
         />
       ))}
       <div className="absolute inset-0 bg-gradient-to-t from-clw-black via-clw-black/10 to-transparent" />
-      <p className="absolute left-5 top-4 font-cond text-xs uppercase tracking-[0.3em] text-clw-gold">
+      <p className="absolute left-5 top-4 font-cond text-sm uppercase tracking-[0.3em] text-clw-gold">
         Wizards in action
       </p>
       <div className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-1.5">
