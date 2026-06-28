@@ -6,7 +6,10 @@ export function ProgramIntro() {
       <div className="max-w-4xl">
         <h2 className="max-w-3xl uppercase leading-[0.92] text-clw-ink">
           <span className="block font-cond text-[clamp(3rem,13vw,4.75rem)] font-light tracking-[-0.04em] text-clw-ink">
-            Where McHenry County
+            Where
+          </span>
+          <span className="block font-cond text-[clamp(3rem,13vw,4.75rem)] font-light tracking-[-0.04em] text-clw-ink">
+            McHenry County
           </span>
           <span className="block font-display text-[clamp(3.4rem,14vw,5.25rem)] font-black tracking-[-0.035em] text-clw-ink">
             Wrestlers Grow
