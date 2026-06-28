@@ -41,6 +41,14 @@ export function SiteFooter() {
         <p className="text-clw-gray/60">
           © {new Date().getFullYear()} {ORG.name}. All rights reserved.
         </p>
+        <a
+          href="https://creativeeyestudios.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group mt-5 border-t border-clw-gold/10 pt-5 font-cond text-xs uppercase tracking-[0.26em] text-clw-gray/35 transition duration-300 hover:border-clw-gold/60 hover:text-clw-gold hover:[text-shadow:0_0_18px_rgba(240,192,32,0.45)]"
+        >
+          Meticulously crafted by <span className="text-clw-gray/45 transition duration-300 group-hover:text-clw-gold">Creative Eye Studios</span>
+        </a>
       </div>
     </footer>
   )
