@@ -29,35 +29,38 @@ export function ProgramIntro() {
           </Link>
         </div>
 
-        <div className="relative min-h-[330px] sm:min-h-[410px] lg:min-h-[460px]">
-          <div className="absolute left-0 top-0 h-48 w-[68%] overflow-hidden border border-clw-gold/20 bg-clw-black-2 shadow-2xl shadow-black/35 sm:h-64 lg:left-10 lg:w-[62%]">
+        <div className="relative min-h-[360px] sm:min-h-[440px] lg:min-h-[500px]">
+          {/* Primary: dominant top-left layer */}
+          <div className="absolute left-0 top-0 h-56 w-[64%] overflow-hidden bg-clw-black-2 sm:h-72 lg:h-80 lg:w-[60%]">
             {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
             <img
               src="/images/real/team_march2025.jpg"
               alt="Crystal Lake Wizards team standing together"
-              className="h-full w-full object-cover grayscale"
+              className="h-full w-full object-cover grayscale contrast-110"
             />
-            <div className="absolute inset-0 bg-clw-black/25" />
           </div>
 
-          <div className="absolute bottom-24 right-0 h-52 w-[70%] overflow-hidden border border-clw-gold/20 bg-clw-black-2 shadow-2xl shadow-black/35 sm:h-72 lg:bottom-28 lg:w-[66%]">
+          {/* Secondary: supporting layer anchored bottom-left, shallow overlap with primary */}
+          <div className="absolute bottom-0 left-0 h-44 w-[46%] overflow-hidden bg-clw-black-2 sm:h-56 lg:h-60 lg:w-[42%]">
             {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
             <img
               src="/images/real/facility_pano.jpg"
               alt="Crystal Lake Wizards wrestling practice room"
-              className="h-full w-full object-cover grayscale"
+              className="h-full w-full object-cover grayscale contrast-110"
             />
-            <div className="absolute inset-0 bg-clw-black/30" />
           </div>
 
-          <div className="absolute bottom-0 left-1/2 h-24 w-[88%] -translate-x-1/2 overflow-hidden border border-clw-gold/20 bg-clw-black-2 shadow-2xl shadow-black/35 sm:h-28 lg:h-32 lg:w-[92%]">
+          {/* Accent: single brand-color punctuation at the seam */}
+          <span aria-hidden className="absolute left-[58%] top-[16%] z-10 h-10 w-3 bg-clw-gold lg:h-14 lg:w-4" />
+
+          {/* Tertiary: action layer floating inward from the right edge, overlapping both planes */}
+          <div className="absolute right-4 top-[30%] h-40 w-[52%] overflow-hidden bg-clw-black-2 sm:h-48 lg:right-8 lg:h-52 lg:w-[48%]">
             {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
             <img
               src="/images/real/facility_pano.jpg"
               alt="Crystal Lake Wizards practice facility"
-              className="h-full w-full object-cover grayscale"
+              className="h-full w-full object-cover grayscale contrast-110"
             />
-            <div className="absolute inset-0 bg-clw-black/30" />
           </div>
 
           <div className="absolute left-1/2 top-1/2 flex h-44 w-44 -translate-x-1/2 -translate-y-1/2 rotate-[-9deg] items-center justify-center rounded-full border-[7px] border-clw-gold bg-clw-black/80 text-center shadow-2xl shadow-black/45 sm:h-56 sm:w-56">
