@@ -7,12 +7,14 @@ import { ProgramIntro } from '@/components/landing/ProgramIntro'
 import { ProgramStructure } from '@/components/landing/ProgramStructure'
 import { HomeEventsSection } from '@/components/landing/HomeEventsSection'
 import { HomeSupportIntro } from '@/components/landing/HomeSupportIntro'
+import { HomeFacilitySection } from '@/components/landing/HomeFacilitySection'
+import { HomeTeamSection } from '@/components/landing/HomeTeamSection'
+import { HomeFacebookSection } from '@/components/landing/HomeFacebookSection'
 import { MobileActionSlideshow } from '@/components/landing/MobileActionSlideshow'
 import { PracticeGroups } from '@/components/landing/PracticeGroups'
 import { UpcomingTournaments } from '@/components/landing/UpcomingTournaments'
 import { ClubNumbers } from '@/components/landing/ClubNumbers'
 import { WhyCLW } from '@/components/landing/WhyCLW'
-import { LocationCard } from '@/components/landing/LocationCard'
 import { SponsorsShowcase } from '@/components/landing/SponsorsShowcase'
 import { DonateSection } from '@/components/landing/DonateSection'
 import { SiteFooter } from '@/components/landing/SiteFooter'
@@ -67,6 +69,9 @@ export default async function HomePage({
       <ProgramStructure />
       <HomeEventsSection tournaments={tournamentRows} />
       <HomeSupportIntro />
+      <HomeFacilitySection />
+      <HomeTeamSection />
+      <HomeFacebookSection />
       <MobileActionSlideshow />
 
       <section className="bg-clw-black px-5 py-12 sm:px-8 sm:py-16 lg:px-12 xl:px-16 2xl:px-20">
@@ -89,12 +94,6 @@ export default async function HomePage({
         </div>
       </section>
 
-      <section className="bg-clw-black px-5 py-12 sm:px-8 sm:py-16 lg:px-12 xl:px-16 2xl:px-20">
-        <div id="location" className="scroll-mt-24">
-          <LocationCard />
-        </div>
-      </section>
-
       <div className="h-px bg-clw-gold/40" />
 
       <section className="section-light bg-[#F6F5F2] px-5 py-14 sm:px-8 sm:py-20 lg:px-12 xl:px-16 2xl:px-20">
@@ -111,7 +110,7 @@ export default async function HomePage({
 
       <SiteFooter />
 
-      <div className="h-24 md:hidden" />
+      <div className="h-20 md:hidden" />
       <MobileCtaBar />
     </main>
   )
