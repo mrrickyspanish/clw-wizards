@@ -1,5 +1,6 @@
+import { FacebookPagePlugin } from '@/components/landing/FacebookPagePlugin'
+
 const FACEBOOK_URL = 'https://www.facebook.com/share/1827CiuhwT/?mibextid=wwXIfr'
-const FACEBOOK_PLUGIN_URL = `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(FACEBOOK_URL)}&tabs=timeline&width=500&height=560&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=false`
 
 export function HomeFacebookSection() {
   return (
@@ -28,18 +29,7 @@ export function HomeFacebookSection() {
         </div>
 
         <div className="border border-clw-gold/25 bg-clw-black-2 p-3 shadow-2xl shadow-black/30">
-          <div className="overflow-hidden bg-clw-white">
-            <iframe
-              title="Crystal Lake Wizards Facebook feed"
-              src={FACEBOOK_PLUGIN_URL}
-              width="500"
-              height="560"
-              style={{ border: 'none', overflow: 'hidden' }}
-              scrolling="no"
-              allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-              className="h-[520px] w-full"
-            />
-          </div>
+          <FacebookPagePlugin href={FACEBOOK_URL} />
           <a
             href={FACEBOOK_URL}
             target="_blank"
