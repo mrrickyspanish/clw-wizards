@@ -62,17 +62,19 @@ export function HomeEventsSection({ tournaments }: { tournaments: Tournament[] }
                   href={href}
                   target={event.external_registration_url ? '_blank' : undefined}
                   rel={event.external_registration_url ? 'noopener noreferrer' : undefined}
-                  className={`group relative isolate flex min-h-[230px] w-full flex-col overflow-hidden border border-clw-ink/45 bg-white shadow-xl shadow-clw-black/5 transition hover:-translate-y-1 hover:border-clw-gold sm:w-[calc(50%-0.625rem)] lg:w-[320px] ${index > 2 ? 'hidden xl:flex' : ''}`}
+                  className={`group relative isolate flex min-h-[230px] w-full flex-col overflow-hidden border border-clw-ink/45 bg-white shadow-xl shadow-clw-black/5 transition hover:-translate-y-1 hover:border-clw-gold sm:w-[calc(50%-0.625rem)] lg:min-h-[250px] lg:w-[calc(50%-0.625rem)] ${index > 2 ? 'hidden lg:flex' : ''}`}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element -- decorative placeholder, full-card background */}
+                  {/* On mobile the photo is a full-card background at low opacity; on desktop it
+                      becomes a full-opacity left panel with the copy in the open space to the right. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
                   <img
                     src="/images/real/facility_pano.jpg"
                     alt=""
                     aria-hidden
-                    className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-10"
+                    className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-10 lg:right-auto lg:w-[40%] lg:opacity-100"
                   />
                   <div className="relative flex flex-1">
-                    <div className="flex flex-1 flex-col px-6 py-5 sm:px-7">
+                    <div className="flex flex-1 flex-col px-6 py-5 sm:px-7 lg:ml-[40%] lg:justify-center lg:pl-8">
                       <h3 className="font-body text-2xl font-semibold leading-tight text-clw-ink xl:text-[1.35rem]">
                         {event.name}
                       </h3>
@@ -97,7 +99,7 @@ export function HomeEventsSection({ tournaments }: { tournaments: Tournament[] }
                     </div>
                   </div>
 
-                  <div className="relative bg-clw-black px-6 py-3 text-center font-display text-lg uppercase tracking-wide text-clw-white transition group-hover:bg-clw-gold group-hover:text-clw-black">
+                  <div className="relative bg-clw-black px-6 py-3 text-center font-display text-lg uppercase tracking-wide text-clw-white transition group-hover:bg-clw-gold group-hover:text-clw-black lg:ml-[40%]">
                     Learn more
                   </div>
                 </Link>

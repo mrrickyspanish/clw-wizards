@@ -64,12 +64,12 @@ export function HomeSupportIntro() {
           </div>
         </div>
 
-        <div className="mt-9 grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-9 grid grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-5">
           {SUPPORT_OPTIONS.map(({ title, body, href, cta, Icon }) => (
             <Link
               key={title}
               href={href}
-              className="group flex min-h-[210px] flex-col border border-clw-gold/25 bg-clw-black-2/80 p-5 text-clw-white shadow-2xl shadow-black/20 transition hover:-translate-y-1 hover:border-clw-gold sm:min-h-[230px] sm:p-6"
+              className="group flex min-h-[210px] flex-col border border-clw-gold/25 bg-clw-black-2/80 p-5 text-clw-white shadow-2xl shadow-black/20 transition hover:-translate-y-1 hover:border-clw-gold sm:min-h-[230px] sm:p-6 lg:min-h-[260px] lg:p-8"
             >
               <div className="flex items-center justify-between gap-6">
                 <span className="flex h-12 w-12 items-center justify-center rounded-full bg-clw-gold/12 text-clw-gold ring-1 ring-clw-gold/25">
