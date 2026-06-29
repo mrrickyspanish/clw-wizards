@@ -1,6 +1,6 @@
 import { createServerSupabase } from '@/lib/supabase/server'
 import { chicagoDateString } from '@/lib/chicago-time'
-import type { Tournament, Sponsor } from '@/types/database'
+import type { Tournament } from '@/types/database'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Hero } from '@/components/landing/Hero'
 import { ProgramIntro } from '@/components/landing/ProgramIntro'
@@ -10,13 +10,6 @@ import { HomeSupportIntro } from '@/components/landing/HomeSupportIntro'
 import { HomeFacilitySection } from '@/components/landing/HomeFacilitySection'
 import { HomeTeamSection } from '@/components/landing/HomeTeamSection'
 import { HomeFacebookSection } from '@/components/landing/HomeFacebookSection'
-import { MobileActionSlideshow } from '@/components/landing/MobileActionSlideshow'
-import { PracticeGroups } from '@/components/landing/PracticeGroups'
-import { UpcomingTournaments } from '@/components/landing/UpcomingTournaments'
-import { ClubNumbers } from '@/components/landing/ClubNumbers'
-import { WhyCLW } from '@/components/landing/WhyCLW'
-import { SponsorsShowcase } from '@/components/landing/SponsorsShowcase'
-import { DonateSection } from '@/components/landing/DonateSection'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { MobileCtaBar } from '@/components/landing/MobileCtaBar'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -30,19 +23,15 @@ export default async function HomePage({
   const supabase = await createServerSupabase()
   const today = chicagoDateString()
 
-  const [{ data: tournaments }, { data: sponsors }] = await Promise.all([
-    supabase
-      .from('tournaments')
-      .select('*')
-      .eq('status', 'open')
-      .gte('date', today)
-      .order('date', { ascending: true })
-      .limit(4),
-    supabase.from('sponsors').select('*').eq('active', true),
-  ])
+  const { data: tournaments } = await supabase
+    .from('tournaments')
+    .select('*')
+    .eq('status', 'open')
+    .gte('date', today)
+    .order('date', { ascending: true })
+    .limit(4)
 
   const tournamentRows = (tournaments ?? []) as Tournament[]
-  const sponsorRows = (sponsors ?? []) as Sponsor[]
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-clw-black">
@@ -72,41 +61,6 @@ export default async function HomePage({
       <HomeFacilitySection />
       <HomeTeamSection />
       <HomeFacebookSection />
-      <MobileActionSlideshow />
-
-      <section className="bg-clw-black px-5 py-12 sm:px-8 sm:py-16 lg:px-12 xl:px-16 2xl:px-20">
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
-          <div id="groups" className="scroll-mt-24">
-            <PracticeGroups />
-          </div>
-          <div id="events-detail" className="scroll-mt-24">
-            <UpcomingTournaments tournaments={tournamentRows} />
-          </div>
-        </div>
-      </section>
-
-      <div className="h-px bg-clw-gold/40" />
-
-      <section className="section-light bg-[#EEECE7] px-5 py-14 sm:px-8 sm:py-20 lg:px-12 xl:px-16 2xl:px-20">
-        <div id="why" className="scroll-mt-24 grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
-          <ClubNumbers />
-          <WhyCLW />
-        </div>
-      </section>
-
-      <div className="h-px bg-clw-gold/40" />
-
-      <section className="section-light bg-[#F6F5F2] px-5 py-14 sm:px-8 sm:py-20 lg:px-12 xl:px-16 2xl:px-20">
-        <div id="sponsors" className="scroll-mt-24">
-          <SponsorsShowcase sponsors={sponsorRows} />
-        </div>
-      </section>
-
-      <section className="bg-clw-black px-5 py-14 sm:px-8 sm:py-20 lg:px-12 xl:px-16 2xl:px-20">
-        <div id="donate" className="scroll-mt-24 mx-auto max-w-2xl">
-          <DonateSection />
-        </div>
-      </section>
 
       <SiteFooter />
 
