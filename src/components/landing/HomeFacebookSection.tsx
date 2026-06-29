@@ -27,12 +27,7 @@ export function HomeFacebookSection() {
           </a>
         </div>
 
-        <a
-          href={FACEBOOK_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block border border-clw-gold/25 bg-clw-black-2 p-3 shadow-2xl shadow-black/30 transition hover:border-clw-gold"
-        >
+        <div className="border border-clw-gold/25 bg-clw-black-2 p-3 shadow-2xl shadow-black/30">
           <div className="overflow-hidden bg-clw-white">
             <iframe
               title="Crystal Lake Wizards Facebook feed"
@@ -45,10 +40,15 @@ export function HomeFacebookSection() {
               className="h-[520px] w-full"
             />
           </div>
-          <div className="bg-clw-gold px-6 py-4 text-center font-display text-xl uppercase tracking-wide text-clw-black">
+          <a
+            href={FACEBOOK_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block bg-clw-gold px-6 py-4 text-center font-display text-xl uppercase tracking-wide text-clw-black transition hover:bg-clw-gold-l"
+          >
             Follow us on Facebook
-          </div>
-        </a>
+          </a>
+        </div>
       </div>
     </section>
   )
