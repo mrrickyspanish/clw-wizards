@@ -44,10 +44,10 @@ export function HomeSupportIntro() {
       </span>
 
       <div className="relative mx-auto max-w-7xl">
-        <div className="grid gap-8 lg:grid-cols-[0.92fr_1.08fr] lg:items-end">
+        <div className="grid gap-8 lg:grid-cols-1 lg:text-center">
           <div>
             <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Support</p>
-            <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-white">
+            <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-white lg:mx-auto lg:max-w-none">
               <span className="block font-cond text-[clamp(3rem,12vw,5rem)] font-light tracking-[-0.04em]">
                 Many ways to help.
               </span>
@@ -57,14 +57,14 @@ export function HomeSupportIntro() {
             </h2>
           </div>
 
-          <div className="max-w-2xl text-xl leading-relaxed text-clw-gray sm:text-2xl sm:leading-relaxed lg:justify-self-end">
+          <div className="max-w-2xl text-xl leading-relaxed text-clw-gray sm:text-2xl sm:leading-relaxed lg:mx-auto lg:max-w-3xl">
             <p>
               Wizards Wrestling Club exists because families, alumni, local businesses, and community partners like you choose to invest in young wrestlers.
             </p>
           </div>
         </div>
 
-        <div className="mt-9 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-9 grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {SUPPORT_OPTIONS.map(({ title, body, href, cta, Icon }) => (
             <Link
               key={title}
