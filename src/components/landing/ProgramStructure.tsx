@@ -1,11 +1,5 @@
 import Link from 'next/link'
 
-const PROGRAM_POINTS = [
-  'Practice groups',
-  'Focused coaching',
-  'Tournament weekends',
-]
-
 export function ProgramStructure() {
   return (
     <section className="relative isolate overflow-hidden border-y border-clw-gold/25 bg-clw-black px-5 py-14 text-clw-white sm:px-8 sm:py-16 lg:px-12 lg:py-20 xl:px-16 2xl:px-20">
@@ -69,15 +63,7 @@ export function ProgramStructure() {
             </p>
           </div>
 
-          <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3 lg:max-w-2xl">
-            {PROGRAM_POINTS.map((point) => (
-              <div key={point} className="border border-clw-gold/25 bg-clw-black-2/80 px-4 py-4 text-center font-cond text-sm uppercase tracking-[0.22em] text-clw-gold">
-                {point}
-              </div>
-            ))}
-          </div>
-
-          <Link href="#groups" className="mt-8 inline-block font-cond text-xl uppercase tracking-[0.18em] text-clw-gold underline-offset-4 hover:text-clw-gold-l hover:underline">
+          <Link href="/program" className="mt-8 inline-block font-cond text-xl uppercase tracking-[0.18em] text-clw-gold underline-offset-4 hover:text-clw-gold-l hover:underline">
             Explore the program →
           </Link>
         </div>
