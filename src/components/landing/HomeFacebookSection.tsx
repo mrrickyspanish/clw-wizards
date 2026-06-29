@@ -1,4 +1,4 @@
-import { FacebookFeedCard } from '@/components/landing/FacebookFeedCard'
+import { FacebookFeedWithFallback } from '@/components/landing/FacebookFeedWithFallback'
 
 const FACEBOOK_URL = 'https://www.facebook.com/pages/Wizards-Wrestling-Club/103467966667221'
 
@@ -28,7 +28,7 @@ export function HomeFacebookSection() {
           </a>
         </div>
 
-        <FacebookFeedCard href={FACEBOOK_URL} />
+        <FacebookFeedWithFallback href={FACEBOOK_URL} />
       </div>
     </section>
   )
