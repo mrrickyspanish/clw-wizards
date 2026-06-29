@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Bebas_Neue, Barlow, Barlow_Condensed } from 'next/font/google'
+import { Bebas_Neue, Barlow, Barlow_Condensed, Big_Shoulders } from 'next/font/google'
 import { ORG } from '@/config/org.config'
 import './globals.css'
 
@@ -32,6 +32,12 @@ const barlowCondensed = Barlow_Condensed({
   variable: '--font-barlow-condensed',
 })
 
+const bigShoulders = Big_Shoulders({
+  subsets: ['latin'],
+  weight: ['700', '800', '900'],
+  variable: '--font-big-shoulders',
+})
+
 export const metadata: Metadata = {
   metadataBase: new URL(`https://${ORG.domain}`),
   title: {
@@ -55,7 +61,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${bebasNeue.variable} ${barlow.variable} ${barlowCondensed.variable}`}>
+    <html lang="en" className={`${bebasNeue.variable} ${barlow.variable} ${barlowCondensed.variable} ${bigShoulders.variable}`}>
       <body>{children}</body>
     </html>
   )

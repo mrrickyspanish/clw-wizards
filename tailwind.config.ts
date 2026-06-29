@@ -81,6 +81,7 @@ const config: Config = {
         display: ['var(--font-bebas)', 'sans-serif'],
         body: ['var(--font-barlow)', 'sans-serif'],
         cond: ['var(--font-barlow-condensed)', 'sans-serif'],
+        impact: ['var(--font-big-shoulders)', 'sans-serif'],
       },
       keyframes: {
         'accordion-down': {

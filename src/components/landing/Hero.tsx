@@ -33,7 +33,7 @@ export function Hero() {
           <p className="hidden font-cond text-sm uppercase tracking-[0.34em] text-clw-gold md:block lg:hidden">
             Crystal Lake Wizards Wrestling Club
           </p>
-          <h1 className="max-w-3xl font-display text-[5.625rem] uppercase leading-[0.88] text-clw-white sm:text-[6.75rem] md:mt-4 lg:max-w-none lg:text-[10.5rem] xl:text-[13.5rem] 2xl:text-[15rem]">
+          <h1 className="max-w-3xl font-display text-[5.625rem] uppercase leading-[0.88] text-clw-white sm:text-[6.75rem] md:mt-4 lg:max-w-none lg:font-impact lg:font-black lg:text-[8.9rem] xl:text-[11.5rem] 2xl:text-[12.75rem]">
             Work. Compete. <span className="text-clw-gold">Repeat.</span>
           </h1>
         </div>
