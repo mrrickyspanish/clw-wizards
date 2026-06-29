@@ -11,38 +11,8 @@ export function ProgramStructure() {
         W
       </span>
 
-      <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
-        <div className="relative min-h-[330px] sm:min-h-[410px] lg:order-2">
-          <div className="absolute left-0 top-0 h-48 w-[68%] overflow-hidden border border-clw-gold/20 bg-clw-black-2 shadow-2xl shadow-black/35 sm:h-64 lg:left-10 lg:w-[62%]">
-            {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
-            <img
-              src="/images/real/team_march2025.jpg"
-              alt="Crystal Lake Wizards team standing together"
-              className="h-full w-full object-cover grayscale"
-            />
-            <div className="absolute inset-0 bg-clw-black/25" />
-          </div>
-
-          <div className="absolute bottom-0 right-0 h-52 w-[70%] overflow-hidden border border-clw-gold/20 bg-clw-black-2 shadow-2xl shadow-black/35 sm:h-72 lg:w-[66%]">
-            {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
-            <img
-              src="/images/real/facility_pano.jpg"
-              alt="Crystal Lake Wizards wrestling practice room"
-              className="h-full w-full object-cover grayscale"
-            />
-            <div className="absolute inset-0 bg-clw-black/30" />
-          </div>
-
-          <div className="absolute left-1/2 top-1/2 flex h-44 w-44 -translate-x-1/2 -translate-y-1/2 rotate-[-9deg] items-center justify-center rounded-full border-[7px] border-clw-gold bg-clw-black/80 text-center shadow-2xl shadow-black/45 sm:h-56 sm:w-56">
-            <div className="rounded-full border border-clw-gold/45 px-6 py-7">
-              <span className="block font-cond text-xs uppercase tracking-[0.34em] text-clw-gold/80">Crystal Lake</span>
-              <span className="mt-1 block font-display text-5xl uppercase leading-none text-clw-gold sm:text-6xl">Wizards</span>
-              <span className="block font-cond text-xs uppercase tracking-[0.3em] text-clw-gold/80">Wrestling Club</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="lg:order-1">
+      <div className="relative mx-auto max-w-4xl">
+        <div>
           <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Wizards Program</p>
 
           <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-white">
