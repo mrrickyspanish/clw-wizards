@@ -52,7 +52,7 @@ export function HomeFacilitySection() {
               href={MAP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex justify-center bg-clw-gold px-6 py-4 font-cond text-lg uppercase tracking-[0.18em] text-clw-black transition hover:bg-clw-gold-l"
+              className="chamfer-sm inline-flex justify-center bg-clw-gold px-6 py-4 font-cond text-lg uppercase tracking-[0.18em] text-clw-black transition hover:bg-clw-gold-l"
             >
               Visit facility →
             </a>

@@ -29,7 +29,7 @@ export function ProgramIntro() {
               We are volunteer-run, family-powered, and committed to helping every wrestler grow.
             </p>
           </div>
-          <Button asChild size="lg" className="mt-8">
+          <Button asChild size="lg" className="chamfer-sm mt-8 rounded-none">
             <Link href="/about">Ready to become a Wizard? →</Link>
           </Button>
         </div>
