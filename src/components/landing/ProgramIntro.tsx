@@ -52,7 +52,7 @@ export function ProgramIntro() {
             </div>
 
             {/* Photo 3: smallest, bottom-left, overlapping the seam */}
-            <div className="absolute bottom-0 left-[6%] w-[36%] overflow-hidden bg-clw-black-2 aspect-[16/10] sm:left-[10%] lg:left-[2%] lg:w-[40%]">
+            <div className="absolute bottom-0 left-[6%] w-[36%] overflow-hidden bg-clw-black-2 aspect-[16/10] sm:left-[10%] lg:left-[24%] lg:w-[44%]">
               {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
               <img
                 src="/images/real/facility_pano.jpg"
