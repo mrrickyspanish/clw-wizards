@@ -33,22 +33,16 @@ export function HomeEventsSection({ tournaments }: { tournaments: Tournament[] }
       </span>
 
       <div id="events" className="relative mx-auto max-w-7xl scroll-mt-24">
-        <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-end">
-          <div>
-            <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-ink">Events</p>
-            <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-ink">
-              <span className="block font-cond text-[clamp(3rem,12vw,5rem)] font-light tracking-[-0.04em]">
-                Upcoming
-              </span>
-              <span className="block font-display text-[clamp(3.4rem,13vw,5.6rem)] font-black tracking-[-0.035em]">
-                Club Events
-              </span>
-            </h2>
-          </div>
-
-          <p className="max-w-2xl text-xl leading-relaxed text-clw-muted-dark sm:text-2xl sm:leading-relaxed lg:justify-self-end">
-            The next dates pulled from the Wizards event calendar: tournaments, club events, fundraisers, and key season moments.
-          </p>
+        <div>
+          <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-ink">Events</p>
+          <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-ink">
+            <span className="block font-cond text-[clamp(3rem,12vw,5rem)] font-light tracking-[-0.04em]">
+              Upcoming
+            </span>
+            <span className="block font-display text-[clamp(3.4rem,13vw,5.6rem)] font-black tracking-[-0.035em]">
+              Club Events
+            </span>
+          </h2>
         </div>
 
         {rows.length === 0 ? (
@@ -68,33 +62,33 @@ export function HomeEventsSection({ tournaments }: { tournaments: Tournament[] }
                   href={href}
                   target={event.external_registration_url ? '_blank' : undefined}
                   rel={event.external_registration_url ? 'noopener noreferrer' : undefined}
-                  className={`group flex min-h-[360px] flex-col border border-clw-ink/70 bg-white shadow-2xl shadow-clw-black/5 transition hover:-translate-y-1 hover:border-clw-gold ${index > 2 ? 'hidden xl:flex' : ''}`}
+                  className={`group flex min-h-[270px] flex-col border border-clw-ink/70 bg-white shadow-2xl shadow-clw-black/5 transition hover:-translate-y-1 hover:border-clw-gold ${index > 2 ? 'hidden xl:flex' : ''}`}
                 >
-                  <div className="flex flex-1 flex-col px-6 py-7 sm:px-7 sm:py-8">
-                    <h3 className="font-body text-3xl font-semibold leading-tight text-clw-ink">
+                  <div className="flex flex-1 flex-col px-6 py-6 sm:px-7">
+                    <h3 className="font-body text-2xl font-semibold leading-tight text-clw-ink sm:text-3xl xl:text-2xl">
                       {event.name}
                     </h3>
-                    <div className="mt-6 h-px w-full bg-clw-gold" />
+                    <div className="mt-4 h-px w-full bg-clw-gold" />
 
-                    <div className="mt-7 space-y-5 text-clw-ink">
+                    <div className="mt-5 space-y-3 text-clw-ink">
                       <div>
-                        <p className="font-cond text-lg uppercase tracking-[0.22em] text-clw-ink/75">When</p>
-                        <p className="mt-2 text-xl font-semibold leading-tight">{formatDate(event.date)}</p>
+                        <p className="font-cond text-base uppercase tracking-[0.22em] text-clw-ink/75">When</p>
+                        <p className="mt-1 text-lg font-semibold leading-tight">{formatDate(event.date)}</p>
                       </div>
                       <div>
-                        <p className="font-cond text-lg uppercase tracking-[0.22em] text-clw-ink/75">Time</p>
-                        <p className="mt-2 text-xl font-semibold leading-tight">{formatTime(event.start_time)}</p>
+                        <p className="font-cond text-base uppercase tracking-[0.22em] text-clw-ink/75">Time</p>
+                        <p className="mt-1 text-lg font-semibold leading-tight">{formatTime(event.start_time)}</p>
                       </div>
                       <div>
-                        <p className="font-cond text-lg uppercase tracking-[0.22em] text-clw-ink/75">Where</p>
-                        <p className="mt-2 text-xl font-semibold leading-tight">
+                        <p className="font-cond text-base uppercase tracking-[0.22em] text-clw-ink/75">Where</p>
+                        <p className="mt-1 text-lg font-semibold leading-tight">
                           {event.location || `${event.city}, ${event.state}`}
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-clw-black px-6 py-5 text-center font-display text-2xl uppercase tracking-wide text-clw-white transition group-hover:bg-clw-gold group-hover:text-clw-black">
+                  <div className="bg-clw-black px-6 py-4 text-center font-display text-xl uppercase tracking-wide text-clw-white transition group-hover:bg-clw-gold group-hover:text-clw-black">
                     Learn more
                   </div>
                 </Link>
