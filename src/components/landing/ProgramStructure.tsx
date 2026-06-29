@@ -11,19 +11,11 @@ export function ProgramStructure() {
         W
       </span>
 
-      <div className="absolute right-12 top-1/2 hidden h-56 w-56 -translate-y-1/2 rotate-[-9deg] items-center justify-center rounded-full border-[7px] border-clw-gold bg-clw-black/80 text-center shadow-2xl shadow-black/45 lg:flex">
-        <div className="rounded-full border border-clw-gold/45 px-6 py-7">
-          <span className="block font-cond text-xs uppercase tracking-[0.34em] text-clw-gold/80">Crystal Lake</span>
-          <span className="mt-1 block font-display text-5xl uppercase leading-none text-clw-gold sm:text-6xl">Wizards</span>
-          <span className="block font-cond text-xs uppercase tracking-[0.3em] text-clw-gold/80">Wrestling Club</span>
-        </div>
-      </div>
-
-      <div className="relative mx-auto max-w-4xl">
+      <div className="relative mx-auto max-w-4xl lg:max-w-none lg:text-center">
         <div>
           <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Wizards Program</p>
 
-          <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-white">
+          <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-white lg:mx-auto lg:max-w-none">
             <span className="block font-cond text-[clamp(3.15rem,13vw,5.1rem)] font-light tracking-[-0.04em] text-clw-white">
               Grouped to develop.
             </span>
@@ -32,7 +24,7 @@ export function ProgramStructure() {
             </span>
           </h2>
 
-          <div className="mt-7 max-w-3xl space-y-5 text-xl leading-relaxed text-clw-gray sm:text-2xl sm:leading-relaxed lg:max-w-2xl">
+          <div className="mt-7 max-w-3xl space-y-5 text-xl leading-relaxed text-clw-gray sm:text-2xl sm:leading-relaxed lg:mx-auto lg:max-w-3xl">
             <p>
               Located in Crystal Lake, Illinois, Wizards Wrestling Club helps young wrestlers grow through structured practice groups, focused coaching, and regular competition opportunities. Wrestlers train with athletes at a similar stage so they can build the right skills, confidence, and discipline at the right pace.
             </p>
