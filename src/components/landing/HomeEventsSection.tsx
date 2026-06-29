@@ -11,6 +11,15 @@ function formatDate(value: string) {
   })
 }
 
+// Rotated across the event cards so the left-hand photo varies card to card
+// instead of repeating one image.
+const EVENT_PHOTOS = [
+  '/images/real/team_march2025.jpg',
+  '/images/real/facility_pano.jpg',
+  '/images/real/coaches_trophy.jpg',
+  '/images/real/team_tournament.jpg',
+]
+
 function formatTime(value: string | null) {
   if (!value) return 'TBD'
   const [hours = '0', minutes = '0'] = value.split(':')
@@ -66,13 +75,17 @@ export function HomeEventsSection({ tournaments }: { tournaments: Tournament[] }
                 >
                   {/* On mobile the photo is a full-card background at low opacity; on desktop it
                       becomes a full-opacity left panel with the copy in the open space to the right. */}
-                  {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
-                  <img
-                    src="/images/real/facility_pano.jpg"
-                    alt=""
-                    aria-hidden
-                    className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-10 lg:right-auto lg:w-[40%] lg:opacity-100"
-                  />
+                  {/* Wrapper stretches to the full card height (top/bottom anchored); the
+                      img fills it via object-cover so wide panoramas don't collapse to a
+                      strip. Full-card low-opacity background on mobile, left panel on desktop. */}
+                  <span aria-hidden className="pointer-events-none absolute inset-0 lg:right-auto lg:w-[40%]">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
+                    <img
+                      src={EVENT_PHOTOS[index % EVENT_PHOTOS.length]}
+                      alt=""
+                      className="h-full w-full object-cover opacity-10 lg:opacity-100"
+                    />
+                  </span>
                   <div className="relative flex flex-1">
                     <div className="flex flex-1 flex-col px-6 py-5 sm:px-7 lg:ml-[40%] lg:justify-center lg:pl-8">
                       <h3 className="font-body text-2xl font-semibold leading-tight text-clw-ink xl:text-[1.35rem]">
