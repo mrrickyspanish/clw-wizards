@@ -14,9 +14,9 @@ export function HomeFacilitySection() {
       </span>
 
       <div id="location" className="relative mx-auto grid max-w-7xl scroll-mt-24 gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
-        <div>
+        <div className="lg:text-center">
           <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Location</p>
-          <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-white">
+          <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-white lg:mx-auto lg:max-w-none">
             <span className="block font-cond text-[clamp(3rem,12vw,5rem)] font-light tracking-[-0.04em]">
               Visit the
             </span>

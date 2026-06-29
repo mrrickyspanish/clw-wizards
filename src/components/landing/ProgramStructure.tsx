@@ -19,7 +19,7 @@ export function ProgramStructure() {
             <span className="block font-cond text-[clamp(3.15rem,13vw,5.1rem)] font-light tracking-[-0.04em] text-clw-white">
               Grouped to develop.
             </span>
-            <span className="block font-display text-[clamp(3.4rem,14vw,5.55rem)] font-black tracking-[-0.035em] text-clw-white">
+            <span className="block font-display text-[clamp(3.4rem,14vw,5.55rem)] font-black tracking-[-0.035em] text-clw-gold">
               Trained to compete.
             </span>
           </h2>

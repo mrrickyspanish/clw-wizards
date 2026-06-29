@@ -8,9 +8,9 @@ export function HomeFacebookSection() {
       <div className="absolute inset-0 opacity-35 [background-image:radial-gradient(circle_at_16%_0%,rgba(240,192,32,.14),transparent_24%),linear-gradient(135deg,rgba(255,255,255,.08),transparent_42%)]" />
 
       <div id="facebook" className="relative mx-auto grid max-w-7xl scroll-mt-24 gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-        <div>
+        <div className="lg:text-center">
           <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Social</p>
-          <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-white">
+          <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-white lg:mx-auto lg:max-w-none">
             <span className="block font-cond text-[clamp(3rem,12vw,5rem)] font-light tracking-[-0.04em]">
               Follow us on
             </span>

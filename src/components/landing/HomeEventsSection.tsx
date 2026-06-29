@@ -33,9 +33,9 @@ export function HomeEventsSection({ tournaments }: { tournaments: Tournament[] }
       </span>
 
       <div id="events" className="relative mx-auto max-w-7xl scroll-mt-24">
-        <div>
+        <div className="lg:text-center">
           <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-ink">Events</p>
-          <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-ink">
+          <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-ink lg:mx-auto lg:max-w-none">
             <span className="block font-cond text-[clamp(3rem,12vw,5rem)] font-light tracking-[-0.04em]">
               Upcoming
             </span>
@@ -97,9 +97,11 @@ export function HomeEventsSection({ tournaments }: { tournaments: Tournament[] }
           </div>
         )}
 
-        <Link href="/login" className="mt-8 inline-block font-cond text-xl uppercase tracking-[0.18em] text-clw-gold-ink underline-offset-4 hover:text-clw-ink hover:underline">
-          View full calendar →
-        </Link>
+        <div className="lg:text-center">
+          <Link href="/login" className="mt-8 inline-block font-cond text-xl uppercase tracking-[0.18em] text-clw-gold-ink underline-offset-4 hover:text-clw-ink hover:underline">
+            View full calendar →
+          </Link>
+        </div>
       </div>
     </section>
   )
