@@ -1,6 +1,6 @@
 import { FacebookPagePlugin } from '@/components/landing/FacebookPagePlugin'
 
-const FACEBOOK_URL = 'https://www.facebook.com/share/1827CiuhwT/?mibextid=wwXIfr'
+const FACEBOOK_URL = 'https://www.facebook.com/pages/Wizards-Wrestling-Club/103467966667221'
 
 export function HomeFacebookSection() {
   return (
