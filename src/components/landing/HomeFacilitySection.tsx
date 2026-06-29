@@ -14,9 +14,9 @@ export function HomeFacilitySection() {
       </span>
 
       <div id="location" className="relative mx-auto grid max-w-7xl scroll-mt-24 gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
-        <div className="lg:text-center">
+        <div>
           <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Location</p>
-          <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-white lg:mx-auto lg:max-w-none">
+          <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-white">
             <span className="block font-cond text-[clamp(3rem,12vw,5rem)] font-light tracking-[-0.04em]">
               Visit the
             </span>
@@ -24,7 +24,7 @@ export function HomeFacilitySection() {
               Facility
             </span>
           </h2>
-          <p className="mt-6 max-w-2xl text-xl leading-relaxed text-clw-gray sm:text-2xl sm:leading-relaxed lg:mx-auto">
+          <p className="mt-6 max-w-2xl text-xl leading-relaxed text-clw-gray sm:text-2xl sm:leading-relaxed">
             Centrally located in Crystal Lake, our training space is built to be the easy choice for McHenry County wrestlers.
             Convenient access means more time on the mat and less time in the car.
           </p>

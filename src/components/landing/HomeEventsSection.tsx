@@ -36,10 +36,10 @@ export function HomeEventsSection({ tournaments }: { tournaments: Tournament[] }
         <div className="lg:text-center">
           <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-ink">Events</p>
           <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-ink lg:mx-auto lg:max-w-none">
-            <span className="block font-cond text-[clamp(3rem,12vw,5rem)] font-light tracking-[-0.04em] lg:mr-3 lg:inline">
+            <span className="block font-cond text-[clamp(3rem,12vw,5rem)] font-light tracking-[-0.04em]">
               Upcoming
             </span>
-            <span className="block font-display text-[clamp(3.4rem,13vw,5.6rem)] font-black tracking-[-0.035em] lg:inline">
+            <span className="block font-display text-[clamp(3.4rem,13vw,5.6rem)] font-black tracking-[-0.035em]">
               Club Events
             </span>
           </h2>
@@ -62,33 +62,42 @@ export function HomeEventsSection({ tournaments }: { tournaments: Tournament[] }
                   href={href}
                   target={event.external_registration_url ? '_blank' : undefined}
                   rel={event.external_registration_url ? 'noopener noreferrer' : undefined}
-                  className={`group flex min-h-[230px] w-full flex-col border border-clw-ink/45 bg-white shadow-xl shadow-clw-black/5 transition hover:-translate-y-1 hover:border-clw-gold sm:w-[calc(50%-0.625rem)] xl:w-[calc(25%-0.9375rem)] ${index > 2 ? 'hidden xl:flex' : ''}`}
+                  className={`group relative isolate flex min-h-[230px] w-full flex-col overflow-hidden border border-clw-ink/45 bg-white shadow-xl shadow-clw-black/5 transition hover:-translate-y-1 hover:border-clw-gold sm:w-[calc(50%-0.625rem)] lg:w-[320px] ${index > 2 ? 'hidden xl:flex' : ''}`}
                 >
-                  <div className="flex flex-1 flex-col px-6 py-5 sm:px-7">
-                    <h3 className="font-body text-2xl font-semibold leading-tight text-clw-ink xl:text-[1.35rem]">
-                      {event.name}
-                    </h3>
-                    <div className="mt-3 h-px w-full bg-clw-gold" />
+                  {/* eslint-disable-next-line @next/next/no-img-element -- decorative placeholder, full-card background */}
+                  <img
+                    src="/images/real/facility_pano.jpg"
+                    alt=""
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-10"
+                  />
+                  <div className="relative flex flex-1">
+                    <div className="flex flex-1 flex-col px-6 py-5 sm:px-7">
+                      <h3 className="font-body text-2xl font-semibold leading-tight text-clw-ink xl:text-[1.35rem]">
+                        {event.name}
+                      </h3>
+                      <div className="mt-3 h-px w-full bg-clw-gold" />
 
-                    <div className="mt-4 space-y-2.5 text-clw-ink">
-                      <div>
-                        <p className="font-cond text-sm uppercase tracking-[0.22em] text-clw-ink/75">When</p>
-                        <p className="mt-1 text-base font-semibold leading-tight sm:text-lg xl:text-base">{formatDate(event.date)}</p>
-                      </div>
-                      <div>
-                        <p className="font-cond text-sm uppercase tracking-[0.22em] text-clw-ink/75">Time</p>
-                        <p className="mt-1 text-base font-semibold leading-tight sm:text-lg xl:text-base">{formatTime(event.start_time)}</p>
-                      </div>
-                      <div>
-                        <p className="font-cond text-sm uppercase tracking-[0.22em] text-clw-ink/75">Where</p>
-                        <p className="mt-1 text-base font-semibold leading-tight sm:text-lg xl:text-base">
-                          {event.location || `${event.city}, ${event.state}`}
-                        </p>
+                      <div className="mt-4 space-y-2.5 text-clw-ink">
+                        <div>
+                          <p className="font-cond text-sm uppercase tracking-[0.22em] text-clw-ink/75">When</p>
+                          <p className="mt-1 text-base font-semibold leading-tight sm:text-lg xl:text-base">{formatDate(event.date)}</p>
+                        </div>
+                        <div>
+                          <p className="font-cond text-sm uppercase tracking-[0.22em] text-clw-ink/75">Time</p>
+                          <p className="mt-1 text-base font-semibold leading-tight sm:text-lg xl:text-base">{formatTime(event.start_time)}</p>
+                        </div>
+                        <div>
+                          <p className="font-cond text-sm uppercase tracking-[0.22em] text-clw-ink/75">Where</p>
+                          <p className="mt-1 text-base font-semibold leading-tight sm:text-lg xl:text-base">
+                            {event.location || `${event.city}, ${event.state}`}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-clw-black px-6 py-3 text-center font-display text-lg uppercase tracking-wide text-clw-white transition group-hover:bg-clw-gold group-hover:text-clw-black">
+                  <div className="relative bg-clw-black px-6 py-3 text-center font-display text-lg uppercase tracking-wide text-clw-white transition group-hover:bg-clw-gold group-hover:text-clw-black">
                     Learn more
                   </div>
                 </Link>

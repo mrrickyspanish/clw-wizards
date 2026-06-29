@@ -58,8 +58,8 @@ export default async function HomePage({
       <ProgramStructure />
       <HomeEventsSection tournaments={tournamentRows} />
       <HomeSupportIntro />
-      <HomeFacilitySection />
       <HomeTeamSection />
+      <HomeFacilitySection />
       <HomeFacebookSection />
 
       <SiteFooter />

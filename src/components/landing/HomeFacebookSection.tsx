@@ -7,14 +7,14 @@ export function HomeFacebookSection() {
     <section className="relative isolate overflow-hidden border-y border-clw-gold/25 bg-clw-black px-5 py-14 text-clw-white sm:px-8 sm:py-16 lg:px-12 lg:py-20 xl:px-16 2xl:px-20">
       <div className="absolute inset-0 opacity-35 [background-image:radial-gradient(circle_at_16%_0%,rgba(240,192,32,.14),transparent_24%),linear-gradient(135deg,rgba(255,255,255,.08),transparent_42%)]" />
 
-      <div id="facebook" className="relative mx-auto grid max-w-7xl scroll-mt-24 gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+      <div id="facebook" className="relative mx-auto grid max-w-7xl scroll-mt-24 gap-10 lg:flex lg:flex-col lg:items-center">
         <div className="lg:text-center">
           <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Social</p>
           <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-white lg:mx-auto lg:max-w-none">
-            <span className="block font-cond text-[clamp(3rem,12vw,5rem)] font-light tracking-[-0.04em] lg:mr-3 lg:inline">
+            <span className="block font-cond text-[clamp(3rem,12vw,5rem)] font-light tracking-[-0.04em]">
               Follow us on
             </span>
-            <span className="block font-display text-[clamp(3.4rem,13vw,5.6rem)] font-black tracking-[-0.035em] text-clw-gold lg:inline">
+            <span className="block font-display text-[clamp(3.4rem,13vw,5.6rem)] font-black tracking-[-0.035em] text-clw-gold">
               Facebook
             </span>
           </h2>
@@ -28,7 +28,13 @@ export function HomeFacebookSection() {
           </a>
         </div>
 
-        <FacebookFeedWithFallback href={FACEBOOK_URL} />
+        <div className="lg:w-full lg:max-w-3xl">
+          <FacebookFeedWithFallback href={FACEBOOK_URL} />
+        </div>
+
+        <div className="flex aspect-[21/9] w-full items-center justify-center border border-dashed border-clw-gold/35 bg-clw-black-2/60 lg:max-w-3xl">
+          <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold/70">Photo gallery coming soon</p>
+        </div>
       </div>
     </section>
   )
