@@ -11,6 +11,14 @@ export function ProgramStructure() {
         W
       </span>
 
+      <div className="absolute right-12 top-1/2 hidden h-56 w-56 -translate-y-1/2 rotate-[-9deg] items-center justify-center rounded-full border-[7px] border-clw-gold bg-clw-black/80 text-center shadow-2xl shadow-black/45 lg:flex">
+        <div className="rounded-full border border-clw-gold/45 px-6 py-7">
+          <span className="block font-cond text-xs uppercase tracking-[0.34em] text-clw-gold/80">Crystal Lake</span>
+          <span className="mt-1 block font-display text-5xl uppercase leading-none text-clw-gold sm:text-6xl">Wizards</span>
+          <span className="block font-cond text-xs uppercase tracking-[0.3em] text-clw-gold/80">Wrestling Club</span>
+        </div>
+      </div>
+
       <div className="relative mx-auto max-w-4xl">
         <div>
           <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Wizards Program</p>

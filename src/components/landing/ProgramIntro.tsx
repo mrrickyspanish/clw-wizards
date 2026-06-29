@@ -2,9 +2,9 @@ import Link from 'next/link'
 
 export function ProgramIntro() {
   return (
-    <section className="section-light border-y border-clw-gold/35 bg-[#F7F7F7] px-5 py-12 sm:px-8 sm:py-16 lg:px-12 xl:px-16 2xl:px-20">
-      <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
-        <div>
+    <section className="section-light relative border-y border-clw-gold/35 bg-[#F7F7F7] px-5 py-12 sm:px-8 sm:py-16 lg:px-12 xl:px-16 2xl:px-20">
+      <div className="relative mx-auto max-w-7xl">
+        <div className="max-w-3xl">
           <h2 className="max-w-3xl uppercase leading-[0.92] text-clw-ink">
             <span className="block font-cond text-[clamp(3rem,13vw,4.75rem)] font-light tracking-[-0.04em] text-clw-ink">
               Where
@@ -29,45 +29,36 @@ export function ProgramIntro() {
           </Link>
         </div>
 
-        <div className="relative min-h-[330px] sm:min-h-[410px] lg:min-h-[460px]">
-          {/* Primary: dominant top-left layer */}
-          <div className="absolute left-0 top-0 h-48 w-[74%] overflow-hidden bg-clw-black-2 sm:h-64 lg:w-[68%]">
-            {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
-            <img
-              src="/images/real/team_march2025.jpg"
-              alt="Crystal Lake Wizards team standing together"
-              className="h-full w-full object-cover grayscale contrast-110"
-            />
-          </div>
+        <div className="relative mt-10 lg:absolute lg:right-0 lg:-top-44 lg:mt-0 lg:w-[42%]">
+          <div className="relative min-h-[300px] sm:min-h-[360px]">
+            {/* Photo 1: largest, top-left */}
+            <div className="absolute left-0 top-0 w-[58%] overflow-hidden bg-clw-black-2 aspect-[4/3]">
+              {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
+              <img
+                src="/images/real/team_march2025.jpg"
+                alt="Crystal Lake Wizards team standing together"
+                className="h-full w-full object-cover grayscale contrast-110"
+              />
+            </div>
 
-          {/* Secondary: action layer floating in from the right, shallow overlap with primary */}
-          <div className="absolute bottom-24 right-0 h-52 w-[70%] overflow-hidden bg-clw-black-2 sm:h-72 lg:bottom-28 lg:right-2 lg:w-[66%]">
-            {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
-            <img
-              src="/images/real/facility_pano.jpg"
-              alt="Crystal Lake Wizards wrestling practice room"
-              className="h-full w-full object-cover grayscale contrast-110"
-            />
-          </div>
+            {/* Photo 2: mid-size, bottom-right, overlapping photo 1 */}
+            <div className="absolute bottom-6 right-0 w-[46%] overflow-hidden bg-clw-black-2 aspect-[3/2] sm:bottom-10">
+              {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
+              <img
+                src="/images/real/facility_pano.jpg"
+                alt="Crystal Lake Wizards wrestling practice room"
+                className="h-full w-full object-cover grayscale contrast-110"
+              />
+            </div>
 
-          {/* Accent: single brand-color punctuation at the seam */}
-          <span aria-hidden className="absolute right-[6%] top-2 z-10 h-10 w-3 bg-clw-gold lg:h-14 lg:w-4" />
-
-          {/* Tertiary: largest, horizontal anchor strip across the bottom, kept tight to the collage */}
-          <div className="absolute bottom-0 left-1/2 h-24 w-[88%] -translate-x-1/2 overflow-hidden bg-clw-black-2 sm:h-28 lg:h-32 lg:w-[92%]">
-            {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
-            <img
-              src="/images/real/facility_pano.jpg"
-              alt="Crystal Lake Wizards practice facility"
-              className="h-full w-full object-cover grayscale contrast-110"
-            />
-          </div>
-
-          <div className="absolute left-1/2 top-1/2 flex h-44 w-44 -translate-x-1/2 -translate-y-1/2 rotate-[-9deg] items-center justify-center rounded-full border-[7px] border-clw-gold bg-clw-black/80 text-center shadow-2xl shadow-black/45 sm:h-56 sm:w-56">
-            <div className="rounded-full border border-clw-gold/45 px-6 py-7">
-              <span className="block font-cond text-xs uppercase tracking-[0.34em] text-clw-gold/80">Crystal Lake</span>
-              <span className="mt-1 block font-display text-5xl uppercase leading-none text-clw-gold sm:text-6xl">Wizards</span>
-              <span className="block font-cond text-xs uppercase tracking-[0.3em] text-clw-gold/80">Wrestling Club</span>
+            {/* Photo 3: smallest, bottom-left, overlapping the seam */}
+            <div className="absolute bottom-0 left-[6%] w-[36%] overflow-hidden bg-clw-black-2 aspect-[16/10] sm:left-[10%]">
+              {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
+              <img
+                src="/images/real/facility_pano.jpg"
+                alt="Crystal Lake Wizards practice facility"
+                className="h-full w-full object-cover grayscale contrast-110"
+              />
             </div>
           </div>
         </div>
