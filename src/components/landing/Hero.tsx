@@ -29,11 +29,11 @@ export function Hero() {
           <div className="absolute inset-0 bg-gradient-to-t from-clw-black-2/75 via-clw-black/10 to-clw-black/10" />
         </div>
 
-        <div className="relative z-10 flex max-w-4xl flex-col justify-end px-5 py-12 sm:px-8 lg:px-12 xl:px-16 2xl:px-20 lg:min-h-[616px]">
-          <p className="hidden font-cond text-sm uppercase tracking-[0.34em] text-clw-gold md:block">
+        <div className="relative z-10 flex max-w-4xl flex-col justify-end px-5 py-12 sm:px-8 lg:max-w-none lg:w-full lg:items-center lg:justify-center lg:px-12 lg:text-center xl:px-16 2xl:px-20 lg:min-h-[616px]">
+          <p className="hidden font-cond text-sm uppercase tracking-[0.34em] text-clw-gold md:block lg:hidden">
             Crystal Lake Wizards Wrestling Club
           </p>
-          <h1 className="max-w-3xl font-display text-[5.625rem] uppercase leading-[0.88] text-clw-white sm:text-[6.75rem] md:mt-4 lg:text-[9rem] xl:text-[12rem]">
+          <h1 className="max-w-3xl font-display text-[5.625rem] uppercase leading-[0.88] text-clw-white sm:text-[6.75rem] md:mt-4 lg:max-w-none lg:text-[10.5rem] xl:text-[13.5rem] 2xl:text-[15rem]">
             Work. Compete. <span className="text-clw-gold">Repeat.</span>
           </h1>
         </div>

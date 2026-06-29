@@ -29,10 +29,10 @@ export function ProgramIntro() {
           </Link>
         </div>
 
-        <div className="relative mt-10 lg:absolute lg:right-0 lg:-top-44 lg:mt-0 lg:w-[42%]">
-          <div className="relative min-h-[300px] sm:min-h-[360px]">
+        <div className="relative mt-10 lg:absolute lg:-top-36 lg:right-0 lg:mt-0 lg:w-[54%]">
+          <div className="relative min-h-[300px] sm:min-h-[360px] lg:min-h-[400px]">
             {/* Photo 1: largest, top-left */}
-            <div className="absolute left-0 top-0 w-[58%] overflow-hidden bg-clw-black-2 aspect-[4/3]">
+            <div className="absolute left-0 top-0 w-[58%] overflow-hidden bg-clw-black-2 aspect-[4/3] lg:w-[64%]">
               {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
               <img
                 src="/images/real/team_march2025.jpg"
@@ -42,7 +42,7 @@ export function ProgramIntro() {
             </div>
 
             {/* Photo 2: mid-size, bottom-right, overlapping photo 1 */}
-            <div className="absolute bottom-6 right-0 w-[46%] overflow-hidden bg-clw-black-2 aspect-[3/2] sm:bottom-10">
+            <div className="absolute bottom-6 right-0 w-[46%] overflow-hidden bg-clw-black-2 aspect-[3/2] sm:bottom-10 lg:bottom-2 lg:w-[52%]">
               {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
               <img
                 src="/images/real/facility_pano.jpg"
@@ -52,7 +52,7 @@ export function ProgramIntro() {
             </div>
 
             {/* Photo 3: smallest, bottom-left, overlapping the seam */}
-            <div className="absolute bottom-0 left-[6%] w-[36%] overflow-hidden bg-clw-black-2 aspect-[16/10] sm:left-[10%]">
+            <div className="absolute bottom-0 left-[6%] w-[36%] overflow-hidden bg-clw-black-2 aspect-[16/10] sm:left-[10%] lg:left-[2%] lg:w-[40%]">
               {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
               <img
                 src="/images/real/facility_pano.jpg"
@@ -60,6 +60,9 @@ export function ProgramIntro() {
                 className="h-full w-full object-cover grayscale contrast-110"
               />
             </div>
+
+            {/* Yellow accent block at the seam between photos 1 and 2, desktop only */}
+            <span aria-hidden className="hidden lg:absolute lg:right-[44%] lg:top-[36%] lg:block lg:h-10 lg:w-10 lg:bg-clw-gold" />
           </div>
         </div>
       </div>
