@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 
 const NAV_LINKS = [
   { href: '/about', label: 'About' },
-  { href: '#groups', label: 'Practice Groups' },
+  { href: '/program', label: 'Practice Groups' },
   { href: '#events', label: 'Tournaments' },
   { href: '#why', label: 'Parent Portal' },
   { href: '/sponsorship', label: 'Support' },
