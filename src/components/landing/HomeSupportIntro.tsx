@@ -89,7 +89,7 @@ export function HomeSupportIntro() {
           ))}
         </div>
 
-        <div className="mt-8 flex justify-start border-t border-clw-gold/25 pt-7">
+        <div className="mt-8 flex justify-start border-t border-clw-gold/25 pt-7 lg:justify-center">
           <Link href="/sponsorship" className="font-cond text-xl uppercase tracking-[0.18em] text-clw-gold underline-offset-4 hover:text-clw-gold-l hover:underline">
             View sponsorship page →
           </Link>

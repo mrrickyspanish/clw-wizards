@@ -18,6 +18,9 @@ export function HomeFacebookSection() {
               Facebook
             </span>
           </h2>
+          <p className="mt-6 max-w-xl text-lg leading-relaxed text-clw-gray sm:text-xl lg:mx-auto">
+            Practice updates, tournament reminders, photos, and club announcements open directly on Facebook.
+          </p>
           <a
             href={FACEBOOK_URL}
             target="_blank"
