@@ -5,7 +5,7 @@
  */
 export function Hero() {
   return (
-    <section className="relative isolate overflow-hidden border-b border-clw-gold/10 bg-clw-black pt-24 md:pt-28">
+    <section className="relative isolate overflow-hidden border-b border-clw-gold/10 bg-clw-black pt-24 md:pt-28 lg:pb-16">
       <div className="relative flex min-h-[480px] overflow-hidden bg-clw-black-2 lg:min-h-[616px]">
         <div className="absolute inset-0">
           {/* eslint-disable-next-line @next/next/no-img-element -- real club team photo */}
@@ -33,7 +33,7 @@ export function Hero() {
           <p className="hidden font-cond text-sm uppercase tracking-[0.34em] text-clw-gold md:block lg:hidden">
             Crystal Lake Wizards Wrestling Club
           </p>
-          <h1 className="max-w-3xl font-display text-[5.625rem] uppercase leading-[0.88] text-clw-white sm:text-[6.75rem] md:mt-4 lg:max-w-none lg:font-impact lg:font-black lg:text-[8.9rem] xl:text-[11.5rem] 2xl:text-[12.75rem]">
+          <h1 className="max-w-3xl font-display text-[5.625rem] uppercase leading-[0.88] text-clw-white sm:text-[6.75rem] md:mt-4 lg:max-w-none lg:font-impact lg:font-black lg:text-[8.01rem] xl:text-[10.35rem] 2xl:text-[11.475rem]">
             Work. Compete. <span className="text-clw-gold">Repeat.</span>
           </h1>
         </div>

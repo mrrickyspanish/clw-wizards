@@ -17,17 +17,14 @@ export function HomeTeamSection() {
           <div>
             <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Team</p>
             <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-white lg:mx-auto lg:max-w-none">
-              <span className="block font-cond text-[clamp(3rem,12vw,5rem)] font-light tracking-[-0.04em]">
+              <span className="block font-cond text-[clamp(3rem,12vw,5rem)] font-light tracking-[-0.04em] lg:mr-3 lg:inline">
                 Meet our
               </span>
-              <span className="block font-display text-[clamp(3.4rem,13vw,5.6rem)] font-black tracking-[-0.035em] text-clw-gold">
+              <span className="block font-display text-[clamp(3.4rem,13vw,5.6rem)] font-black tracking-[-0.035em] text-clw-gold lg:inline">
                 Team
               </span>
             </h2>
           </div>
-          <Link href="/coaches" className="font-cond text-xl uppercase tracking-[0.18em] text-clw-gold underline-offset-4 hover:text-clw-gold-l hover:underline">
-            See full staff →
-          </Link>
         </div>
 
         <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -48,6 +45,12 @@ export function HomeTeamSection() {
               </div>
             </div>
           ))}
+        </div>
+
+        <div className="mt-8 flex justify-start lg:justify-center">
+          <Link href="/coaches" className="font-cond text-xl uppercase tracking-[0.18em] text-clw-gold underline-offset-4 hover:text-clw-gold-l hover:underline">
+            See full staff →
+          </Link>
         </div>
       </div>
     </section>

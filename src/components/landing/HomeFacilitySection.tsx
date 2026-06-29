@@ -24,6 +24,10 @@ export function HomeFacilitySection() {
               Facility
             </span>
           </h2>
+          <p className="mt-6 max-w-2xl text-xl leading-relaxed text-clw-gray sm:text-2xl sm:leading-relaxed lg:mx-auto">
+            Centrally located in Crystal Lake, our training space is built to be the easy choice for McHenry County wrestlers.
+            Convenient access means more time on the mat and less time in the car.
+          </p>
         </div>
 
         <div className="border border-clw-gold/25 bg-clw-black-2 shadow-2xl shadow-black/30">

@@ -48,10 +48,10 @@ export function HomeSupportIntro() {
           <div>
             <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Support</p>
             <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-white lg:mx-auto lg:max-w-none">
-              <span className="block font-cond text-[clamp(3rem,12vw,5rem)] font-light tracking-[-0.04em]">
+              <span className="block font-cond text-[clamp(3rem,12vw,5rem)] font-light tracking-[-0.04em] lg:mr-3 lg:inline">
                 Many ways to help.
               </span>
-              <span className="block font-display text-[clamp(3.4rem,13vw,5.6rem)] font-black tracking-[-0.035em]">
+              <span className="block font-display text-[clamp(3.4rem,13vw,5.6rem)] font-black tracking-[-0.035em] text-clw-gold lg:inline">
                 One room to build.
               </span>
             </h2>

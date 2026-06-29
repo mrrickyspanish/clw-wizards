@@ -36,10 +36,10 @@ export function HomeEventsSection({ tournaments }: { tournaments: Tournament[] }
         <div className="lg:text-center">
           <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-ink">Events</p>
           <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-ink lg:mx-auto lg:max-w-none">
-            <span className="block font-cond text-[clamp(3rem,12vw,5rem)] font-light tracking-[-0.04em]">
+            <span className="block font-cond text-[clamp(3rem,12vw,5rem)] font-light tracking-[-0.04em] lg:mr-3 lg:inline">
               Upcoming
             </span>
-            <span className="block font-display text-[clamp(3.4rem,13vw,5.6rem)] font-black tracking-[-0.035em]">
+            <span className="block font-display text-[clamp(3.4rem,13vw,5.6rem)] font-black tracking-[-0.035em] lg:inline">
               Club Events
             </span>
           </h2>
@@ -53,7 +53,7 @@ export function HomeEventsSection({ tournaments }: { tournaments: Tournament[] }
             </p>
           </div>
         ) : (
-          <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-10 flex flex-wrap justify-center gap-5">
             {rows.map((event, index) => {
               const href = event.external_registration_url || '/login'
               return (
@@ -62,7 +62,7 @@ export function HomeEventsSection({ tournaments }: { tournaments: Tournament[] }
                   href={href}
                   target={event.external_registration_url ? '_blank' : undefined}
                   rel={event.external_registration_url ? 'noopener noreferrer' : undefined}
-                  className={`group flex min-h-[230px] flex-col border border-clw-ink/45 bg-white shadow-xl shadow-clw-black/5 transition hover:-translate-y-1 hover:border-clw-gold ${index > 2 ? 'hidden xl:flex' : ''}`}
+                  className={`group flex min-h-[230px] w-full flex-col border border-clw-ink/45 bg-white shadow-xl shadow-clw-black/5 transition hover:-translate-y-1 hover:border-clw-gold sm:w-[calc(50%-0.625rem)] xl:w-[calc(25%-0.9375rem)] ${index > 2 ? 'hidden xl:flex' : ''}`}
                 >
                   <div className="flex flex-1 flex-col px-6 py-5 sm:px-7">
                     <h3 className="font-body text-2xl font-semibold leading-tight text-clw-ink xl:text-[1.35rem]">
