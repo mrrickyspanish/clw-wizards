@@ -1,11 +1,16 @@
 import Link from 'next/link'
 
+import { Button } from '@/components/ui/button'
+
 export function ProgramIntro() {
   return (
     <section className="section-light relative border-y border-clw-gold/35 bg-[#F7F7F7] px-5 py-12 sm:px-8 sm:py-16 lg:px-12 xl:px-16 2xl:px-20">
       <div className="relative mx-auto max-w-7xl">
         <div className="max-w-3xl">
-          <h2 className="max-w-3xl uppercase leading-[0.92] text-clw-ink">
+          <p className="hidden font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-ink lg:block">
+            Wizards Wrestling Club
+          </p>
+          <h2 className="max-w-3xl uppercase leading-[0.92] text-clw-ink lg:mt-3">
             <span className="block font-cond text-[clamp(3rem,13vw,4.75rem)] font-light tracking-[-0.04em] text-clw-ink">
               Where
             </span>
@@ -24,9 +29,9 @@ export function ProgramIntro() {
               We are volunteer-run, family-powered, and committed to helping every wrestler grow.
             </p>
           </div>
-          <Link href="/about" className="mt-8 inline-block font-cond text-xl uppercase tracking-[0.18em] text-clw-gold-ink underline-offset-4 hover:text-clw-ink hover:underline">
-            Ready to become a Wizard? →
-          </Link>
+          <Button asChild size="lg" className="mt-8">
+            <Link href="/about">Ready to become a Wizard? →</Link>
+          </Button>
         </div>
 
         <div className="relative mt-10 lg:absolute lg:-top-36 lg:right-0 lg:mt-0 lg:w-[54%]">
