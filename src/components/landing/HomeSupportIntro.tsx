@@ -43,6 +43,7 @@ const SUPPORT_OPTIONS = [
 export function HomeSupportIntro() {
   return (
     <section className="relative overflow-hidden border-y border-clw-gold/30 bg-clw-black px-5 py-14 text-clw-white sm:px-8 sm:py-16 lg:px-12 lg:py-20 xl:px-16 2xl:px-20">
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-[url('/images/textures/mat-dark.webp')] bg-cover bg-center opacity-50" />
       <div className="absolute inset-0 opacity-35 [background-image:radial-gradient(circle_at_80%_5%,rgba(240,192,32,.2),transparent_24%),linear-gradient(180deg,rgba(255,255,255,.08),transparent_44%)]" />
       <span
         aria-hidden

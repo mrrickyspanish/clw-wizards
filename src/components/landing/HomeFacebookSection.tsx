@@ -5,6 +5,7 @@ const FACEBOOK_URL = 'https://www.facebook.com/pages/Wizards-Wrestling-Club/1034
 export function HomeFacebookSection() {
   return (
     <section className="relative isolate overflow-hidden border-y border-clw-gold/25 bg-clw-black px-5 py-14 text-clw-white sm:px-8 sm:py-16 lg:px-12 lg:py-20 xl:px-16 2xl:px-20">
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-[url('/images/textures/mat-dark.webp')] bg-cover bg-center opacity-50" />
       <div className="absolute inset-0 opacity-35 [background-image:radial-gradient(circle_at_16%_0%,rgba(240,192,32,.14),transparent_24%),linear-gradient(135deg,rgba(255,255,255,.08),transparent_42%)]" />
 
       <div id="facebook" className="relative mx-auto grid max-w-7xl scroll-mt-24 gap-10 lg:flex lg:flex-col lg:items-center">
