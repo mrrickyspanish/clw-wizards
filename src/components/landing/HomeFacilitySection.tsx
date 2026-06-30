@@ -5,7 +5,7 @@ const MAP_URL = 'https://www.google.com/maps/search/?api=1&query=975+Nimco+Dr+Un
 export function HomeFacilitySection() {
   return (
     <section className="relative isolate overflow-hidden border-y border-clw-gold/25 bg-clw-black px-5 py-14 text-clw-white sm:px-8 sm:py-16 lg:px-12 lg:py-20 xl:px-16 2xl:px-20">
-      <div aria-hidden className="pointer-events-none absolute inset-0 bg-[url('/images/textures/mat-dark.webp')] bg-cover bg-center opacity-50" />
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-[url('/images/textures/mat-dark.webp')] bg-cover bg-center opacity-40" />
       <div className="absolute inset-0 opacity-35 [background-image:radial-gradient(circle_at_14%_10%,rgba(240,192,32,.16),transparent_26%),linear-gradient(135deg,rgba(255,255,255,.08),transparent_42%)]" />
       <span
         aria-hidden

@@ -43,7 +43,7 @@ const SUPPORT_OPTIONS = [
 export function HomeSupportIntro() {
   return (
     <section className="relative overflow-hidden border-y border-clw-gold/30 bg-clw-black px-5 py-14 text-clw-white sm:px-8 sm:py-16 lg:px-12 lg:py-20 xl:px-16 2xl:px-20">
-      <div aria-hidden className="pointer-events-none absolute inset-0 bg-[url('/images/textures/mat-dark.webp')] bg-cover bg-center opacity-50" />
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-[url('/images/textures/mat-dark.webp')] bg-cover bg-center opacity-40" />
       <div className="absolute inset-0 opacity-35 [background-image:radial-gradient(circle_at_80%_5%,rgba(240,192,32,.2),transparent_24%),linear-gradient(180deg,rgba(255,255,255,.08),transparent_44%)]" />
       <span
         aria-hidden
@@ -91,10 +91,10 @@ export function HomeSupportIntro() {
                 <span className="flex h-12 w-12 items-center justify-center rounded-full bg-clw-gold/12 text-clw-gold ring-1 ring-clw-gold/25 lg:h-10 lg:w-10">
                   <Icon className="h-7 w-7 lg:h-6 lg:w-6" strokeWidth={2.35} />
                 </span>
-                <h3 className="mt-7 font-display text-4xl uppercase leading-none tracking-wide text-clw-white sm:text-5xl lg:mt-5 lg:text-3xl xl:text-4xl">
+                <h3 className="mt-7 font-display text-4xl uppercase leading-none tracking-wide text-clw-white sm:text-5xl lg:mt-5 lg:text-4xl xl:text-5xl">
                   {title}
                 </h3>
-                <p className="mt-4 text-base leading-relaxed text-clw-gray lg:mt-3">
+                <p className="mx-auto mt-4 max-w-xs text-base font-medium leading-relaxed text-clw-gray lg:mt-3">
                   {body}
                 </p>
                 <span className="mt-auto pt-6 font-cond text-base uppercase tracking-[0.2em] text-clw-gold transition group-hover:text-clw-gold-l sm:text-lg lg:pt-4 lg:text-base xl:text-base">
