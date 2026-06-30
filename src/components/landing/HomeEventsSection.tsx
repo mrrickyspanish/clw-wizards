@@ -43,13 +43,12 @@ export function HomeEventsSection({ tournaments }: { tournaments: Tournament[] }
 
       <div id="events" className="relative mx-auto max-w-7xl scroll-mt-24">
         <div className="lg:text-center">
-          <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-ink">Events</p>
-          <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-ink lg:mx-auto lg:max-w-none">
-            <span className="block font-cond text-[clamp(3rem,12vw,5rem)] font-light tracking-[-0.04em]">
+          <h2 className="max-w-3xl uppercase leading-[0.92] text-clw-ink lg:mx-auto lg:max-w-none">
+            <span className="block font-cond text-[clamp(3rem,12vw,5rem)] font-light tracking-[-0.04em] lg:mr-3 lg:inline">
               Upcoming
             </span>
-            <span className="block font-display text-[clamp(3.4rem,13vw,5.6rem)] font-black tracking-[-0.035em]">
-              Club Events
+            <span className="block font-display text-[clamp(3.4rem,13vw,5.6rem)] font-black tracking-[-0.035em] lg:inline">
+              Events
             </span>
           </h2>
         </div>
