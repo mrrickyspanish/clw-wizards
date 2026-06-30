@@ -30,7 +30,7 @@ export function HomeTeamSection() {
         <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3">
           {FEATURED_STAFF.map((person) => (
             <div key={person.name} className="flex h-full flex-col border border-clw-gold/25 bg-clw-black-2 shadow-2xl shadow-black/25 lg:h-[460px]">
-              <div className="flex h-48 items-center justify-center bg-clw-black/65 lg:h-auto lg:flex-[3]">
+              <div className="flex h-48 items-center justify-center bg-clw-black/65 lg:h-auto lg:flex-[4]">
                 <div className="flex h-28 w-28 items-center justify-center rounded-full border border-clw-gold/35 bg-clw-gold/10 font-display text-5xl uppercase leading-none text-clw-gold">
                   {person.initials}
                 </div>
