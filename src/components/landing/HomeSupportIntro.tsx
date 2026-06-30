@@ -1,6 +1,14 @@
 import Link from 'next/link'
 import { CircleDollarSign, HandHeart, HeartHandshake, Users } from 'lucide-react'
 
+// Rotated low-opacity background photo per support card.
+const SUPPORT_PHOTOS = [
+  '/images/real/team_tournament.jpg',
+  '/images/real/coaches_trophy.jpg',
+  '/images/real/team_march2025.jpg',
+  '/images/real/facility_pano.jpg',
+]
+
 const SUPPORT_OPTIONS = [
   {
     title: 'Donate',
@@ -65,26 +73,33 @@ export function HomeSupportIntro() {
         </div>
 
         <div className="mt-9 grid grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-5">
-          {SUPPORT_OPTIONS.map(({ title, body, href, cta, Icon }) => (
+          {SUPPORT_OPTIONS.map(({ title, body, href, cta, Icon }, index) => (
             <Link
               key={title}
               href={href}
-              className="group flex min-h-[210px] flex-col border border-clw-gold/25 bg-clw-black-2/80 p-5 text-clw-white shadow-2xl shadow-black/20 transition hover:-translate-y-1 hover:border-clw-gold sm:min-h-[230px] sm:p-6 lg:min-h-[260px] lg:p-8"
+              className="group relative isolate flex min-h-[210px] flex-col overflow-hidden border border-clw-gold/25 bg-clw-black-2/80 p-5 text-clw-white shadow-2xl shadow-black/20 transition hover:-translate-y-1 hover:border-clw-gold sm:min-h-[230px] sm:p-6 lg:min-h-[260px] lg:p-8"
             >
-              <div className="flex items-center justify-between gap-6">
+              {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
+              <img
+                src={SUPPORT_PHOTOS[index % SUPPORT_PHOTOS.length]}
+                alt=""
+                aria-hidden
+                className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-[0.12]"
+              />
+              <div className="relative flex flex-1 flex-col items-center text-center">
                 <span className="flex h-12 w-12 items-center justify-center rounded-full bg-clw-gold/12 text-clw-gold ring-1 ring-clw-gold/25">
                   <Icon className="h-7 w-7" strokeWidth={2.35} />
                 </span>
+                <h3 className="mt-7 font-display text-4xl uppercase leading-none tracking-wide text-clw-white sm:text-5xl lg:text-4xl xl:text-5xl">
+                  {title}
+                </h3>
+                <p className="mt-4 text-base leading-relaxed text-clw-gray">
+                  {body}
+                </p>
+                <span className="mt-auto pt-6 font-cond text-base uppercase tracking-[0.2em] text-clw-gold transition group-hover:text-clw-gold-l sm:text-lg lg:text-base xl:text-lg">
+                  {cta} →
+                </span>
               </div>
-              <h3 className="mt-7 font-display text-4xl uppercase leading-none tracking-wide text-clw-white sm:text-5xl lg:text-4xl xl:text-5xl">
-                {title}
-              </h3>
-              <p className="mt-4 text-base leading-relaxed text-clw-gray">
-                {body}
-              </p>
-              <span className="mt-auto pt-6 font-cond text-base uppercase tracking-[0.2em] text-clw-gold transition group-hover:text-clw-gold-l sm:text-lg lg:text-base xl:text-lg">
-                {cta} →
-              </span>
             </Link>
           ))}
         </div>
