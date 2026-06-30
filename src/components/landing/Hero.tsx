@@ -5,7 +5,7 @@
  */
 export function Hero() {
   return (
-    <section className="relative isolate overflow-hidden border-b border-clw-gold/10 bg-clw-black pt-24 md:pt-28 lg:pb-16">
+    <section className="relative isolate overflow-hidden border-b border-clw-gold/10 bg-clw-black pt-24 md:pt-28">
       <div className="relative flex min-h-[480px] overflow-hidden bg-clw-black-2 lg:min-h-[616px]">
         <div className="absolute inset-0">
           {/* eslint-disable-next-line @next/next/no-img-element -- real club team photo */}

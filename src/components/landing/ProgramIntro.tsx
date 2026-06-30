@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button'
 export function ProgramIntro() {
   return (
     <section className="section-light relative border-y border-clw-gold/35 bg-[#F7F7F7] px-5 py-12 sm:px-8 sm:py-16 lg:px-12 xl:px-16 2xl:px-20">
-      <div className="relative mx-auto max-w-7xl">
-        <div className="max-w-3xl">
+      <div className="relative mx-auto flex max-w-7xl flex-col lg:flex-row lg:items-center lg:gap-12">
+        <div className="max-w-3xl lg:flex-1">
           <p className="hidden font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-ink lg:block">
             Wizards Wrestling Club
           </p>
@@ -34,7 +34,7 @@ export function ProgramIntro() {
           </Button>
         </div>
 
-        <div className="relative mt-10 lg:absolute lg:-top-36 lg:right-0 lg:mt-0 lg:w-[54%]">
+        <div className="relative mt-10 lg:mt-0 lg:w-[48%] lg:flex-shrink-0">
           <div className="relative min-h-[300px] sm:min-h-[360px] lg:min-h-[400px]">
             {/* Photo 1: largest, top-left */}
             <div className="absolute left-0 top-0 w-[58%] overflow-hidden bg-clw-black-2 aspect-[4/3] lg:w-[64%]">
