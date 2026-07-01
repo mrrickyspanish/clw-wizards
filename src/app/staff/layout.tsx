@@ -1,6 +1,9 @@
+import type { Metadata } from 'next'
 import { LayoutDashboard, Users, Trophy } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
+
+export const metadata: Metadata = { robots: { index: false, follow: false } }
 import { DashboardNav, type NavItem } from '@/components/layout/DashboardNav'
 
 const STAFF_NAV: NavItem[] = [

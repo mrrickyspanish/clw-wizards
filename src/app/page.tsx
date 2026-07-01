@@ -1,6 +1,14 @@
+import type { Metadata } from 'next'
+
 import { createServerSupabase } from '@/lib/supabase/server'
 import { chicagoDateString } from '@/lib/chicago-time'
 import type { Tournament } from '@/types/database'
+
+export const metadata: Metadata = {
+  description:
+    'Join the Crystal Lake Wizards Wrestling Club — youth wrestling in Crystal Lake and McHenry County, IL. Structured practice groups, dedicated coaching, and season-long tournament competition for wrestlers of every level.',
+  alternates: { canonical: '/' },
+}
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Hero } from '@/components/landing/Hero'
 import { ProgramIntro } from '@/components/landing/ProgramIntro'

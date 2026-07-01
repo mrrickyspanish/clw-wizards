@@ -1,6 +1,9 @@
+import type { Metadata } from 'next'
 import { LayoutDashboard, Users, FolderOpen, HandCoins, Trophy, User } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
+
+export const metadata: Metadata = { robots: { index: false, follow: false } }
 import { DashboardNav, type NavItem } from '@/components/layout/DashboardNav'
 import { MobileTopBar } from '@/components/layout/MobileTopBar'
 import { MobileTabBar } from '@/components/layout/MobileTabBar'
