@@ -35,34 +35,34 @@ export function ProgramIntro() {
         </div>
 
         <div className="relative mt-10 lg:mt-0 lg:w-[48%] lg:flex-shrink-0">
-          <div className="relative min-h-[300px] sm:min-h-[360px] lg:min-h-[400px]">
+          <div className="relative min-h-[260px] sm:min-h-[320px] lg:min-h-[400px]">
             {/* Photo 1: largest, top-left */}
             <div className="absolute left-0 top-0 w-[58%] overflow-hidden bg-clw-black-2 aspect-[4/3] lg:w-[64%]">
               {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
               <img
                 src="/images/real/team_march2025.jpg"
                 alt="Crystal Lake Wizards team standing together"
-                className="h-full w-full object-cover grayscale contrast-110"
+                className="h-full w-full object-cover contrast-110 grayscale-0 lg:grayscale"
               />
             </div>
 
             {/* Photo 2: mid-size, bottom-right, overlapping photo 1 */}
-            <div className="absolute bottom-6 right-0 w-[46%] overflow-hidden bg-clw-black-2 aspect-[3/2] sm:bottom-10 lg:bottom-2 lg:w-[52%]">
+            <div className="absolute bottom-0 right-0 w-[48%] overflow-hidden bg-clw-black-2 aspect-[3/2] sm:bottom-2 lg:bottom-2 lg:w-[52%]">
               {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
               <img
                 src="/images/real/facility_pano.jpg"
                 alt="Crystal Lake Wizards wrestling practice room"
-                className="h-full w-full object-cover grayscale contrast-110"
+                className="h-full w-full object-cover contrast-110 grayscale-0 lg:grayscale"
               />
             </div>
 
             {/* Photo 3: smallest, bottom-left, overlapping the seam */}
-            <div className="absolute bottom-0 left-[6%] w-[36%] overflow-hidden bg-clw-black-2 aspect-[16/10] sm:left-[10%] lg:left-[24%] lg:w-[44%]">
+            <div className="absolute bottom-[12%] left-[16%] w-[40%] overflow-hidden bg-clw-black-2 aspect-[16/10] sm:left-[18%] lg:bottom-0 lg:left-[24%] lg:w-[44%]">
               {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
               <img
                 src="/images/real/facility_pano.jpg"
                 alt="Crystal Lake Wizards practice facility"
-                className="h-full w-full object-cover grayscale contrast-110"
+                className="h-full w-full object-cover contrast-110 grayscale-0 lg:grayscale"
               />
             </div>
 
