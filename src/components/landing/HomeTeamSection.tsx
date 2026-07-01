@@ -1,10 +1,12 @@
 import Link from 'next/link'
 import { Phone } from 'lucide-react'
 
+// Set `photo` to a headshot path (e.g. '/images/staff/tony.jpg') to swap the
+// initials placeholder for a real photo — no layout changes needed.
 const FEATURED_STAFF = [
-  { name: 'Tony Fontanetta', role: 'President, Head Coach & Club Coordinator', phone: '312-656-7335', initials: 'TF' },
-  { name: 'Sabrina Jimenez', role: 'Secretary-Treasurer, Singlets, Pictures & Payments', phone: '815-482-4464', initials: 'SJ' },
-  { name: 'Steve Swierk', role: 'Vice President of Operations & Tournaments', phone: '630-886-1769', initials: 'SS' },
+  { name: 'Tony Fontanetta', role: 'President, Head Coach & Club Coordinator', phone: '312-656-7335', initials: 'TF', photo: '' },
+  { name: 'Sabrina Jimenez', role: 'Secretary-Treasurer, Singlets, Pictures & Payments', phone: '815-482-4464', initials: 'SJ', photo: '' },
+  { name: 'Steve Swierk', role: 'Vice President of Operations & Tournaments', phone: '630-886-1769', initials: 'SS', photo: '' },
 ]
 
 export function HomeTeamSection() {
@@ -31,10 +33,15 @@ export function HomeTeamSection() {
         <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3">
           {FEATURED_STAFF.map((person) => (
             <div key={person.name} className="flex h-full flex-col border border-clw-gold/25 bg-clw-black-2 shadow-2xl shadow-black/25 lg:h-[460px]">
-              <div className="flex h-48 items-center justify-center bg-clw-black/65 lg:h-auto lg:flex-[6]">
-                <div className="flex h-28 w-28 items-center justify-center rounded-full border border-clw-gold/35 bg-clw-gold/10 font-display text-5xl uppercase leading-none text-clw-gold">
-                  {person.initials}
-                </div>
+              <div className="relative flex h-48 items-center justify-center overflow-hidden bg-clw-black/65 lg:h-auto lg:flex-[6]">
+                {person.photo ? (
+                  /* eslint-disable-next-line @next/next/no-img-element -- repo-sourced staff photography */
+                  <img src={person.photo} alt={person.name} className="absolute inset-0 h-full w-full object-cover object-top" />
+                ) : (
+                  <div className="flex h-28 w-28 items-center justify-center rounded-full border border-clw-gold/35 bg-clw-gold/10 font-display text-5xl uppercase leading-none text-clw-gold">
+                    {person.initials}
+                  </div>
+                )}
               </div>
               <div className="flex flex-1 flex-col border-t border-clw-gold/25 bg-clw-white p-6 text-clw-ink lg:flex-1 lg:p-5">
                 <h3 className="font-body text-2xl font-semibold leading-tight lg:text-xl">{person.name}</h3>
