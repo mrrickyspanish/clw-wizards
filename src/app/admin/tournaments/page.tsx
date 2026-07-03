@@ -81,7 +81,7 @@ export default async function AdminTournamentsPage() {
                   <TableCell className="text-clw-gray">{formatDate(t.date)}</TableCell>
                   <TableCell className="text-clw-gray">
                     {t.location}
-                    <span className="block text-xs text-clw-gray/70">
+                    <span className="block text-sm text-clw-gray/70">
                       {t.city}, {t.state}
                     </span>
                   </TableCell>

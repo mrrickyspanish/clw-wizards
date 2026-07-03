@@ -179,7 +179,7 @@ export function OnboardingForm({
             </div>
             <div className="flex items-start gap-2">
               <Checkbox id="smsOptIn" checked={smsOptIn} onCheckedChange={(checked) => setSmsOptIn(checked === true)} />
-              <Label htmlFor="smsOptIn" className="text-xs font-normal leading-relaxed text-muted-foreground">
+              <Label htmlFor="smsOptIn" className="text-sm font-normal leading-relaxed text-muted-foreground">
                 {SMS_CONSENT_TEXT}
               </Label>
             </div>

@@ -36,7 +36,7 @@ export function PayButton({ duesId, label }: { duesId: string; label: string }) 
       <Button type="button" size="sm" onClick={handlePay} disabled={loading}>
         {loading ? 'Starting checkout…' : label}
       </Button>
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-sm text-red-400">{error}</p>}
     </div>
   )
 }

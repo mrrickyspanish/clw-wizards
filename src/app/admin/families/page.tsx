@@ -97,7 +97,7 @@ export default async function AdminFamiliesPage({
                       <Link href={`/admin/families/${family.id}`} className="font-medium text-clw-white hover:text-clw-gold">
                         {family.full_name ?? 'Unnamed parent'}
                       </Link>
-                      <span className="block text-xs text-clw-gray/70">{family.email ?? '—'}</span>
+                      <span className="block text-sm text-clw-gray/70">{family.email ?? '—'}</span>
                     </TableCell>
                     <TableCell className="text-clw-gray">{family.phone ?? '—'}</TableCell>
                     <TableCell className="text-clw-gray">

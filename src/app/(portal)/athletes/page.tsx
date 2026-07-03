@@ -27,7 +27,7 @@ function ageFromDob(dob: string): number {
 function Detail({ label, value }: { label: string; value: string | null }) {
   return (
     <div>
-      <dt className="text-xs uppercase tracking-wide text-clw-gray/70">{label}</dt>
+      <dt className="text-sm uppercase tracking-wide text-clw-gray/70">{label}</dt>
       <dd className="text-clw-white">{value || '—'}</dd>
     </div>
   )
@@ -121,7 +121,7 @@ export default async function AthletesPage() {
       </div>
 
       {rows.length > 0 && (
-        <p className="text-xs text-clw-gray/70">
+        <p className="text-sm text-clw-gray/70">
           Need to edit a wrestler&apos;s details? Contact a club admin. Self-service editing is coming in a follow-up build.
         </p>
       )}

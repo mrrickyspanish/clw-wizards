@@ -108,7 +108,7 @@ export default async function DocumentsPage() {
                   >
                     <div className="min-w-0">
                       <span className="text-sm text-clw-white">{req.label}</span>
-                      {doc && <span className="block truncate text-xs text-clw-gray/70">{doc.file_name}</span>}
+                      {doc && <span className="block truncate text-sm text-clw-gray/70">{doc.file_name}</span>}
                     </div>
                     <div className="flex items-center gap-3">
                       <Badge variant="outline" className={STATUS_STYLES[status]}>
@@ -130,7 +130,7 @@ export default async function DocumentsPage() {
       </div>
 
       {athleteRows.length > 0 && (
-        <p className="text-xs text-clw-gray/70">
+        <p className="text-sm text-clw-gray/70">
           Accepted files: images or PDF, up to 10MB. A club admin reviews and verifies each document.
         </p>
       )}

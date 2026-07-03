@@ -143,7 +143,7 @@ export default async function ParentDashboardPage() {
         <section className="card-depth relative overflow-hidden rounded-2xl border border-clw-gold/15 bg-clw-black-3 p-7">
           <HeroMark />
           <div className="relative">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-clw-gold-ink">Welcome to {ORG.shortName}</p>
+            <p className="text-sm font-medium uppercase tracking-[0.18em] text-clw-gold-ink">Welcome to {ORG.shortName}</p>
             <h2 className="mt-3 font-display text-3xl leading-tight text-clw-white">Ready for the season?</h2>
             <p className="mt-3 max-w-md text-clw-gray">
               Add your wrestler and this becomes your family&apos;s hub: practices, tournament sign-ups, dues, and
@@ -184,7 +184,7 @@ export default async function ParentDashboardPage() {
       <section className="card-depth relative mb-8 overflow-hidden rounded-2xl border border-clw-gold/15 bg-clw-black-3 p-7">
         <HeroMark />
         <div className="relative">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-clw-gold-ink">
+          <p className="text-sm font-medium uppercase tracking-[0.18em] text-clw-gold-ink">
             {next ? 'Next practice' : nextEvent ? 'Next event' : 'Your week'}
           </p>
           {next ? (
@@ -228,7 +228,7 @@ export default async function ParentDashboardPage() {
           href="/dues"
           className="card-depth lift mb-8 block rounded-2xl border border-red-500/30 bg-clw-black-3 p-6 active:scale-[0.99]"
         >
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-red-400">Balance due</p>
+          <p className="text-sm font-medium uppercase tracking-[0.18em] text-red-400">Balance due</p>
           <div className="mt-2 flex items-end justify-between gap-3">
             <p className="font-display text-5xl leading-none text-clw-white">${(outstandingCents / 100).toFixed(0)}</p>
             <span className="rounded-lg bg-clw-gold px-4 py-2 text-sm font-medium text-[#0D0D0D]">Pay now</span>
@@ -251,7 +251,7 @@ export default async function ParentDashboardPage() {
               </span>
               <span>
                 <span className="block font-display text-3xl leading-none text-clw-white">{s.value}</span>
-                <span className="mt-1.5 block text-xs text-clw-gray">{s.label}</span>
+                <span className="mt-1.5 block text-sm text-clw-gray">{s.label}</span>
               </span>
             </Link>
           )
@@ -337,7 +337,7 @@ export default async function ParentDashboardPage() {
               </span>
               <span className="flex-1">
                 <span className="block font-medium text-clw-white">{a.label}</span>
-                <span className="block text-xs text-clw-gray">{a.sub}</span>
+                <span className="block text-sm text-clw-gray">{a.sub}</span>
               </span>
               <ChevronRight className="h-4 w-4 shrink-0 text-clw-gray" />
             </Link>
@@ -354,7 +354,7 @@ export default async function ParentDashboardPage() {
               <li key={i} className="flex items-center gap-3">
                 <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
                 <span className="flex-1 text-sm text-clw-white">{item.label}</span>
-                <span className="text-xs text-clw-gray">
+                <span className="text-sm text-clw-gray">
                   {new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </span>
               </li>

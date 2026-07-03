@@ -28,7 +28,7 @@ export function FamilyActiveToggle({ parentId, isActive }: { parentId: string; i
       <Button variant="outline" size="sm" onClick={handleToggle} disabled={loading}>
         {loading ? 'Updating…' : isActive ? 'Deactivate account' : 'Reactivate account'}
       </Button>
-      {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
+      {error && <p className="mt-1 text-sm text-red-400">{error}</p>}
     </div>
   )
 }

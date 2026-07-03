@@ -86,8 +86,8 @@ export default async function SchedulePage({
                         <span
                           className={
                             mine
-                              ? 'rounded-full border border-clw-gold/40 bg-clw-gold/10 px-2 py-0.5 text-xs text-clw-gold-ink'
-                              : 'rounded-full border border-clw-gray/30 px-2 py-0.5 text-xs text-clw-gray'
+                              ? 'rounded-full border border-clw-gold/40 bg-clw-gold/10 px-2 py-0.5 text-sm text-clw-gold-ink'
+                              : 'rounded-full border border-clw-gray/30 px-2 py-0.5 text-sm text-clw-gray'
                           }
                         >
                           {p.practice_group}

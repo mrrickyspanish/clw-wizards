@@ -128,7 +128,7 @@ export default async function AdminDuesPage() {
                   <TableRow key={d.id} className="border-clw-gold/10">
                     <TableCell>
                       <span className="font-medium text-clw-white">{parent?.full_name ?? 'Unknown parent'}</span>
-                      <span className="block text-xs text-clw-gray/70">{parent?.email ?? '—'}</span>
+                      <span className="block text-sm text-clw-gray/70">{parent?.email ?? '—'}</span>
                     </TableCell>
                     <TableCell className="text-clw-gray">
                       {athlete ? `${athlete.first_name} ${athlete.last_name}` : '—'}
