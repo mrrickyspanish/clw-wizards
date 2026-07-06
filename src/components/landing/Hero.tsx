@@ -13,7 +13,11 @@ export function Hero() {
             src="/images/real/clw-wizards-hero-photo-2.jpg"
             alt=""
             aria-hidden
-            className="animate-kenburns absolute inset-0 h-full w-full object-cover opacity-90 lg:animate-none lg:object-contain lg:object-right lg:opacity-100"
+            className="animate-kenburns absolute inset-0 h-full w-full object-cover opacity-90 lg:hidden"
+          />
+          <div
+            aria-hidden
+            className="absolute -inset-[10%] hidden rotate-[5deg] scale-110 bg-[url('/images/real/clw-wizards-hero-photo-2.jpg')] bg-repeat-x bg-center grayscale lg:block [background-size:auto_100%]"
           />
           <video
             className="absolute inset-0 h-full w-full object-cover opacity-95 lg:hidden"
