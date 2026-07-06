@@ -7,8 +7,8 @@ const SUPPORT_CARDS = [
     title: 'ONE-TIME\nDONATION',
     cta: 'DONATE TODAY',
     href: '#donate',
-    imageSrc: '/images/real/team_march2025.jpg',
-    imageAlt: 'Crystal Lake Wizards team photo',
+    imageSrc: '/images/real/clw-wizards-youth-win.jpg',
+    imageAlt: 'Crystal Lake Wizards youth wrestlers celebrating a win',
     imagePosition: 'center',
     Icon: CircleDollarSign,
   },
@@ -16,8 +16,8 @@ const SUPPORT_CARDS = [
     title: 'MONTHLY\nBOOSTER',
     cta: 'JOIN THE BOOSTERS',
     href: '#boosters',
-    imageSrc: '/images/real/facility_pano.jpg',
-    imageAlt: 'Crystal Lake Wizards practice facility',
+    imageSrc: '/images/real/clw-wizards-alumn-wisconsin.jpg',
+    imageAlt: 'A Crystal Lake Wizards alumnus continuing in college wrestling',
     imagePosition: 'center',
     Icon: HandHeart,
   },
@@ -25,8 +25,8 @@ const SUPPORT_CARDS = [
     title: 'CORPORATE\nSPONSORSHIP',
     cta: 'VIEW PACKAGES',
     href: '#sponsors',
-    imageSrc: '/images/real/coaches_trophy.jpg',
-    imageAlt: 'Crystal Lake Wizards coaches with trophy',
+    imageSrc: '/images/real/clw-wizards-gym-wall-sponsor.jpg',
+    imageAlt: 'Sponsor recognition inside the Crystal Lake Wizards gym',
     imagePosition: 'center',
     Icon: HeartHandshake,
   },
@@ -34,9 +34,9 @@ const SUPPORT_CARDS = [
     title: 'VOLUNTEER\nWITH US',
     cta: 'GET INVOLVED',
     href: '#contact',
-    imageSrc: '/images/real/team_march2025.jpg',
-    imageAlt: 'Crystal Lake Wizards wrestling team',
-    imagePosition: 'center top',
+    imageSrc: '/images/real/clw-wizards-family-photo.jpg',
+    imageAlt: 'Crystal Lake Wizards families and wrestlers together',
+    imagePosition: 'center',
     Icon: Users,
   },
 ]
@@ -96,8 +96,8 @@ export function SupportOverview() {
         <div className="mx-auto max-w-3xl">
           <a href="#boosters" className="block border border-clw-gold bg-clw-black px-8 py-6 text-center font-display text-2xl uppercase tracking-wide text-clw-gold transition hover:bg-clw-gold hover:text-clw-black">Join the booster club</a>
           <div className="relative mt-16 min-h-[520px]">
-            <SupportMedia src="/images/real/team_march2025.jpg" alt="Crystal Lake Wizards team photo" className="absolute right-0 top-0 h-48 w-[74%]" position="center top" dim="bg-clw-black/10" />
-            <div className="absolute left-0 top-40 h-64 w-[72%]"><SupportMedia src="/images/real/coaches_trophy.jpg" alt="Crystal Lake Wizards coaches with trophy" className="h-full w-full" position="center" dim="bg-clw-black/10" /></div>
+            <SupportMedia src="/images/real/clw-wizards-youth-team-photo-2.jpg" alt="Crystal Lake Wizards youth wrestling team" className="absolute right-0 top-0 h-48 w-[74%]" position="center" dim="bg-clw-black/10" />
+            <div className="absolute left-0 top-40 h-64 w-[72%]"><SupportMedia src="/images/real/clw-wizards-coaches-action.jpg" alt="Crystal Lake Wizards coaches working with wrestlers" className="h-full w-full" position="center" dim="bg-clw-black/10" /></div>
             <div className="absolute bottom-0 right-0 flex h-56 w-56 rotate-[-13deg] items-center justify-center rounded-full border-[10px] border-clw-gold bg-clw-black/85 text-center font-display text-5xl uppercase leading-none text-clw-gold shadow-2xl sm:h-72 sm:w-72">CLW</div>
           </div>
         </div>
