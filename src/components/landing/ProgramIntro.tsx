@@ -34,40 +34,58 @@ export function ProgramIntro() {
           </Button>
         </div>
 
-        <div className="relative mt-10 lg:mt-0 lg:w-[48%] lg:flex-shrink-0">
-          <div className="relative min-h-[260px] sm:min-h-[320px] lg:min-h-[400px]">
-            {/* Photo 1: largest, top-left */}
-            <div className="absolute left-0 top-0 w-[58%] overflow-hidden bg-clw-black-2 aspect-[4/3] lg:w-[64%]">
-              {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
-              <img
-                src="/images/real/clw-wizards-youth-team-photo.jpg"
-                alt="Crystal Lake Wizards youth wrestlers gathered for a team photo"
-                className="h-full w-full object-cover contrast-110 grayscale-0 lg:grayscale"
-              />
+        <div className="mt-10 lg:mt-0 lg:w-[52%] lg:flex-shrink-0">
+          <div className="chamfer-lg overflow-hidden border border-clw-ink/20 bg-clw-black p-2 shadow-2xl shadow-clw-black/15 sm:p-3">
+            <div className="grid gap-1 bg-clw-gold sm:grid-cols-2 lg:grid-cols-12 lg:grid-rows-2">
+              <figure className="group relative min-h-[290px] overflow-hidden bg-clw-black sm:col-span-2 sm:min-h-[360px] lg:col-span-8 lg:row-span-2 lg:min-h-[440px]">
+                {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
+                <img
+                  src="/images/real/clw-wizards-action-photo-.jpg"
+                  alt="A Crystal Lake Wizards wrestler competing on the mat"
+                  className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-clw-black/80 via-transparent to-transparent" />
+                <figcaption className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5 text-clw-white sm:p-6">
+                  <span className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold">The work</span>
+                  <span className="font-display text-4xl uppercase leading-none">01</span>
+                </figcaption>
+              </figure>
+
+              <figure className="group relative min-h-[210px] overflow-hidden bg-clw-black lg:col-span-4 lg:min-h-0">
+                {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
+                <img
+                  src="/images/real/clw-wizards-youth-team-photo.jpg"
+                  alt="Crystal Lake Wizards youth wrestlers gathered as a team"
+                  className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-clw-black/75 via-transparent to-transparent" />
+                <figcaption className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-4 text-clw-white">
+                  <span className="font-cond text-sm uppercase tracking-[0.24em] text-clw-gold">The team</span>
+                  <span className="font-display text-3xl uppercase leading-none">02</span>
+                </figcaption>
+              </figure>
+
+              <figure className="group relative min-h-[210px] overflow-hidden bg-clw-black lg:col-span-4 lg:min-h-0">
+                {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
+                <img
+                  src="/images/real/clw-wizards-family-photo.jpg"
+                  alt="Crystal Lake Wizards families and wrestlers together"
+                  className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-clw-black/75 via-transparent to-transparent" />
+                <figcaption className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-4 text-clw-white">
+                  <span className="font-cond text-sm uppercase tracking-[0.24em] text-clw-gold">The family</span>
+                  <span className="font-display text-3xl uppercase leading-none">03</span>
+                </figcaption>
+              </figure>
             </div>
 
-            {/* Photo 2: mid-size, bottom-right, overlapping photo 1 */}
-            <div className="absolute bottom-0 right-0 w-[48%] overflow-hidden bg-clw-black-2 aspect-[3/2] sm:bottom-2 lg:bottom-2 lg:w-[52%]">
-              {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
-              <img
-                src="/images/real/clw-wizards-family-photo.jpg"
-                alt="Crystal Lake Wizards families and wrestlers together"
-                className="h-full w-full object-cover contrast-110 grayscale-0 lg:grayscale"
-              />
+            <div className="flex items-center justify-between gap-4 bg-clw-black px-3 pb-1 pt-3 text-clw-white sm:px-4 sm:pt-4">
+              <span className="font-cond text-xs uppercase tracking-[0.3em] text-clw-gray sm:text-sm">
+                Crystal Lake, Illinois
+              </span>
+              <span aria-hidden className="font-display text-4xl leading-none text-clw-gold">W</span>
             </div>
-
-            {/* Photo 3: smallest, bottom-left, overlapping the seam */}
-            <div className="absolute bottom-[12%] left-[16%] w-[40%] overflow-hidden bg-clw-black-2 aspect-[16/10] sm:left-[18%] lg:bottom-0 lg:left-[24%] lg:w-[44%]">
-              {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
-              <img
-                src="/images/real/clw-wizards-trio-featured-photo.jpg"
-                alt="Three Crystal Lake Wizards wrestlers featured together"
-                className="h-full w-full object-cover contrast-110 grayscale-0 lg:grayscale"
-              />
-            </div>
-
-            {/* Yellow accent block at the seam between photos 1 and 2, desktop only */}
-            <span aria-hidden className="hidden lg:absolute lg:right-[44%] lg:top-[36%] lg:block lg:h-10 lg:w-10 lg:bg-clw-gold" />
           </div>
         </div>
       </div>
