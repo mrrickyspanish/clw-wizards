@@ -28,7 +28,9 @@ export default function CoachesPage() {
       <header className="max-w-3xl">
         <p className="font-cond text-sm uppercase tracking-[0.3em] text-clw-gold">Wizards Wrestling Club</p>
         <h1 className="mt-3 font-display text-5xl uppercase leading-[0.95] text-clw-white sm:text-6xl">Coaches & Staff</h1>
-        <p className="mt-4 text-clw-gray">Public staff page placeholder. Full bios and photos can be added in the next pass.</p>
+        <p className="mt-4 text-clw-gray">
+          Meet the volunteers who lead the club, organize the season, and coach our wrestlers in the practice room.
+        </p>
       </header>
 
       <section className="mt-10">
