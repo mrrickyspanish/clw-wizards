@@ -47,7 +47,7 @@ export function ProgramIntro() {
             </div>
 
             {/* Secondary lower-right landscape frame */}
-            <div className="absolute right-[1%] top-[38%] z-20 aspect-[3/2] w-[52%] overflow-hidden border border-clw-ink/70 bg-clw-black-2">
+            <div className="absolute right-[1%] top-[33%] z-20 aspect-[3/2] w-[52%] overflow-hidden border border-clw-ink/70 bg-clw-black-2">
               {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
               <img
                 src="/images/real/clw-wizards-family-photo.jpg"
