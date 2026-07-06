@@ -2,6 +2,24 @@ import { FacebookFeedWithFallback } from '@/components/landing/FacebookFeedWithF
 
 const FACEBOOK_URL = 'https://www.facebook.com/pages/Wizards-Wrestling-Club/103467966667221'
 
+const CLUB_PHOTOS = [
+  {
+    src: '/images/real/team_march2025.jpg',
+    alt: 'Crystal Lake Wizards wrestlers gathered for a team photo',
+    position: 'center',
+  },
+  {
+    src: '/images/real/coaches_trophy.jpg',
+    alt: 'Crystal Lake Wizards coaches holding a tournament trophy',
+    position: 'center',
+  },
+  {
+    src: '/images/real/facility_pano.jpg',
+    alt: 'Crystal Lake Wizards practice facility and wrestling mats',
+    position: 'center',
+  },
+]
+
 export function HomeFacebookSection() {
   return (
     <section className="relative isolate overflow-hidden border-y border-clw-gold/25 bg-clw-black px-5 py-14 text-clw-white sm:px-8 sm:py-16 lg:px-12 lg:py-20 xl:px-16 2xl:px-20">
@@ -36,8 +54,24 @@ export function HomeFacebookSection() {
           <FacebookFeedWithFallback href={FACEBOOK_URL} />
         </div>
 
-        <div className="flex aspect-[21/9] w-full items-center justify-center border border-dashed border-clw-gold/35 bg-clw-black-2/60 lg:max-w-3xl">
-          <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold/70">Photo gallery coming soon</p>
+        <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-3 lg:max-w-5xl">
+          {CLUB_PHOTOS.map((photo, index) => (
+            <div
+              key={photo.src}
+              className={`relative overflow-hidden border border-clw-gold/20 bg-clw-black-2 shadow-xl shadow-black/20 ${
+                index === 0 ? 'aspect-[4/3] sm:col-span-2 sm:aspect-[16/9]' : 'aspect-[4/3]'
+              }`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
+              <img
+                src={photo.src}
+                alt={photo.alt}
+                className="absolute inset-0 h-full w-full object-cover"
+                style={{ objectPosition: photo.position }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-clw-black/45 via-transparent to-transparent" />
+            </div>
+          ))}
         </div>
       </div>
     </section>
