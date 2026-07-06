@@ -10,7 +10,7 @@ export function Hero() {
         <div className="absolute inset-0">
           {/* eslint-disable-next-line @next/next/no-img-element -- real club team photo */}
           <img
-            src="/images/real/team_march2025.jpg"
+            src="/images/real/clw-wizards-hero-photo-2.jpg"
             alt=""
             aria-hidden
             className="animate-kenburns absolute inset-0 h-full w-full object-cover opacity-90"
