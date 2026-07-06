@@ -40,8 +40,8 @@ export function ProgramIntro() {
             <div className="absolute left-0 top-0 w-[58%] overflow-hidden bg-clw-black-2 aspect-[4/3] lg:w-[64%]">
               {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
               <img
-                src="/images/real/team_march2025.jpg"
-                alt="Crystal Lake Wizards team standing together"
+                src="/images/real/clw-wizards-youth-team-photo.jpg"
+                alt="Crystal Lake Wizards youth wrestlers gathered for a team photo"
                 className="h-full w-full object-cover contrast-110 grayscale-0 lg:grayscale"
               />
             </div>
@@ -50,8 +50,8 @@ export function ProgramIntro() {
             <div className="absolute bottom-0 right-0 w-[48%] overflow-hidden bg-clw-black-2 aspect-[3/2] sm:bottom-2 lg:bottom-2 lg:w-[52%]">
               {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
               <img
-                src="/images/real/facility_pano.jpg"
-                alt="Crystal Lake Wizards wrestling practice room"
+                src="/images/real/clw-wizards-family-photo.jpg"
+                alt="Crystal Lake Wizards families and wrestlers together"
                 className="h-full w-full object-cover contrast-110 grayscale-0 lg:grayscale"
               />
             </div>
@@ -60,8 +60,8 @@ export function ProgramIntro() {
             <div className="absolute bottom-[12%] left-[16%] w-[40%] overflow-hidden bg-clw-black-2 aspect-[16/10] sm:left-[18%] lg:bottom-0 lg:left-[24%] lg:w-[44%]">
               {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
               <img
-                src="/images/real/facility_pano.jpg"
-                alt="Crystal Lake Wizards practice facility"
+                src="/images/real/clw-wizards-trio-featured-photo.jpg"
+                alt="Three Crystal Lake Wizards wrestlers featured together"
                 className="h-full w-full object-cover contrast-110 grayscale-0 lg:grayscale"
               />
             </div>
