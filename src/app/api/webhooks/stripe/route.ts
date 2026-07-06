@@ -16,18 +16,18 @@ export async function POST(request: Request) {
   }
 
   const body = await request.text()
-  const sig = request.headers.get('stripe-signature')
-  if (!sig) {
+  const signature = request.headers.get('stripe-signature')
+  if (!signature) {
     return NextResponse.json({ error: 'Missing stripe-signature header.' }, { status: 400 })
   }
 
   const stripe = getStripeClient()
-
   let event: Stripe.Event
+
   try {
-    event = stripe.webhooks.constructEvent(body, sig, webhookSecret)
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Webhook verification failed.'
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Webhook verification failed.'
     console.error('Stripe webhook verification error:', message)
     await sendAlert('Stripe webhook signature verification failed', { message })
     return NextResponse.json({ error: message }, { status: 400 })
@@ -47,14 +47,12 @@ export async function POST(request: Request) {
       } else {
         console.warn('Stripe checkout.session.completed with unrecognized flow:', flow, session.id)
       }
-    } catch (err) {
-      console.error(`Stripe webhook handler failed for flow "${flow}":`, err)
+    } catch (error) {
+      console.error(`Stripe webhook handler failed for flow "${flow}":`, error)
       await sendAlert(`Stripe webhook handler failed (flow: ${flow ?? 'unknown'})`, {
         sessionId: session.id,
-        error: err instanceof Error ? err.message : String(err),
+        error: error instanceof Error ? error.message : String(error),
       })
-      // Acknowledge receipt anyway — Stripe will retry on non-2xx, and the
-      // failure is already alerted; a retry would just repeat the same error.
     }
   }
 
@@ -116,7 +114,7 @@ async function handleDuesFlow(session: Stripe.Checkout.Session) {
 async function handleDonationFlow(session: Stripe.Checkout.Session) {
   const supabase = createAdminSupabase()
   const customerEmail = session.customer_details?.email ?? session.customer_email ?? null
-  const customerName = session.customer_details?.name ?? null
+  const customerName = session.customer_details?.name ?? session.metadata?.donor_name ?? null
   const amountCents = session.amount_total ?? 0
   const recurring = session.mode === 'subscription'
 
@@ -155,7 +153,11 @@ async function handleSponsorFlow(session: Stripe.Checkout.Session) {
 
   const { data: sponsor, error: updateError } = await supabase
     .from('sponsors')
-    .update({ stripe_customer_id: customerId, stripe_subscription_id: subscriptionId })
+    .update({
+      stripe_customer_id: customerId,
+      stripe_subscription_id: subscriptionId,
+      active: true,
+    })
     .eq('id', sponsorId)
     .select('name, tier, amount_cents, contact_email, contact_name')
     .single()
@@ -171,7 +173,7 @@ async function handleSponsorFlow(session: Stripe.Checkout.Session) {
 
   await sendSponsorThankYouLetter({
     sponsorName: sponsor.name,
-    tier: sponsor.tier,
+    tier: sponsor.tier === 'yellow' ? 'Gold' : sponsor.tier,
     amountCents: sponsor.amount_cents ?? session.amount_total ?? 0,
     contactEmail: sponsor.contact_email,
     contactName: sponsor.contact_name,
@@ -182,7 +184,7 @@ async function handleSponsorFlow(session: Stripe.Checkout.Session) {
 function getResend() {
   const resendKey = process.env.RESEND_API_KEY
   if (!resendKey) {
-    console.warn('RESEND_API_KEY not set — skipping confirmation email.')
+    console.warn('RESEND_API_KEY not set. Skipping confirmation email.')
     return null
   }
   return new Resend(resendKey)
@@ -207,11 +209,11 @@ async function sendDuesConfirmationEmail(params: {
     .send({
       from: FROM_ADDRESS,
       to: [params.to],
-      subject: `${ORG.shortName} — Dues payment received`,
+      subject: `${ORG.shortName}: Dues payment received`,
       html: `<p>Thank you! We received your payment of <strong>${amount}</strong>.</p><p>${statusLine}</p><p style="color:#999;font-size:12px;">Reference: ${params.sessionId.slice(-12).toUpperCase()}</p>`,
     })
-    .catch((err) =>
-      sendAlert('Dues confirmation email failed', { sessionId: params.sessionId, error: String(err) })
+    .catch((error) =>
+      sendAlert('Dues confirmation email failed', { sessionId: params.sessionId, error: String(error) })
     )
 }
 
@@ -225,7 +227,9 @@ async function sendDonationThankYouEmail(params: {
   if (!resend) return
 
   const amount = `$${(params.amountCents / 100).toFixed(2)}`
-  const recurringLine = params.recurring ? ' This is a recurring monthly gift — thank you for the ongoing support.' : ''
+  const recurringLine = params.recurring
+    ? ' This is a recurring monthly gift. Thank you for the ongoing support.'
+    : ''
 
   await resend.emails
     .send({
@@ -235,7 +239,7 @@ async function sendDonationThankYouEmail(params: {
       subject: `Thank you for supporting ${ORG.name}`,
       html: `<p>Dear ${params.name ?? 'Friend of the Wizards'},</p><p>Thank you for your generous donation of <strong>${amount}</strong> to ${ORG.name}.${recurringLine}</p><p>Your support helps our wrestlers compete and grow.</p>`,
     })
-    .catch((err) => sendAlert('Donation thank-you email failed', { to: params.to, error: String(err) }))
+    .catch((error) => sendAlert('Donation thank-you email failed', { to: params.to, error: String(error) }))
 }
 
 async function sendSponsorThankYouLetter(params: {
@@ -251,7 +255,7 @@ async function sendSponsorThankYouLetter(params: {
 
   const amount = `$${(params.amountCents / 100).toFixed(2)}`
   const taxYear = new Date().getFullYear()
-  const recipients = [params.contactEmail, ADMIN_EMAIL].filter((e): e is string => Boolean(e))
+  const recipients = [params.contactEmail, ADMIN_EMAIL].filter((email): email is string => Boolean(email))
 
   if (!recipients.length) return
 
@@ -259,12 +263,12 @@ async function sendSponsorThankYouLetter(params: {
     .send({
       from: FROM_ADDRESS,
       to: recipients,
-      subject: `Thank you for sponsoring ${ORG.name} — ${params.tier} tier`,
+      subject: `Thank you for sponsoring ${ORG.name}: ${params.tier} tier`,
       html: `<p>Dear ${params.contactName ?? params.sponsorName},</p>
 <p>On behalf of ${ORG.name}, thank you for your sponsorship of <strong>${amount}</strong> at the <strong>${params.tier}</strong> level for the ${taxYear} season.</p>
 <p>${ORG.name} is a 501(c)(3) nonprofit organization. No goods or services were provided in exchange for this contribution; it is tax-deductible to the full extent allowed by law. Please retain this letter for your tax records.</p>
 <p>Tax Year: ${taxYear}<br/>Sponsor: ${params.sponsorName}</p>
 <p>With gratitude,<br/>${ORG.name}</p>`,
     })
-    .catch((err) => sendAlert('Sponsor thank-you letter failed', { sponsorId: params.sponsorId, error: String(err) }))
+    .catch((error) => sendAlert('Sponsor thank-you letter failed', { sponsorId: params.sponsorId, error: String(error) }))
 }
