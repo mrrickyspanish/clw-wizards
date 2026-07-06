@@ -9,13 +9,28 @@ const CLUB_PHOTOS = [
     position: 'center',
   },
   {
-    src: '/images/real/coaches_trophy.jpg',
-    alt: 'Crystal Lake Wizards coaches holding a tournament trophy',
+    src: '/images/real/clw-wizards-youth-team-photo-2.jpg',
+    alt: 'Crystal Lake Wizards youth wrestling team together',
     position: 'center',
   },
   {
-    src: '/images/real/facility_pano.jpg',
-    alt: 'Crystal Lake Wizards practice facility and wrestling mats',
+    src: '/images/real/clw-wizards-youth-outing.jpg',
+    alt: 'Crystal Lake Wizards wrestlers at a team outing',
+    position: 'center',
+  },
+  {
+    src: '/images/real/clw-wizards-coach-team-photo.jpg',
+    alt: 'Crystal Lake Wizards coaches and wrestlers together',
+    position: 'center',
+  },
+  {
+    src: '/images/real/clw-wizards-teen-photo.jpg',
+    alt: 'Crystal Lake Wizards teenage wrestlers together',
+    position: 'center',
+  },
+  {
+    src: '/images/real/clw-wizards-youth-win.jpg',
+    alt: 'Crystal Lake Wizards youth wrestlers celebrating a win',
     position: 'center',
   },
 ]
