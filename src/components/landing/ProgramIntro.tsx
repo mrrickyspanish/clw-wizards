@@ -36,8 +36,8 @@ export function ProgramIntro() {
 
         <div className="mt-10 lg:mt-0 lg:w-[48%] lg:flex-shrink-0">
           <div className="relative aspect-[5/4] w-full">
-            {/* Back-left landscape frame */}
-            <div className="absolute left-[3%] top-[4%] z-10 aspect-[3/2] w-[55%] overflow-hidden border border-clw-ink/70 bg-clw-black-2">
+            {/* Dominant back-left landscape frame */}
+            <div className="absolute left-[3%] top-[4%] z-10 aspect-[3/2] w-[60%] overflow-hidden border border-clw-ink/70 bg-clw-black-2">
               {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
               <img
                 src="/images/real/clw-wizards-youth-team-photo.jpg"
@@ -46,8 +46,8 @@ export function ProgramIntro() {
               />
             </div>
 
-            {/* Lower-right landscape frame */}
-            <div className="absolute right-[1%] top-[38%] z-20 aspect-[3/2] w-[55%] overflow-hidden border border-clw-ink/70 bg-clw-black-2">
+            {/* Secondary lower-right landscape frame */}
+            <div className="absolute right-[1%] top-[38%] z-20 aspect-[3/2] w-[52%] overflow-hidden border border-clw-ink/70 bg-clw-black-2">
               {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
               <img
                 src="/images/real/clw-wizards-family-photo.jpg"
