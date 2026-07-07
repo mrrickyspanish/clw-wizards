@@ -63,13 +63,13 @@ export default async function HomePage({
       )}
 
       <Hero />
-      <HomeSectionTear from="dark" to="light" variant="a" star="left" />
+      <HomeSectionTear from="dark" to="light" variant="a" />
       <ProgramIntro />
       <HomeSectionTear from="light" to="dark" variant="b" />
       <ProgramStructure />
       <HomeSectionTear from="dark" to="light" variant="a" />
       <HomeEventsSection tournaments={tournamentRows} />
-      <HomeSectionTear from="light" to="dark" variant="b" star="right" />
+      <HomeSectionTear from="light" to="dark" variant="b" />
       <HomeSupportIntro />
       <HomeTeamSection />
       <HomeFacilitySection />
