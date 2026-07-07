@@ -81,21 +81,12 @@ export function Hero() {
           <p className="hidden font-cond text-sm uppercase tracking-[0.34em] text-clw-gold md:block lg:hidden">
             Crystal Lake Wizards Wrestling Club
           </p>
-          <h1 className="max-w-3xl font-display text-[5.625rem] uppercase leading-[0.88] text-clw-white sm:text-[6.75rem] md:mt-4 lg:max-w-none lg:font-impact lg:text-[7rem] lg:font-black lg:leading-[0.82] xl:text-[8.5rem] 2xl:text-[10rem]">
+          <h1 className="max-w-3xl font-display text-[5.625rem] uppercase leading-[0.88] text-clw-white sm:text-[6.75rem] md:mt-4 lg:max-w-none lg:font-impact lg:text-[6.625rem] lg:font-black lg:leading-[0.82] xl:text-[8.125rem] 2xl:text-[9.5rem]">
             <span className="block">Work.</span>
             <span className="block">Compete.</span>
             <span className="block text-clw-gold">Repeat.</span>
           </h1>
         </div>
-
-        <span
-          aria-hidden
-          className="pointer-events-none absolute -bottom-8 right-6 select-none font-display text-[11rem] leading-none text-clw-gold/[0.1] lg:right-10 lg:text-[14rem]"
-        >
-          W
-        </span>
-        <span aria-hidden className="absolute left-5 top-5 h-5 w-5 border-l-2 border-t-2 border-clw-gold/50" />
-        <span aria-hidden className="absolute bottom-5 right-5 h-5 w-5 border-b-2 border-r-2 border-clw-gold/50" />
       </div>
 
       <p className="px-5 py-4 font-cond text-sm uppercase tracking-[0.34em] text-clw-gold sm:px-8 md:hidden">
