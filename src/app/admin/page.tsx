@@ -4,6 +4,7 @@ import { Users, UserSquare2, Trophy, Wallet } from 'lucide-react'
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
+// Integration readiness is reviewed before production launch.
 export default async function AdminOverviewPage() {
   const supabase = createAdminSupabase()
 
