@@ -1,72 +1,52 @@
 type SectionTone = 'dark' | 'light'
-type DividerVariant = 'a' | 'b'
-type StarPosition = 'left' | 'right'
+type TearVariant = 'a' | 'b'
 
-const COLORS: Record<SectionTone, string> = {
-  dark: '#0D0D0D',
-  light: '#F7F7F7',
+const TEAR_PATHS: Record<TearVariant, { backing: string; face: string }> = {
+  a: {
+    backing:
+      'M0 13 L72 10 L148 15 L236 8 L332 14 L430 9 L532 16 L642 7 L748 13 L860 9 L974 16 L1088 8 L1196 14 L1312 10 L1440 15 V48 H0 Z',
+    face:
+      'M0 19 L72 16 L148 21 L236 14 L332 20 L430 15 L532 22 L642 13 L748 19 L860 15 L974 22 L1088 14 L1196 20 L1312 16 L1440 21 V48 H0 Z',
+  },
+  b: {
+    backing:
+      'M0 15 L92 9 L188 14 L286 11 L382 17 L486 8 L590 15 L704 10 L812 17 L926 9 L1040 14 L1152 11 L1266 18 L1364 10 L1440 14 V48 H0 Z',
+    face:
+      'M0 21 L92 15 L188 20 L286 17 L382 23 L486 14 L590 21 L704 16 L812 23 L926 15 L1040 20 L1152 17 L1266 24 L1364 16 L1440 20 V48 H0 Z',
+  },
 }
 
-const ASSETS = {
-  light: {
-    a: '/images/dividers/mat-tape-white-a.svg',
-    b: '/images/dividers/mat-tape-white-b.svg',
-  },
-  dark: {
-    a: '/images/dividers/mat-tape-black-a.svg',
-    b: '/images/dividers/mat-tape-black-a.svg',
-  },
-} as const
-
-function StarStamp({ position, tone }: { position: StarPosition; tone: SectionTone }) {
-  const wear = tone === 'light' ? '#F4F1E9' : '#111111'
-
-  return (
-    <svg
-      viewBox="0 0 100 100"
-      className={`absolute top-1/2 z-10 h-7 w-7 -translate-y-1/2 sm:h-8 sm:w-8 lg:h-9 lg:w-9 ${
-        position === 'left' ? 'left-[14%]' : 'right-[14%]'
-      }`}
-      aria-hidden
-    >
-      <path d="M50 7 60 37 92 37 66 56 76 87 50 68 24 87 34 56 8 37 40 37Z" fill="#F0C020" opacity="0.9" />
-      <path d="M50 14 58 40 85 40 63 56 71 81 50 66 29 81 37 56 15 40 42 40Z" fill="none" stroke="#0D0D0D" strokeOpacity="0.22" strokeWidth="2" />
-      <circle cx="38" cy="42" r="3.2" fill={wear} opacity="0.65" />
-      <circle cx="61" cy="54" r="2.4" fill={wear} opacity="0.55" />
-      <circle cx="48" cy="66" r="1.8" fill={wear} opacity="0.6" />
-    </svg>
-  )
+const TONE_COLORS: Record<SectionTone, string> = {
+  dark: '#0D0D0D',
+  light: '#F7F7F7',
 }
 
 export function HomeSectionTear({
   from,
   to,
   variant = 'a',
-  star,
 }: {
   from: SectionTone
   to: SectionTone
-  variant?: DividerVariant
-  star?: StarPosition
+  variant?: TearVariant
 }) {
-  const asset = ASSETS[to][variant]
-  const mirror = to === 'dark' && variant === 'b'
+  const paths = TEAR_PATHS[variant]
+  const sameTone = from === to
 
   return (
     <div
       aria-hidden
-      className="pointer-events-none relative z-30 -mb-8 -mt-8 h-16 w-full overflow-hidden sm:-mb-9 sm:-mt-9 sm:h-[72px] lg:-mb-10 lg:-mt-10 lg:h-20"
-      style={{
-        background: `linear-gradient(to bottom, ${COLORS[from]} 0 50%, ${COLORS[to]} 50% 100%)`,
-      }}
+      className="pointer-events-none relative z-30 -mb-5 -mt-5 h-10 w-full overflow-hidden"
+      style={{ backgroundColor: TONE_COLORS[from] }}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element -- authored transparent athletic tape asset */}
-      <img
-        src={asset}
-        alt=""
-        className={`absolute inset-0 h-full w-full object-fill ${mirror ? '-scale-x-100' : ''}`}
-      />
-      {star ? <StarStamp position={star} tone={to} /> : null}
+      <svg
+        viewBox="0 0 1440 48"
+        preserveAspectRatio="none"
+        className="absolute inset-0 h-full w-full"
+      >
+        <path d={paths.backing} fill="#F0C020" opacity={sameTone ? 0.58 : 1} />
+        <path d={paths.face} fill={TONE_COLORS[to]} />
+      </svg>
     </div>
   )
 }
