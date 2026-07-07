@@ -42,7 +42,7 @@ export function ProgramIntro() {
               <img
                 src="/images/real/clw-wizards-youth-team-photo.jpg"
                 alt="Crystal Lake Wizards youth wrestlers gathered for a team photo"
-                className="h-full w-full object-cover contrast-110 grayscale-0 lg:grayscale"
+                className="h-full w-full object-cover contrast-110"
               />
             </div>
 
@@ -52,7 +52,7 @@ export function ProgramIntro() {
               <img
                 src="/images/real/clw-wizards-family-photo.jpg"
                 alt="Crystal Lake Wizards families and wrestlers together"
-                className="h-full w-full object-cover contrast-110 grayscale-0 lg:grayscale"
+                className="h-full w-full object-cover contrast-110"
               />
             </div>
 
@@ -62,7 +62,7 @@ export function ProgramIntro() {
               <img
                 src="/images/real/clw-wizards-trio-featured-photo.jpg"
                 alt="Three Crystal Lake Wizards wrestlers featured together"
-                className="h-full w-full object-cover contrast-110 grayscale-0 lg:grayscale"
+                className="h-full w-full object-cover contrast-110"
               />
             </div>
           </div>
