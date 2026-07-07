@@ -78,20 +78,16 @@ export function Hero() {
         </div>
 
         <div className="relative z-10 flex max-w-4xl flex-col justify-end px-5 py-12 sm:px-8 lg:min-h-[616px] lg:w-[42%] lg:max-w-none lg:items-start lg:justify-center lg:px-12 lg:py-0 lg:text-left xl:w-[44%] xl:px-16 2xl:w-[46%] 2xl:px-20">
-          <p className="hidden font-cond text-sm uppercase tracking-[0.34em] text-clw-gold md:block lg:hidden">
+          <p className="mb-4 font-cond text-xs uppercase tracking-[0.34em] text-clw-gold sm:text-sm lg:hidden">
             Crystal Lake Wizards Wrestling Club
           </p>
-          <h1 className="max-w-3xl font-display text-[5.625rem] uppercase leading-[0.88] text-clw-white sm:text-[6.75rem] md:mt-4 lg:max-w-none lg:font-impact lg:text-[6.625rem] lg:font-black lg:leading-[0.82] xl:text-[8.125rem] 2xl:text-[9.5rem]">
+          <h1 className="max-w-3xl font-display text-[5.625rem] uppercase leading-[0.88] text-clw-white sm:text-[6.75rem] md:mt-0 lg:max-w-none lg:font-impact lg:text-[6.625rem] lg:font-black lg:leading-[0.82] xl:text-[8.125rem] 2xl:text-[9.5rem]">
             <span className="block">Work.</span>
             <span className="block">Compete.</span>
             <span className="block text-clw-gold">Repeat.</span>
           </h1>
         </div>
       </div>
-
-      <p className="px-5 py-4 font-cond text-sm uppercase tracking-[0.34em] text-clw-gold sm:px-8 md:hidden">
-        Crystal Lake Wizards Wrestling Club
-      </p>
     </section>
   )
 }
