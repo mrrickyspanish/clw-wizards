@@ -2,10 +2,11 @@ import Link from 'next/link'
 import { Users, UserSquare2, Trophy, Wallet } from 'lucide-react'
 
 import { createAdminSupabase } from '@/lib/supabase/admin'
+import { reportEnvironmentReadiness } from '@/lib/alerts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
-// Integration readiness is reviewed before production launch.
 export default async function AdminOverviewPage() {
+  reportEnvironmentReadiness()
   const supabase = createAdminSupabase()
 
   const [{ count: familyCount }, { count: athleteCount }, { count: openTournaments }, { data: outstanding }] =
