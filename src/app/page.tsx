@@ -71,13 +71,9 @@ export default async function HomePage({
       <HomeEventsSection tournaments={tournamentRows} />
       <HomeSectionTear from="light" to="dark" variant="b" />
       <HomeSupportIntro />
-      <HomeSectionTear from="dark" to="dark" variant="a" />
       <HomeTeamSection />
-      <HomeSectionTear from="dark" to="dark" variant="b" />
       <HomeFacilitySection />
-      <HomeSectionTear from="dark" to="dark" variant="a" />
       <HomeFacebookSection />
-      <HomeSectionTear from="dark" to="dark" variant="b" />
 
       <SiteFooter />
 
