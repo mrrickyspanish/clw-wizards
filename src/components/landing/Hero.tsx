@@ -15,9 +15,12 @@ export function Hero() {
             aria-hidden
             className="animate-kenburns absolute inset-0 h-full w-full object-cover opacity-90 lg:hidden"
           />
-          <div
+          {/* eslint-disable-next-line @next/next/no-img-element -- supplied desktop hero artwork */}
+          <img
+            src="/images/real/clw_wizards_hero_landscape.png"
+            alt=""
             aria-hidden
-            className="absolute -inset-[10%] hidden rotate-[5deg] scale-110 bg-[url('/images/real/clw-wizards-hero-photo-2.jpg')] bg-repeat-x bg-center grayscale lg:block [background-size:auto_100%]"
+            className="absolute inset-0 hidden h-full w-full object-cover object-center lg:block"
           />
           <video
             className="absolute inset-0 h-full w-full object-cover opacity-95 lg:hidden"
