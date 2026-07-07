@@ -16,47 +16,49 @@ export function Hero() {
             className="animate-kenburns absolute inset-0 h-full w-full object-cover opacity-90 lg:hidden"
           />
 
-          {/* AI-extended landscape used only as softened environmental support. */}
+          {/* Muted cinematic base using the final landscape asset. */}
           {/* eslint-disable-next-line @next/next/no-img-element -- supplied desktop hero artwork */}
           <img
             src="/images/real/clw_wizards_hero_landscape.png"
             alt=""
             aria-hidden
-            className="absolute -inset-[1%] hidden h-[102%] w-[102%] object-cover object-center lg:block"
-            style={{ filter: 'saturate(0.2) contrast(1.06) brightness(0.68) blur(1.5px)' }}
+            className="absolute inset-0 hidden h-full w-full object-cover object-center lg:block"
+            style={{ filter: 'saturate(0.22) contrast(1.06) brightness(0.74)' }}
           />
 
-          {/* Restore the authentic source photo over the generated center area. */}
-          {/* eslint-disable-next-line @next/next/no-img-element -- original real club photograph */}
+          {/* Same file, same crop: clearer color and detail around the real photographic center. */}
+          {/* eslint-disable-next-line @next/next/no-img-element -- registered cinematic focus pass */}
           <img
-            src="/images/real/clw-wizards-hero-photo-2.jpg"
+            src="/images/real/clw_wizards_hero_landscape.png"
             alt=""
             aria-hidden
-            className="absolute left-1/2 top-0 hidden h-full w-auto max-w-none -translate-x-1/2 object-cover lg:block"
+            className="absolute inset-0 hidden h-full w-full object-cover object-center lg:block"
             style={{
-              filter: 'saturate(0.62) contrast(1.07) brightness(0.9)',
-              WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)',
-              maskImage: 'linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)',
+              filter: 'saturate(0.72) contrast(1.06) brightness(0.94)',
+              WebkitMaskImage:
+                'radial-gradient(ellipse 42% 72% at 59% 55%, black 0%, black 42%, rgba(0,0,0,.82) 58%, transparent 100%)',
+              maskImage:
+                'radial-gradient(ellipse 42% 72% at 59% 55%, black 0%, black 42%, rgba(0,0,0,.82) 58%, transparent 100%)',
             }}
           />
 
-          {/* Restrained edge falloff keeps focus on the real wrestlers without washing the image. */}
+          {/* Subtle falloff keeps the extension secondary without creating a visible photo-on-photo seam. */}
           <div
             aria-hidden
             className="absolute inset-0 hidden lg:block"
             style={{
               background:
-                'radial-gradient(ellipse at center, transparent 38%, rgba(0, 0, 0, 0.16) 68%, rgba(0, 0, 0, 0.48) 100%)',
+                'radial-gradient(ellipse at 59% 52%, transparent 34%, rgba(0,0,0,.08) 62%, rgba(0,0,0,.36) 100%)',
             }}
           />
 
-          {/* Fine film texture helps the source and extension read as one photographic surface. */}
+          {/* Fine texture unifies the full image without obscuring faces or uniforms. */}
           <div
             aria-hidden
-            className="absolute inset-0 hidden opacity-[0.07] mix-blend-soft-light lg:block"
+            className="absolute inset-0 hidden opacity-[0.045] mix-blend-soft-light lg:block"
             style={{
               backgroundImage:
-                'radial-gradient(circle at 20% 30%, rgba(255,255,255,.55) 0 .45px, transparent .65px), radial-gradient(circle at 75% 65%, rgba(0,0,0,.65) 0 .5px, transparent .7px)',
+                'radial-gradient(circle at 20% 30%, rgba(255,255,255,.5) 0 .4px, transparent .6px), radial-gradient(circle at 75% 65%, rgba(0,0,0,.6) 0 .45px, transparent .65px)',
               backgroundSize: '3px 3px, 4px 4px',
             }}
           />
