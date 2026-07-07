@@ -15,13 +15,52 @@ export function Hero() {
             aria-hidden
             className="animate-kenburns absolute inset-0 h-full w-full object-cover opacity-90 lg:hidden"
           />
+
+          {/* AI-extended landscape used only as softened environmental support. */}
           {/* eslint-disable-next-line @next/next/no-img-element -- supplied desktop hero artwork */}
           <img
             src="/images/real/clw_wizards_hero_landscape.png"
             alt=""
             aria-hidden
-            className="absolute inset-0 hidden h-full w-full object-cover object-center lg:block"
+            className="absolute -inset-[1%] hidden h-[102%] w-[102%] object-cover object-center lg:block"
+            style={{ filter: 'saturate(0.2) contrast(1.06) brightness(0.68) blur(1.5px)' }}
           />
+
+          {/* Restore the authentic source photo over the generated center area. */}
+          {/* eslint-disable-next-line @next/next/no-img-element -- original real club photograph */}
+          <img
+            src="/images/real/clw-wizards-hero-photo-2.jpg"
+            alt=""
+            aria-hidden
+            className="absolute left-1/2 top-0 hidden h-full w-auto max-w-none -translate-x-1/2 object-cover lg:block"
+            style={{
+              filter: 'saturate(0.62) contrast(1.07) brightness(0.9)',
+              WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)',
+              maskImage: 'linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)',
+            }}
+          />
+
+          {/* Restrained edge falloff keeps focus on the real wrestlers without washing the image. */}
+          <div
+            aria-hidden
+            className="absolute inset-0 hidden lg:block"
+            style={{
+              background:
+                'radial-gradient(ellipse at center, transparent 38%, rgba(0, 0, 0, 0.16) 68%, rgba(0, 0, 0, 0.48) 100%)',
+            }}
+          />
+
+          {/* Fine film texture helps the source and extension read as one photographic surface. */}
+          <div
+            aria-hidden
+            className="absolute inset-0 hidden opacity-[0.07] mix-blend-soft-light lg:block"
+            style={{
+              backgroundImage:
+                'radial-gradient(circle at 20% 30%, rgba(255,255,255,.55) 0 .45px, transparent .65px), radial-gradient(circle at 75% 65%, rgba(0,0,0,.65) 0 .5px, transparent .7px)',
+              backgroundSize: '3px 3px, 4px 4px',
+            }}
+          />
+
           <video
             className="absolute inset-0 h-full w-full object-cover opacity-95 lg:hidden"
             autoPlay
