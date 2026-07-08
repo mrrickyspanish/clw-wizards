@@ -192,10 +192,10 @@ export function SiteHeader() {
             </Link>
 
             <Link
-              href="/join"
+              href="/login"
               className="flex items-center justify-self-end gap-1 whitespace-nowrap text-sm font-semibold uppercase tracking-wide text-clw-white"
             >
-              Join Now
+              Login
               <ArrowUpRight className="h-4 w-4 text-clw-gold" />
             </Link>
           </div>
@@ -231,17 +231,17 @@ export function SiteHeader() {
                 </Link>
               ))}
               <Link
-                href="/login"
+                href="/join"
                 className="whitespace-nowrap text-[0.74rem] font-semibold uppercase tracking-[0.13em] text-clw-white/85 transition-colors hover:text-clw-gold xl:text-[0.8rem]"
               >
-                Parent / Staff Login
+                Join the Wizards
               </Link>
               <Button
                 asChild
                 size="sm"
-                className="chamfer-sm h-9 justify-self-end rounded-none bg-clw-gold px-4 text-[0.72rem] font-bold uppercase tracking-[0.1em] text-clw-black hover:bg-clw-gold-l xl:px-5 xl:text-xs"
+                className="chamfer-sm h-9 justify-self-end rounded-none bg-clw-gold px-4 text-[0.68rem] font-bold uppercase tracking-[0.08em] text-clw-black hover:bg-clw-gold-l xl:px-5 xl:text-[0.72rem]"
               >
-                <Link href="/join">Join the Wizards</Link>
+                <Link href="/login">Parent / Staff Login</Link>
               </Button>
             </div>
           </div>
@@ -273,10 +273,10 @@ export function SiteHeader() {
               style={{ transitionDelay: open ? `${120 + NAV_LINKS.length * 70}ms` : '0ms' }}
             >
               <Button asChild variant="outline" size="lg" className="flex-1 text-base">
-                <Link href="/login">Login</Link>
+                <Link href="/join">Join</Link>
               </Button>
               <Button asChild size="lg" className="flex-1 text-base">
-                <Link href="/join">Join</Link>
+                <Link href="/login">Login</Link>
               </Button>
             </div>
           </nav>
