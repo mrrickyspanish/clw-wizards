@@ -7,12 +7,14 @@ import { ArrowUpRight, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 const NAV_LINKS = [
-  { href: '/about', label: 'About' },
-  { href: '/program', label: 'Practice Groups' },
-  { href: '#events', label: 'Tournaments' },
-  { href: '#why', label: 'Parent Portal' },
+  { href: '/about', label: 'Mission' },
+  { href: '/#events', label: 'Events' },
+  { href: '/program', label: 'Groups' },
   { href: '/sponsorship', label: 'Support' },
 ]
+
+const DESKTOP_LEFT_LINKS = NAV_LINKS.slice(0, 3)
+const DESKTOP_RIGHT_LINKS = [NAV_LINKS[3]]
 
 export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false)
@@ -39,7 +41,6 @@ export function SiteHeader() {
         }`}
       >
         <div className="px-5 py-4 sm:px-8 lg:px-12 xl:px-16 2xl:px-20">
-          {/* Mobile/tablet bar: waffle menu left, centered brand lockup, Join Now CTA right. */}
           <div className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-3 lg:hidden">
             <button
               type="button"
@@ -74,35 +75,46 @@ export function SiteHeader() {
             </Link>
           </div>
 
-          {/* Desktop bar: full lockup, nav links, login + join CTA. */}
-          <div className="hidden items-center justify-between lg:flex">
-            <Link href="/" className="font-cond text-3xl font-semibold uppercase tracking-[0.03em] text-clw-gold">
-              Wizards Wrestling
-            </Link>
-
-            <nav className="flex items-center gap-7 xl:gap-9">
-              {NAV_LINKS.map((link) => (
-                <a key={link.label} href={link.href} className="text-base font-medium text-clw-white/85 transition-colors hover:text-clw-gold">
+          <div className="hidden grid-cols-[1fr_auto_1fr] items-center lg:grid">
+            <nav className="flex items-center justify-self-start gap-5 xl:gap-7">
+              {DESKTOP_LEFT_LINKS.map((link) => (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  className="whitespace-nowrap text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-clw-white/85 transition-colors hover:text-clw-gold xl:text-[0.82rem]"
+                >
                   {link.label}
-                </a>
+                </Link>
               ))}
             </nav>
 
-            <div className="flex items-center gap-4">
-              <Link href="/login" className="text-base font-medium text-clw-white/85 transition-colors hover:text-clw-gold">
+            <Link
+              href="/"
+              className="justify-self-center whitespace-nowrap font-cond text-2xl font-semibold uppercase tracking-[0.04em] text-clw-gold xl:text-[1.65rem]"
+            >
+              Wizards Wrestling
+            </Link>
+
+            <nav className="flex items-center justify-self-end gap-5 xl:gap-7">
+              {DESKTOP_RIGHT_LINKS.map((link) => (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  className="whitespace-nowrap text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-clw-white/85 transition-colors hover:text-clw-gold xl:text-[0.82rem]"
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <Link
+                href="/login"
+                className="whitespace-nowrap text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-clw-white/85 transition-colors hover:text-clw-gold xl:text-[0.82rem]"
+              >
                 Parent / Staff Login
               </Link>
-              <Button asChild size="sm" className="chamfer-sm h-10 rounded-none px-5 text-sm font-semibold">
-                <Link href="/signup">Join the Wizards</Link>
-              </Button>
-            </div>
+            </nav>
           </div>
         </div>
 
-        {/* Always mounted so the open/close transitions actually play — grid-rows
-            animates the panel height like an accordion, and each row fades/slides
-            in with an increasing delay so the list cascades open one row at a time
-            instead of appearing in bulk. */}
         <div
           className={`grid overflow-hidden transition-[grid-template-rows] duration-300 ease-out lg:hidden ${
             open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
@@ -110,7 +122,7 @@ export function SiteHeader() {
         >
           <nav inert={!open} className="min-h-0 overflow-hidden border-t border-clw-gold/10 bg-clw-black/95">
             {NAV_LINKS.map((link, i) => (
-              <a
+              <Link
                 key={link.label}
                 href={link.href}
                 onClick={() => setOpen(false)}
@@ -120,7 +132,7 @@ export function SiteHeader() {
                 style={{ transitionDelay: open ? `${120 + i * 70}ms` : '0ms' }}
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
             <div
               className={`flex gap-3 px-6 py-5 transition-all duration-300 ease-out ${
