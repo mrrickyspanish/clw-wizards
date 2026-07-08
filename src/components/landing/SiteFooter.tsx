@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowUpRight, Facebook, Mail, MapPin } from 'lucide-react'
+import { Facebook, Mail, MapPin } from 'lucide-react'
 
 import { ORG } from '@/config/org.config'
 
@@ -43,18 +43,6 @@ export function SiteFooter() {
                 </p>
               </div>
             </div>
-
-            <p className="mt-6 max-w-sm text-base leading-relaxed text-clw-gray sm:text-lg">
-              A volunteer-powered youth wrestling club helping area athletes learn, compete, and grow.
-            </p>
-
-            <Link
-              href="/signup"
-              className="chamfer-sm mt-7 inline-flex min-h-12 w-full items-center justify-center gap-2 bg-clw-gold px-6 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-black transition hover:bg-clw-gold-l sm:w-auto sm:min-w-52"
-            >
-              Join the Wizards
-              <ArrowUpRight className="h-4 w-4" />
-            </Link>
           </div>
 
           <div>
@@ -119,15 +107,15 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col gap-5 border-t border-clw-white/10 pt-7 text-base text-clw-gray/70 sm:mt-14 sm:flex-row sm:items-center sm:justify-between sm:text-sm">
-          <p>© {new Date().getFullYear()} Wizards Wrestling Club. All rights reserved.</p>
+        <div className="mt-12 flex flex-col gap-4 border-t border-clw-white/10 pt-7 font-body text-sm sm:mt-14 sm:flex-row sm:items-center sm:justify-between">
+          <p className="font-body text-sm text-clw-gray/70">© {new Date().getFullYear()} Wizards Wrestling Club. All rights reserved.</p>
           <a
             href="https://creativeeyestudios.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="font-cond text-sm uppercase tracking-[0.2em] text-clw-gray/60 transition hover:text-clw-gold"
+            className="font-body text-sm text-cyan-400 transition hover:text-cyan-300"
           >
-            Meticulously crafted by <span className="text-clw-gold">Creative Eye Studios</span>
+            Meticulously crafted by <span className="font-bold">Creative Eye Studios</span>
           </a>
         </div>
       </div>
