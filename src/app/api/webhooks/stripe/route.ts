@@ -33,33 +33,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 400 })
   }
 
-  if (event.type !== 'checkout.session.completed') {
-    return NextResponse.json({ received: true, ignored: true })
-  }
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session
+    const flow = session.metadata?.flow
 
-  const session = event.data.object as Stripe.Checkout.Session
-  const flow = session.metadata?.flow
-
-  try {
-    if (flow === 'dues') {
-      await handleDuesFlow(session)
-    } else if (flow === 'donation') {
-      await handleDonationFlow(session)
-    } else if (flow === 'sponsor') {
-      await handleSponsorFlow(session)
-    } else {
-      console.warn('Stripe checkout.session.completed with unrecognized flow:', flow, session.id)
+    try {
+      if (flow === 'dues') {
+        await handleDuesFlow(session)
+      } else if (flow === 'donation') {
+        await handleDonationFlow(session)
+      } else if (flow === 'sponsor') {
+        await handleSponsorFlow(session)
+      } else {
+        console.warn('Stripe checkout.session.completed with unrecognized flow:', flow, session.id)
+      }
+    } catch (err) {
+      console.error(`Stripe webhook handler failed for flow "${flow}":`, err)
+      await sendAlert(`Stripe webhook handler failed (flow: ${flow ?? 'unknown'})`, {
+        sessionId: session.id,
+        error: err instanceof Error ? err.message : String(err),
+      })
+      // Acknowledge receipt anyway — Stripe will retry on non-2xx, and the
+      // failure is already alerted; a retry would just repeat the same error.
     }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    console.error(`Stripe webhook handler failed for flow "${flow}":`, err)
-    await sendAlert(`Stripe webhook handler failed (flow: ${flow ?? 'unknown'})`, {
-      eventId: event.id,
-      sessionId: session.id,
-      error: message,
-    })
-
-    return NextResponse.json({ error: 'Webhook processing failed.' }, { status: 500 })
   }
 
   return NextResponse.json({ received: true })
@@ -71,48 +67,42 @@ async function handleDuesFlow(session: Stripe.Checkout.Session) {
   const amountPaidCents = session.amount_total ?? 0
 
   if (!duesId) {
-    throw new Error(`Stripe dues checkout ${session.id} is missing dues_id metadata.`)
-  }
-  if (amountPaidCents <= 0) {
-    throw new Error(`Stripe dues checkout ${session.id} has an invalid payment amount.`)
+    await sendAlert('Stripe dues checkout completed without a dues_id', { sessionId: session.id })
+    return
   }
 
   const { data: dues, error: fetchError } = await supabase
     .from('dues_payments')
-    .select('amount_cents, amount_paid_cents, parent_id, stripe_checkout_session_id')
+    .select('amount_cents, amount_paid_cents, parent_id')
     .eq('id', duesId)
     .single()
 
   if (fetchError || !dues) {
-    throw new Error(`Dues record not found for ${duesId}: ${fetchError?.message ?? 'unknown error'}`)
+    await sendAlert('Stripe dues checkout completed for unknown dues_payments row', {
+      sessionId: session.id,
+      duesId,
+      error: fetchError?.message,
+    })
+    return
   }
 
-  if (dues.stripe_checkout_session_id === session.id) return
-
-  const newAmountPaid = Math.min(dues.amount_cents, dues.amount_paid_cents + amountPaidCents)
+  const newAmountPaid = dues.amount_paid_cents + amountPaidCents
   const status = newAmountPaid >= dues.amount_cents ? 'paid' : 'partial'
-  const paymentIntentId =
-    typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id ?? null
 
-  let updateQuery = supabase
+  const { error: updateError } = await supabase
     .from('dues_payments')
     .update({
       amount_paid_cents: newAmountPaid,
       status,
-      stripe_payment_intent_id: paymentIntentId,
+      stripe_payment_intent_id:
+        typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id ?? null,
       stripe_checkout_session_id: session.id,
     })
     .eq('id', duesId)
 
-  updateQuery = dues.stripe_checkout_session_id
-    ? updateQuery.eq('stripe_checkout_session_id', dues.stripe_checkout_session_id)
-    : updateQuery.is('stripe_checkout_session_id', null)
-
-  const { data: updated, error: updateError } = await updateQuery.select('id').maybeSingle()
   if (updateError) throw updateError
-  if (!updated) throw new Error(`Dues record ${duesId} changed while Stripe event ${session.id} was processing.`)
 
-  const customerEmail = session.customer_details?.email ?? session.customer_email
+  const customerEmail = session.customer_details?.email
   if (customerEmail) {
     await sendDuesConfirmationEmail({
       to: customerEmail,
@@ -125,40 +115,28 @@ async function handleDuesFlow(session: Stripe.Checkout.Session) {
 
 async function handleDonationFlow(session: Stripe.Checkout.Session) {
   const supabase = createAdminSupabase()
-
-  const { data: existing, error: existingError } = await supabase
-    .from('donations')
-    .select('id')
-    .eq('stripe_checkout_session_id', session.id)
-    .maybeSingle()
-
-  if (existingError) throw existingError
-  if (existing) return
-
   const customerEmail = session.customer_details?.email ?? session.customer_email ?? null
-  const customerName = session.customer_details?.name ?? session.metadata?.donor_name ?? null
+  const customerName = session.customer_details?.name ?? null
   const amountCents = session.amount_total ?? 0
-
-  if (amountCents <= 0) {
-    throw new Error(`Stripe donation checkout ${session.id} has an invalid payment amount.`)
-  }
+  const recurring = session.mode === 'subscription'
 
   const { error } = await supabase.from('donations').insert({
     donor_name: customerName,
     donor_email: customerEmail,
     amount_cents: amountCents,
-    recurring: false,
+    recurring,
     stripe_checkout_session_id: session.id,
     stripe_payment_intent_id:
       typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id ?? null,
     stripe_customer_id: typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null,
-    stripe_subscription_id: null,
+    stripe_subscription_id:
+      typeof session.subscription === 'string' ? session.subscription : session.subscription?.id ?? null,
   })
 
   if (error) throw error
 
   if (customerEmail) {
-    await sendDonationThankYouEmail({ to: customerEmail, name: customerName, amountCents })
+    await sendDonationThankYouEmail({ to: customerEmail, name: customerName, amountCents, recurring })
   }
 }
 
@@ -167,7 +145,8 @@ async function handleSponsorFlow(session: Stripe.Checkout.Session) {
   const sponsorId = session.metadata?.sponsor_id
 
   if (!sponsorId) {
-    throw new Error(`Stripe sponsor checkout ${session.id} is missing sponsor_id metadata.`)
+    await sendAlert('Stripe sponsor checkout completed without a sponsor_id', { sessionId: session.id })
+    return
   }
 
   const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null
@@ -182,7 +161,12 @@ async function handleSponsorFlow(session: Stripe.Checkout.Session) {
     .single()
 
   if (updateError || !sponsor) {
-    throw new Error(`Sponsor record not found for ${sponsorId}: ${updateError?.message ?? 'unknown error'}`)
+    await sendAlert('Stripe sponsor checkout completed for unknown sponsors row', {
+      sessionId: session.id,
+      sponsorId,
+      error: updateError?.message,
+    })
+    return
   }
 
   await sendSponsorThankYouLetter({
@@ -198,7 +182,7 @@ async function handleSponsorFlow(session: Stripe.Checkout.Session) {
 function getResend() {
   const resendKey = process.env.RESEND_API_KEY
   if (!resendKey) {
-    console.warn('RESEND_API_KEY not set - skipping confirmation email.')
+    console.warn('RESEND_API_KEY not set — skipping confirmation email.')
     return null
   }
   return new Resend(resendKey)
@@ -223,7 +207,7 @@ async function sendDuesConfirmationEmail(params: {
     .send({
       from: FROM_ADDRESS,
       to: [params.to],
-      subject: `${ORG.shortName} - Dues payment received`,
+      subject: `${ORG.shortName} — Dues payment received`,
       html: `<p>Thank you! We received your payment of <strong>${amount}</strong>.</p><p>${statusLine}</p><p style="color:#999;font-size:12px;">Reference: ${params.sessionId.slice(-12).toUpperCase()}</p>`,
     })
     .catch((err) =>
@@ -235,11 +219,13 @@ async function sendDonationThankYouEmail(params: {
   to: string
   name: string | null
   amountCents: number
+  recurring: boolean
 }) {
   const resend = getResend()
   if (!resend) return
 
   const amount = `$${(params.amountCents / 100).toFixed(2)}`
+  const recurringLine = params.recurring ? ' This is a recurring monthly gift — thank you for the ongoing support.' : ''
 
   await resend.emails
     .send({
@@ -247,7 +233,7 @@ async function sendDonationThankYouEmail(params: {
       to: [params.to],
       bcc: [ADMIN_EMAIL],
       subject: `Thank you for supporting ${ORG.name}`,
-      html: `<p>Dear ${params.name ?? 'Friend of the Wizards'},</p><p>Thank you for your generous donation of <strong>${amount}</strong> to ${ORG.name}.</p><p>Your support helps our wrestlers compete and grow.</p>`,
+      html: `<p>Dear ${params.name ?? 'Friend of the Wizards'},</p><p>Thank you for your generous donation of <strong>${amount}</strong> to ${ORG.name}.${recurringLine}</p><p>Your support helps our wrestlers compete and grow.</p>`,
     })
     .catch((err) => sendAlert('Donation thank-you email failed', { to: params.to, error: String(err) }))
 }
@@ -273,7 +259,7 @@ async function sendSponsorThankYouLetter(params: {
     .send({
       from: FROM_ADDRESS,
       to: recipients,
-      subject: `Thank you for sponsoring ${ORG.name} - ${params.tier} tier`,
+      subject: `Thank you for sponsoring ${ORG.name} — ${params.tier} tier`,
       html: `<p>Dear ${params.contactName ?? params.sponsorName},</p>
 <p>On behalf of ${ORG.name}, thank you for your sponsorship of <strong>${amount}</strong> at the <strong>${params.tier}</strong> level for the ${taxYear} season.</p>
 <p>${ORG.name} is a 501(c)(3) nonprofit organization. No goods or services were provided in exchange for this contribution; it is tax-deductible to the full extent allowed by law. Please retain this letter for your tax records.</p>
