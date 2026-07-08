@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { ArrowUpRight, MapPin, Search, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { ArrowRight, ArrowUpRight, MapPin, Search, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { ORG } from '@/config/org.config'
@@ -18,9 +18,61 @@ const DESKTOP_LEFT_LINKS = NAV_LINKS.slice(0, 3)
 const DESKTOP_RIGHT_LINKS = [NAV_LINKS[3]]
 const MAP_URL = 'https://www.google.com/maps/search/?api=1&query=975+Nimco+Dr+Unit+L+Crystal+Lake+IL+60014'
 
+const SEARCH_ITEMS = [
+  {
+    title: 'Mission',
+    description: 'Learn what Wizards Wrestling stands for and how the club serves area wrestlers.',
+    href: '/about',
+    keywords: ['about', 'mission', 'club', 'history', 'values'],
+  },
+  {
+    title: 'Training Groups',
+    description: 'Explore Black, Gold, and White practice groups and find the right level.',
+    href: '/program',
+    keywords: ['groups', 'practice', 'training', 'black', 'gold', 'white', 'program'],
+  },
+  {
+    title: 'Upcoming Events',
+    description: 'See upcoming tournaments, fundraisers, and club events.',
+    href: '/#events',
+    keywords: ['events', 'calendar', 'tournaments', 'schedule'],
+  },
+  {
+    title: 'Support the Club',
+    description: 'Donate, sponsor, join the boosters, or volunteer.',
+    href: '/sponsorship',
+    keywords: ['support', 'donate', 'sponsor', 'boosters', 'volunteer'],
+  },
+  {
+    title: 'Meet the Team',
+    description: 'Meet the coaches and staff behind Wizards Wrestling.',
+    href: '/coaches',
+    keywords: ['coaches', 'staff', 'team', 'leadership'],
+  },
+  {
+    title: 'Visit the Facility',
+    description: 'Find the gym at 975 Nimco Drive, Unit L, Crystal Lake, Illinois.',
+    href: '/#location',
+    keywords: ['location', 'facility', 'gym', 'address', 'directions', 'nimco'],
+  },
+  {
+    title: 'Parent / Staff Login',
+    description: 'Sign in to the club portal.',
+    href: '/login',
+    keywords: ['login', 'portal', 'parent', 'staff', 'account'],
+  },
+  {
+    title: 'Join the Wizards',
+    description: 'Start registration for Wizards Wrestling.',
+    href: '/signup',
+    keywords: ['join', 'signup', 'register', 'registration'],
+  },
+]
+
 export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const sentinelRef = useRef<HTMLDivElement>(null)
 
@@ -35,13 +87,34 @@ export function SiteHeader() {
     return () => observer.disconnect()
   }, [])
 
-  function handleSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const query = searchQuery.trim()
-    if (!query) return
+  useEffect(() => {
+    if (!searchOpen) return
 
-    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(`site:${ORG.domain} ${query}`)}`
-    window.open(searchUrl, '_blank', 'noopener,noreferrer')
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSearchOpen(false)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [searchOpen])
+
+  const normalizedQuery = searchQuery.trim().toLowerCase()
+  const searchResults = normalizedQuery
+    ? SEARCH_ITEMS.filter((item) =>
+        `${item.title} ${item.description} ${item.keywords.join(' ')}`.toLowerCase().includes(normalizedQuery)
+      )
+    : SEARCH_ITEMS.slice(0, 5)
+
+  function openSearch() {
+    setOpen(false)
+    setSearchQuery('')
+    setSearchOpen(true)
   }
 
   return (
@@ -65,23 +138,15 @@ export function SiteHeader() {
             </a>
 
             <div className="flex items-center gap-3">
-              <form onSubmit={handleSearch} className="flex items-center border-b border-clw-white/25 focus-within:border-clw-gold">
-                <input
-                  type="search"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search"
-                  aria-label="Search the Wizards Wrestling website"
-                  className="h-7 w-24 bg-transparent px-1 text-xs text-clw-white outline-none placeholder:text-clw-white/45 sm:w-36 lg:w-44"
-                />
-                <button
-                  type="submit"
-                  aria-label="Submit site search"
-                  className="flex h-7 w-7 items-center justify-center text-clw-white/70 transition-colors hover:text-clw-gold"
-                >
-                  <Search className="h-3.5 w-3.5" />
-                </button>
-              </form>
+              <button
+                type="button"
+                onClick={openSearch}
+                className="flex h-7 w-28 items-center justify-between border-b border-clw-white/25 px-1 text-xs text-clw-white/55 transition-colors hover:border-clw-gold hover:text-clw-white sm:w-36 lg:w-44"
+                aria-label="Open site search"
+              >
+                <span>Search</span>
+                <Search className="h-3.5 w-3.5" />
+              </button>
 
               {ORG.social.facebook && (
                 <a
@@ -105,7 +170,7 @@ export function SiteHeader() {
             <button
               type="button"
               className="flex flex-col justify-self-start gap-1.5 text-clw-white"
-              onClick={() => setOpen((v) => !v)}
+              onClick={() => setOpen((value) => !value)}
               aria-label="Toggle menu"
             >
               {open ? (
@@ -188,7 +253,7 @@ export function SiteHeader() {
           }`}
         >
           <nav inert={!open} className="min-h-0 overflow-hidden border-t border-clw-gold/10 bg-clw-black/95">
-            {NAV_LINKS.map((link, i) => (
+            {NAV_LINKS.map((link, index) => (
               <Link
                 key={link.label}
                 href={link.href}
@@ -196,7 +261,7 @@ export function SiteHeader() {
                 className={`block border-b border-clw-white/10 px-6 py-5 font-display text-4xl uppercase tracking-wide text-clw-white transition-all duration-300 ease-out hover:text-clw-gold ${
                   open ? 'translate-y-0 opacity-100' : '-translate-y-3 opacity-0'
                 }`}
-                style={{ transitionDelay: open ? `${120 + i * 70}ms` : '0ms' }}
+                style={{ transitionDelay: open ? `${120 + index * 70}ms` : '0ms' }}
               >
                 {link.label}
               </Link>
@@ -217,6 +282,74 @@ export function SiteHeader() {
           </nav>
         </div>
       </header>
+
+      {searchOpen && (
+        <div
+          className="fixed inset-0 z-[90] flex items-start justify-center bg-clw-black/85 px-4 pt-20 backdrop-blur-md sm:pt-24"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Search Wizards Wrestling"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target) setSearchOpen(false)
+          }}
+        >
+          <div className="w-full max-w-2xl overflow-hidden border border-clw-gold/30 bg-clw-black-2 shadow-2xl shadow-black/60">
+            <div className="flex items-center gap-3 border-b border-clw-white/10 px-4 sm:px-6">
+              <Search className="h-5 w-5 shrink-0 text-clw-gold" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="What are you looking for?"
+                autoFocus
+                className="h-16 min-w-0 flex-1 bg-transparent text-lg text-clw-white outline-none placeholder:text-clw-white/40 sm:h-20 sm:text-xl"
+              />
+              <button
+                type="button"
+                onClick={() => setSearchOpen(false)}
+                aria-label="Close search"
+                className="flex h-10 w-10 items-center justify-center text-clw-white/70 transition-colors hover:text-clw-gold"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="max-h-[65vh] overflow-y-auto p-3 sm:p-4">
+              <p className="px-3 pb-3 font-cond text-xs uppercase tracking-[0.24em] text-clw-gold">
+                {normalizedQuery ? `${searchResults.length} result${searchResults.length === 1 ? '' : 's'}` : 'Popular destinations'}
+              </p>
+
+              {searchResults.length > 0 ? (
+                <div className="space-y-1">
+                  {searchResults.map((item) => (
+                    <Link
+                      key={item.title}
+                      href={item.href}
+                      onClick={() => setSearchOpen(false)}
+                      className="group flex items-center justify-between gap-5 border border-transparent px-3 py-4 transition hover:border-clw-gold/30 hover:bg-clw-white/[0.04] sm:px-4"
+                    >
+                      <span>
+                        <span className="block font-display text-2xl uppercase leading-none tracking-wide text-clw-white group-hover:text-clw-gold">
+                          {item.title}
+                        </span>
+                        <span className="mt-2 block text-sm leading-relaxed text-clw-gray sm:text-base">
+                          {item.description}
+                        </span>
+                      </span>
+                      <ArrowRight className="h-5 w-5 shrink-0 text-clw-gold" />
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="border border-dashed border-clw-white/20 px-5 py-10 text-center">
+                  <p className="font-display text-2xl uppercase text-clw-white">No matching pages</p>
+                  <p className="mt-3 text-sm text-clw-gray">Try events, groups, facility, coaches, support, or login.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
