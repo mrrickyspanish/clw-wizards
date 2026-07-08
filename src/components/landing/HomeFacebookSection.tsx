@@ -35,16 +35,58 @@ const CLUB_PHOTOS = [
   },
 ]
 
-export function HomeFacebookSection() {
+function PhotoRiverRow({
+  photos,
+  reverse = false,
+}: {
+  photos: typeof CLUB_PHOTOS
+  reverse?: boolean
+}) {
+  const groups = [photos, photos]
+
   return (
-    <section className="relative isolate overflow-hidden border-y border-clw-gold/25 bg-clw-black px-5 py-14 text-clw-white sm:px-8 sm:py-16 lg:px-12 lg:py-20 xl:px-16 2xl:px-20">
+    <div className="marquee-group marquee-mask w-full overflow-hidden">
+      <div
+        className="marquee-track flex w-max gap-3 will-change-transform sm:gap-4"
+        style={{ animationDuration: reverse ? '58s' : '52s', animationDirection: reverse ? 'reverse' : 'normal' }}
+      >
+        {groups.map((group, groupIndex) => (
+          <div key={groupIndex} className="flex shrink-0 gap-3 pr-3 sm:gap-4 sm:pr-4">
+            {group.map((photo) => (
+              <div
+                key={`${groupIndex}-${photo.src}`}
+                className="relative h-40 w-64 shrink-0 overflow-hidden border border-clw-gold/20 bg-clw-black-2 shadow-xl shadow-black/20 sm:h-48 sm:w-80 lg:h-52 lg:w-96"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
+                <img
+                  src={photo.src}
+                  alt={photo.alt}
+                  className="absolute inset-0 h-full w-full object-cover"
+                  style={{ objectPosition: photo.position }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-clw-black/35 via-transparent to-transparent" />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export function HomeFacebookSection() {
+  const topRow = CLUB_PHOTOS.filter((_, index) => index % 2 === 0)
+  const bottomRow = CLUB_PHOTOS.filter((_, index) => index % 2 === 1)
+
+  return (
+    <section className="relative isolate overflow-hidden border-y border-clw-gold/25 bg-clw-black py-14 text-clw-white sm:py-16 lg:py-20">
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[url('/images/textures/mat-dark.webp')] bg-cover bg-center opacity-40" />
       <div className="absolute inset-0 opacity-35 [background-image:radial-gradient(circle_at_16%_0%,rgba(240,192,32,.14),transparent_24%),linear-gradient(135deg,rgba(255,255,255,.08),transparent_42%)]" />
 
-      <div id="facebook" className="relative mx-auto grid max-w-7xl scroll-mt-24 gap-10 lg:flex lg:flex-col lg:items-center">
-        <div className="lg:text-center">
+      <div id="facebook" className="relative mx-auto flex max-w-7xl scroll-mt-24 flex-col items-center gap-10 px-5 sm:px-8 lg:px-12 xl:px-16 2xl:px-20">
+        <div className="text-center">
           <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Social</p>
-          <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-white lg:mx-auto lg:max-w-none">
+          <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-white lg:max-w-none">
             <span className="block font-cond text-[clamp(3rem,12vw,5rem)] font-light tracking-[-0.04em]">
               Follow us on
             </span>
@@ -52,7 +94,7 @@ export function HomeFacebookSection() {
               Facebook
             </span>
           </h2>
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-clw-gray sm:text-xl lg:mx-auto">
+          <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-clw-gray sm:text-xl">
             Practice updates, tournament reminders, photos, and club announcements open directly on Facebook.
           </p>
           <a
@@ -65,29 +107,14 @@ export function HomeFacebookSection() {
           </a>
         </div>
 
-        <div className="lg:w-full lg:max-w-3xl">
+        <div className="w-full max-w-3xl">
           <FacebookFeedWithFallback href={FACEBOOK_URL} />
         </div>
+      </div>
 
-        <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-3 lg:max-w-5xl">
-          {CLUB_PHOTOS.map((photo, index) => (
-            <div
-              key={photo.src}
-              className={`relative overflow-hidden border border-clw-gold/20 bg-clw-black-2 shadow-xl shadow-black/20 ${
-                index === 0 ? 'aspect-[4/3] sm:col-span-2 sm:aspect-[16/9]' : 'aspect-[4/3]'
-              }`}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
-              <img
-                src={photo.src}
-                alt={photo.alt}
-                className="absolute inset-0 h-full w-full object-cover"
-                style={{ objectPosition: photo.position }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-clw-black/45 via-transparent to-transparent" />
-            </div>
-          ))}
-        </div>
+      <div className="relative mt-10 space-y-3 sm:space-y-4">
+        <PhotoRiverRow photos={topRow} />
+        <PhotoRiverRow photos={bottomRow} reverse />
       </div>
     </section>
   )
