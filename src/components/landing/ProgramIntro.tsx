@@ -28,7 +28,7 @@ export function ProgramIntro() {
           </h2>
           <div className="mt-7 max-w-3xl space-y-5 text-xl leading-relaxed text-clw-ink/85 sm:text-2xl sm:leading-relaxed lg:max-w-[26rem] lg:text-lg lg:leading-relaxed">
             <p>
-              The Wizards help young wrestlers take the next step, whether they are learning the basics or chasing bigger goals. Our club gives kids a place to train hard, build confidence, and represent Crystal Lake with pride.
+              The Wizards help young wrestlers take the next step, whether they are learning the basics or chasing bigger goals. Our club gives kids a place to train hard, build confidence, and represent McHenry County with pride.
             </p>
             <p>
               We are volunteer-run, family-powered, and committed to helping every wrestler grow.
@@ -46,7 +46,7 @@ export function ProgramIntro() {
               {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
               <img
                 src="/images/real/clw-wizards-youth-team-photo.jpg"
-                alt="Crystal Lake Wizards youth wrestlers gathered for a team photo"
+                alt="Wizards youth wrestlers gathered for a team photo"
                 className="h-full w-full object-cover contrast-110"
               />
             </div>
@@ -56,7 +56,7 @@ export function ProgramIntro() {
               {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
               <img
                 src="/images/real/clw-wizards-family-photo.jpg"
-                alt="Crystal Lake Wizards families and wrestlers together"
+                alt="Wizards families and wrestlers together"
                 className="h-full w-full object-cover contrast-110"
               />
             </div>
@@ -66,7 +66,7 @@ export function ProgramIntro() {
               {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
               <img
                 src="/images/real/clw-wizards-trio-featured-photo.jpg"
-                alt="Three Crystal Lake Wizards wrestlers featured together"
+                alt="Three Wizards wrestlers featured together"
                 className="h-full w-full object-cover contrast-110"
               />
             </div>
