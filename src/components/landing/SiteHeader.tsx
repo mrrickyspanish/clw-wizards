@@ -62,10 +62,10 @@ const SEARCH_ITEMS = [
     keywords: ['login', 'portal', 'parent', 'staff', 'account'],
   },
   {
-    title: 'Join the Wizards',
-    description: 'Start registration for Wizards Wrestling.',
-    href: '/signup',
-    keywords: ['join', 'signup', 'register', 'registration'],
+    title: 'New Families',
+    description: 'Learn what to expect, explore training groups, and choose the right next step for your wrestler.',
+    href: '/join',
+    keywords: ['join', 'signup', 'register', 'registration', 'new family', 'first practice', 'visit'],
   },
 ]
 
@@ -192,7 +192,7 @@ export function SiteHeader() {
             </Link>
 
             <Link
-              href="/signup"
+              href="/join"
               className="flex items-center justify-self-end gap-1 whitespace-nowrap text-sm font-semibold uppercase tracking-wide text-clw-white"
             >
               Join Now
@@ -241,7 +241,7 @@ export function SiteHeader() {
                 size="sm"
                 className="chamfer-sm h-9 justify-self-end rounded-none bg-clw-gold px-4 text-[0.72rem] font-bold uppercase tracking-[0.1em] text-clw-black hover:bg-clw-gold-l xl:px-5 xl:text-xs"
               >
-                <Link href="/signup">Join the Wizards</Link>
+                <Link href="/join">Join the Wizards</Link>
               </Button>
             </div>
           </div>
@@ -276,7 +276,7 @@ export function SiteHeader() {
                 <Link href="/login">Login</Link>
               </Button>
               <Button asChild size="lg" className="flex-1 text-base">
-                <Link href="/signup">Join</Link>
+                <Link href="/join">Join</Link>
               </Button>
             </div>
           </nav>
@@ -343,7 +343,7 @@ export function SiteHeader() {
               ) : (
                 <div className="border border-dashed border-clw-white/20 px-5 py-10 text-center">
                   <p className="font-display text-2xl uppercase text-clw-white">No matching pages</p>
-                  <p className="mt-3 text-sm text-clw-gray">Try events, groups, facility, coaches, support, or login.</p>
+                  <p className="mt-3 text-sm text-clw-gray">Try new families, events, groups, facility, coaches, support, or login.</p>
                 </div>
               )}
             </div>
