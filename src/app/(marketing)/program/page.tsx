@@ -36,7 +36,7 @@ export default function ProgramPage() {
       <section className="mt-10 grid grid-cols-1 gap-5 lg:grid-cols-3">
         {ORG.practiceGroups.map((group) => (
           <div key={group} className="chamfer-md card-depth border border-clw-gold/10 bg-clw-black-2 p-6">
-            <p className="font-cond text-sm uppercase tracking-[0.24em] text-clw-gold-ink">Practice group</p>
+            <p className="font-cond text-sm uppercase tracking-[0.24em] text-clw-gold">Practice group</p>
             <h2 className="mt-3 font-display text-4xl uppercase tracking-wide text-clw-white">{group}</h2>
             <p className="mt-4 text-base leading-relaxed text-clw-gray">
               {GROUP_BLURBS[group] ?? 'A focused training group within the club program.'}
@@ -60,13 +60,13 @@ export default function ProgramPage() {
         <div className="chamfer-md card-depth flex flex-col border border-clw-gold/10 bg-clw-black-2 p-6 lg:col-span-4">
           <h2 className="font-display text-3xl uppercase tracking-wide text-clw-white">Ready to join?</h2>
           <p className="mt-4 text-base leading-relaxed text-clw-gray">
-            Start registration and the club will help place your wrestler in the right practice group.
+            Start with the new-family guide to understand the room, training groups, expected costs, and the best next step for your wrestler.
           </p>
           <Link
-            href="/signup"
+            href="/join"
             className="mt-6 inline-block bg-clw-gold px-6 py-4 text-center font-display text-xl uppercase tracking-wide text-clw-black transition hover:bg-clw-gold-l"
           >
-            Join the Wizards
+            Start Here
           </Link>
         </div>
       </section>
