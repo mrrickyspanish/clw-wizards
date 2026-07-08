@@ -14,6 +14,7 @@ const NAV_LINKS = [
   { href: '/sponsorship', label: 'Support' },
 ]
 
+const MOBILE_NAV_LINKS = [...NAV_LINKS, { href: '/join', label: 'Join the Wizards' }]
 const DESKTOP_LEFT_LINKS = NAV_LINKS.slice(0, 3)
 const DESKTOP_RIGHT_LINKS = [NAV_LINKS[3]]
 const MAP_URL = 'https://www.google.com/maps/search/?api=1&query=975+Nimco+Dr+Unit+L+Crystal+Lake+IL+60014'
@@ -253,7 +254,7 @@ export function SiteHeader() {
           }`}
         >
           <nav inert={!open} className="min-h-0 overflow-hidden border-t border-clw-gold/10 bg-clw-black/95">
-            {NAV_LINKS.map((link, index) => (
+            {MOBILE_NAV_LINKS.map((link, index) => (
               <Link
                 key={link.label}
                 href={link.href}
@@ -267,16 +268,13 @@ export function SiteHeader() {
               </Link>
             ))}
             <div
-              className={`flex gap-3 px-6 py-5 transition-all duration-300 ease-out ${
+              className={`px-6 py-5 transition-all duration-300 ease-out ${
                 open ? 'translate-y-0 opacity-100' : '-translate-y-3 opacity-0'
               }`}
-              style={{ transitionDelay: open ? `${120 + NAV_LINKS.length * 70}ms` : '0ms' }}
+              style={{ transitionDelay: open ? `${120 + MOBILE_NAV_LINKS.length * 70}ms` : '0ms' }}
             >
-              <Button asChild variant="outline" size="lg" className="flex-1 text-base">
-                <Link href="/join">Join</Link>
-              </Button>
-              <Button asChild size="lg" className="flex-1 text-base">
-                <Link href="/login">Login</Link>
+              <Button asChild size="lg" className="w-full text-base">
+                <Link href="/login">Parent / Staff Login</Link>
               </Button>
             </div>
           </nav>
