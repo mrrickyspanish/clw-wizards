@@ -1,29 +1,25 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
-import { Award, HeartHandshake, MapPin, ShieldCheck, Users } from 'lucide-react'
+import { ArrowRight, Award, Check, HeartHandshake, MapPin, ShieldCheck, Users } from 'lucide-react'
 
 const STAND_FOR = [
   'Safety is our most important priority.',
   'Members of the team are students first and athletes second.',
-  'Club wrestling better prepares a wrestler for high school competition than other youth wrestling options.',
   'Sportsmanship is expected of every Wizard wrestler and coach.',
-  'A wrestler who does not follow team rules may be disciplined, especially if they are a risk to themselves or their teammates.',
+  'Every wrestler should be challenged, supported, and held accountable.',
 ]
 
 const WHY_WRESTLING = [
-  { title: 'Discipline', body: 'The desire to make the sacrifices necessary to become a better athlete and person.' },
-  { title: 'Agility', body: 'The ability to change position efficiently and stay a step ahead on the mat.' },
-  { title: 'Endurance', body: 'Muscular and cardiovascular stamina built rep by rep, period by period.' },
-  { title: 'A Winning Attitude', body: 'The inner knowledge that you will do your best, win or lose.' },
+  { number: '01', title: 'Discipline', body: 'The willingness to make the sacrifices required to improve as an athlete and a person.' },
+  { number: '02', title: 'Agility', body: 'The ability to change position efficiently, react quickly, and stay a step ahead on the mat.' },
+  { number: '03', title: 'Endurance', body: 'Physical and mental stamina built rep by rep, practice by practice, and period by period.' },
+  { number: '04', title: 'A Winning Attitude', body: 'The confidence to compete hard, respond to adversity, and give your best regardless of the result.' },
 ]
 
-const BOARD = [
-  { name: 'Tony Fontanetta', role: 'President, Head Coach & Club Coordinator', phone: '312-656-7335' },
-  { name: 'Sabrina Jimenez', role: 'Secretary-Treasurer, Singlets, Pictures & Payments', phone: '815-482-4464' },
-  { name: 'Steve Swierk', role: 'Vice President of Operations & Tournaments', phone: '630-886-1769' },
-  { name: 'Jeramy Carbone', role: 'Vice President, Tournaments, Stats & Facilities', phone: '847-812-4010' },
-  { name: 'Tyler Simmons', role: 'Board Member', phone: '815-245-7320' },
-  { name: 'Julie Swierk', role: 'Board Assistant & Hotel Blocks', phone: null },
+const FEATURED_LEADERS = [
+  { name: 'Tony Fontanetta', role: 'President, Head Coach & Club Coordinator', phone: '312-656-7335', initials: 'TF' },
+  { name: 'Sabrina Jimenez', role: 'Secretary-Treasurer, Singlets, Pictures & Payments', phone: '815-482-4464', initials: 'SJ' },
+  { name: 'Steve Swierk', role: 'Vice President of Operations & Tournaments', phone: '630-886-1769', initials: 'SS' },
 ]
 
 const PRACTICE_COACHES = [
@@ -33,158 +29,215 @@ const PRACTICE_COACHES = [
   { group: 'Group 4', coaches: 'Anthony Fontanetta, Steve Swierk' },
 ]
 
+const MAP_URL = 'https://www.google.com/maps/search/?api=1&query=975+Nimco+Dr+Unit+L+Crystal+Lake+IL+60014'
+
 export const metadata: Metadata = {
-  title: 'About',
-  description: 'The Crystal Lake Wizards Wrestling Club: our story, our values, our coaches, and our facility.',
+  title: 'Mission',
+  description: 'The mission, values, leadership, and community behind Wizards Wrestling Club in McHenry County.',
 }
 
 export default function AboutPage() {
   return (
-    <main className="mission-frame py-10 lg:py-14">
-      <header className="max-w-2xl">
-        <p className="font-cond text-sm uppercase tracking-[0.3em] text-clw-gold">Crystal Lake, Illinois</p>
-        <h1 className="mt-3 font-display text-5xl uppercase leading-[0.95] text-clw-white sm:text-6xl">About the Wizards</h1>
-        <p className="mt-4 text-clw-gray">
-          A Crystal Lake Park District affiliated program, registered through the Illinois Kids Wrestling Federation
-          (IKWF).
-        </p>
-      </header>
+    <main className="relative overflow-hidden bg-clw-black pb-16 text-clw-white lg:pb-24">
+      <div className="pointer-events-none absolute inset-0 opacity-35 [background-image:radial-gradient(circle_at_85%_4%,rgba(240,192,32,.14),transparent_24%),linear-gradient(180deg,rgba(255,255,255,.035),transparent_32%)]" />
 
-      <section className="mt-10 grid grid-cols-1 gap-5 lg:grid-cols-12">
-        <div className="chamfer-md card-depth border border-clw-gold/10 bg-clw-black-2 p-6 lg:col-span-8">
-          <h2 className="font-display text-2xl uppercase tracking-wide text-clw-white">Our story</h2>
-          <p className="mt-4 text-base leading-relaxed text-clw-gray">
-            Now in our fifth decade, the Wizards are one of the premier youth wrestling organizations in the
-            country. We are committed to providing a safe and supportive environment for kids ages 5 to 14 from
-            Crystal Lake and the surrounding community. Each year 120 to 155 wrestlers train with us, from beginning
-            fundamentals to the advanced technique needed to compete at the highest levels.
-          </p>
-          <p className="mt-3 text-base leading-relaxed text-clw-gray">
-            Our goal is to introduce wrestling in a competitive but fun environment and to help every wrestler reach
-            their potential through serious commitment. Nearly every year we produce state qualifiers and state
-            placers, and many of our wrestlers go on to wrestle in high school and college, taking the discipline,
-            teamwork, and respect they built here with them.
-          </p>
-          <p className="mt-3 text-base leading-relaxed text-clw-gray">
-            CLW Wrestling is a 501(c)(3) nonprofit youth sports organization run 100% by volunteers.
-          </p>
-        </div>
-
-        <div className="chamfer-md card-depth flex flex-col border border-clw-gold/10 bg-clw-black-2 p-6 lg:col-span-4">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-clw-gold-ink" />
-            <h2 className="font-display text-2xl uppercase tracking-wide text-clw-white">What we stand for</h2>
+      <section className="mission-frame relative py-12 sm:py-16 lg:py-20">
+        <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-14">
+          <div>
+            <p className="font-cond text-sm uppercase tracking-[0.34em] text-clw-gold">Wizards Wrestling Club</p>
+            <h1 className="mt-5 max-w-4xl uppercase leading-[0.9] text-clw-white">
+              <span className="block font-cond text-[clamp(3.2rem,8vw,6rem)] font-light tracking-[-0.045em]">Built for</span>
+              <span className="block font-display text-[clamp(3.65rem,8.8vw,6.8rem)] font-black tracking-[-0.04em] text-clw-gold">
+                McHenry County Wrestlers
+              </span>
+            </h1>
+            <p className="mt-7 max-w-3xl text-xl leading-relaxed text-clw-gray sm:text-2xl sm:leading-relaxed lg:text-[1.35rem]">
+              Wizards Wrestling Club gives young athletes a serious place to learn, compete, and grow. We combine high expectations with a supportive room where kids build confidence, discipline, and a lasting respect for the sport.
+            </p>
+            <p className="mt-5 max-w-3xl text-lg leading-relaxed text-clw-gray sm:text-xl">
+              We are affiliated with the Crystal Lake Park District, registered through the Illinois Kids Wrestling Federation, and powered entirely by volunteers.
+            </p>
           </div>
-          <ul className="mt-4 space-y-3">
+
+          <div className="overflow-hidden border border-clw-gold/25 bg-clw-black-2 shadow-2xl shadow-black/40">
+            <div className="h-72 overflow-hidden sm:h-96 lg:h-[30rem]">
+              {/* eslint-disable-next-line @next/next/no-img-element -- real club photography */}
+              <img
+                src="/images/real/clw-wizards-coach-team-photo.jpg"
+                alt="Wizards Wrestling coaches and wrestlers together"
+                className="h-full w-full object-cover object-center contrast-105 saturate-[0.82]"
+              />
+            </div>
+            <div className="grid grid-cols-3 border-t border-clw-gold/25 bg-clw-black">
+              <div className="border-r border-clw-gold/20 px-3 py-5 text-center sm:px-5">
+                <p className="font-display text-3xl uppercase leading-none text-clw-gold sm:text-4xl">40+</p>
+                <p className="mt-2 font-cond text-xs uppercase tracking-[0.18em] text-clw-gray">Years</p>
+              </div>
+              <div className="border-r border-clw-gold/20 px-3 py-5 text-center sm:px-5">
+                <p className="font-display text-3xl uppercase leading-none text-clw-gold sm:text-4xl">5–14</p>
+                <p className="mt-2 font-cond text-xs uppercase tracking-[0.18em] text-clw-gray">Ages</p>
+              </div>
+              <div className="px-3 py-5 text-center sm:px-5">
+                <p className="font-display text-3xl uppercase leading-none text-clw-gold sm:text-4xl">IKWF</p>
+                <p className="mt-2 font-cond text-xs uppercase tracking-[0.18em] text-clw-gray">Registered</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="mission-frame relative grid grid-cols-1 gap-5 lg:grid-cols-12 lg:gap-6">
+        <article className="chamfer-md card-depth border border-clw-gold/15 bg-clw-black-2 p-7 sm:p-8 lg:col-span-8 lg:p-10">
+          <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold">Our Story</p>
+          <h2 className="mt-4 font-display text-4xl uppercase leading-none tracking-wide text-clw-white sm:text-5xl">A room built to move wrestlers forward.</h2>
+          <div className="mt-6 h-px w-full bg-clw-gold/35" />
+          <div className="mt-6 space-y-5 text-lg leading-relaxed text-clw-gray sm:text-xl sm:leading-relaxed">
+            <p>
+              Now in our fifth decade, Wizards Wrestling is one of the area&apos;s established youth wrestling programs. Each season, wrestlers from across McHenry County train with us, from kids learning their first stance to experienced competitors preparing for the highest levels of youth wrestling.
+            </p>
+            <p>
+              Our goal is simple: introduce wrestling in a competitive but positive environment and help every athlete reach their potential through serious commitment. State qualifiers, state placers, high school wrestlers, and college athletes have all come through the room, but progress is measured one wrestler at a time.
+            </p>
+            <p>
+              Wizards Wrestling Club is a 501(c)(3) nonprofit youth sports organization run 100% by volunteers.
+            </p>
+          </div>
+        </article>
+
+        <aside className="chamfer-md card-depth border border-clw-gold/20 bg-clw-black-2 p-7 sm:p-8 lg:col-span-4">
+          <div className="flex items-center gap-3">
+            <ShieldCheck className="h-6 w-6 text-clw-gold" />
+            <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold">What We Stand For</p>
+          </div>
+          <h2 className="mt-4 font-display text-4xl uppercase leading-none text-clw-white">The standard inside the room.</h2>
+          <ul className="mt-7 space-y-5">
             {STAND_FOR.map((point) => (
-              <li key={point} className="text-base leading-relaxed text-clw-gray">
-                {point}
+              <li key={point} className="flex gap-3 text-lg leading-relaxed text-clw-gray">
+                <Check className="mt-1 h-5 w-5 shrink-0 text-clw-gold" />
+                <span>{point}</span>
               </li>
             ))}
           </ul>
+        </aside>
+      </section>
+
+      <section className="mission-frame relative mt-5 lg:mt-6">
+        <div className="chamfer-md card-depth border border-clw-gold/15 bg-clw-black-2 p-7 sm:p-8 lg:p-10">
+          <div className="flex items-center gap-3">
+            <Award className="h-6 w-6 text-clw-gold" />
+            <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold">Why Wrestling</p>
+          </div>
+          <div className="mt-5 grid gap-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+            <h2 className="font-display text-4xl uppercase leading-[0.95] text-clw-white sm:text-5xl lg:text-6xl">What the sport builds beyond the mat.</h2>
+            <p className="text-lg leading-relaxed text-clw-gray sm:text-xl">
+              Wrestling asks young athletes to solve problems under pressure, take responsibility for preparation, and keep working when progress is difficult.
+            </p>
+          </div>
+
+          <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {WHY_WRESTLING.map(({ number, title, body }) => (
+              <article key={title} className="border border-clw-gold/15 bg-clw-black/45 p-6">
+                <p className="font-cond text-sm uppercase tracking-[0.22em] text-clw-gold">{number}</p>
+                <h3 className="mt-5 font-display text-3xl uppercase leading-none text-clw-white">{title}</h3>
+                <p className="mt-4 text-lg leading-relaxed text-clw-gray">{body}</p>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
 
-      <section className="mt-5">
-        <div className="chamfer-md card-depth border border-clw-gold/10 bg-clw-black-2 p-6">
-          <div className="flex items-center gap-2">
-            <Award className="h-5 w-5 text-clw-gold-ink" />
-            <h2 className="font-display text-2xl uppercase tracking-wide text-clw-white">Why wrestling</h2>
-          </div>
-          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {WHY_WRESTLING.map(({ title, body }) => (
-              <div key={title} className="rounded-md border border-clw-gold/10 bg-clw-black/40 p-4">
-                <p className="font-display text-lg uppercase tracking-wide text-clw-white">{title}</p>
-                <p className="mt-2 text-base leading-relaxed text-clw-gray">{body}</p>
+      <section className="mission-frame relative mt-5 grid grid-cols-1 gap-5 lg:mt-6 lg:grid-cols-12 lg:gap-6">
+        <article className="chamfer-md card-depth border border-clw-gold/15 bg-clw-black-2 p-7 sm:p-8 lg:col-span-8 lg:p-10">
+          <div className="flex flex-col gap-5 border-b border-clw-gold/20 pb-6 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="flex items-center gap-3">
+                <Users className="h-6 w-6 text-clw-gold" />
+                <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold">Leadership & Coaches</p>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-12">
-        <div className="chamfer-md card-depth border border-clw-gold/10 bg-clw-black-2 p-6 lg:col-span-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-clw-gold-ink" />
-              <h2 className="font-display text-2xl uppercase tracking-wide text-clw-white">Leadership & coaches</h2>
+              <h2 className="mt-4 font-display text-4xl uppercase leading-none text-clw-white sm:text-5xl">People who keep the room moving.</h2>
             </div>
-            <div className="overflow-hidden rounded-md border border-clw-gold/10 sm:w-40 sm:shrink-0">
-              {/* eslint-disable-next-line @next/next/no-img-element -- real coaches photo */}
-              <img
-                src="/images/real/clw-wizards-coach-team-photo.jpg"
-                alt="Crystal Lake Wizards coaches and wrestlers together"
-                className="h-32 w-full object-cover"
-              />
+            <Link href="/coaches" className="inline-flex items-center gap-2 font-cond text-base uppercase tracking-[0.18em] text-clw-gold hover:text-clw-gold-l">
+              Full staff <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+
+          <div className="mt-7 grid gap-4 md:grid-cols-3">
+            {FEATURED_LEADERS.map((person) => (
+              <div key={person.name} className="border border-clw-gold/15 bg-clw-black/45 p-5">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full border border-clw-gold/35 bg-clw-gold/10 font-display text-xl text-clw-gold">
+                  {person.initials}
+                </div>
+                <h3 className="mt-5 text-xl font-semibold leading-tight text-clw-white">{person.name}</h3>
+                <p className="mt-2 text-base leading-relaxed text-clw-gray">{person.role}</p>
+                <a href={`tel:${person.phone.replaceAll('-', '')}`} className="mt-4 inline-block font-cond text-sm uppercase tracking-[0.16em] text-clw-gold">
+                  {person.phone}
+                </a>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8">
+            <p className="font-cond text-sm uppercase tracking-[0.24em] text-clw-gold">Practice Room Coaches</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {PRACTICE_COACHES.map((group) => (
+                <div key={group.group} className="grid grid-cols-[auto_1fr] gap-4 border-t border-clw-gold/15 py-4">
+                  <span className="font-display text-2xl uppercase text-clw-white">{group.group}</span>
+                  <span className="text-base leading-relaxed text-clw-gray">{group.coaches}</span>
+                </div>
+              ))}
             </div>
           </div>
+        </article>
 
-          <h3 className="mt-5 font-cond text-sm uppercase tracking-[0.2em] text-clw-gray">Board</h3>
-          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {BOARD.map((person) => (
-              <div key={person.name} className="rounded-md border border-clw-gold/10 bg-clw-black/40 px-3 py-3">
-                <p className="text-base font-medium text-clw-white">{person.name}</p>
-                <p className="text-sm text-clw-gray">{person.role}</p>
-                {person.phone && <p className="mt-1 text-sm text-clw-gold-ink">{person.phone}</p>}
-              </div>
-            ))}
+        <aside className="chamfer-md card-depth flex flex-col border border-clw-gold/20 bg-clw-black-2 p-7 sm:p-8 lg:col-span-4">
+          <div className="flex items-center gap-3">
+            <MapPin className="h-6 w-6 text-clw-gold" />
+            <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold">Club Details</p>
           </div>
+          <h2 className="mt-4 font-display text-4xl uppercase leading-none text-clw-white">Rooted here. Open to the area.</h2>
 
-          <h3 className="mt-6 font-cond text-sm uppercase tracking-[0.2em] text-clw-gray">Practice room coaches</h3>
-          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {PRACTICE_COACHES.map((p) => (
-              <div key={p.group} className="rounded-md border border-clw-gold/10 bg-clw-black/40 px-3 py-3">
-                <p className="text-base font-medium text-clw-white">{p.group}</p>
-                <p className="text-sm text-clw-gray">{p.coaches}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="chamfer-md card-depth flex flex-col border border-clw-gold/10 bg-clw-black-2 p-6 lg:col-span-4">
-          <div className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-clw-gold-ink" />
-            <h2 className="font-display text-2xl uppercase tracking-wide text-clw-white">Visit us</h2>
-          </div>
-          <div className="mt-4 overflow-hidden rounded-md border border-clw-gold/10">
+          <div className="mt-7 overflow-hidden border border-clw-gold/15">
             {/* eslint-disable-next-line @next/next/no-img-element -- real club facility photo */}
             <img
               src="/images/real/facility_pano.jpg"
-              alt="The Wizards practice room, mats, and Wall of Fame"
-              className="h-28 w-full object-cover sm:h-32"
+              alt="Wizards Wrestling training facility"
+              className="h-44 w-full object-cover contrast-105 saturate-[0.72]"
             />
           </div>
-          <p className="mt-4 text-base text-clw-white">975 Nimco Dr, Unit L</p>
-          <p className="text-base text-clw-white">Crystal Lake, IL 60014</p>
-          <p className="mt-3 text-base leading-relaxed text-clw-gray">
-            Parking is limited along the building, with additional spots to the west. Please do not park in front of
-            the garage door.
-          </p>
-          <p className="mt-3 text-base leading-relaxed text-clw-gray">
-            Stop by and see the Wizards Wall of Fame: Senior, Novice, Midget & Bantam state champions.
-          </p>
-          <a
-            href="https://www.google.com/maps/search/?api=1&query=975+Nimco+Dr+Unit+L+Crystal+Lake+IL+60014"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-4 text-sm font-medium uppercase tracking-wide text-clw-gold-ink hover:text-clw-gold"
-          >
-            Get directions →
-          </a>
 
-          <div className="mt-auto pt-6">
-            <div className="flex items-center gap-2 border-t border-clw-gold/10 pt-4">
-              <HeartHandshake className="h-4 w-4 shrink-0 text-clw-gold-ink" />
-              <p className="text-base leading-relaxed text-clw-gray">
-                We&apos;re run 100% by volunteers. Local business sponsorships help underwrite the cost of the program for
-                every family.{' '}
-                <Link href="/sponsorship" className="text-clw-gold-ink hover:text-clw-gold">
-                  See sponsorship opportunities →
-                </Link>
-              </p>
-            </div>
+          <div className="mt-6 space-y-5 text-lg leading-relaxed text-clw-gray">
+            <p>
+              <span className="block font-cond text-sm uppercase tracking-[0.2em] text-clw-gold">Facility</span>
+              <span className="mt-1 block text-clw-white">975 Nimco Dr, Unit L<br />Crystal Lake, IL 60014</span>
+            </p>
+            <p>
+              <span className="block font-cond text-sm uppercase tracking-[0.2em] text-clw-gold">Affiliation</span>
+              <span className="mt-1 block">Crystal Lake Park District affiliated and registered through the IKWF.</span>
+            </p>
+            <p>
+              <span className="block font-cond text-sm uppercase tracking-[0.2em] text-clw-gold">Organization</span>
+              <span className="mt-1 block">501(c)(3) nonprofit, powered 100% by volunteers.</span>
+            </p>
           </div>
-        </div>
+
+          <div className="mt-7 space-y-3">
+            <a
+              href={MAP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="chamfer-sm flex min-h-12 items-center justify-center bg-clw-gold px-5 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-black transition hover:bg-clw-gold-l"
+            >
+              Get directions
+            </a>
+            <Link
+              href="/sponsorship"
+              className="flex min-h-12 items-center justify-center gap-2 border border-clw-gold/35 px-5 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-gold transition hover:border-clw-gold hover:text-clw-gold-l"
+            >
+              <HeartHandshake className="h-4 w-4" />
+              Support the club
+            </Link>
+          </div>
+        </aside>
       </section>
     </main>
   )
