@@ -112,8 +112,8 @@ export default function AboutPage() {
             <div className="overflow-hidden rounded-md border border-clw-gold/10 sm:w-40 sm:shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element -- real coaches photo */}
               <img
-                src="/images/real/coaches_trophy.jpg"
-                alt="Two Wizards coaches holding a first-place tournament trophy"
+                src="/images/real/clw-wizards-coach-team-photo.jpg"
+                alt="Crystal Lake Wizards coaches and wrestlers together"
                 className="h-32 w-full object-cover"
               />
             </div>

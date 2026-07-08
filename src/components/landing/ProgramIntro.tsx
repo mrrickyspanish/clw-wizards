@@ -34,40 +34,37 @@ export function ProgramIntro() {
           </Button>
         </div>
 
-        <div className="relative mt-10 lg:mt-0 lg:w-[48%] lg:flex-shrink-0">
-          <div className="relative min-h-[260px] sm:min-h-[320px] lg:min-h-[400px]">
-            {/* Photo 1: largest, top-left */}
-            <div className="absolute left-0 top-0 w-[58%] overflow-hidden bg-clw-black-2 aspect-[4/3] lg:w-[64%]">
+        <div className="mt-10 lg:mt-0 lg:w-[48%] lg:flex-shrink-0">
+          <div className="relative aspect-[5/4] w-full">
+            {/* Dominant back-left landscape frame */}
+            <div className="absolute left-[3%] top-[4%] z-10 aspect-[3/2] w-[60%] overflow-hidden border border-clw-ink/70 bg-clw-black-2">
               {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
               <img
-                src="/images/real/team_march2025.jpg"
-                alt="Crystal Lake Wizards team standing together"
-                className="h-full w-full object-cover contrast-110 grayscale-0 lg:grayscale"
+                src="/images/real/clw-wizards-youth-team-photo.jpg"
+                alt="Crystal Lake Wizards youth wrestlers gathered for a team photo"
+                className="h-full w-full object-cover contrast-110"
               />
             </div>
 
-            {/* Photo 2: mid-size, bottom-right, overlapping photo 1 */}
-            <div className="absolute bottom-0 right-0 w-[48%] overflow-hidden bg-clw-black-2 aspect-[3/2] sm:bottom-2 lg:bottom-2 lg:w-[52%]">
+            {/* Secondary lower-right landscape frame */}
+            <div className="absolute right-[1%] top-[23%] z-20 aspect-[3/2] w-[52%] overflow-hidden border border-clw-ink/70 bg-clw-black-2">
               {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
               <img
-                src="/images/real/facility_pano.jpg"
-                alt="Crystal Lake Wizards wrestling practice room"
-                className="h-full w-full object-cover contrast-110 grayscale-0 lg:grayscale"
+                src="/images/real/clw-wizards-family-photo.jpg"
+                alt="Crystal Lake Wizards families and wrestlers together"
+                className="h-full w-full object-cover contrast-110"
               />
             </div>
 
-            {/* Photo 3: smallest, bottom-left, overlapping the seam */}
-            <div className="absolute bottom-[12%] left-[16%] w-[40%] overflow-hidden bg-clw-black-2 aspect-[16/10] sm:left-[18%] lg:bottom-0 lg:left-[24%] lg:w-[44%]">
+            {/* Smaller front-left frame crossing both larger images */}
+            <div className="absolute left-[12%] top-[43%] z-30 aspect-[4/3] w-[40%] overflow-hidden border border-clw-ink/70 bg-clw-black-2">
               {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
               <img
-                src="/images/real/facility_pano.jpg"
-                alt="Crystal Lake Wizards practice facility"
-                className="h-full w-full object-cover contrast-110 grayscale-0 lg:grayscale"
+                src="/images/real/clw-wizards-trio-featured-photo.jpg"
+                alt="Three Crystal Lake Wizards wrestlers featured together"
+                className="h-full w-full object-cover contrast-110"
               />
             </div>
-
-            {/* Yellow accent block at the seam between photos 1 and 2, desktop only */}
-            <span aria-hidden className="hidden lg:absolute lg:right-[44%] lg:top-[36%] lg:block lg:h-10 lg:w-10 lg:bg-clw-gold" />
           </div>
         </div>
       </div>

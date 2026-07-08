@@ -49,10 +49,10 @@ export default function GolfOutingPage() {
           </p>
         </div>
         <div className="chamfer-md card-depth overflow-hidden border border-clw-gold/10 bg-clw-black-2 lg:col-span-4">
-          {/* eslint-disable-next-line @next/next/no-img-element -- real team photo */}
+          {/* eslint-disable-next-line @next/next/no-img-element -- real club community photo */}
           <img
-            src="/images/real/coaches_trophy.jpg"
-            alt="Wizards coaches with a championship trophy"
+            src="/images/real/clw-wizards-family-photo.jpg"
+            alt="Crystal Lake Wizards families and wrestlers together"
             className="h-64 w-full object-cover sm:h-72 lg:h-full"
           />
         </div>

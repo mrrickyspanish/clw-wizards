@@ -14,10 +14,10 @@ function formatDate(value: string) {
 // Rotated across the event cards so the left-hand photo varies card to card
 // instead of repeating one image.
 const EVENT_PHOTOS = [
-  '/images/real/team_march2025.jpg',
-  '/images/real/facility_pano.jpg',
-  '/images/real/coaches_trophy.jpg',
-  '/images/real/team_tournament.jpg',
+  '/images/real/clw-wizards- tornament-ariel-photo.jpg',
+  '/images/real/clw-wizards-youth-tournament.jpg',
+  '/images/real/clw-wizards-first-place.jpg',
+  '/images/real/clw-wizards-cahill-team-win.jpg',
 ]
 
 function formatTime(value: string | null) {

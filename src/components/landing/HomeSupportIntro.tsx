@@ -3,10 +3,10 @@ import { CircleDollarSign, HandHeart, HeartHandshake, Users } from 'lucide-react
 
 // Rotated low-opacity background photo per support card.
 const SUPPORT_PHOTOS = [
-  '/images/real/team_tournament.jpg',
-  '/images/real/coaches_trophy.jpg',
-  '/images/real/team_march2025.jpg',
-  '/images/real/facility_pano.jpg',
+  '/images/real/clw-wizards-youth-win.jpg',
+  '/images/real/clw-wizards-gym-wall-sponsor.jpg',
+  '/images/real/clw-wizards-alumn-wisconsin.jpg',
+  '/images/real/clw-wizards-youth-banquet-tony.jpg',
 ]
 
 const SUPPORT_OPTIONS = [

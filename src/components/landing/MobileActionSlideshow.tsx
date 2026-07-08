@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react'
 
 const SLIDES = [
-  '/images/real/team_march2025.jpg',
-  '/images/real/facility_pano.jpg',
-  '/images/real/coaches_trophy.jpg',
+  '/images/real/clw-wizards-action-photo-.jpg',
+  '/images/real/clw-wizards-coaches-action.jpg',
+  '/images/real/clw-wizards-youth-tournament.jpg',
+  '/images/real/clw-wizards-youth-win-tournament.jpg',
 ]
 
 const INTERVAL_MS = 3200
