@@ -52,7 +52,7 @@ export function HomeMatTapeDivider({ profile }: { profile: TapeProfile }) {
           src="/images/real/clw_star_stamp_yellow_gold.png"
           alt=""
           draggable={false}
-          className="absolute left-1/2 top-0 z-[60] h-7 w-7 -translate-x-1/2 -translate-y-1/2 select-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)] sm:h-8 sm:w-8"
+          className="absolute left-1/2 top-0 z-[60] h-[5.25rem] w-[5.25rem] -translate-x-1/2 -translate-y-1/2 select-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] sm:h-24 sm:w-24 lg:h-28 lg:w-28"
         />
       )}
     </div>
