@@ -19,11 +19,11 @@ export function HomeTeamSection() {
         <div className="flex flex-col gap-6 lg:items-center lg:text-center">
           <div>
             <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Team</p>
-            <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-white lg:mx-auto lg:max-w-none">
-              <span className="block font-cond text-[clamp(3rem,12vw,5rem)] font-light tracking-[-0.04em] lg:mr-3 lg:inline">
+            <h2 className="mt-6 whitespace-nowrap uppercase leading-[0.92] text-clw-white">
+              <span className="mr-2 inline font-cond text-[clamp(2.4rem,10.5vw,5rem)] font-light tracking-[-0.04em] sm:mr-3">
                 Meet our
               </span>
-              <span className="block font-display text-[clamp(3.4rem,13vw,5.6rem)] font-black tracking-[-0.035em] text-clw-gold lg:inline">
+              <span className="inline font-display text-[clamp(2.7rem,11.5vw,5.6rem)] font-black tracking-[-0.035em] text-clw-gold">
                 Team
               </span>
             </h2>
