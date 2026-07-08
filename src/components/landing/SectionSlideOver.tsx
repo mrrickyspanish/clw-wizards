@@ -34,9 +34,10 @@ export function SectionSlideOver({
       }
 
       const rect = root.getBoundingClientRect()
-      const travel = Math.max(1, rect.height - window.innerHeight)
+      const viewport = window.innerHeight
+      const travel = Math.max(1, rect.height - Math.min(viewport, backgroundEl.offsetHeight))
       const progress = Math.min(1, Math.max(0, -rect.top / travel))
-      const drift = -window.innerHeight * 0.045 * progress
+      const drift = -viewport * 0.045 * progress
       const scale = 1 + 0.035 * progress
 
       backgroundEl.style.transform = `translate3d(0, ${drift}px, 0) scale(${scale})`
@@ -62,11 +63,8 @@ export function SectionSlideOver({
 
   return (
     <div ref={rootRef} className="relative isolate">
-      <div className="sticky top-0 z-0 min-h-[100svh] overflow-hidden">
-        <div
-          ref={backgroundRef}
-          className="min-h-[100svh] origin-center will-change-transform"
-        >
+      <div className="sticky top-0 z-0 overflow-hidden">
+        <div ref={backgroundRef} className="origin-center will-change-transform">
           {background}
         </div>
         <div
