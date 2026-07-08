@@ -1,54 +1,135 @@
 import Link from 'next/link'
-import { Facebook } from 'lucide-react'
+import { ArrowUpRight, Facebook, Mail, MapPin } from 'lucide-react'
 
 import { ORG } from '@/config/org.config'
 
+const MAP_URL = 'https://www.google.com/maps/search/?api=1&query=975+Nimco+Dr+Unit+L+Crystal+Lake+IL+60014'
+
+const ABOUT_LINKS = [
+  { href: '/about', label: 'Mission' },
+  { href: '/coaches', label: 'Our Team' },
+  { href: '/faq', label: 'FAQ' },
+  { href: `mailto:${ORG.contactEmail}`, label: 'Contact' },
+]
+
+const QUICK_LINKS = [
+  { href: '/#events', label: 'Events' },
+  { href: '/program', label: 'Groups' },
+  { href: '/sponsorship', label: 'Support' },
+  { href: '/login', label: 'Parent / Staff Login' },
+]
+
 export function SiteFooter() {
   return (
-    <footer className="bg-clw-black">
-      <div className="mx-auto flex max-w-5xl flex-col items-center gap-3 px-6 py-10 text-center text-base text-clw-gray">
-        <p className="font-display text-lg text-clw-gold">{ORG.name}</p>
-        <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-sm uppercase tracking-wide">
-          <Link href="/about" className="hover:text-clw-gold">
-            About
-          </Link>
-          <Link href="/faq" className="hover:text-clw-gold">
-            FAQ
-          </Link>
-          <Link href="/sponsorship" className="hover:text-clw-gold">
-            Sponsorship
-          </Link>
-          <a href={`mailto:${ORG.contactEmail}`} className="hover:text-clw-gold">
-            Contact
-          </a>
-        </nav>
-        {ORG.social.facebook && (
+    <footer className="relative isolate overflow-hidden border-t border-clw-gold/20 bg-clw-black text-clw-white">
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-[url('/images/textures/mat-dark.webp')] bg-cover bg-center opacity-45" />
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_8%,rgba(240,192,32,0.08),transparent_24%),linear-gradient(180deg,rgba(0,0,0,0.05),rgba(0,0,0,0.72))]" />
+
+      <div className="relative mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-14 lg:px-12 lg:py-16 xl:px-16 2xl:px-20">
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1.1fr_0.8fr_0.9fr_1.2fr] lg:gap-12">
+          <div>
+            <div className="flex items-center gap-4">
+              {/* eslint-disable-next-line @next/next/no-img-element -- supplied transparent gold brand seal */}
+              <img
+                src="/images/real/clw_star_stamp_yellow_gold.png"
+                alt=""
+                aria-hidden
+                className="h-16 w-16 shrink-0 object-contain sm:h-20 sm:w-20"
+              />
+              <div>
+                <p className="font-cond text-sm uppercase tracking-[0.26em] text-clw-gold">McHenry County, Illinois</p>
+                <p className="mt-2 font-display text-3xl uppercase leading-none tracking-wide text-clw-white sm:text-4xl">
+                  Wizards Wrestling
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-6 max-w-sm text-base leading-relaxed text-clw-gray sm:text-lg">
+              A volunteer-powered youth wrestling club helping area athletes learn, compete, and grow.
+            </p>
+
+            <Link
+              href="/signup"
+              className="chamfer-sm mt-7 inline-flex min-h-12 w-full items-center justify-center gap-2 bg-clw-gold px-6 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-black transition hover:bg-clw-gold-l sm:w-auto sm:min-w-52"
+            >
+              Join the Wizards
+              <ArrowUpRight className="h-4 w-4" />
+            </Link>
+          </div>
+
+          <div>
+            <p className="font-cond text-sm uppercase tracking-[0.24em] text-clw-gold">About Us</p>
+            <nav className="mt-5 flex flex-col gap-3 text-base text-clw-gray sm:text-lg lg:text-base">
+              {ABOUT_LINKS.map((link) => (
+                <Link key={link.label} href={link.href} className="transition hover:text-clw-gold">
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+
+          <div>
+            <p className="font-cond text-sm uppercase tracking-[0.24em] text-clw-gold">Quicklinks</p>
+            <nav className="mt-5 flex flex-col gap-3 text-base text-clw-gray sm:text-lg lg:text-base">
+              {QUICK_LINKS.map((link) => (
+                <Link key={link.label} href={link.href} className="transition hover:text-clw-gold">
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+
+          <div>
+            <p className="font-cond text-sm uppercase tracking-[0.24em] text-clw-gold">Get in Touch</p>
+            <div className="mt-5 space-y-5 text-base leading-relaxed text-clw-gray sm:text-lg lg:text-base">
+              <a
+                href={MAP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-start gap-3 transition hover:text-clw-gold"
+              >
+                <MapPin className="mt-1 h-5 w-5 shrink-0 text-clw-gold" />
+                <span>
+                  975 Nimco Dr, Unit L
+                  <br />
+                  Crystal Lake, IL 60014
+                </span>
+              </a>
+
+              <a href={`mailto:${ORG.contactEmail}`} className="flex items-center gap-3 break-all transition hover:text-clw-gold">
+                <Mail className="h-5 w-5 shrink-0 text-clw-gold" />
+                <span>{ORG.contactEmail}</span>
+              </a>
+
+              {ORG.social.facebook && (
+                <a
+                  href={ORG.social.facebook}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-3 transition hover:text-clw-gold"
+                  aria-label="Wizards Wrestling on Facebook"
+                >
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full border border-clw-gold/35 text-clw-gold">
+                    <Facebook className="h-5 w-5" />
+                  </span>
+                  <span>Follow us on Facebook</span>
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-12 flex flex-col gap-5 border-t border-clw-white/10 pt-7 text-base text-clw-gray/70 sm:mt-14 sm:flex-row sm:items-center sm:justify-between sm:text-sm">
+          <p>© {new Date().getFullYear()} Wizards Wrestling Club. All rights reserved.</p>
           <a
-            href={ORG.social.facebook}
+            href="https://creativeeyestudios.com"
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Crystal Lake Wizards on Facebook"
-            className="text-clw-gray hover:text-clw-gold"
+            className="font-cond text-sm uppercase tracking-[0.2em] text-clw-gray/60 transition hover:text-clw-gold"
           >
-            <Facebook className="h-5 w-5" />
+            Meticulously crafted by <span className="text-clw-gold">Creative Eye Studios</span>
           </a>
-        )}
-        <p>
-          <a href={`mailto:${ORG.contactEmail}`} className="hover:text-clw-gold">
-            {ORG.contactEmail}
-          </a>
-        </p>
-        <p className="text-clw-gray/60">
-          © {new Date().getFullYear()} {ORG.name}. All rights reserved.
-        </p>
-        <a
-          href="https://creativeeyestudios.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group mt-5 border-t border-clw-gold/10 pt-5 font-cond text-xs uppercase tracking-[0.26em] text-clw-gray/35 transition duration-300 hover:border-clw-gold/60 hover:text-clw-gold hover:[text-shadow:0_0_18px_rgba(240,192,32,0.45)]"
-        >
-          Meticulously crafted by <span className="text-clw-gray/45 transition duration-300 group-hover:text-clw-gold">Creative Eye Studios</span>
-        </a>
+        </div>
       </div>
     </footer>
   )
