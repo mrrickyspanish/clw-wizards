@@ -1,4 +1,4 @@
-import { MapPin } from 'lucide-react'
+import { MapPin, Navigation } from 'lucide-react'
 
 const MAP_URL = 'https://www.google.com/maps/search/?api=1&query=975+Nimco+Dr+Unit+L+Crystal+Lake+IL+60014'
 
@@ -13,7 +13,7 @@ export function HomeFacilitySection() {
         W
       </span>
 
-      <div id="location" className="relative mx-auto grid max-w-7xl scroll-mt-24 gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
+      <div id="location" className="relative mx-auto grid max-w-7xl scroll-mt-32 gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-center lg:gap-14">
         <div>
           <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-ink">Location</p>
           <h2 className="mt-6 whitespace-nowrap uppercase leading-[0.92] text-clw-ink">
@@ -24,37 +24,42 @@ export function HomeFacilitySection() {
               Facility
             </span>
           </h2>
-          <p className="mt-6 max-w-2xl text-xl leading-relaxed text-clw-muted-dark sm:text-2xl sm:leading-relaxed">
+          <p className="mt-6 max-w-2xl text-xl leading-relaxed text-clw-muted-dark sm:text-2xl sm:leading-relaxed lg:text-[1.15rem]">
             Centrally located in Crystal Lake, our training space is built to be the easy choice for McHenry County wrestlers.
             Convenient access means more time on the mat and less time in the car.
           </p>
         </div>
 
-        <div className="border border-clw-ink/20 bg-clw-white shadow-2xl shadow-black/10">
-          <div className="h-56 overflow-hidden sm:h-72 lg:h-80">
+        <div className="overflow-hidden border border-clw-ink/20 bg-clw-black shadow-2xl shadow-black/15">
+          <div className="h-64 overflow-hidden sm:h-80 lg:h-[24rem]">
             {/* eslint-disable-next-line @next/next/no-img-element -- real club facility photo */}
             <img
               src="/images/real/facility_pano.jpg"
-              alt="Crystal Lake Wizards Wrestling Club facility"
-              className="h-full w-full object-cover grayscale"
+              alt="Wizards Wrestling training facility in Crystal Lake"
+              className="h-full w-full object-cover contrast-105 saturate-[0.72]"
             />
           </div>
-          <div className="grid gap-6 border-t border-clw-ink/15 bg-clw-white p-6 sm:grid-cols-[1fr_auto] sm:items-center sm:p-7">
-            <div>
-              <div className="flex items-center gap-3">
-                <MapPin className="h-5 w-5 text-clw-gold-ink" />
-                <p className="font-display text-3xl uppercase leading-none tracking-wide text-clw-ink">Crystal Lake Wizards Wrestling Club</p>
+
+          <div className="grid gap-6 border-t border-clw-gold/30 bg-clw-black px-5 py-6 text-clw-white sm:grid-cols-[1fr_auto] sm:items-center sm:px-7 sm:py-7">
+            <div className="flex min-w-0 items-start gap-4">
+              <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-clw-gold/40 bg-clw-gold/10 text-clw-gold">
+                <MapPin className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="font-cond text-xs uppercase tracking-[0.24em] text-clw-gold">Wizards Wrestling Club</p>
+                <p className="mt-2 text-lg font-semibold leading-snug text-clw-white sm:text-xl">975 Nimco Dr, Unit L</p>
+                <p className="text-base leading-relaxed text-clw-gray sm:text-lg">Crystal Lake, IL 60014</p>
               </div>
-              <p className="mt-4 text-xl leading-relaxed text-clw-muted-dark">975 Nimco Dr, Unit L</p>
-              <p className="text-xl leading-relaxed text-clw-muted-dark">Crystal Lake, IL 60014</p>
             </div>
+
             <a
               href={MAP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="chamfer-sm inline-flex justify-center bg-clw-gold px-6 py-4 font-cond text-lg uppercase tracking-[0.18em] text-clw-black transition hover:bg-clw-gold-l"
+              className="chamfer-sm inline-flex min-h-12 items-center justify-center gap-2 bg-clw-gold px-6 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-black transition hover:bg-clw-gold-l sm:min-w-44"
             >
-              Visit facility →
+              <Navigation className="h-4 w-4" />
+              Get directions
             </a>
           </div>
         </div>
