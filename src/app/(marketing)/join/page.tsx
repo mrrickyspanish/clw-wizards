@@ -144,14 +144,14 @@ export default function JoinPage() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <a
                 href={`mailto:${ORG.contactEmail}?subject=Interested%20in%20Wizards%20Wrestling`}
-                className="chamfer-sm inline-flex min-h-13 items-center justify-center gap-2 bg-clw-gold px-7 py-4 font-cond text-base uppercase tracking-[0.16em] text-clw-black transition hover:bg-clw-gold-l"
+                className="chamfer-sm inline-flex min-h-[52px] items-center justify-center gap-2 bg-clw-gold px-7 py-4 font-cond text-base uppercase tracking-[0.16em] text-clw-black transition hover:bg-clw-gold-l"
               >
                 Ask About Joining
                 <Mail className="h-4 w-4" />
               </a>
               <Link
                 href="/signup"
-                className="inline-flex min-h-13 items-center justify-center gap-2 border border-clw-white/35 px-7 py-4 font-cond text-base uppercase tracking-[0.16em] text-clw-white transition hover:border-clw-gold hover:text-clw-gold"
+                className="inline-flex min-h-[52px] items-center justify-center gap-2 border border-clw-white/35 px-7 py-4 font-cond text-base uppercase tracking-[0.16em] text-clw-white transition hover:border-clw-gold hover:text-clw-gold"
               >
                 Create Parent Account
                 <ArrowRight className="h-4 w-4" />
@@ -250,7 +250,7 @@ export default function JoinPage() {
 
           <div className="mt-10 grid gap-5 lg:grid-cols-3">
             {GROUPS.map((group) => (
-              <article key={group.name} className="chamfer-md border border-clw-ink/15 bg-clw-white p-7 shadow-xl shadow-black/5">
+              <article key={group.name} className="chamfer-md border border-clw-ink/15 bg-[#FFFDF7] p-7 shadow-xl shadow-black/5">
                 <p className="font-cond text-sm uppercase tracking-[0.24em] text-clw-gold">Practice Group</p>
                 <h3 className="mt-5 font-display text-5xl uppercase leading-none text-clw-ink">{group.name}</h3>
                 <p className="mt-4 font-semibold text-clw-ink">{group.label}</p>
@@ -307,7 +307,7 @@ export default function JoinPage() {
             </div>
 
             <p className="mt-6 border-l-2 border-clw-gold pl-4 text-sm leading-relaxed text-clw-gray">
-              The club&apos;s exact visit and enrollment process is being confirmed. Until then, contacting the club first is the safest choice for a completely new family.
+              Completely new to the club? Contact us before arriving so we can confirm the appropriate visit or registration step for your family.
             </p>
           </div>
 
@@ -460,13 +460,13 @@ export default function JoinPage() {
           <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
             <a
               href={`mailto:${ORG.contactEmail}?subject=Interested%20in%20Wizards%20Wrestling`}
-              className="chamfer-sm inline-flex min-h-13 items-center justify-center gap-2 bg-clw-gold px-7 py-4 font-cond text-base uppercase tracking-[0.16em] text-clw-black transition hover:bg-clw-gold-l"
+              className="chamfer-sm inline-flex min-h-[52px] items-center justify-center gap-2 bg-clw-gold px-7 py-4 font-cond text-base uppercase tracking-[0.16em] text-clw-black transition hover:bg-clw-gold-l"
             >
               Ask About Joining <Mail className="h-4 w-4" />
             </a>
             <Link
               href="/signup"
-              className="inline-flex min-h-13 items-center justify-center gap-2 border border-clw-white/35 px-7 py-4 font-cond text-base uppercase tracking-[0.16em] text-clw-white transition hover:border-clw-gold hover:text-clw-gold"
+              className="inline-flex min-h-[52px] items-center justify-center gap-2 border border-clw-white/35 px-7 py-4 font-cond text-base uppercase tracking-[0.16em] text-clw-white transition hover:border-clw-gold hover:text-clw-gold"
             >
               Create Parent Account <ArrowRight className="h-4 w-4" />
             </Link>
