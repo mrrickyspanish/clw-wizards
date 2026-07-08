@@ -12,6 +12,8 @@ import { SponsorCheckoutForm } from '@/components/sponsorship/SponsorCheckoutFor
 import { ContactForm } from '@/components/sponsorship/ContactForm'
 import { GoldRule } from '@/components/sponsorship/SupportMedia'
 
+const FACILITY_ADDRESS = '975 Nimco Dr, Unit L, Crystal Lake, IL 60014'
+
 const BOOSTER_LEVELS = [
   ['Supporter', '$10 / Month'],
   ['Bronze Wizard', '$25 / Month'],
@@ -28,8 +30,8 @@ const SPONSOR_TIERS = [
 ]
 
 export const metadata: Metadata = {
-  title: 'Sponsorship',
-  description: 'Donation, booster, sponsorship, and volunteer opportunities for Crystal Lake Wizards Wrestling Club.',
+  title: 'Support the Club',
+  description: 'Donation, booster, sponsorship, and volunteer opportunities for Wizards Wrestling Club.',
 }
 
 export default async function SponsorshipPage({
@@ -43,7 +45,7 @@ export default async function SponsorshipPage({
   const sponsors = (data ?? []) as Sponsor[]
 
   return (
-    <main className="overflow-x-hidden bg-clw-black text-clw-white">
+    <main className="overflow-x-clip bg-clw-black text-clw-white">
       {(donation || sponsor) && (
         <div className="px-6 pt-24 sm:px-8">
           {(donation === 'success' || sponsor === 'success') && (
@@ -64,8 +66,8 @@ export default async function SponsorshipPage({
 
       <section id="donate" className="scroll-mt-28 bg-[#F7F7F7] px-7 py-16 text-clw-black sm:px-10 sm:py-20">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-dim">One-Time Support</p>
-          <h2 className="mt-6 font-display text-5xl uppercase leading-none sm:text-6xl">Make a donation</h2>
+          <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">One-Time Support</p>
+          <h2 className="mt-6 font-display text-5xl uppercase leading-none sm:text-6xl">Make a Donation</h2>
           <p className="mx-auto mt-6 max-w-2xl text-xl leading-relaxed text-clw-black/70">Your gift helps cover tournament fees, practice equipment, scholarships, travel assistance, and facility improvements.</p>
           <DonationCheckoutForm presets={[25, 50, 100, 250]} defaultAmount={50} buttonLabel="Donate" light />
         </div>
@@ -78,7 +80,7 @@ export default async function SponsorshipPage({
           <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Monthly Support</p>
           <h2 className="mt-6 font-display text-5xl uppercase leading-none sm:text-6xl">Join the Booster Club</h2>
           <p className="mx-auto mt-6 max-w-2xl text-xl leading-relaxed text-clw-gray">Monthly supporters give the club dependable funding for equipment, coaching resources, athlete development, and scholarships.</p>
-          <DonationCheckoutForm recurring presets={[10, 25, 50, 100, 250]} defaultAmount={25} buttonLabel="Give monthly" />
+          <DonationCheckoutForm recurring presets={[10, 25, 50, 100, 250]} defaultAmount={25} buttonLabel="Give Monthly" />
           <div className="mt-12 grid gap-3 sm:grid-cols-2">
             {BOOSTER_LEVELS.map(([name, amount]) => (
               <div key={name} className="border border-clw-gold/20 bg-clw-black-2 p-5 text-left">
@@ -95,7 +97,7 @@ export default async function SponsorshipPage({
       <section id="sponsors" className="scroll-mt-28 bg-clw-white px-7 py-16 text-clw-black sm:px-10 sm:py-20">
         <div className="mx-auto max-w-5xl">
           <div className="text-center">
-            <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-dim">Business Support</p>
+            <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Business Support</p>
             <h2 className="mt-6 font-display text-5xl uppercase leading-none sm:text-6xl">Corporate Sponsorship</h2>
           </div>
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -112,11 +114,11 @@ export default async function SponsorshipPage({
 
       <section id="contact" className="scroll-mt-28 bg-[#F7F7F7] px-7 py-16 text-clw-black sm:px-10 sm:py-20">
         <div className="mx-auto max-w-3xl">
-          <p className="font-cond text-sm uppercase tracking-[0.32em]">Talk with the Crystal Lake Wizards</p>
-          <h2 className="mt-6 font-display text-5xl uppercase leading-none sm:text-6xl">Get in touch</h2>
+          <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Talk With Wizards Wrestling Club</p>
+          <h2 className="mt-6 font-display text-5xl uppercase leading-none sm:text-6xl">Get in Touch</h2>
           <div className="mt-8 grid gap-6 text-lg sm:grid-cols-2">
-            <p className="flex items-start gap-3"><MapPin className="mt-1 h-5 w-5 shrink-0" />{ORG.mailingAddress}</p>
-            <a href={`mailto:${ORG.contactEmail}`} className="flex items-start gap-3 underline decoration-clw-gold decoration-4 underline-offset-4"><Mail className="mt-1 h-5 w-5 shrink-0" />{ORG.contactEmail}</a>
+            <p className="flex items-start gap-3"><MapPin className="mt-1 h-5 w-5 shrink-0 text-clw-gold" />{FACILITY_ADDRESS}</p>
+            <a href={`mailto:${ORG.contactEmail}`} className="flex items-start gap-3 underline decoration-clw-gold decoration-4 underline-offset-4"><Mail className="mt-1 h-5 w-5 shrink-0 text-clw-gold" />{ORG.contactEmail}</a>
           </div>
           <ContactForm />
         </div>
@@ -131,9 +133,9 @@ export default async function SponsorshipPage({
       <div className="h-24 md:hidden" />
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-clw-gold/10 bg-clw-black/95 px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 backdrop-blur-md md:hidden">
         <div className="grid grid-cols-3 gap-3">
-          <a href="#donate" className="flex h-14 items-center justify-center rounded-xl bg-clw-gold text-sm font-bold uppercase tracking-wider text-clw-black">Donate</a>
-          <a href="#sponsors" className="flex h-14 items-center justify-center rounded-xl border-2 border-clw-gold text-sm font-bold uppercase tracking-wider text-clw-gold">Sponsor</a>
-          <a href="#boosters" className="flex h-14 items-center justify-center rounded-xl border-2 border-clw-gold text-sm font-bold uppercase tracking-wider text-clw-gold">Boosters</a>
+          <a href="#donate" className="chamfer-sm flex h-14 items-center justify-center bg-clw-gold text-sm font-bold uppercase tracking-wider text-clw-black">Donate</a>
+          <a href="#sponsors" className="chamfer-sm flex h-14 items-center justify-center border-2 border-clw-gold text-sm font-bold uppercase tracking-wider text-clw-gold">Sponsor</a>
+          <a href="#boosters" className="chamfer-sm flex h-14 items-center justify-center border-2 border-clw-gold text-sm font-bold uppercase tracking-wider text-clw-gold">Boosters</a>
         </div>
       </div>
     </main>
