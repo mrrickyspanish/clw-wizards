@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
-import { ArrowUpRight, X } from 'lucide-react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { ArrowUpRight, MapPin, Search, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { ORG } from '@/config/org.config'
 
 const NAV_LINKS = [
   { href: '/about', label: 'Mission' },
@@ -15,10 +16,12 @@ const NAV_LINKS = [
 
 const DESKTOP_LEFT_LINKS = NAV_LINKS.slice(0, 3)
 const DESKTOP_RIGHT_LINKS = [NAV_LINKS[3]]
+const MAP_URL = 'https://www.google.com/maps/search/?api=1&query=975+Nimco+Dr+Unit+L+Crystal+Lake+IL+60014'
 
 export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const sentinelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -32,6 +35,15 @@ export function SiteHeader() {
     return () => observer.disconnect()
   }, [])
 
+  function handleSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const query = searchQuery.trim()
+    if (!query) return
+
+    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(`site:${ORG.domain} ${query}`)}`
+    window.open(searchUrl, '_blank', 'noopener,noreferrer')
+  }
+
   return (
     <>
       <div ref={sentinelRef} aria-hidden className="pointer-events-none absolute left-0 top-0 h-24 w-px" />
@@ -40,6 +52,54 @@ export function SiteHeader() {
           scrolled ? 'border-b border-clw-gold/15 bg-clw-black/90 backdrop-blur-md' : 'bg-clw-black/55 backdrop-blur-sm'
         }`}
       >
+        <div className="border-b border-clw-white/10 bg-clw-black/75 px-5 py-1.5 sm:px-8 lg:px-12 xl:px-16 2xl:px-20">
+          <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4">
+            <a
+              href={MAP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex min-w-0 items-center gap-1.5 whitespace-nowrap font-cond text-[0.68rem] uppercase tracking-[0.13em] text-clw-white/75 transition-colors hover:text-clw-gold sm:text-xs"
+            >
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-clw-gold" />
+              <span>Crystal Lake, IL</span>
+            </a>
+
+            <div className="flex items-center gap-3">
+              <form onSubmit={handleSearch} className="flex items-center border-b border-clw-white/25 focus-within:border-clw-gold">
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Search"
+                  aria-label="Search the Wizards Wrestling website"
+                  className="h-7 w-24 bg-transparent px-1 text-xs text-clw-white outline-none placeholder:text-clw-white/45 sm:w-36 lg:w-44"
+                />
+                <button
+                  type="submit"
+                  aria-label="Submit site search"
+                  className="flex h-7 w-7 items-center justify-center text-clw-white/70 transition-colors hover:text-clw-gold"
+                >
+                  <Search className="h-3.5 w-3.5" />
+                </button>
+              </form>
+
+              {ORG.social.facebook && (
+                <a
+                  href={ORG.social.facebook}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Wizards Wrestling on Facebook"
+                  className="flex h-6 w-6 items-center justify-center rounded-full border border-clw-white/25 text-clw-white/80 transition-colors hover:border-clw-gold hover:text-clw-gold"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden className="h-3.5 w-3.5 fill-current">
+                    <path d="M13.7 21v-8h2.7l.4-3h-3.1V8.1c0-.9.2-1.5 1.6-1.5H17V3.9c-.3 0-1.3-.1-2.4-.1-2.4 0-4 1.4-4 4.1V10H8v3h2.6v8h3.1Z" />
+                  </svg>
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+
         <div className="px-5 py-4 sm:px-8 lg:px-12 xl:px-16 2xl:px-20">
           <div className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-3 lg:hidden">
             <button
@@ -76,7 +136,7 @@ export function SiteHeader() {
           </div>
 
           <div className="hidden grid-cols-[1fr_auto_1fr] items-center lg:grid">
-            <nav className="flex items-center justify-self-end gap-3 pr-5 xl:gap-5 xl:pr-7">
+            <nav className="flex items-center justify-self-end gap-6 pr-6 xl:gap-8 xl:pr-8">
               {DESKTOP_LEFT_LINKS.map((link) => (
                 <Link
                   key={link.label}
@@ -95,7 +155,7 @@ export function SiteHeader() {
               Wizards Wrestling
             </Link>
 
-            <nav className="flex items-center justify-self-start gap-3 pl-5 xl:gap-5 xl:pl-7">
+            <div className="grid min-w-0 grid-cols-[auto_auto_1fr] items-center gap-x-6 pl-6 xl:gap-x-8 xl:pl-8">
               {DESKTOP_RIGHT_LINKS.map((link) => (
                 <Link
                   key={link.label}
@@ -111,10 +171,14 @@ export function SiteHeader() {
               >
                 Parent / Staff Login
               </Link>
-              <Button asChild size="sm" className="chamfer-sm h-9 rounded-none bg-clw-gold px-4 text-[0.72rem] font-bold uppercase tracking-[0.1em] text-clw-black hover:bg-clw-gold-l xl:px-5 xl:text-xs">
+              <Button
+                asChild
+                size="sm"
+                className="chamfer-sm h-9 justify-self-end rounded-none bg-clw-gold px-4 text-[0.72rem] font-bold uppercase tracking-[0.1em] text-clw-black hover:bg-clw-gold-l xl:px-5 xl:text-xs"
+              >
                 <Link href="/signup">Join the Wizards</Link>
               </Button>
-            </nav>
+            </div>
           </div>
         </div>
 
