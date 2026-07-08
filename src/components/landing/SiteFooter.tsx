@@ -113,9 +113,10 @@ export function SiteFooter() {
             href="https://creativeeyestudios.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="font-body text-sm text-cyan-400 transition hover:text-cyan-300"
+            className="group font-body text-sm text-clw-gray/70 transition hover:text-clw-gray/85"
           >
-            Meticulously crafted by <span className="font-bold">Creative Eye Studios</span>
+            Meticulously crafted by{' '}
+            <span className="font-bold text-clw-gray/50 transition group-hover:text-cyan-400">Creative Eye Studios</span>
           </a>
         </div>
       </div>
