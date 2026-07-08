@@ -5,8 +5,8 @@
  */
 export function Hero() {
   return (
-    <section className="relative isolate overflow-hidden border-b border-clw-gold/10 bg-clw-black lg:pt-[72px]">
-      <div className="relative flex min-h-[648px] overflow-hidden bg-clw-black-2 lg:h-[calc(100vh-72px)] lg:min-h-[616px] lg:max-h-[900px]">
+    <section className="relative isolate overflow-hidden border-b border-clw-gold/10 bg-clw-black pt-[98px] sm:pt-[100px] lg:pt-[104px]">
+      <div className="relative flex min-h-[648px] overflow-hidden bg-clw-black-2 lg:h-[calc(100vh-104px)] lg:min-h-[616px] lg:max-h-[900px]">
         <div className="absolute inset-0">
           {/* eslint-disable-next-line @next/next/no-img-element -- real club team photo */}
           <img
