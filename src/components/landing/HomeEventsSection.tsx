@@ -32,7 +32,7 @@ export function HomeEventsSection({ tournaments }: { tournaments: Tournament[] }
   const rows = tournaments.slice(0, 4)
 
   return (
-    <section className="section-light relative overflow-hidden border-y border-clw-gold/35 bg-[#F7F7F7] px-5 py-14 text-clw-ink sm:px-8 sm:py-16 lg:px-12 lg:py-20 xl:px-16 2xl:px-20">
+    <section className="section-light relative overflow-hidden border-y border-clw-gold/35 bg-[#F7F7F7] px-5 pb-20 pt-14 text-clw-ink sm:px-8 sm:pb-20 sm:pt-16 lg:px-12 lg:py-20 xl:px-16 2xl:px-20">
       <div className="absolute inset-0 opacity-45 [background-image:linear-gradient(180deg,rgba(255,255,255,.84),transparent_48%),radial-gradient(circle_at_12%_0%,rgba(240,192,32,.1),transparent_24%)]" />
       <span
         aria-hidden
@@ -43,11 +43,11 @@ export function HomeEventsSection({ tournaments }: { tournaments: Tournament[] }
 
       <div id="events" className="relative mx-auto max-w-7xl scroll-mt-24">
         <div className="lg:text-center">
-          <h2 className="max-w-3xl uppercase leading-[0.92] text-clw-ink lg:mx-auto lg:max-w-none">
-            <span className="block font-cond text-[clamp(3rem,12vw,5rem)] font-light tracking-[-0.04em] lg:mr-3 lg:inline">
+          <h2 className="whitespace-nowrap uppercase leading-[0.92] text-clw-ink">
+            <span className="mr-2 inline font-cond text-[clamp(2.15rem,9.4vw,5rem)] font-light tracking-[-0.04em] sm:mr-3">
               Upcoming
             </span>
-            <span className="block font-display text-[clamp(3.4rem,13vw,5.6rem)] font-black tracking-[-0.035em] lg:inline">
+            <span className="inline font-display text-[clamp(2.4rem,10.2vw,5.6rem)] font-black tracking-[-0.035em]">
               Events
             </span>
           </h2>
