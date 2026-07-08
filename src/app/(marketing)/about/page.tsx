@@ -30,6 +30,7 @@ const PRACTICE_COACHES = [
 ]
 
 const MAP_URL = 'https://www.google.com/maps/search/?api=1&query=975+Nimco+Dr+Unit+L+Crystal+Lake+IL+60014'
+const SECTION_HEADING_CLASS = 'mt-4 font-display text-4xl uppercase leading-[0.96] text-clw-white sm:text-5xl'
 
 export const metadata: Metadata = {
   title: 'Mission',
@@ -86,7 +87,7 @@ export default function AboutPage() {
       <section className="mission-frame relative grid grid-cols-1 gap-5 lg:grid-cols-12 lg:gap-6">
         <article className="chamfer-md card-depth border border-clw-gold/15 bg-clw-black-2 p-7 sm:p-8 lg:col-span-8 lg:p-10">
           <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold">Our Story</p>
-          <h2 className="mt-4 font-display text-4xl uppercase leading-[0.96] tracking-wide text-clw-white sm:text-5xl">
+          <h2 className={SECTION_HEADING_CLASS}>
             <span className="block">A Room Built to Move</span>
             <span className="block">Wrestlers Forward.</span>
           </h2>
@@ -109,9 +110,9 @@ export default function AboutPage() {
             <ShieldCheck className="h-6 w-6 text-clw-gold" />
             <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold">What We Stand For</p>
           </div>
-          <h2 className="mt-4 font-display text-4xl uppercase leading-[0.96] text-clw-white">
+          <h2 className={SECTION_HEADING_CLASS}>
             <span className="block whitespace-nowrap">The Standard</span>
-            <span className="block">Inside the Room.</span>
+            <span className="block whitespace-nowrap">Inside the Room.</span>
           </h2>
           <ul className="mt-7 space-y-5">
             {STAND_FOR.map((point) => (
@@ -130,17 +131,17 @@ export default function AboutPage() {
             <Award className="h-6 w-6 text-clw-gold" />
             <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold">Why Wrestling</p>
           </div>
-          <div className="mt-5 grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-10">
-            <h2 className="font-display text-4xl uppercase leading-[0.96] text-clw-white sm:text-5xl lg:text-6xl">
-              <span className="block">What the Sport Builds</span>
-              <span className="block">Beyond the Mat.</span>
-            </h2>
-            <div className="border-l-2 border-clw-gold bg-clw-black/45 p-5 sm:p-6">
-              <p className="font-cond text-sm uppercase tracking-[0.24em] text-clw-gold">Why It Matters</p>
-              <p className="mt-3 text-xl leading-relaxed text-clw-white sm:text-2xl">
-                Wrestling asks young athletes to solve problems under pressure, take responsibility for preparation, and keep working when progress is difficult.
-              </p>
-            </div>
+
+          <h2 className={SECTION_HEADING_CLASS}>
+            <span className="block">What the Sport Builds</span>
+            <span className="block">Beyond the Mat.</span>
+          </h2>
+
+          <div className="mt-7 grid gap-4 border-y border-clw-gold/20 bg-clw-black/35 px-5 py-6 sm:px-6 lg:grid-cols-[auto_1fr] lg:items-center lg:gap-10">
+            <p className="whitespace-nowrap font-cond text-sm uppercase tracking-[0.24em] text-clw-gold">Why It Matters</p>
+            <p className="max-w-4xl text-xl leading-relaxed text-clw-white sm:text-2xl">
+              Wrestling asks young athletes to solve problems under pressure, take responsibility for preparation, and keep working when progress is difficult.
+            </p>
           </div>
 
           <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -163,7 +164,7 @@ export default function AboutPage() {
                 <Users className="h-6 w-6 text-clw-gold" />
                 <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold">Leadership & Coaches</p>
               </div>
-              <h2 className="mt-4 font-display text-4xl uppercase leading-[0.96] text-clw-white sm:text-5xl">
+              <h2 className={SECTION_HEADING_CLASS}>
                 <span className="block">People Who Keep</span>
                 <span className="block">The Room Moving.</span>
               </h2>
@@ -209,9 +210,9 @@ export default function AboutPage() {
             <MapPin className="h-6 w-6 text-clw-gold" />
             <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold">Club Details</p>
           </div>
-          <h2 className="mt-4 font-display text-4xl uppercase leading-[0.96] text-clw-white">
+          <h2 className={SECTION_HEADING_CLASS}>
             <span className="block whitespace-nowrap">Rooted Here.</span>
-            <span className="block">Open to the Area.</span>
+            <span className="block whitespace-nowrap">Open to the Area.</span>
           </h2>
 
           <div className="mt-7 overflow-hidden border border-clw-gold/15">
