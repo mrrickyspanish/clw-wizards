@@ -18,7 +18,7 @@ import { HomeSupportIntro } from '@/components/landing/HomeSupportIntro'
 import { HomeFacilitySection } from '@/components/landing/HomeFacilitySection'
 import { HomeTeamSection } from '@/components/landing/HomeTeamSection'
 import { HomeFacebookSection } from '@/components/landing/HomeFacebookSection'
-import { HomeSectionTear } from '@/components/landing/HomeSectionTear'
+import { HomeMatTapeDivider } from '@/components/landing/HomeMatTapeDivider'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { MobileCtaBar } from '@/components/landing/MobileCtaBar'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -63,13 +63,13 @@ export default async function HomePage({
       )}
 
       <Hero />
-      <HomeSectionTear from="dark" to="light" variant="a" />
+      <HomeMatTapeDivider from="dark" to="light" profile="white-left" weight="thick" />
       <ProgramIntro />
-      <HomeSectionTear from="light" to="dark" variant="b" />
+      <HomeMatTapeDivider from="light" to="dark" profile="black-right" />
       <ProgramStructure />
-      <HomeSectionTear from="dark" to="light" variant="a" />
+      <HomeMatTapeDivider from="dark" to="light" profile="white-left" />
       <HomeEventsSection tournaments={tournamentRows} />
-      <HomeSectionTear from="light" to="dark" variant="b" />
+      <HomeMatTapeDivider from="light" to="dark" profile="black-right" weight="thick" />
       <HomeSupportIntro />
       <HomeTeamSection />
       <HomeFacilitySection />
