@@ -166,7 +166,7 @@ export function SiteHeader() {
           </div>
         </div>
 
-        <div className="px-5 py-4 sm:px-8 lg:px-12 xl:px-16 2xl:px-20">
+        <div className="min-h-[72px] px-5 py-4 sm:min-h-[74px] sm:px-8 lg:min-h-[78px] lg:px-12 xl:px-16 2xl:px-20">
           <div className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-3 lg:hidden">
             <button
               type="button"
