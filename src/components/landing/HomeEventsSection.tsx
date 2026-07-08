@@ -11,8 +11,6 @@ function formatDate(value: string) {
   })
 }
 
-// Rotated across the event cards so the left-hand photo varies card to card
-// instead of repeating one image.
 const EVENT_PHOTOS = [
   '/images/real/clw-wizards- tornament-ariel-photo.jpg',
   '/images/real/clw-wizards-youth-tournament.jpg',
@@ -32,33 +30,22 @@ export function HomeEventsSection({ tournaments }: { tournaments: Tournament[] }
   const rows = tournaments.slice(0, 4)
 
   return (
-    <section className="section-light relative overflow-hidden border-y border-clw-gold/35 bg-[#F7F7F7] px-5 pb-20 pt-14 text-clw-ink sm:px-8 sm:pb-20 sm:pt-16 lg:px-12 lg:py-20 xl:px-16 2xl:px-20">
+    <section className="section-light relative overflow-hidden border-y border-clw-gold/35 bg-[#F7F7F7] px-5 pb-32 pt-14 text-clw-ink sm:px-8 sm:pb-32 sm:pt-16 lg:px-12 lg:py-20 xl:px-16 2xl:px-20">
       <div className="absolute inset-0 opacity-45 [background-image:linear-gradient(180deg,rgba(255,255,255,.84),transparent_48%),radial-gradient(circle_at_12%_0%,rgba(240,192,32,.1),transparent_24%)]" />
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -right-8 -top-8 select-none font-display text-[11rem] leading-none text-clw-gold-dim/[0.05] sm:text-[14rem] lg:text-[18rem]"
-      >
-        W
-      </span>
+      <span aria-hidden className="pointer-events-none absolute -right-8 -top-8 select-none font-display text-[11rem] leading-none text-clw-gold-dim/[0.05] sm:text-[14rem] lg:text-[18rem]">W</span>
 
       <div id="events" className="relative mx-auto max-w-7xl scroll-mt-24">
         <div className="lg:text-center">
           <h2 className="whitespace-nowrap uppercase leading-[0.92] text-clw-ink">
-            <span className="mr-2 inline font-cond text-[clamp(2.15rem,9.4vw,5rem)] font-light tracking-[-0.04em] sm:mr-3">
-              Upcoming
-            </span>
-            <span className="inline font-display text-[clamp(2.4rem,10.2vw,5.6rem)] font-black tracking-[-0.035em]">
-              Events
-            </span>
+            <span className="mr-2 inline font-cond text-[clamp(2.15rem,9.4vw,5rem)] font-light tracking-[-0.04em] sm:mr-3">Upcoming</span>
+            <span className="inline font-display text-[clamp(2.4rem,10.2vw,5.6rem)] font-black tracking-[-0.035em]">Events</span>
           </h2>
         </div>
 
         {rows.length === 0 ? (
           <div className="mt-10 border border-dashed border-clw-ink/25 bg-white p-7 sm:p-8">
             <p className="font-display text-3xl uppercase leading-none text-clw-ink">No upcoming events posted yet.</p>
-            <p className="mt-4 max-w-2xl text-lg leading-relaxed text-clw-muted-dark">
-              Once dates are added to the calendar, the next tournaments, fundraisers, and club updates will appear here.
-            </p>
+            <p className="mt-4 max-w-2xl text-lg leading-relaxed text-clw-muted-dark">Once dates are added to the calendar, the next tournaments, fundraisers, and club updates will appear here.</p>
           </div>
         ) : (
           <div className="mt-10 flex flex-wrap justify-center gap-5">
@@ -72,48 +59,22 @@ export function HomeEventsSection({ tournaments }: { tournaments: Tournament[] }
                   rel={event.external_registration_url ? 'noopener noreferrer' : undefined}
                   className={`group relative isolate flex min-h-[230px] w-full flex-col overflow-hidden border border-clw-ink/45 bg-white shadow-xl shadow-clw-black/5 transition hover:-translate-y-1 hover:border-clw-gold sm:w-[calc(50%-0.625rem)] lg:min-h-[250px] lg:w-[calc(50%-0.625rem)] ${index > 2 ? 'hidden lg:flex' : ''}`}
                 >
-                  {/* On mobile the photo is a full-card background at low opacity; on desktop it
-                      becomes a full-opacity left panel with the copy in the open space to the right. */}
-                  {/* Wrapper stretches to the full card height (top/bottom anchored); the
-                      img fills it via object-cover so wide panoramas don't collapse to a
-                      strip. Full-card low-opacity background on mobile, left panel on desktop. */}
                   <span aria-hidden className="pointer-events-none absolute inset-0 lg:right-auto lg:w-[40%]">
                     {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
-                    <img
-                      src={EVENT_PHOTOS[index % EVENT_PHOTOS.length]}
-                      alt=""
-                      className="h-full w-full object-cover opacity-10 lg:opacity-100"
-                    />
+                    <img src={EVENT_PHOTOS[index % EVENT_PHOTOS.length]} alt="" className="h-full w-full object-cover opacity-10 lg:opacity-100" />
                   </span>
                   <div className="relative flex flex-1">
                     <div className="flex flex-1 flex-col px-6 py-5 sm:px-7 lg:ml-[40%] lg:justify-center lg:pl-8">
-                      <h3 className="font-body text-2xl font-semibold leading-tight text-clw-ink xl:text-[1.35rem]">
-                        {event.name}
-                      </h3>
+                      <h3 className="font-body text-2xl font-semibold leading-tight text-clw-ink xl:text-[1.35rem]">{event.name}</h3>
                       <div className="mt-3 h-px w-full bg-clw-gold" />
-
                       <div className="mt-4 space-y-2.5 text-clw-ink">
-                        <div>
-                          <p className="font-cond text-sm uppercase tracking-[0.22em] text-clw-ink/75">When</p>
-                          <p className="mt-1 text-base font-semibold leading-tight sm:text-lg xl:text-base">{formatDate(event.date)}</p>
-                        </div>
-                        <div>
-                          <p className="font-cond text-sm uppercase tracking-[0.22em] text-clw-ink/75">Time</p>
-                          <p className="mt-1 text-base font-semibold leading-tight sm:text-lg xl:text-base">{formatTime(event.start_time)}</p>
-                        </div>
-                        <div>
-                          <p className="font-cond text-sm uppercase tracking-[0.22em] text-clw-ink/75">Where</p>
-                          <p className="mt-1 text-base font-semibold leading-tight sm:text-lg xl:text-base">
-                            {event.location || `${event.city}, ${event.state}`}
-                          </p>
-                        </div>
+                        <div><p className="font-cond text-sm uppercase tracking-[0.22em] text-clw-ink/75">When</p><p className="mt-1 text-base font-semibold leading-tight sm:text-lg xl:text-base">{formatDate(event.date)}</p></div>
+                        <div><p className="font-cond text-sm uppercase tracking-[0.22em] text-clw-ink/75">Time</p><p className="mt-1 text-base font-semibold leading-tight sm:text-lg xl:text-base">{formatTime(event.start_time)}</p></div>
+                        <div><p className="font-cond text-sm uppercase tracking-[0.22em] text-clw-ink/75">Where</p><p className="mt-1 text-base font-semibold leading-tight sm:text-lg xl:text-base">{event.location || `${event.city}, ${event.state}`}</p></div>
                       </div>
                     </div>
                   </div>
-
-                  <div className="relative bg-clw-black px-6 py-3 text-center font-display text-lg uppercase tracking-wide text-clw-white transition group-hover:bg-clw-gold group-hover:text-clw-black lg:ml-[40%]">
-                    Learn more
-                  </div>
+                  <div className="relative bg-clw-black px-6 py-3 text-center font-display text-lg uppercase tracking-wide text-clw-white transition group-hover:bg-clw-gold group-hover:text-clw-black lg:ml-[40%]">Learn more</div>
                 </Link>
               )
             })}
@@ -121,9 +82,7 @@ export function HomeEventsSection({ tournaments }: { tournaments: Tournament[] }
         )}
 
         <div className="lg:text-center">
-          <Link href="/login" className="mt-8 inline-block font-cond text-xl uppercase tracking-[0.18em] text-clw-gold-ink underline-offset-4 hover:text-clw-ink hover:underline">
-            View full calendar →
-          </Link>
+          <Link href="/login" className="mt-8 inline-block font-cond text-xl uppercase tracking-[0.18em] text-clw-gold-ink underline-offset-4 hover:text-clw-ink hover:underline">View full calendar →</Link>
         </div>
       </div>
     </section>
