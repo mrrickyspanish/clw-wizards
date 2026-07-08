@@ -99,9 +99,6 @@ export default function AboutPage() {
             <p>
               Our goal is simple: introduce wrestling in a competitive but positive environment and help every athlete reach their potential through serious commitment. State qualifiers, state placers, high school wrestlers, and college athletes have all come through the room, but progress is measured one wrestler at a time.
             </p>
-            <p>
-              Wizards Wrestling Club is a 501(c)(3) nonprofit youth sports organization run 100% by volunteers. We are affiliated with the Crystal Lake Park District and registered through the Illinois Kids Wrestling Federation (IKWF).
-            </p>
           </div>
         </article>
 
