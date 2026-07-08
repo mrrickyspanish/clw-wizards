@@ -33,7 +33,6 @@ export function HomeMatTapeDivider({ profile }: { profile: TapeProfile }) {
         className={`absolute left-0 top-0 w-full overflow-hidden ${tape.frameClassName}`}
         style={{ transform: tape.frameOffset }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element -- supplied transparent wrestling tape artwork */}
         <img
           src={tape.src}
           alt=""
@@ -46,15 +45,12 @@ export function HomeMatTapeDivider({ profile }: { profile: TapeProfile }) {
         )}
       </div>
 
-      {profile === 'white-left' && (
-        /* eslint-disable-next-line @next/next/no-img-element -- supplied transparent gold star seal */
-        <img
-          src="/images/real/clw_star_stamp_yellow_gold.png"
-          alt=""
-          draggable={false}
-          className="absolute left-1/2 top-0 z-[60] h-[5.25rem] w-[5.25rem] -translate-x-1/2 -translate-y-1/2 select-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] sm:h-24 sm:w-24 lg:h-28 lg:w-28"
-        />
-      )}
+      <img
+        src="/images/real/clw_star_stamp_yellow_gold.png"
+        alt=""
+        draggable={false}
+        className="absolute left-1/2 top-0 z-[60] h-28 w-28 -translate-x-1/2 -translate-y-1/2 select-none drop-shadow-[0_3px_6px_rgba(0,0,0,0.65)] sm:h-32 sm:w-32 lg:h-[9.5rem] lg:w-[9.5rem]"
+      />
     </div>
   )
 }
