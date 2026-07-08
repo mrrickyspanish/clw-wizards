@@ -76,12 +76,12 @@ export function SiteHeader() {
           </div>
 
           <div className="hidden grid-cols-[1fr_auto_1fr] items-center lg:grid">
-            <nav className="flex items-center justify-self-start gap-5 xl:gap-7">
+            <nav className="flex items-center justify-self-end gap-3 pr-5 xl:gap-5 xl:pr-7">
               {DESKTOP_LEFT_LINKS.map((link) => (
                 <Link
                   key={link.label}
                   href={link.href}
-                  className="whitespace-nowrap text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-clw-white/85 transition-colors hover:text-clw-gold xl:text-[0.82rem]"
+                  className="whitespace-nowrap text-[0.74rem] font-semibold uppercase tracking-[0.13em] text-clw-white/85 transition-colors hover:text-clw-gold xl:text-[0.8rem]"
                 >
                   {link.label}
                 </Link>
@@ -95,22 +95,25 @@ export function SiteHeader() {
               Wizards Wrestling
             </Link>
 
-            <nav className="flex items-center justify-self-end gap-5 xl:gap-7">
+            <nav className="flex items-center justify-self-start gap-3 pl-5 xl:gap-5 xl:pl-7">
               {DESKTOP_RIGHT_LINKS.map((link) => (
                 <Link
                   key={link.label}
                   href={link.href}
-                  className="whitespace-nowrap text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-clw-white/85 transition-colors hover:text-clw-gold xl:text-[0.82rem]"
+                  className="whitespace-nowrap text-[0.74rem] font-semibold uppercase tracking-[0.13em] text-clw-white/85 transition-colors hover:text-clw-gold xl:text-[0.8rem]"
                 >
                   {link.label}
                 </Link>
               ))}
               <Link
                 href="/login"
-                className="whitespace-nowrap text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-clw-white/85 transition-colors hover:text-clw-gold xl:text-[0.82rem]"
+                className="whitespace-nowrap text-[0.74rem] font-semibold uppercase tracking-[0.13em] text-clw-white/85 transition-colors hover:text-clw-gold xl:text-[0.8rem]"
               >
                 Parent / Staff Login
               </Link>
+              <Button asChild size="sm" className="chamfer-sm h-9 rounded-none bg-clw-gold px-4 text-[0.72rem] font-bold uppercase tracking-[0.1em] text-clw-black hover:bg-clw-gold-l xl:px-5 xl:text-xs">
+                <Link href="/signup">Join the Wizards</Link>
+              </Button>
             </nav>
           </div>
         </div>
