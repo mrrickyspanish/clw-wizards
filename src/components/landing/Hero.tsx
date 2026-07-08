@@ -5,8 +5,8 @@
  */
 export function Hero() {
   return (
-    <section className="relative isolate overflow-hidden border-b border-clw-gold/10 bg-clw-black pt-[98px] sm:pt-[100px] lg:pt-[104px]">
-      <div className="relative flex min-h-[648px] overflow-hidden bg-clw-black-2 lg:h-[calc(100vh-104px)] lg:min-h-[616px] lg:max-h-[900px]">
+    <section className="relative isolate overflow-hidden border-b border-clw-gold/10 bg-clw-black">
+      <div className="relative flex min-h-[550px] overflow-hidden bg-clw-black-2 sm:min-h-[580px] lg:h-[calc(100vh-104px)] lg:min-h-[616px] lg:max-h-[900px]">
         <div className="absolute inset-0">
           {/* eslint-disable-next-line @next/next/no-img-element -- real club team photo */}
           <img
@@ -73,7 +73,7 @@ export function Hero() {
           <div className="absolute inset-0 bg-gradient-to-t from-clw-black-2/75 via-clw-black/10 to-clw-black/10 lg:hidden" />
         </div>
 
-        <div className="relative z-10 flex max-w-4xl flex-col justify-end px-5 pb-12 pt-28 sm:px-8 lg:min-h-[616px] lg:w-[42%] lg:max-w-none lg:items-start lg:justify-center lg:px-12 lg:py-0 lg:text-left xl:w-[44%] xl:px-16 2xl:w-[46%] 2xl:px-20">
+        <div className="relative z-10 flex max-w-4xl flex-col justify-end px-5 pb-10 pt-16 sm:px-8 sm:pb-12 lg:min-h-[616px] lg:w-[42%] lg:max-w-none lg:items-start lg:justify-center lg:px-12 lg:py-0 lg:text-left xl:w-[44%] xl:px-16 2xl:w-[46%] 2xl:px-20">
           <p className="mb-4 font-cond text-xs uppercase tracking-[0.34em] text-clw-gold sm:text-sm lg:hidden">
             Wizards Wrestling
           </p>
