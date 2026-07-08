@@ -63,13 +63,13 @@ export default async function HomePage({
       )}
 
       <Hero />
-      <HomeMatTapeDivider from="dark" to="light" profile="white-left" weight="thick" />
+      <HomeMatTapeDivider profile="white-left" />
       <ProgramIntro />
-      <HomeMatTapeDivider from="light" to="dark" profile="black-right" />
+      <HomeMatTapeDivider profile="black-right" />
       <ProgramStructure />
-      <HomeMatTapeDivider from="dark" to="light" profile="white-left" />
+      <HomeMatTapeDivider profile="white-left" />
       <HomeEventsSection tournaments={tournamentRows} />
-      <HomeMatTapeDivider from="light" to="dark" profile="black-right" weight="thick" />
+      <HomeMatTapeDivider profile="black-right" />
       <HomeSupportIntro />
       <HomeTeamSection />
       <HomeFacilitySection />
