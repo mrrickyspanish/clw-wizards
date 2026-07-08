@@ -3,12 +3,6 @@ import type { Metadata } from 'next'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { chicagoDateString } from '@/lib/chicago-time'
 import type { Tournament } from '@/types/database'
-
-export const metadata: Metadata = {
-  description:
-    'Join the Crystal Lake Wizards Wrestling Club — youth wrestling in Crystal Lake and McHenry County, IL. Structured practice groups, dedicated coaching, and season-long tournament competition for wrestlers of every level.',
-  alternates: { canonical: '/' },
-}
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Hero } from '@/components/landing/Hero'
 import { ProgramIntro } from '@/components/landing/ProgramIntro'
@@ -23,6 +17,12 @@ import { SectionSlideOver } from '@/components/landing/SectionSlideOver'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { MobileCtaBar } from '@/components/landing/MobileCtaBar'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+
+export const metadata: Metadata = {
+  description:
+    'Join the Crystal Lake Wizards Wrestling Club — youth wrestling in Crystal Lake and McHenry County, IL. Structured practice groups, dedicated coaching, and season-long tournament competition for wrestlers of every level.',
+  alternates: { canonical: '/' },
+}
 
 export default async function HomePage({
   searchParams,
@@ -46,8 +46,10 @@ export default async function HomePage({
   return (
     <main className="min-h-screen overflow-x-clip bg-clw-black">
       <SiteHeader />
+      <div aria-hidden className="h-[98px] sm:h-[100px] lg:h-[104px]" />
+
       {donation === 'success' && (
-        <div className="px-4 pt-24 sm:px-6 lg:px-8">
+        <div className="px-4 pt-4 sm:px-6 lg:px-8">
           <Alert className="border-clw-gold/40 bg-clw-gold/10">
             <AlertDescription className="text-clw-gold">
               Thank you for your donation. It means a lot to our wrestlers!
@@ -56,7 +58,7 @@ export default async function HomePage({
         </div>
       )}
       {donation === 'cancelled' && (
-        <div className="px-4 pt-24 sm:px-6 lg:px-8">
+        <div className="px-4 pt-4 sm:px-6 lg:px-8">
           <Alert>
             <AlertDescription className="text-clw-gray">Donation cancelled. No payment was made.</AlertDescription>
           </Alert>
@@ -88,9 +90,7 @@ export default async function HomePage({
       <HomeTeamSection />
       <HomeFacilitySection />
       <HomeFacebookSection />
-
       <SiteFooter />
-
       <div className="h-20 md:hidden" />
       <MobileCtaBar />
     </main>
