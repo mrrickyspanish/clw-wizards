@@ -5,11 +5,6 @@ import { Button } from '@/components/ui/button'
 export function ProgramIntro() {
   return (
     <section className="section-light relative border-b border-clw-gold/35 bg-[#F7F7F7] px-5 py-12 sm:px-8 sm:py-16 lg:px-12 xl:px-16 2xl:px-20">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 -top-px z-40 h-4 bg-[#F7F7F7] sm:h-5 lg:h-6"
-      />
-
       <div className="relative mx-auto flex max-w-7xl flex-col lg:flex-row lg:items-center lg:gap-12">
         <div className="max-w-3xl lg:flex-1">
           <p className="hidden font-cond text-sm uppercase tracking-[0.32em] text-clw-gold lg:block">
