@@ -28,7 +28,7 @@ export function HomeMatTapeDivider({ profile }: { profile: TapeProfile }) {
   const tape = TAPE_SETTINGS[profile]
 
   return (
-    <div aria-hidden className="pointer-events-none relative z-30 h-0 w-full overflow-visible">
+    <div aria-hidden className="pointer-events-none relative z-50 h-0 w-full overflow-visible">
       <div
         className={`absolute left-0 top-0 w-full overflow-hidden ${tape.frameClassName}`}
         style={{ transform: tape.frameOffset }}
@@ -45,6 +45,16 @@ export function HomeMatTapeDivider({ profile }: { profile: TapeProfile }) {
           <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-b from-transparent to-clw-black/80" />
         )}
       </div>
+
+      {profile === 'white-left' && (
+        /* eslint-disable-next-line @next/next/no-img-element -- supplied transparent gold star seal */
+        <img
+          src="/images/real/clw_star_stamp_yellow_gold.png"
+          alt=""
+          draggable={false}
+          className="absolute left-1/2 top-0 z-[60] h-7 w-7 -translate-x-1/2 -translate-y-1/2 select-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)] sm:h-8 sm:w-8"
+        />
+      )}
     </div>
   )
 }
