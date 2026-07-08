@@ -7,6 +7,7 @@ const MAP_URL = 'https://www.google.com/maps/search/?api=1&query=975+Nimco+Dr+Un
 
 const ABOUT_LINKS = [
   { href: '/about', label: 'Mission' },
+  { href: '/join', label: 'New Families' },
   { href: '/coaches', label: 'Our Team' },
   { href: '/faq', label: 'FAQ' },
   { href: `mailto:${ORG.contactEmail}`, label: 'Contact' },
