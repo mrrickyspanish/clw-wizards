@@ -203,17 +203,17 @@ export default function JoinPage() {
       </section>
 
       <section className="mission-frame relative py-14 sm:py-16 lg:py-20">
-        <div className="grid gap-8 lg:grid-cols-[0.92fr_1.08fr] lg:items-stretch lg:gap-6">
-          <div className="overflow-hidden border border-clw-gold/20 bg-clw-black-2">
+        <div className="grid gap-8 lg:grid-cols-[0.92fr_1.08fr] lg:items-center lg:gap-6">
+          <div className="order-2 h-64 overflow-hidden border border-clw-gold/20 bg-clw-black-2 sm:h-72 lg:order-1 lg:h-[30rem]">
             {/* eslint-disable-next-line @next/next/no-img-element -- real coach and team photography */}
             <img
               src="/images/real/clw-wizards-coach-team-photo.jpg"
               alt="Wizards coaches and wrestlers together"
-              className="h-full min-h-[420px] w-full object-cover object-center contrast-105 saturate-[0.8] lg:min-h-[620px]"
+              className="h-full w-full object-cover object-center contrast-105 saturate-[0.8]"
             />
           </div>
 
-          <div className="chamfer-md card-depth border border-clw-gold/15 bg-clw-black-2 p-7 sm:p-8 lg:p-10">
+          <div className="chamfer-md card-depth order-1 border border-clw-gold/15 bg-clw-black-2 p-7 sm:p-8 lg:order-2 lg:p-10">
             <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold">What Families Can Expect</p>
             <h2 className={SECTION_HEADING_CLASS}>
               <span className="block">High Standards.</span>
