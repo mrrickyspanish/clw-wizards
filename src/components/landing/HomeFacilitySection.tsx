@@ -8,19 +8,19 @@ export function HomeFacilitySection() {
       <div className="absolute inset-0 opacity-45 [background-image:linear-gradient(180deg,rgba(255,255,255,.86),transparent_48%),radial-gradient(circle_at_14%_10%,rgba(240,192,32,.12),transparent_26%)]" />
       <span
         aria-hidden
-        className="pointer-events-none absolute -right-8 top-4 select-none font-display text-[12rem] leading-none text-clw-gold-dim/[0.06] sm:text-[16rem] lg:text-[22rem]"
+        className="pointer-events-none absolute -right-8 top-4 select-none font-display text-[12rem] leading-none text-clw-gold/[0.06] sm:text-[16rem] lg:text-[22rem]"
       >
         W
       </span>
 
       <div id="location" className="relative mx-auto grid max-w-7xl scroll-mt-32 gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-center lg:gap-14">
         <div>
-          <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-ink">Location</p>
+          <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Location</p>
           <h2 className="mt-6 whitespace-nowrap uppercase leading-[0.92] text-clw-ink">
             <span className="mr-2 inline font-cond text-[clamp(2.2rem,9.5vw,5rem)] font-light tracking-[-0.04em] sm:mr-3">
               Visit the
             </span>
-            <span className="inline font-display text-[clamp(2.45rem,10.5vw,5.6rem)] font-black tracking-[-0.035em] text-clw-gold-ink">
+            <span className="inline font-display text-[clamp(2.45rem,10.5vw,5.6rem)] font-black tracking-[-0.035em] text-clw-gold">
               Facility
             </span>
           </h2>
