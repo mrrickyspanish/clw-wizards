@@ -28,7 +28,7 @@ export function ProgramIntro() {
           </h2>
           <div className="mt-7 max-w-3xl space-y-5 text-xl leading-relaxed text-clw-ink/85 sm:text-2xl sm:leading-relaxed lg:max-w-[26rem] lg:text-lg lg:leading-relaxed">
             <p>
-              The Wizards help young wrestlers take the next step, whether they are learning the basics or chasing bigger goals. Our club gives kids a place to train hard, build confidence, and represent McHenry County with pride.
+              The Wizards Wrestling Club helps young wrestlers take the next step, whether they are learning the basics or chasing bigger goals. Our club gives kids a place to train hard, build confidence, and represent McHenry County with pride.
             </p>
             <p>
               We are volunteer-run, family-powered, and committed to helping every wrestler grow.
@@ -41,34 +41,17 @@ export function ProgramIntro() {
 
         <div className="mt-10 lg:mt-0 lg:w-[48%] lg:flex-shrink-0">
           <div className="relative aspect-[5/4] w-full">
-            {/* Dominant back-left landscape frame */}
             <div className="absolute left-[3%] top-[4%] z-10 aspect-[3/2] w-[60%] overflow-hidden border border-clw-ink/70 bg-clw-black-2">
               {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
-              <img
-                src="/images/real/clw-wizards-youth-team-photo.jpg"
-                alt="Wizards youth wrestlers gathered for a team photo"
-                className="h-full w-full object-cover contrast-110"
-              />
+              <img src="/images/real/clw-wizards-youth-team-photo.jpg" alt="Wizards youth wrestlers gathered for a team photo" className="h-full w-full object-cover contrast-110" />
             </div>
-
-            {/* Secondary lower-right landscape frame */}
             <div className="absolute right-[1%] top-[23%] z-20 aspect-[3/2] w-[52%] overflow-hidden border border-clw-ink/70 bg-clw-black-2">
               {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
-              <img
-                src="/images/real/clw-wizards-family-photo.jpg"
-                alt="Wizards families and wrestlers together"
-                className="h-full w-full object-cover contrast-110"
-              />
+              <img src="/images/real/clw-wizards-family-photo.jpg" alt="Wizards families and wrestlers together" className="h-full w-full object-cover contrast-110" />
             </div>
-
-            {/* Smaller front-left frame crossing both larger images */}
             <div className="absolute left-[12%] top-[43%] z-30 aspect-[4/3] w-[40%] overflow-hidden border border-clw-ink/70 bg-clw-black-2">
               {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
-              <img
-                src="/images/real/clw-wizards-trio-featured-photo.jpg"
-                alt="Three Wizards wrestlers featured together"
-                className="h-full w-full object-cover contrast-110"
-              />
+              <img src="/images/real/clw-wizards-trio-featured-photo.jpg" alt="Three Wizards wrestlers featured together" className="h-full w-full object-cover contrast-110" />
             </div>
           </div>
         </div>
