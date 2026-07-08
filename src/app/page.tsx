@@ -62,13 +62,28 @@ export default async function HomePage({
         </div>
       )}
 
-      <Hero />
-      <HomeMatTapeDivider profile="white-left" />
-      <ProgramIntro />
+      <div className="relative">
+        <div className="relative z-0 lg:sticky lg:top-0">
+          <Hero />
+        </div>
+        <div className="relative z-10">
+          <HomeMatTapeDivider profile="white-left" />
+          <ProgramIntro />
+        </div>
+      </div>
+
       <ProgramStructure />
-      <HomeEventsSection tournaments={tournamentRows} />
-      <HomeMatTapeDivider profile="black-right" />
-      <HomeSupportIntro />
+
+      <div className="relative">
+        <div className="relative z-0 lg:sticky lg:top-0">
+          <HomeEventsSection tournaments={tournamentRows} />
+        </div>
+        <div className="relative z-10">
+          <HomeMatTapeDivider profile="black-right" />
+          <HomeSupportIntro />
+        </div>
+      </div>
+
       <HomeTeamSection />
       <HomeFacilitySection />
       <HomeFacebookSection />
