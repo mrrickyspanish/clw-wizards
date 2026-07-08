@@ -138,7 +138,6 @@ async function handleDonationFlow(session: Stripe.Checkout.Session) {
   const customerEmail = session.customer_details?.email ?? session.customer_email ?? null
   const customerName = session.customer_details?.name ?? session.metadata?.donor_name ?? null
   const amountCents = session.amount_total ?? 0
-  const recurring = session.mode === 'subscription'
 
   if (amountCents <= 0) {
     throw new Error(`Stripe donation checkout ${session.id} has an invalid payment amount.`)
@@ -148,19 +147,18 @@ async function handleDonationFlow(session: Stripe.Checkout.Session) {
     donor_name: customerName,
     donor_email: customerEmail,
     amount_cents: amountCents,
-    recurring,
+    recurring: false,
     stripe_checkout_session_id: session.id,
     stripe_payment_intent_id:
       typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id ?? null,
     stripe_customer_id: typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null,
-    stripe_subscription_id:
-      typeof session.subscription === 'string' ? session.subscription : session.subscription?.id ?? null,
+    stripe_subscription_id: null,
   })
 
   if (error) throw error
 
   if (customerEmail) {
-    await sendDonationThankYouEmail({ to: customerEmail, name: customerName, amountCents, recurring })
+    await sendDonationThankYouEmail({ to: customerEmail, name: customerName, amountCents })
   }
 }
 
@@ -178,11 +176,7 @@ async function handleSponsorFlow(session: Stripe.Checkout.Session) {
 
   const { data: sponsor, error: updateError } = await supabase
     .from('sponsors')
-    .update({
-      stripe_customer_id: customerId,
-      stripe_subscription_id: subscriptionId,
-      active: true,
-    })
+    .update({ stripe_customer_id: customerId, stripe_subscription_id: subscriptionId })
     .eq('id', sponsorId)
     .select('name, tier, amount_cents, contact_email, contact_name')
     .single()
@@ -193,7 +187,7 @@ async function handleSponsorFlow(session: Stripe.Checkout.Session) {
 
   await sendSponsorThankYouLetter({
     sponsorName: sponsor.name,
-    tier: sponsor.tier === 'yellow' ? 'Gold' : sponsor.tier,
+    tier: sponsor.tier,
     amountCents: sponsor.amount_cents ?? session.amount_total ?? 0,
     contactEmail: sponsor.contact_email,
     contactName: sponsor.contact_name,
@@ -241,15 +235,11 @@ async function sendDonationThankYouEmail(params: {
   to: string
   name: string | null
   amountCents: number
-  recurring: boolean
 }) {
   const resend = getResend()
   if (!resend) return
 
   const amount = `$${(params.amountCents / 100).toFixed(2)}`
-  const recurringLine = params.recurring
-    ? ' This is a recurring monthly gift. Thank you for the ongoing support.'
-    : ''
 
   await resend.emails
     .send({
@@ -257,7 +247,7 @@ async function sendDonationThankYouEmail(params: {
       to: [params.to],
       bcc: [ADMIN_EMAIL],
       subject: `Thank you for supporting ${ORG.name}`,
-      html: `<p>Dear ${params.name ?? 'Friend of the Wizards'},</p><p>Thank you for your generous donation of <strong>${amount}</strong> to ${ORG.name}.${recurringLine}</p><p>Your support helps our wrestlers compete and grow.</p>`,
+      html: `<p>Dear ${params.name ?? 'Friend of the Wizards'},</p><p>Thank you for your generous donation of <strong>${amount}</strong> to ${ORG.name}.</p><p>Your support helps our wrestlers compete and grow.</p>`,
     })
     .catch((err) => sendAlert('Donation thank-you email failed', { to: params.to, error: String(err) }))
 }
