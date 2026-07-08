@@ -63,7 +63,7 @@ export default async function HomePage({
       )}
 
       <div className="relative">
-        <div className="relative z-0 lg:sticky lg:top-0">
+        <div className="sticky top-0 z-0">
           <Hero />
         </div>
         <div className="relative z-10">
@@ -75,7 +75,7 @@ export default async function HomePage({
       <ProgramStructure />
 
       <div className="relative">
-        <div className="relative z-0 lg:sticky lg:top-0">
+        <div className="sticky top-0 z-0">
           <HomeEventsSection tournaments={tournamentRows} />
         </div>
         <div className="relative z-10">
