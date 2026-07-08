@@ -19,6 +19,7 @@ import { HomeFacilitySection } from '@/components/landing/HomeFacilitySection'
 import { HomeTeamSection } from '@/components/landing/HomeTeamSection'
 import { HomeFacebookSection } from '@/components/landing/HomeFacebookSection'
 import { HomeMatTapeDivider } from '@/components/landing/HomeMatTapeDivider'
+import { SectionSlideOver } from '@/components/landing/SectionSlideOver'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { MobileCtaBar } from '@/components/landing/MobileCtaBar'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -43,7 +44,7 @@ export default async function HomePage({
   const tournamentRows = (tournaments ?? []) as Tournament[]
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-clw-black">
+    <main className="min-h-screen overflow-x-clip bg-clw-black">
       <SiteHeader />
       {donation === 'success' && (
         <div className="px-4 pt-24 sm:px-6 lg:px-8">
@@ -62,27 +63,27 @@ export default async function HomePage({
         </div>
       )}
 
-      <div className="relative">
-        <div className="sticky top-0 z-0">
-          <Hero />
-        </div>
-        <div className="relative z-10">
-          <HomeMatTapeDivider profile="white-left" />
-          <ProgramIntro />
-        </div>
-      </div>
+      <SectionSlideOver
+        background={<Hero />}
+        foreground={
+          <>
+            <HomeMatTapeDivider profile="white-left" />
+            <ProgramIntro />
+          </>
+        }
+      />
 
       <ProgramStructure />
 
-      <div className="relative">
-        <div className="sticky top-0 z-0">
-          <HomeEventsSection tournaments={tournamentRows} />
-        </div>
-        <div className="relative z-10">
-          <HomeMatTapeDivider profile="black-right" />
-          <HomeSupportIntro />
-        </div>
-      </div>
+      <SectionSlideOver
+        background={<HomeEventsSection tournaments={tournamentRows} />}
+        foreground={
+          <>
+            <HomeMatTapeDivider profile="black-right" />
+            <HomeSupportIntro />
+          </>
+        }
+      />
 
       <HomeTeamSection />
       <HomeFacilitySection />
