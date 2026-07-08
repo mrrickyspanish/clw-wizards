@@ -16,11 +16,11 @@ export function HomeFacilitySection() {
       <div id="location" className="relative mx-auto grid max-w-7xl scroll-mt-24 gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
         <div>
           <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-ink">Location</p>
-          <h2 className="mt-6 max-w-3xl uppercase leading-[0.92] text-clw-ink">
-            <span className="block font-cond text-[clamp(3rem,12vw,5rem)] font-light tracking-[-0.04em]">
+          <h2 className="mt-6 whitespace-nowrap uppercase leading-[0.92] text-clw-ink">
+            <span className="mr-2 inline font-cond text-[clamp(2.2rem,9.5vw,5rem)] font-light tracking-[-0.04em] sm:mr-3">
               Visit the
             </span>
-            <span className="block font-display text-[clamp(3.4rem,13vw,5.6rem)] font-black tracking-[-0.035em] text-clw-gold-ink">
+            <span className="inline font-display text-[clamp(2.45rem,10.5vw,5.6rem)] font-black tracking-[-0.035em] text-clw-gold-ink">
               Facility
             </span>
           </h2>
