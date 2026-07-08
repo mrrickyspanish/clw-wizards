@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
+  const secret = process.env.TURNSTILE_SECRET_KEY
+  if (!secret) {
+    return NextResponse.json({ success: false, error: 'Turnstile is not configured' }, { status: 503 })
+  }
+
   const { token } = await req.json()
 
   if (!token) {
@@ -11,7 +16,7 @@ export async function POST(req: NextRequest) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      secret: process.env.TURNSTILE_SECRET_KEY,
+      secret,
       response: token,
     }),
   })

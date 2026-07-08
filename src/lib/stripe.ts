@@ -1,8 +1,11 @@
 import Stripe from 'stripe'
 
+import { reportEnvironmentReadiness } from '@/lib/alerts'
+
 let client: Stripe | null = null
 
 export function getStripeClient() {
+  reportEnvironmentReadiness()
   if (client) return client
 
   const secretKey = process.env.STRIPE_SECRET_KEY

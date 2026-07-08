@@ -31,7 +31,11 @@ export function DonateSection() {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ flow: 'donation', amountCents: Math.round(effectiveDollars * 100) }),
+        body: JSON.stringify({
+          flow: 'donation',
+          amountCents: Math.round(effectiveDollars * 100),
+          recurring: false,
+        }),
       })
       const data = await res.json()
       if (!res.ok || !data.url) {
@@ -53,6 +57,7 @@ export function DonateSection() {
         <h2 className="font-display text-3xl uppercase tracking-wide text-clw-white sm:text-4xl">Support the Wizards</h2>
       </div>
       <p className="mt-1 text-base leading-relaxed text-clw-gray">Every gift goes straight back to the wrestlers.</p>
+      <p className="mt-1 text-sm text-clw-gray">One-time donations only for MVP 1.</p>
 
       <form onSubmit={handleSubmit} className="mt-5 flex flex-1 flex-col gap-4">
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
