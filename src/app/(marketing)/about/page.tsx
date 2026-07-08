@@ -54,9 +54,6 @@ export default function AboutPage() {
             <p className="mt-7 max-w-3xl text-xl leading-relaxed text-clw-gray sm:text-2xl sm:leading-relaxed lg:text-[1.35rem]">
               Wizards Wrestling Club gives young athletes a serious place to learn, compete, and grow. We combine high expectations with a supportive room where kids build confidence, discipline, and a lasting respect for the sport.
             </p>
-            <p className="mt-5 max-w-3xl text-lg leading-relaxed text-clw-gray sm:text-xl">
-              We are affiliated with the Crystal Lake Park District, registered through the Illinois Kids Wrestling Federation, and powered entirely by volunteers.
-            </p>
           </div>
 
           <div className="overflow-hidden border border-clw-gold/25 bg-clw-black-2 shadow-2xl shadow-black/40">
@@ -89,7 +86,10 @@ export default function AboutPage() {
       <section className="mission-frame relative grid grid-cols-1 gap-5 lg:grid-cols-12 lg:gap-6">
         <article className="chamfer-md card-depth border border-clw-gold/15 bg-clw-black-2 p-7 sm:p-8 lg:col-span-8 lg:p-10">
           <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold">Our Story</p>
-          <h2 className="mt-4 font-display text-4xl uppercase leading-none tracking-wide text-clw-white sm:text-5xl">A room built to move wrestlers forward.</h2>
+          <h2 className="mt-4 font-display text-4xl uppercase leading-[0.96] tracking-wide text-clw-white sm:text-5xl">
+            <span className="block">A Room Built to Move</span>
+            <span className="block">Wrestlers Forward.</span>
+          </h2>
           <div className="mt-6 h-px w-full bg-clw-gold/35" />
           <div className="mt-6 space-y-5 text-lg leading-relaxed text-clw-gray sm:text-xl sm:leading-relaxed">
             <p>
@@ -99,7 +99,7 @@ export default function AboutPage() {
               Our goal is simple: introduce wrestling in a competitive but positive environment and help every athlete reach their potential through serious commitment. State qualifiers, state placers, high school wrestlers, and college athletes have all come through the room, but progress is measured one wrestler at a time.
             </p>
             <p>
-              Wizards Wrestling Club is a 501(c)(3) nonprofit youth sports organization run 100% by volunteers.
+              Wizards Wrestling Club is a 501(c)(3) nonprofit youth sports organization run 100% by volunteers. We are affiliated with the Crystal Lake Park District and registered through the Illinois Kids Wrestling Federation (IKWF).
             </p>
           </div>
         </article>
@@ -109,7 +109,10 @@ export default function AboutPage() {
             <ShieldCheck className="h-6 w-6 text-clw-gold" />
             <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold">What We Stand For</p>
           </div>
-          <h2 className="mt-4 font-display text-4xl uppercase leading-none text-clw-white">The standard inside the room.</h2>
+          <h2 className="mt-4 font-display text-4xl uppercase leading-[0.96] text-clw-white">
+            <span className="block whitespace-nowrap">The Standard</span>
+            <span className="block">Inside the Room.</span>
+          </h2>
           <ul className="mt-7 space-y-5">
             {STAND_FOR.map((point) => (
               <li key={point} className="flex gap-3 text-lg leading-relaxed text-clw-gray">
@@ -127,11 +130,17 @@ export default function AboutPage() {
             <Award className="h-6 w-6 text-clw-gold" />
             <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold">Why Wrestling</p>
           </div>
-          <div className="mt-5 grid gap-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
-            <h2 className="font-display text-4xl uppercase leading-[0.95] text-clw-white sm:text-5xl lg:text-6xl">What the sport builds beyond the mat.</h2>
-            <p className="text-lg leading-relaxed text-clw-gray sm:text-xl">
-              Wrestling asks young athletes to solve problems under pressure, take responsibility for preparation, and keep working when progress is difficult.
-            </p>
+          <div className="mt-5 grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-10">
+            <h2 className="font-display text-4xl uppercase leading-[0.96] text-clw-white sm:text-5xl lg:text-6xl">
+              <span className="block">What the Sport Builds</span>
+              <span className="block">Beyond the Mat.</span>
+            </h2>
+            <div className="border-l-2 border-clw-gold bg-clw-black/45 p-5 sm:p-6">
+              <p className="font-cond text-sm uppercase tracking-[0.24em] text-clw-gold">Why It Matters</p>
+              <p className="mt-3 text-xl leading-relaxed text-clw-white sm:text-2xl">
+                Wrestling asks young athletes to solve problems under pressure, take responsibility for preparation, and keep working when progress is difficult.
+              </p>
+            </div>
           </div>
 
           <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -154,10 +163,16 @@ export default function AboutPage() {
                 <Users className="h-6 w-6 text-clw-gold" />
                 <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold">Leadership & Coaches</p>
               </div>
-              <h2 className="mt-4 font-display text-4xl uppercase leading-none text-clw-white sm:text-5xl">People who keep the room moving.</h2>
+              <h2 className="mt-4 font-display text-4xl uppercase leading-[0.96] text-clw-white sm:text-5xl">
+                <span className="block">People Who Keep</span>
+                <span className="block">The Room Moving.</span>
+              </h2>
             </div>
-            <Link href="/coaches" className="inline-flex items-center gap-2 font-cond text-base uppercase tracking-[0.18em] text-clw-gold hover:text-clw-gold-l">
-              Full staff <ArrowRight className="h-4 w-4" />
+            <Link
+              href="/coaches"
+              className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap border border-clw-gold/35 px-4 py-3 font-cond text-base uppercase tracking-[0.18em] text-clw-gold transition hover:border-clw-gold hover:text-clw-gold-l"
+            >
+              Full Staff <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
 
@@ -194,7 +209,10 @@ export default function AboutPage() {
             <MapPin className="h-6 w-6 text-clw-gold" />
             <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold">Club Details</p>
           </div>
-          <h2 className="mt-4 font-display text-4xl uppercase leading-none text-clw-white">Rooted here. Open to the area.</h2>
+          <h2 className="mt-4 font-display text-4xl uppercase leading-[0.96] text-clw-white">
+            <span className="block whitespace-nowrap">Rooted Here.</span>
+            <span className="block">Open to the Area.</span>
+          </h2>
 
           <div className="mt-7 overflow-hidden border border-clw-gold/15">
             {/* eslint-disable-next-line @next/next/no-img-element -- real club facility photo */}
@@ -227,14 +245,14 @@ export default function AboutPage() {
               rel="noopener noreferrer"
               className="chamfer-sm flex min-h-12 items-center justify-center bg-clw-gold px-5 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-black transition hover:bg-clw-gold-l"
             >
-              Get directions
+              Get Directions
             </a>
             <Link
               href="/sponsorship"
               className="flex min-h-12 items-center justify-center gap-2 border border-clw-gold/35 px-5 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-gold transition hover:border-clw-gold hover:text-clw-gold-l"
             >
               <HeartHandshake className="h-4 w-4" />
-              Support the club
+              Support the Club
             </Link>
           </div>
         </aside>
