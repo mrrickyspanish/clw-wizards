@@ -34,14 +34,13 @@ export function SiteFooter() {
                 src="/images/real/clw_star_stamp_yellow_gold.png"
                 alt=""
                 aria-hidden
-                className="h-16 w-16 shrink-0 object-contain sm:h-20 sm:w-20"
+                className="h-20 w-20 shrink-0 object-contain sm:h-24 sm:w-24"
               />
-              <div>
-                <p className="font-cond text-sm uppercase tracking-[0.26em] text-clw-gold">McHenry County, Illinois</p>
-                <p className="mt-2 font-display text-3xl uppercase leading-none tracking-wide text-clw-white sm:text-4xl">
-                  Wizards Wrestling
-                </p>
-              </div>
+              <p className="font-display text-3xl uppercase leading-[0.82] tracking-wide text-clw-white sm:text-4xl">
+                <span className="block">Wizards</span>
+                <span className="block text-clw-gold">Wrestling</span>
+                <span className="block">Club</span>
+              </p>
             </div>
           </div>
 
@@ -67,16 +66,16 @@ export function SiteFooter() {
             </nav>
           </div>
 
-          <div>
+          <div className="text-left">
             <p className="font-cond text-sm uppercase tracking-[0.24em] text-clw-gold">Get in Touch</p>
             <div className="mt-5 space-y-5 text-base leading-relaxed text-clw-gray sm:text-lg lg:text-base">
               <a
                 href={MAP_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-start gap-3 transition hover:text-clw-gold"
+                className="grid grid-cols-[1.25rem_1fr] items-start gap-3 text-left transition hover:text-clw-gold"
               >
-                <MapPin className="mt-1 h-5 w-5 shrink-0 text-clw-gold" />
+                <MapPin className="mt-0.5 h-5 w-5 text-clw-gold" />
                 <span>
                   975 Nimco Dr, Unit L
                   <br />
@@ -84,8 +83,11 @@ export function SiteFooter() {
                 </span>
               </a>
 
-              <a href={`mailto:${ORG.contactEmail}`} className="flex items-center gap-3 break-all transition hover:text-clw-gold">
-                <Mail className="h-5 w-5 shrink-0 text-clw-gold" />
+              <a
+                href={`mailto:${ORG.contactEmail}`}
+                className="grid grid-cols-[1.25rem_1fr] items-start gap-3 break-all text-left transition hover:text-clw-gold"
+              >
+                <Mail className="mt-0.5 h-5 w-5 text-clw-gold" />
                 <span>{ORG.contactEmail}</span>
               </a>
 
@@ -94,12 +96,10 @@ export function SiteFooter() {
                   href={ORG.social.facebook}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-3 transition hover:text-clw-gold"
+                  className="grid grid-cols-[1.25rem_1fr] items-start gap-3 text-left transition hover:text-clw-gold"
                   aria-label="Wizards Wrestling on Facebook"
                 >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full border border-clw-gold/35 text-clw-gold">
-                    <Facebook className="h-5 w-5" />
-                  </span>
+                  <Facebook className="mt-0.5 h-5 w-5 text-clw-gold" />
                   <span>Follow us on Facebook</span>
                 </a>
               )}
