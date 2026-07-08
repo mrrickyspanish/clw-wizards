@@ -12,7 +12,7 @@ const TAPE_SETTINGS: Record<TapeProfile, TapeSettings> = {
   'white-left': {
     src: '/images/real/clw_tape_white_profile_a_star_left.png',
     frameClassName: 'h-6 sm:h-7 lg:h-8',
-    frameOffset: 'translateY(-68%)',
+    frameOffset: 'translateY(0)',
     imageOffset: 'translate(-50%, -43%)',
   },
   'black-right': {
