@@ -12,7 +12,7 @@ export function ProgramIntro() {
 
       <div className="relative mx-auto flex max-w-7xl flex-col lg:flex-row lg:items-center lg:gap-12">
         <div className="max-w-3xl lg:flex-1">
-          <p className="hidden font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-ink lg:block">
+          <p className="hidden font-cond text-sm uppercase tracking-[0.32em] text-clw-gold lg:block">
             Wizards Wrestling Club
           </p>
           <h2 className="max-w-3xl uppercase leading-[0.92] text-clw-ink lg:mt-3">
@@ -35,7 +35,7 @@ export function ProgramIntro() {
             </p>
           </div>
           <Button asChild size="lg" className="chamfer-sm mt-8 rounded-none">
-            <Link href="/about">Ready to become a Wizard? →</Link>
+            <Link href="/join">Ready to become a Wizard? →</Link>
           </Button>
         </div>
 
