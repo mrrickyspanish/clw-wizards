@@ -5,8 +5,8 @@
  */
 export function Hero() {
   return (
-    <section className="relative isolate overflow-hidden border-b border-clw-gold/10 bg-clw-black pt-24 md:pt-28 lg:pt-[72px]">
-      <div className="relative flex min-h-[552px] overflow-hidden bg-clw-black-2 lg:h-[calc(100vh-72px)] lg:min-h-[616px] lg:max-h-[900px]">
+    <section className="relative isolate overflow-hidden border-b border-clw-gold/10 bg-clw-black lg:pt-[72px]">
+      <div className="relative flex min-h-[648px] overflow-hidden bg-clw-black-2 lg:h-[calc(100vh-72px)] lg:min-h-[616px] lg:max-h-[900px]">
         <div className="absolute inset-0">
           {/* eslint-disable-next-line @next/next/no-img-element -- real club team photo */}
           <img
@@ -16,7 +16,6 @@ export function Hero() {
             className="animate-kenburns absolute inset-0 h-full w-full object-cover opacity-90 lg:hidden"
           />
 
-          {/* Muted cinematic base using the final landscape asset. */}
           {/* eslint-disable-next-line @next/next/no-img-element -- supplied desktop hero artwork */}
           <img
             src="/images/real/clw_wizards_hero_landscape.png"
@@ -26,7 +25,6 @@ export function Hero() {
             style={{ filter: 'saturate(0.22) contrast(1.06) brightness(0.74)' }}
           />
 
-          {/* Same file, same crop: clearer color and detail around the real photographic center. */}
           {/* eslint-disable-next-line @next/next/no-img-element -- registered cinematic focus pass */}
           <img
             src="/images/real/clw_wizards_hero_landscape.png"
@@ -42,7 +40,6 @@ export function Hero() {
             }}
           />
 
-          {/* Subtle falloff keeps the extension secondary without creating a visible photo-on-photo seam. */}
           <div
             aria-hidden
             className="absolute inset-0 hidden lg:block"
@@ -52,7 +49,6 @@ export function Hero() {
             }}
           />
 
-          {/* Fine texture unifies the full image without obscuring faces or uniforms. */}
           <div
             aria-hidden
             className="absolute inset-0 hidden opacity-[0.045] mix-blend-soft-light lg:block"
@@ -77,7 +73,7 @@ export function Hero() {
           <div className="absolute inset-0 bg-gradient-to-t from-clw-black-2/75 via-clw-black/10 to-clw-black/10 lg:hidden" />
         </div>
 
-        <div className="relative z-10 flex max-w-4xl flex-col justify-end px-5 py-12 sm:px-8 lg:min-h-[616px] lg:w-[42%] lg:max-w-none lg:items-start lg:justify-center lg:px-12 lg:py-0 lg:text-left xl:w-[44%] xl:px-16 2xl:w-[46%] 2xl:px-20">
+        <div className="relative z-10 flex max-w-4xl flex-col justify-end px-5 pb-12 pt-28 sm:px-8 lg:min-h-[616px] lg:w-[42%] lg:max-w-none lg:items-start lg:justify-center lg:px-12 lg:py-0 lg:text-left xl:w-[44%] xl:px-16 2xl:w-[46%] 2xl:px-20">
           <p className="mb-4 font-cond text-xs uppercase tracking-[0.34em] text-clw-gold sm:text-sm lg:hidden">
             Wizards Wrestling • McHenry County
           </p>
