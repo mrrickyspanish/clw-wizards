@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { ArrowUpRight, X } from 'lucide-react'
 
-import { ORG } from '@/config/org.config'
 import { Button } from '@/components/ui/button'
 
 const NAV_LINKS = [
@@ -40,8 +39,8 @@ export function SiteHeader() {
         }`}
       >
         <div className="px-5 py-4 sm:px-8 lg:px-12 xl:px-16 2xl:px-20">
-          {/* Mobile/tablet bar: waffle menu left, centered CLW lockup, Join Now CTA right. */}
-          <div className="grid grid-cols-3 items-center lg:hidden">
+          {/* Mobile/tablet bar: waffle menu left, centered brand lockup, Join Now CTA right. */}
+          <div className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-3 lg:hidden">
             <button
               type="button"
               className="flex flex-col justify-self-start gap-1.5 text-clw-white"
@@ -59,13 +58,16 @@ export function SiteHeader() {
               )}
             </button>
 
-            <Link href="/" className="justify-self-center font-display text-4xl tracking-wide text-clw-gold">
-              {ORG.shortName}
+            <Link
+              href="/"
+              className="justify-self-center whitespace-nowrap font-cond text-[1.25rem] font-semibold uppercase leading-none tracking-[0.02em] text-clw-gold sm:text-2xl"
+            >
+              Wizards Wrestling
             </Link>
 
             <Link
               href="/signup"
-              className="flex items-center justify-self-end gap-1 text-sm font-semibold uppercase tracking-wide text-clw-white"
+              className="flex items-center justify-self-end gap-1 whitespace-nowrap text-sm font-semibold uppercase tracking-wide text-clw-white"
             >
               Join Now
               <ArrowUpRight className="h-4 w-4 text-clw-gold" />
@@ -74,11 +76,8 @@ export function SiteHeader() {
 
           {/* Desktop bar: full lockup, nav links, login + join CTA. */}
           <div className="hidden items-center justify-between lg:flex">
-            <Link href="/" className="font-display text-3xl tracking-wide text-clw-gold">
-              {ORG.shortName}
-              <span className="ml-2 align-middle text-sm font-body uppercase tracking-[0.2em] text-clw-gray">
-                Wrestling Club
-              </span>
+            <Link href="/" className="font-cond text-3xl font-semibold uppercase tracking-[0.03em] text-clw-gold">
+              Wizards Wrestling
             </Link>
 
             <nav className="flex items-center gap-7 xl:gap-9">
