@@ -27,8 +27,8 @@ export function SiteFooter() {
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_8%,rgba(240,192,32,0.08),transparent_24%),linear-gradient(180deg,rgba(0,0,0,0.05),rgba(0,0,0,0.72))]" />
 
       <div className="relative mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-14 lg:px-12 lg:py-16 xl:px-16 2xl:px-20">
-        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1.1fr_0.8fr_0.9fr_1.2fr] lg:gap-12">
-          <div>
+        <div className="grid grid-cols-2 gap-x-8 gap-y-12 lg:grid-cols-[1.1fr_0.8fr_0.9fr_1.2fr] lg:gap-12">
+          <div className="col-span-2 lg:col-span-1">
             <div className="flex items-center gap-4">
               {/* eslint-disable-next-line @next/next/no-img-element -- supplied transparent gold brand seal */}
               <img
@@ -67,9 +67,9 @@ export function SiteFooter() {
             </nav>
           </div>
 
-          <div className="text-left">
+          <div className="col-span-2 text-left lg:col-span-1">
             <p className="font-cond text-sm uppercase tracking-[0.24em] text-clw-gold">Get in Touch</p>
-            <div className="mt-5 space-y-5 text-base leading-relaxed text-clw-gray sm:text-lg lg:text-base">
+            <div className="mt-5 grid gap-5 text-base leading-relaxed text-clw-gray sm:grid-cols-2 sm:text-lg lg:grid-cols-1 lg:text-base">
               <a
                 href={MAP_URL}
                 target="_blank"
@@ -97,7 +97,7 @@ export function SiteFooter() {
                   href={ORG.social.facebook}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="grid grid-cols-[1.25rem_1fr] items-start gap-3 text-left transition hover:text-clw-gold"
+                  className="grid grid-cols-[1.25rem_1fr] items-start gap-3 text-left transition hover:text-clw-gold sm:col-span-2 lg:col-span-1"
                   aria-label="Wizards Wrestling on Facebook"
                 >
                   <Facebook className="mt-0.5 h-5 w-5 text-clw-gold" />
