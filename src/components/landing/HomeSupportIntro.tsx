@@ -19,7 +19,7 @@ const SUPPORT_OPTIONS = [
   },
   {
     title: 'Sponsor',
-    body: 'Give your business a direct way to support Crystal Lake wrestling families and be seen by the club community.',
+    body: 'Give your business a direct way to support McHenry County wrestling families and be seen by the club community.',
     href: '/sponsorship#sponsors',
     cta: 'See sponsor options',
     Icon: HeartHandshake,
