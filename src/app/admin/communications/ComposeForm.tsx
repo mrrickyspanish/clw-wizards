@@ -3,9 +3,10 @@
 import { useState, type FormEvent } from 'react'
 
 import { previewRecipients } from './actions'
-import type { CommTarget } from '@/lib/comms/recipients'
+import type { CommTarget, MissingDocument } from '@/lib/comms/recipients'
 import type { CommType } from '@/types/database'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -19,14 +20,20 @@ import {
 } from '@/components/ui/select'
 
 type TournamentOption = { id: string; name: string }
-type AudienceKind = 'all' | 'practice_group' | 'tournament_registrants' | 'outstanding_dues'
+type AudienceKind = 'all' | 'practice_groups' | 'tournament_registrants' | 'outstanding_dues' | 'custom'
 
 const AUDIENCE_LABELS: Record<AudienceKind, string> = {
   all: 'All active parents',
-  practice_group: 'A practice group',
+  practice_groups: 'Practice groups',
   tournament_registrants: "A tournament's registrants",
   outstanding_dues: 'Parents with outstanding dues',
+  custom: 'Custom group (missing documents)',
 }
+
+const DOCUMENT_FILTERS: { value: MissingDocument; label: string }[] = [
+  { value: 'birth_certificate', label: 'Missing a birth certificate' },
+  { value: 'usa_wrestling_card', label: 'Missing a USA Wrestling card' },
+]
 
 // Plain text from the textarea is sent to Resend as the email HTML body, so
 // escape it and turn newlines into <br> — admins type plain text, not markup.
@@ -40,18 +47,26 @@ function textToHtml(text: string): string {
 
 function buildTarget(
   audience: AudienceKind,
-  practiceGroup: string,
-  tournamentId: string
+  practiceGroups: string[],
+  tournamentId: string,
+  documents: MissingDocument[]
 ): CommTarget | null {
   if (audience === 'all') return { type: 'all' }
   if (audience === 'outstanding_dues') return { type: 'outstanding_dues' }
-  if (audience === 'practice_group') {
-    return practiceGroup ? { type: 'practice_group', practiceGroup } : null
+  if (audience === 'practice_groups') {
+    return practiceGroups.length ? { type: 'practice_groups', practiceGroups } : null
   }
   if (audience === 'tournament_registrants') {
     return tournamentId ? { type: 'tournament_registrants', tournamentId } : null
   }
+  if (audience === 'custom') {
+    return documents.length ? { type: 'missing_document', documents } : null
+  }
   return null
+}
+
+function toggle<T>(list: T[], value: T): T[] {
+  return list.includes(value) ? list.filter((v) => v !== value) : [...list, value]
 }
 
 export function ComposeForm({
@@ -62,7 +77,8 @@ export function ComposeForm({
   tournaments: TournamentOption[]
 }) {
   const [audience, setAudience] = useState<AudienceKind>('all')
-  const [practiceGroup, setPracticeGroup] = useState(practiceGroups[0] ?? '')
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([])
+  const [documents, setDocuments] = useState<MissingDocument[]>([])
   const [tournamentId, setTournamentId] = useState(tournaments[0]?.id ?? '')
   const [subject, setSubject] = useState('')
   const [message, setMessage] = useState('')
@@ -85,9 +101,9 @@ export function ComposeForm({
 
   async function handlePreview() {
     resetFeedback()
-    const target = buildTarget(audience, practiceGroup, tournamentId)
+    const target = buildTarget(audience, selectedGroups, tournamentId, documents)
     if (!target) {
-      setError('Pick a practice group or tournament first.')
+      setError('Choose at least one option for this audience first.')
       return
     }
     setPreviewing(true)
@@ -104,9 +120,9 @@ export function ComposeForm({
     e.preventDefault()
     resetFeedback()
 
-    const target = buildTarget(audience, practiceGroup, tournamentId)
+    const target = buildTarget(audience, selectedGroups, tournamentId, documents)
     if (!target) {
-      setError('Pick a practice group or tournament first.')
+      setError('Choose at least one option for this audience first.')
       return
     }
     if (!subject.trim()) {
@@ -182,27 +198,53 @@ export function ComposeForm({
         </Select>
       </div>
 
-      {audience === 'practice_group' && (
+      {audience === 'practice_groups' && (
         <div className="space-y-2">
-          <Label>Practice group</Label>
-          <Select
-            value={practiceGroup}
-            onValueChange={(value) => {
-              setPracticeGroup(value)
-              setPreview(null)
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {practiceGroups.map((g) => (
-                <SelectItem key={g} value={g}>
-                  {g}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label>Practice groups</Label>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {practiceGroups.map((g) => (
+              <label
+                key={g}
+                className="flex cursor-pointer items-center gap-3 rounded-md border border-clw-gold/20 bg-clw-black/40 px-3 py-2.5"
+              >
+                <Checkbox
+                  checked={selectedGroups.includes(g)}
+                  onCheckedChange={() => {
+                    setSelectedGroups((prev) => toggle(prev, g))
+                    setPreview(null)
+                  }}
+                />
+                <span className="text-sm">{g}</span>
+              </label>
+            ))}
+          </div>
+          <p className="text-xs text-clw-gray">Reaches parents of any active wrestler in the checked groups.</p>
+        </div>
+      )}
+
+      {audience === 'custom' && (
+        <div className="space-y-2">
+          <Label>Missing documents</Label>
+          <div className="grid gap-2">
+            {DOCUMENT_FILTERS.map((doc) => (
+              <label
+                key={doc.value}
+                className="flex cursor-pointer items-center gap-3 rounded-md border border-clw-gold/20 bg-clw-black/40 px-3 py-2.5"
+              >
+                <Checkbox
+                  checked={documents.includes(doc.value)}
+                  onCheckedChange={() => {
+                    setDocuments((prev) => toggle(prev, doc.value))
+                    setPreview(null)
+                  }}
+                />
+                <span className="text-sm">{doc.label}</span>
+              </label>
+            ))}
+          </div>
+          <p className="text-xs text-clw-gray">
+            Reaches parents of active wrestlers still missing any checked document.
+          </p>
         </div>
       )}
 
