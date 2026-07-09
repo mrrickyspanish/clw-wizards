@@ -242,7 +242,7 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
 
           <div className="space-y-2">
             <Label>Eligible practice groups</Label>
-            <p className="text-xs text-clw-gray">Leave all unchecked to make it open to every group.</p>
+            <p className="text-sm text-clw-gray">Leave all unchecked to make it open to every group.</p>
             <div className="grid grid-cols-2 gap-2">
               {ORG.practiceGroups.map((group) => (
                 <label key={group} className="flex items-center gap-2 text-sm">

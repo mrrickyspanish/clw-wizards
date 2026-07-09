@@ -96,7 +96,7 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
                   <CardTitle className="text-clw-white">
                     {athlete.first_name} {athlete.last_name}
                   </CardTitle>
-                  <p className="mt-1 text-xs text-clw-gray">Born {formatDate(athlete.date_of_birth)}</p>
+                  <p className="mt-1 text-sm text-clw-gray">Born {formatDate(athlete.date_of_birth)}</p>
                 </div>
                 <Badge
                   variant="outline"

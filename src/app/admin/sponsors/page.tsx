@@ -102,7 +102,7 @@ export default async function AdminSponsorsPage() {
                 <TableRow key={s.id} className="border-clw-gold/10">
                   <TableCell>
                     <span className="font-medium text-clw-white">{s.name}</span>
-                    {s.recurring && <span className="block text-xs text-clw-gray/70">recurring</span>}
+                    {s.recurring && <span className="block text-sm text-clw-gray/70">recurring</span>}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="border-clw-gold/40 bg-clw-gold/10 text-clw-gold">
@@ -112,7 +112,7 @@ export default async function AdminSponsorsPage() {
                   <TableCell className="text-clw-white">{money(s.amount_cents)}</TableCell>
                   <TableCell className="text-clw-gray">
                     {s.contact_name ?? '—'}
-                    {s.contact_email && <span className="block text-xs text-clw-gray/70">{s.contact_email}</span>}
+                    {s.contact_email && <span className="block text-sm text-clw-gray/70">{s.contact_email}</span>}
                   </TableCell>
                   <TableCell>
                     <Badge

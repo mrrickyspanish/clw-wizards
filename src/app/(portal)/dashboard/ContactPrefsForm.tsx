@@ -53,7 +53,7 @@ export function ContactPrefsForm({
           checked={smsOptIn}
           onCheckedChange={(checked) => setSmsOptIn(checked === true)}
         />
-        <Label htmlFor="smsOptIn" className="text-xs font-normal leading-relaxed text-clw-gray">
+        <Label htmlFor="smsOptIn" className="text-sm font-normal leading-relaxed text-clw-gray">
           {SMS_CONSENT_TEXT}
         </Label>
       </div>
@@ -61,7 +61,7 @@ export function ContactPrefsForm({
         <Button type="submit" size="sm" disabled={loading}>
           {loading ? 'Saving…' : 'Save'}
         </Button>
-        {saved && <p className="text-xs text-clw-gold-ink">Saved</p>}
+        {saved && <p className="text-sm text-clw-gold-ink">Saved</p>}
       </div>
     </form>
   )

@@ -87,7 +87,7 @@ export default async function TournamentsPage() {
                     {formatDate(t.date)} · {t.location}, {t.city}, {t.state}
                   </p>
                   {(t.weigh_in_date || t.weigh_in_time || t.start_time) && (
-                    <p className="mt-1 text-xs text-clw-gray/70">
+                    <p className="mt-1 text-sm text-clw-gray/70">
                       {t.weigh_in_date && `Weigh-in ${formatDate(t.weigh_in_date)}`}
                       {t.weigh_in_time && ` at ${formatTime(t.weigh_in_time)}`}
                       {t.start_time && ` · Starts ${formatTime(t.start_time)}`}

@@ -262,7 +262,7 @@ export function ComposeForm({
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Write your message to parents…"
         />
-        <p className="text-xs text-clw-gray">
+        <p className="text-sm text-clw-gray">
           Sends by email. SMS is a planned fast-follow. Only parents with a valid email receive it.
         </p>
       </div>

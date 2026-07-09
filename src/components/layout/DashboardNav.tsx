@@ -37,7 +37,7 @@ export function DashboardNav({ title, items, userName, role }: DashboardNavProps
     <aside className="hidden md:flex w-64 flex-col bg-clw-black border-r border-clw-gold/10">
       <div className="p-6 border-b border-clw-gold/10">
         <p className="text-lg font-display text-clw-gold-ink">{ORG.shortName}</p>
-        <p className="text-xs text-clw-gray">{title}</p>
+        <p className="text-sm text-clw-gray">{title}</p>
       </div>
 
       <nav className="flex-1 p-4 space-y-1">
@@ -64,7 +64,7 @@ export function DashboardNav({ title, items, userName, role }: DashboardNavProps
         <div className="flex items-center justify-between px-2">
           <div className="min-w-0">
             <p className="text-sm font-medium text-clw-white truncate">{userName ?? 'User'}</p>
-            <p className="text-xs text-clw-gray capitalize">{role}</p>
+            <p className="text-sm text-clw-gray capitalize">{role}</p>
           </div>
           <div className="flex items-center gap-1">
             <ThemeToggle />
