@@ -15,6 +15,7 @@ import {
 
 import { ORG } from '@/config/org.config'
 import { TRAINING_GROUPS } from '@/config/groups'
+import { BrandedPhotoMosaic } from '@/components/marketing/BrandedPhotoMosaic'
 
 const MAP_URL = ORG.facilityMapUrl
 const SECTION_HEADING_CLASS = 'mt-4 font-display text-4xl uppercase leading-[0.96] text-clw-white sm:text-5xl'
@@ -168,20 +169,13 @@ export default function JoinPage() {
             </ul>
           </div>
 
-          <div className="relative aspect-[5/4] w-full">
-            <div className="absolute left-0 top-0 z-10 h-[58%] w-[62%] overflow-hidden border border-clw-ink/30 bg-clw-black">
-              {/* eslint-disable-next-line @next/next/no-img-element -- real club team photography */}
-              <img src="/images/real/clw-wizards-youth-team-photo.jpg" alt="Wizards youth wrestlers gathered as a team" className="h-full w-full object-cover" />
-            </div>
-            <div className="absolute right-0 top-[18%] z-20 h-[56%] w-[55%] overflow-hidden border border-clw-ink/30 bg-clw-black shadow-2xl shadow-black/20">
-              {/* eslint-disable-next-line @next/next/no-img-element -- real club family photography */}
-              <img src="/images/real/clw-wizards-family-photo.jpg" alt="Wizards wrestling families together" className="h-full w-full object-cover" />
-            </div>
-            <div className="absolute bottom-0 left-[14%] z-30 h-[43%] w-[43%] overflow-hidden border border-clw-ink/30 bg-clw-black shadow-2xl shadow-black/25">
-              {/* eslint-disable-next-line @next/next/no-img-element -- real club wrestler photography */}
-              <img src="/images/real/clw-wizards-trio-featured-photo.jpg" alt="Three Wizards wrestlers together" className="h-full w-full object-cover" />
-            </div>
-          </div>
+          <BrandedPhotoMosaic
+            className="mt-6 lg:mt-0"
+            primary={{ src: '/images/real/clw-wizards-youth-team-photo.jpg', alt: 'Wizards youth wrestlers gathered as a team' }}
+            top={{ src: '/images/real/clw-wizards-family-photo.jpg', alt: 'Wizards wrestling families together' }}
+            bottom={{ src: '/images/real/clw-wizards-trio-featured-photo.jpg', alt: 'Three Wizards wrestlers together' }}
+            caption="Team. Family. Competition."
+          />
         </div>
       </section>
 

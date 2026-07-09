@@ -10,12 +10,21 @@ type TapeSettings = {
 }
 
 const TAPE_SETTINGS: Record<TapeProfile, TapeSettings> = {
+  // The tape artwork is a full torn-edge band (~19% of a 2048x1158 canvas).
+  // The white profile straddles the section seam and keeps its organic torn
+  // edges visible with a cast shadow, so it reads as tape laid over the joint
+  // rather than a hard-clipped strip sitting on top of it.
   'white-left': {
     src: '/images/real/clw_tape_white_profile_a_star_left.png',
-    frameClassName: 'h-12 sm:h-14 lg:h-16',
-    frameOffset: 'translateY(0)',
-    imageOffset: 'translate(-60%, -50%)',
-    imageWidthClassName: 'w-[130vw]',
+    frameClassName: 'h-[14vw] min-h-[3.75rem]',
+    frameOffset: 'translateY(-50%)',
+    // Widen and shift so the tape's own printed star crops off the left
+    // edge — the single centered gold stamp is the only visible star, the
+    // way the black-right seam reads.
+    imageOffset: 'translate(-60%, -47.5%)',
+    imageWidthClassName: 'w-[150vw]',
+    imageFilter:
+      'drop-shadow(0 10px 14px rgba(0,0,0,0.4)) drop-shadow(0 -5px 10px rgba(0,0,0,0.3)) brightness(0.98)',
   },
   'black-right': {
     src: '/images/real/clw_tape_black_profile_b_star_right.png',

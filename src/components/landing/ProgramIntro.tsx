@@ -1,6 +1,7 @@
 import Link from 'next/link'
 
 import { Button } from '@/components/ui/button'
+import { BrandedPhotoMosaic } from '@/components/marketing/BrandedPhotoMosaic'
 
 export function ProgramIntro() {
   return (
@@ -34,21 +35,13 @@ export function ProgramIntro() {
           </Button>
         </div>
 
-        <div className="mt-10 lg:mt-0 lg:w-[48%] lg:flex-shrink-0">
-          <div className="relative aspect-[5/4] w-full">
-            <div className="absolute left-[3%] top-[4%] z-10 aspect-[3/2] w-[60%] overflow-hidden border border-clw-ink/70 bg-clw-black-2">
-              {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
-              <img src="/images/real/clw-wizards-youth-team-photo.jpg" alt="Wizards youth wrestlers gathered for a team photo" className="h-full w-full object-cover contrast-110" />
-            </div>
-            <div className="absolute right-[1%] top-[23%] z-20 aspect-[3/2] w-[52%] overflow-hidden border border-clw-ink/70 bg-clw-black-2">
-              {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
-              <img src="/images/real/clw-wizards-family-photo.jpg" alt="Wizards families and wrestlers together" className="h-full w-full object-cover contrast-110" />
-            </div>
-            <div className="absolute left-[12%] top-[43%] z-30 aspect-[4/3] w-[40%] overflow-hidden border border-clw-ink/70 bg-clw-black-2">
-              {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
-              <img src="/images/real/clw-wizards-trio-featured-photo.jpg" alt="Three Wizards wrestlers featured together" className="h-full w-full object-cover contrast-110" />
-            </div>
-          </div>
+        <div className="mt-12 lg:mt-0 lg:w-[48%] lg:flex-shrink-0">
+          <BrandedPhotoMosaic
+            primary={{ src: '/images/real/clw-wizards-youth-team-photo.jpg', alt: 'Wizards youth wrestlers gathered for a team photo' }}
+            top={{ src: '/images/real/clw-wizards-family-photo.jpg', alt: 'Wizards families and wrestlers together' }}
+            bottom={{ src: '/images/real/clw-wizards-trio-featured-photo.jpg', alt: 'Three Wizards wrestlers featured together' }}
+            caption="Four decades of McHenry County wrestling"
+          />
         </div>
       </div>
     </section>
