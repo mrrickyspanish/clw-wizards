@@ -28,21 +28,12 @@ export function SiteFooter() {
 
       <div className="relative mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-14 lg:px-12 lg:py-16 xl:px-16 2xl:px-20">
         <div className="grid grid-cols-2 gap-x-8 gap-y-12 lg:grid-cols-[1.1fr_0.8fr_0.9fr_1.2fr] lg:gap-12">
-          <div className="col-span-2 lg:col-span-1">
-            <div className="flex items-center gap-4">
-              <p className="font-display text-3xl uppercase leading-[0.82] tracking-wide text-clw-white sm:text-4xl">
-                <span className="block">Wizards</span>
-                <span className="block text-clw-gold">Wrestling</span>
-                <span className="block">Club</span>
-              </p>
-              {/* eslint-disable-next-line @next/next/no-img-element -- supplied transparent gold brand seal */}
-              <img
-                src="/images/real/clw_star_stamp_yellow_gold.png"
-                alt=""
-                aria-hidden
-                className="h-20 w-20 shrink-0 object-contain sm:h-24 sm:w-24"
-              />
-            </div>
+          <div className="col-span-2 lg:col-span-1 lg:flex lg:items-end">
+            <p className="font-display text-3xl uppercase leading-[0.82] tracking-wide text-clw-white sm:text-4xl">
+              <span className="block">Wizards</span>
+              <span className="block text-clw-gold">Wrestling</span>
+              <span className="block">Club</span>
+            </p>
           </div>
 
           <div>
