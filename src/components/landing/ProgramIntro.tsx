@@ -34,20 +34,60 @@ export function ProgramIntro() {
           </Button>
         </div>
 
-        <div className="mt-10 lg:mt-0 lg:w-[48%] lg:flex-shrink-0">
-          <div className="relative aspect-[5/4] w-full">
-            <div className="absolute left-[3%] top-[4%] z-10 aspect-[3/2] w-[60%] overflow-hidden border border-clw-ink/70 bg-clw-black-2">
-              {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
-              <img src="/images/real/clw-wizards-youth-team-photo.jpg" alt="Wizards youth wrestlers gathered for a team photo" className="h-full w-full object-cover contrast-110" />
-            </div>
-            <div className="absolute right-[1%] top-[23%] z-20 aspect-[3/2] w-[52%] overflow-hidden border border-clw-ink/70 bg-clw-black-2">
-              {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
-              <img src="/images/real/clw-wizards-family-photo.jpg" alt="Wizards families and wrestlers together" className="h-full w-full object-cover contrast-110" />
-            </div>
-            <div className="absolute left-[12%] top-[43%] z-30 aspect-[4/3] w-[40%] overflow-hidden border border-clw-ink/70 bg-clw-black-2">
-              {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
-              <img src="/images/real/clw-wizards-trio-featured-photo.jpg" alt="Three Wizards wrestlers featured together" className="h-full w-full object-cover contrast-110" />
-            </div>
+        <div className="mt-14 lg:mt-0 lg:w-[48%] lg:flex-shrink-0">
+          <div className="relative mx-auto w-full max-w-sm sm:max-w-md lg:max-w-none">
+            {/* Primary proof: Wizards wrestlers on the mat, framed and branded with
+                an inline club-record strip so the photo reads as evidence, not decoration. */}
+            <figure className="chamfer-md card-depth relative border border-clw-ink/15 bg-clw-black-2 shadow-2xl shadow-black/25">
+              <div className="relative aspect-[4/5] overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
+                <img
+                  src="/images/real/clw-wizards-trio-featured-photo.jpg"
+                  alt="Three young Wizards wrestlers in club gear at an IKWF state-series tournament"
+                  className="h-full w-full object-cover object-center contrast-105"
+                />
+                <div aria-hidden className="pointer-events-none absolute inset-0 [box-shadow:inset_0_0_0_1px_rgba(17,17,17,0.14)]" />
+              </div>
+              <figcaption className="grid grid-cols-3 border-t-2 border-clw-gold bg-clw-ink text-center">
+                <div className="border-r border-white/10 px-2 py-4">
+                  <p className="font-display text-2xl leading-none text-clw-gold sm:text-3xl">40+</p>
+                  <p className="mt-1.5 font-cond text-sm uppercase tracking-[0.12em] text-white/70">Years</p>
+                </div>
+                <div className="border-r border-white/10 px-2 py-4">
+                  <p className="font-display text-2xl leading-none text-clw-gold sm:text-3xl">IKWF</p>
+                  <p className="mt-1.5 font-cond text-sm uppercase tracking-[0.12em] text-white/70">Registered</p>
+                </div>
+                <div className="px-2 py-4">
+                  <p className="font-display text-2xl leading-none text-clw-gold sm:text-3xl">120+</p>
+                  <p className="mt-1.5 font-cond text-sm uppercase tracking-[0.12em] text-white/70">Wrestlers</p>
+                </div>
+              </figcaption>
+            </figure>
+
+            {/* Brand mark stamped over the frame corner. */}
+            {/* eslint-disable-next-line @next/next/no-img-element -- brand star asset */}
+            <img
+              src="/images/real/clw_star_stamp_yellow_gold.png"
+              alt=""
+              aria-hidden
+              draggable={false}
+              className="absolute -right-4 -top-5 h-20 w-20 rotate-[8deg] select-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.4)] sm:-right-6 sm:-top-6 sm:h-24 sm:w-24"
+            />
+
+            {/* Secondary proof: hardware. One deliberate overlap for depth,
+                seated above the record strip so no stat is covered. */}
+            <figure className="absolute bottom-24 -left-5 w-[44%] max-w-[200px] sm:bottom-28 sm:-left-7">
+              <div className="chamfer-sm overflow-hidden border-2 border-clw-gold bg-clw-black-2 shadow-xl shadow-black/40">
+                <div className="relative aspect-[4/3] overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
+                  <img
+                    src="/images/real/clw-wizards-youth-win.jpg"
+                    alt="Wizards youth team holding a tournament trophy"
+                    className="h-full w-full object-cover object-center contrast-105"
+                  />
+                </div>
+              </div>
+            </figure>
           </div>
         </div>
       </div>
