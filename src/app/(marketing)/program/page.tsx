@@ -9,21 +9,25 @@ const PROGRAM_GROUPS = [
   {
     number: '1',
     label: 'Learning the Fundamentals',
+    level: 'New to the sport',
     body: 'Our youngest, brand-new wrestlers (6 & under). Learn the sport, build safe habits, and find out how much they love it.',
   },
   {
     number: '2',
     label: 'Building the Basics',
+    level: 'Developing',
     body: 'Ages roughly 6–10, still learning and developing. Steady growth over competition as wrestlers sharpen technique and confidence.',
   },
   {
     number: '3',
     label: 'Competing Regularly',
+    level: 'Competitive',
     body: 'Older wrestlers — some newer to the sport — training at a more advanced pace and competing often throughout the season.',
   },
   {
     number: '4',
     label: 'Most Competitive',
+    level: 'Elite / state-level',
     body: 'Our advanced, travel-level group, training with real aspirations: state finals, tougher tournament weekends, and beyond.',
   },
 ]
@@ -74,7 +78,17 @@ export default function ProgramPage() {
                 <span className="font-display text-5xl leading-none text-clw-gold">{group.number}</span>
               </div>
               <h2 className="mt-4 font-display text-2xl uppercase leading-tight text-clw-white">{group.label}</h2>
-              <p className="mt-3 text-base leading-relaxed text-clw-gray">{group.body}</p>
+              <div className="mt-3.5">
+                <span aria-hidden className="flex gap-1">
+                  {[1, 2, 3, 4].map((i) => (
+                    <span key={i} className={`h-1.5 w-6 ${i <= Number(group.number) ? 'bg-clw-gold' : 'bg-clw-white/15'}`} />
+                  ))}
+                </span>
+                <p className="mt-2 font-cond text-sm uppercase tracking-[0.16em] text-clw-gray">
+                  Competition: {group.level}
+                </p>
+              </div>
+              <p className="mt-3.5 text-base leading-relaxed text-clw-gray">{group.body}</p>
             </article>
           ))}
         </section>
