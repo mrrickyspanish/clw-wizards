@@ -17,7 +17,7 @@ export function ProgramIntro() {
             <span className="block font-cond text-[clamp(3rem,13vw,4.75rem)] font-light tracking-[-0.02em] text-clw-ink">
               McHenry County
             </span>
-            <span className="block font-display text-[clamp(3.15rem,13vw,5rem)] font-black tracking-[0.01em] text-clw-ink">
+            <span className="block font-display text-[clamp(3.15rem,13vw,5rem)] font-black tracking-[0.01em] text-clw-ink [word-spacing:0.1em]">
               Wrestlers Grow
             </span>
           </h2>
