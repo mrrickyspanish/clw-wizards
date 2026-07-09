@@ -5,6 +5,7 @@ type TapeSettings = {
   frameClassName: string
   frameOffset: string
   imageOffset: string
+  imageWidthClassName: string
   imageFilter?: string
 }
 
@@ -13,13 +14,15 @@ const TAPE_SETTINGS: Record<TapeProfile, TapeSettings> = {
     src: '/images/real/clw_tape_white_profile_a_star_left.png',
     frameClassName: 'h-12 sm:h-14 lg:h-16',
     frameOffset: 'translateY(0)',
-    imageOffset: 'translate(-50%, -50%)',
+    imageOffset: 'translate(-60%, -50%)',
+    imageWidthClassName: 'w-[130vw]',
   },
   'black-right': {
     src: '/images/real/clw_tape_black_profile_b_star_right.png',
     frameClassName: 'h-7 sm:h-8 lg:h-9',
     frameOffset: 'translateY(-66%)',
     imageOffset: 'translate(-50%, -39%)',
+    imageWidthClassName: 'w-[104vw]',
     imageFilter: 'brightness(0.72) contrast(1.12) saturate(0.9)',
   },
 }
@@ -37,7 +40,7 @@ export function HomeMatTapeDivider({ profile }: { profile: TapeProfile }) {
           src={tape.src}
           alt=""
           draggable={false}
-          className="absolute left-1/2 top-1/2 h-auto w-[104vw] max-w-none select-none"
+          className={`absolute left-1/2 top-1/2 h-auto max-w-none select-none ${tape.imageWidthClassName}`}
           style={{ transform: tape.imageOffset, filter: tape.imageFilter }}
         />
         {profile === 'black-right' && (
