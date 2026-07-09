@@ -2,19 +2,31 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { ArrowRight, Check, Trophy } from 'lucide-react'
 
-import { ORG } from '@/config/org.config'
-
-const GROUP_BLURBS: Record<string, string> = {
-  Black: 'Travel-level wrestlers preparing for higher-level competition and tougher tournament weekends.',
-  Gold: 'Developing competitors building technique, mat confidence, and consistent practice habits.',
-  White: 'Newer and younger wrestlers learning fundamentals, movement, discipline, and how to compete safely.',
-}
-
-const GROUP_LABELS: Record<string, string> = {
-  Black: 'Advanced Competition',
-  Gold: 'Developing Competitors',
-  White: 'Learning the Fundamentals',
-}
+// Public-facing group copy — presents the club's four practice groups as a
+// progression. (Backend group identifiers live in ORG.practiceGroups and are
+// reconciled separately; these are display copy only.)
+const PROGRAM_GROUPS = [
+  {
+    number: '1',
+    label: 'Learning the Fundamentals',
+    body: 'Our youngest, brand-new wrestlers (6 & under). Learn the sport, build safe habits, and find out how much they love it.',
+  },
+  {
+    number: '2',
+    label: 'Building the Basics',
+    body: 'Ages roughly 6–10, still learning and developing. Steady growth over competition as wrestlers sharpen technique and confidence.',
+  },
+  {
+    number: '3',
+    label: 'Competing Regularly',
+    body: 'Older wrestlers — some newer to the sport — training at a more advanced pace and competing often throughout the season.',
+  },
+  {
+    number: '4',
+    label: 'Most Competitive',
+    body: 'Our advanced, travel-level group, training with real aspirations: state finals, tougher tournament weekends, and beyond.',
+  },
+]
 
 const SEASON_POINTS = [
   'Structured practice groups help athletes train with wrestlers at a similar stage.',
@@ -37,10 +49,10 @@ export default function ProgramPage() {
           <header>
             <p className="font-cond text-sm uppercase tracking-[0.3em] text-clw-gold">Wizards Program</p>
             <h1 className="mt-5 font-display text-5xl uppercase leading-[0.92] text-clw-white sm:text-6xl lg:text-7xl">
-              Practice groups built for growth.
+              Four groups. One clear roadmap.
             </h1>
             <p className="mt-6 max-w-2xl text-xl leading-relaxed text-clw-gray sm:text-2xl sm:leading-relaxed lg:text-xl">
-              Wrestlers train in a structured environment that matches their current stage, challenges them appropriately, and gives them a clear path forward.
+              Wrestlers start where they fit today and grow toward the most competitive room. Being one of the area&apos;s bigger clubs is the advantage: we group by ability, experience, age, and size, so a first-year wrestler learns with peers instead of being stuck across the mat from an eighth-grader.
             </p>
           </header>
 
@@ -54,15 +66,15 @@ export default function ProgramPage() {
           </div>
         </div>
 
-        <section className="mt-10 grid grid-cols-1 gap-5 lg:grid-cols-3">
-          {ORG.practiceGroups.map((group) => (
-            <article key={group} className="chamfer-md card-depth border border-clw-gold/15 bg-clw-black-2 p-7 sm:p-8">
-              <p className="font-cond text-sm uppercase tracking-[0.24em] text-clw-gold">Practice Group</p>
-              <h2 className="mt-5 font-display text-5xl uppercase leading-none text-clw-white">{group}</h2>
-              <p className="mt-4 font-semibold text-clw-white">{GROUP_LABELS[group] ?? 'Focused Development'}</p>
-              <p className="mt-3 text-lg leading-relaxed text-clw-gray">
-                {GROUP_BLURBS[group] ?? 'A focused training group within the club program.'}
-              </p>
+        <section className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {PROGRAM_GROUPS.map((group) => (
+            <article key={group.number} className="chamfer-md card-depth flex flex-col border border-clw-gold/15 bg-clw-black-2 p-6 sm:p-7">
+              <div className="flex items-baseline gap-2">
+                <span className="font-cond text-sm uppercase tracking-[0.22em] text-clw-gold">Group</span>
+                <span className="font-display text-5xl leading-none text-clw-gold">{group.number}</span>
+              </div>
+              <h2 className="mt-4 font-display text-2xl uppercase leading-tight text-clw-white">{group.label}</h2>
+              <p className="mt-3 text-base leading-relaxed text-clw-gray">{group.body}</p>
             </article>
           ))}
         </section>

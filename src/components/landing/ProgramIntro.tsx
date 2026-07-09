@@ -30,7 +30,7 @@ export function ProgramIntro() {
             </p>
           </div>
           <Button asChild size="lg" className="chamfer-sm mt-8 rounded-none">
-            <Link href="/join">Ready to become a Wizard? →</Link>
+            <Link href="/program">Explore the program →</Link>
           </Button>
         </div>
 
@@ -50,7 +50,7 @@ export function ProgramIntro() {
               </div>
               <figcaption className="grid grid-cols-3 border-t-2 border-clw-gold bg-clw-ink text-center">
                 <div className="border-r border-white/10 px-2 py-4">
-                  <p className="font-display text-2xl leading-none text-clw-gold sm:text-3xl">40+</p>
+                  <p className="font-display text-2xl leading-none text-clw-gold sm:text-3xl">45+</p>
                   <p className="mt-1.5 font-cond text-sm uppercase tracking-[0.12em] text-white/70">Years</p>
                 </div>
                 <div className="border-r border-white/10 px-2 py-4">

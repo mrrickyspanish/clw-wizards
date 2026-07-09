@@ -18,7 +18,7 @@ const SUPPORT_OPTIONS = [
   },
   {
     title: 'Sponsor',
-    body: 'Give your business a direct way to support McHenry County wrestling families and be seen by the club community.',
+    body: 'Back McHenry County wrestlers and put your business in front of the whole club community — families, alumni, and fans.',
     href: '/sponsorship#sponsors',
     cta: 'See sponsor options',
     Icon: HeartHandshake,
@@ -32,7 +32,7 @@ const SUPPORT_OPTIONS = [
   },
   {
     title: 'Volunteer',
-    body: 'Help with tournaments, fundraising, communications, setup, team events, and the details that keep the club running.',
+    body: 'Commit to coaching (certification required) or lend a hand game-day — tournaments, fundraising, setup, and the details that keep the room running.',
     href: '/sponsorship#volunteer',
     cta: 'Get involved',
     Icon: Users,

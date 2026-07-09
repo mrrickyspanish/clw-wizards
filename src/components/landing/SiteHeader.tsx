@@ -17,7 +17,6 @@ const NAV_LINKS = [
 const MOBILE_NAV_LINKS = [...NAV_LINKS, { href: '/join', label: 'Join the Wizards' }]
 const DESKTOP_LEFT_LINKS = NAV_LINKS.slice(0, 3)
 const DESKTOP_RIGHT_LINKS = [NAV_LINKS[3]]
-const MAP_URL = 'https://www.google.com/maps/search/?api=1&query=975+Nimco+Dr+Unit+L+Crystal+Lake+IL+60014'
 
 const SEARCH_ITEMS = [
   {
@@ -28,9 +27,9 @@ const SEARCH_ITEMS = [
   },
   {
     title: 'Training Groups',
-    description: 'Explore Black, Gold, and White practice groups and find the right level.',
+    description: 'Explore our four practice groups — from first-timers to state-level competitors — and find the right level.',
     href: '/program',
-    keywords: ['groups', 'practice', 'training', 'black', 'gold', 'white', 'program'],
+    keywords: ['groups', 'practice', 'training', 'program', 'beginner', 'advanced', 'levels'],
   },
   {
     title: 'Upcoming Events',
@@ -128,15 +127,14 @@ export function SiteHeader() {
       >
         <div className="border-b border-clw-white/10 bg-clw-black/75 px-5 py-1.5 sm:px-8 lg:px-12 xl:px-16 2xl:px-20">
           <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4">
-            <a
-              href={MAP_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/#location"
               className="flex min-w-0 items-center gap-1.5 whitespace-nowrap font-cond text-[0.68rem] uppercase tracking-[0.13em] text-clw-white/75 transition-colors hover:text-clw-gold sm:text-xs"
             >
               <MapPin className="h-3.5 w-3.5 shrink-0 text-clw-gold" />
-              <span>Crystal Lake, IL</span>
-            </a>
+              <span className="font-semibold text-clw-white/90">Wizards Facility</span>
+              <span className="hidden text-clw-white/55 sm:inline">— 975 Nimco Dr, Unit L, Crystal Lake, IL</span>
+            </Link>
 
             <div className="flex items-center gap-3">
               <button

@@ -20,7 +20,7 @@ const FAQS = [
   },
   {
     q: 'Do I need a singlet?',
-    a: 'Singlets are worn at tournaments when representing Wizards Wrestling Club. A deposit is required when one is issued. Confirm the current amount and availability with the club.',
+    a: 'Singlets are worn at tournaments when representing Wizards Wrestling Club. Wrestlers purchase and keep their own singlet; rentals are rare. Confirm current pricing and availability with the club.',
   },
   {
     q: 'What do tournaments cost, and are they mandatory?',

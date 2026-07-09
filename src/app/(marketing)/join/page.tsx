@@ -48,21 +48,29 @@ const EXPECTATIONS = [
   },
 ]
 
+// Public-facing group copy — presents the club's four practice groups as a
+// progression. (Backend group identifiers live in ORG.practiceGroups and are
+// reconciled separately; these are display copy only.)
 const GROUPS = [
   {
-    name: 'White',
-    label: 'Learning the fundamentals',
-    body: 'For newer and younger wrestlers building stance, movement, discipline, confidence, and safe competition habits.',
+    number: '1',
+    label: 'Start Here — 6 & Under',
+    body: 'Our youngest, brand-new wrestlers. The goal is simple: learn the sport, build safe habits, and find out how much they love it.',
   },
   {
-    name: 'Gold',
-    label: 'Developing consistent competitors',
-    body: 'For wrestlers strengthening technique, practice habits, mat confidence, and readiness for regular competition.',
+    number: '2',
+    label: 'Building the Basics',
+    body: 'Ages roughly 6–10, still learning and developing. More about steady growth than competition as wrestlers sharpen fundamentals and confidence.',
   },
   {
-    name: 'Black',
-    label: 'Preparing for higher-level competition',
-    body: 'For experienced wrestlers training for more demanding practices, travel competition, and tougher tournament weekends.',
+    number: '3',
+    label: 'Competing Regularly',
+    body: 'Older wrestlers — some newer to the sport — training at a more advanced pace and competing often throughout the season.',
+  },
+  {
+    number: '4',
+    label: 'Most Competitive',
+    body: 'Our advanced group, training with real aspirations: state finals, tougher tournament weekends, and wrestling beyond the club.',
   },
 ]
 
@@ -76,7 +84,7 @@ const GEAR = [
 const COST_CATEGORIES = [
   'Club registration or fundraising requirements',
   'A current USA Wrestling athlete membership',
-  'A singlet deposit when a competition uniform is issued',
+  'A competition singlet, which wrestlers purchase and keep (rentals are rare)',
   'Optional tournament entry fees throughout the season',
 ]
 
@@ -241,20 +249,22 @@ export default function JoinPage() {
           <div className="max-w-4xl">
             <p className="font-cond text-sm uppercase tracking-[0.3em] text-clw-gold">Finding the Right Training Group</p>
             <h2 className="mt-4 font-display text-4xl uppercase leading-[0.96] sm:text-5xl">
-              Coaches help place each wrestler where they can develop.
+              Four groups. One clear roadmap.
             </h2>
             <p className="mt-5 max-w-3xl text-lg leading-relaxed text-clw-muted-dark sm:text-xl">
-              Age and experience matter, but so do confidence, maturity, technique, and practice readiness. Families do not need to solve placement alone, and group assignments may change as a wrestler improves.
+              Wrestlers start where they fit today and grow toward the most competitive room. Being one of the area&apos;s bigger clubs is the advantage: we group by ability, experience, age, and size, so a first-year wrestler learns with peers instead of being stuck across the mat from an eighth-grader. Every wrestler is challenged at the right pace, and coaches confirm placement — families never have to solve it alone.
             </p>
           </div>
 
-          <div className="mt-10 grid gap-5 lg:grid-cols-3">
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {GROUPS.map((group) => (
-              <article key={group.name} className="chamfer-md border border-clw-ink/15 bg-[#FFFDF7] p-7 shadow-xl shadow-black/5">
-                <p className="font-cond text-sm uppercase tracking-[0.24em] text-clw-gold">Practice Group</p>
-                <h3 className="mt-5 font-display text-5xl uppercase leading-none text-clw-ink">{group.name}</h3>
-                <p className="mt-4 font-semibold text-clw-ink">{group.label}</p>
-                <p className="mt-3 text-lg leading-relaxed text-clw-muted-dark">{group.body}</p>
+              <article key={group.number} className="chamfer-md flex flex-col border border-clw-ink/15 bg-[#FFFDF7] p-6 shadow-xl shadow-black/5 sm:p-7">
+                <div className="flex items-baseline gap-2">
+                  <span className="font-cond text-sm uppercase tracking-[0.22em] text-clw-gold">Group</span>
+                  <span className="font-display text-5xl leading-none text-clw-gold">{group.number}</span>
+                </div>
+                <h3 className="mt-4 font-display text-2xl uppercase leading-tight text-clw-ink">{group.label}</h3>
+                <p className="mt-3 text-base leading-relaxed text-clw-muted-dark">{group.body}</p>
               </article>
             ))}
           </div>
@@ -343,7 +353,7 @@ export default function JoinPage() {
           <article className="chamfer-md card-depth border border-clw-gold/15 bg-clw-black p-7 sm:p-8 lg:col-span-6 lg:p-10">
             <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold">Understanding the Costs</p>
             <h2 className={SECTION_HEADING_CLASS}>
-              <span className="block">Know the Categories</span>
+              <span className="block">Understand the Cost</span>
               <span className="block">Before You Commit.</span>
             </h2>
             <p className="mt-6 text-lg leading-relaxed text-clw-gray">

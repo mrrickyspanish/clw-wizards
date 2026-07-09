@@ -22,7 +22,7 @@ export function HomeTeamSection() {
                 <img
                   src="/images/real/clw-wizards-youth-banquet-tony.jpg"
                   alt="Coach Tony Fontanetta with Wizards wrestlers at the club banquet"
-                  className="h-full w-full object-cover object-center contrast-105 saturate-[0.9]"
+                  className="h-full w-full origin-[50%_30%] scale-[1.55] object-cover object-center contrast-105 saturate-[0.9]"
                 />
                 <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-t from-clw-black via-clw-black/25 to-transparent" />
                 <figcaption className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
