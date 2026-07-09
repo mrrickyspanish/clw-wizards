@@ -44,7 +44,7 @@ export default async function HomePage({
   const tournamentRows = (tournaments ?? []) as Tournament[]
 
   return (
-    <main className="min-h-screen overflow-x-clip bg-clw-black">
+    <main className="marketing-site min-h-screen overflow-x-clip bg-clw-black">
       <SiteHeader />
       <div aria-hidden className="h-[98px] sm:h-[100px] lg:h-[104px]" />
 
