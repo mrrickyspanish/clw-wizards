@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Script from 'next/script'
 
 import { createBrowserSupabase } from '@/lib/supabase/browser'
 import { Button } from '@/components/ui/button'
@@ -13,18 +14,48 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AuthBrand } from '@/components/layout/AuthBrand'
 import { ORG } from '@/config/org.config'
 
+declare global {
+  interface Window {
+    clwTurnstileSuccess?: (token: string) => void
+    clwTurnstileExpired?: () => void
+    turnstile?: { reset: () => void }
+  }
+}
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+
 export default function SignupPage() {
   const router = useRouter()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [needsConfirmation, setNeedsConfirmation] = useState(false)
   const [loading, setLoading] = useState(false)
 
+  useEffect(() => {
+    window.clwTurnstileSuccess = (token: string) => {
+      setCaptchaToken(token)
+      setError(null)
+    }
+    window.clwTurnstileExpired = () => setCaptchaToken(null)
+
+    return () => {
+      delete window.clwTurnstileSuccess
+      delete window.clwTurnstileExpired
+    }
+  }, [])
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
+
+    if (TURNSTILE_SITE_KEY && !captchaToken) {
+      setError('Complete the security check before creating your account.')
+      return
+    }
+
     setLoading(true)
 
     const supabase = createBrowserSupabase()
@@ -33,11 +64,14 @@ export default function SignupPage() {
       password,
       options: {
         data: { full_name: fullName },
+        ...(captchaToken ? { captchaToken } : {}),
       },
     })
 
     if (signUpError) {
       setError(signUpError.message)
+      setCaptchaToken(null)
+      window.turnstile?.reset()
       setLoading(false)
       return
     }
@@ -120,7 +154,26 @@ export default function SignupPage() {
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            {TURNSTILE_SITE_KEY ? (
+              <div>
+                <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" />
+                <div
+                  className="cf-turnstile"
+                  data-sitekey={TURNSTILE_SITE_KEY}
+                  data-theme="dark"
+                  data-size="flexible"
+                  data-callback="clwTurnstileSuccess"
+                  data-expired-callback="clwTurnstileExpired"
+                  data-error-callback="clwTurnstileExpired"
+                />
+              </div>
+            ) : null}
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loading || Boolean(TURNSTILE_SITE_KEY && !captchaToken)}
+            >
               {loading ? 'Creating account…' : 'Create account'}
             </Button>
             <div className="text-center text-sm text-muted-foreground">
