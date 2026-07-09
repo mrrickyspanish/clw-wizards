@@ -2,19 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { ArrowRight, Check, Trophy } from 'lucide-react'
 
-import { ORG } from '@/config/org.config'
-
-const GROUP_BLURBS: Record<string, string> = {
-  Black: 'Travel-level wrestlers preparing for higher-level competition and tougher tournament weekends.',
-  Gold: 'Developing competitors building technique, mat confidence, and consistent practice habits.',
-  White: 'Newer and younger wrestlers learning fundamentals, movement, discipline, and how to compete safely.',
-}
-
-const GROUP_LABELS: Record<string, string> = {
-  Black: 'Advanced Competition',
-  Gold: 'Developing Competitors',
-  White: 'Learning the Fundamentals',
-}
+import { TRAINING_GROUPS } from '@/config/groups'
 
 const SEASON_POINTS = [
   'Structured practice groups help athletes train with wrestlers at a similar stage.',
@@ -55,14 +43,12 @@ export default function ProgramPage() {
         </div>
 
         <section className="mt-10 grid grid-cols-1 gap-5 lg:grid-cols-3">
-          {ORG.practiceGroups.map((group) => (
-            <article key={group} className="chamfer-md card-depth border border-clw-gold/15 bg-clw-black-2 p-7 sm:p-8">
+          {TRAINING_GROUPS.map((group) => (
+            <article key={group.name} className="chamfer-md card-depth border border-clw-gold/15 bg-clw-black-2 p-7 sm:p-8">
               <p className="font-cond text-sm uppercase tracking-[0.24em] text-clw-gold">Practice Group</p>
-              <h2 className="mt-5 font-display text-5xl uppercase leading-none text-clw-white">{group}</h2>
-              <p className="mt-4 font-semibold text-clw-white">{GROUP_LABELS[group] ?? 'Focused Development'}</p>
-              <p className="mt-3 text-lg leading-relaxed text-clw-gray">
-                {GROUP_BLURBS[group] ?? 'A focused training group within the club program.'}
-              </p>
+              <h2 className="mt-5 font-display text-5xl uppercase leading-none text-clw-white">{group.name}</h2>
+              <p className="mt-4 font-semibold text-clw-white">{group.label}</p>
+              <p className="mt-3 text-lg leading-relaxed text-clw-gray">{group.description}</p>
             </article>
           ))}
         </section>
@@ -82,6 +68,12 @@ export default function ProgramPage() {
                 </p>
               ))}
             </div>
+            <Link
+              href="/faq"
+              className="mt-8 inline-flex items-center gap-2 font-cond text-base uppercase tracking-[0.16em] text-clw-gold hover:text-clw-gold-l"
+            >
+              Costs, Gear & Tournament Questions <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
 
           <div className="chamfer-md flex flex-col border border-clw-gold/20 bg-clw-gold p-7 text-clw-black sm:p-8 lg:col-span-4 lg:p-10">

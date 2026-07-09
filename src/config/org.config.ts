@@ -7,6 +7,8 @@ export interface OrgConfig {
   contactEmail: string
   ein: string
   mailingAddress: string
+  facilityAddress: string
+  facilityMapUrl: string
   practiceGroups: readonly string[]
   social: {
     facebook?: string
@@ -29,6 +31,8 @@ export const CRYSTAL_LAKE_WIZARDS: OrgConfig = {
   contactEmail: 'arfont37@sbcglobal.net',
   ein: '45-5192515',
   mailingAddress: '1807 Black Oak Drive, McHenry, IL 60050',
+  facilityAddress: '975 Nimco Dr, Unit L, Crystal Lake, IL 60014',
+  facilityMapUrl: 'https://www.google.com/maps/search/?api=1&query=975+Nimco+Dr+Unit+L+Crystal+Lake+IL+60014',
   practiceGroups: ['Black', 'Gold', 'White'],
   social: {
     facebook: 'https://www.facebook.com/pages/Wizards-Wrestling-Club/103467966667221',

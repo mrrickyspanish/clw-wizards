@@ -12,8 +12,6 @@ import { SponsorCheckoutForm } from '@/components/sponsorship/SponsorCheckoutFor
 import { ContactForm } from '@/components/sponsorship/ContactForm'
 import { GoldRule } from '@/components/sponsorship/SupportMedia'
 
-const FACILITY_ADDRESS = '975 Nimco Dr, Unit L, Crystal Lake, IL 60014'
-
 const BOOSTER_LEVELS = [
   ['Supporter', '$10 / Month'],
   ['Bronze Wizard', '$25 / Month'],
@@ -81,7 +79,8 @@ export default async function SponsorshipPage({
           <h2 className="mt-6 font-display text-5xl uppercase leading-none sm:text-6xl">Join the Booster Club</h2>
           <p className="mx-auto mt-6 max-w-2xl text-xl leading-relaxed text-clw-gray">Monthly supporters give the club dependable funding for equipment, coaching resources, athlete development, and scholarships.</p>
           <DonationCheckoutForm recurring presets={[10, 25, 50, 100, 250]} defaultAmount={25} buttonLabel="Give Monthly" />
-          <div className="mt-12 grid gap-3 sm:grid-cols-2">
+          <p className="mt-12 text-lg leading-relaxed text-clw-gray">Each monthly amount matches a booster level. Pick the one that fits your family:</p>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
             {BOOSTER_LEVELS.map(([name, amount]) => (
               <div key={name} className="border border-clw-gold/20 bg-clw-black-2 p-5 text-left">
                 <p className="font-display text-2xl uppercase text-clw-white">{name}</p>
@@ -114,10 +113,13 @@ export default async function SponsorshipPage({
 
       <section id="contact" className="scroll-mt-28 bg-[#F7F7F7] px-7 py-16 text-clw-black sm:px-10 sm:py-20">
         <div className="mx-auto max-w-3xl">
-          <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Talk With Wizards Wrestling Club</p>
+          <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Volunteer or Ask a Question</p>
           <h2 className="mt-6 font-display text-5xl uppercase leading-none sm:text-6xl">Get in Touch</h2>
+          <p className="mt-6 max-w-2xl text-xl leading-relaxed text-clw-black/70">
+            The club is run entirely by volunteers — coaching, tournaments, fundraisers, and everything in between. Choose a topic below and tell us how you would like to help, or ask us anything.
+          </p>
           <div className="mt-8 grid gap-6 text-lg sm:grid-cols-2">
-            <p className="flex items-start gap-3"><MapPin className="mt-1 h-5 w-5 shrink-0 text-clw-gold" />{FACILITY_ADDRESS}</p>
+            <p className="flex items-start gap-3"><MapPin className="mt-1 h-5 w-5 shrink-0 text-clw-gold" />{ORG.facilityAddress}</p>
             <a href={`mailto:${ORG.contactEmail}`} className="flex items-start gap-3 underline decoration-clw-gold decoration-4 underline-offset-4"><Mail className="mt-1 h-5 w-5 shrink-0 text-clw-gold" />{ORG.contactEmail}</a>
           </div>
           <ContactForm />

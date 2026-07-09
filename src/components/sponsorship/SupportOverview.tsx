@@ -1,4 +1,5 @@
-import { CircleDollarSign, HandHeart, HeartHandshake, Users } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowRight, CircleDollarSign, HandHeart, HeartHandshake, Users } from 'lucide-react'
 
 import { SupportMedia, GoldRule } from './SupportMedia'
 
@@ -87,8 +88,13 @@ export function SupportOverview() {
           <div className="mt-8 space-y-8 text-xl leading-relaxed text-clw-gray">
             <p>Crystal Lake Wizards Wrestling Club was created to give wrestlers in our community a place to develop beyond the traditional season. Our focus has always been bigger than wins. We build confidence, discipline, leadership, and lifelong friendships through the sport of wrestling.</p>
             <p>Every practice, tournament, camp, and community event is made possible because families and supporters choose to invest in something bigger than a single season. Together we are creating opportunities for athletes of every age to compete, grow, and represent Crystal Lake with pride.</p>
-            <p>Whether a wrestler dreams of competing in high school, college, or simply becoming more confident in everyday life, the Wizards are committed to providing an environment where hard work is rewarded and character comes first.</p>
           </div>
+          <Link
+            href="/about"
+            className="mt-8 inline-flex items-center gap-2 font-cond text-base uppercase tracking-[0.16em] text-clw-gold hover:text-clw-gold-l"
+          >
+            Read Our Full Mission <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </section>
 

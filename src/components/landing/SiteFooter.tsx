@@ -3,7 +3,7 @@ import { Facebook, Mail, MapPin } from 'lucide-react'
 
 import { ORG } from '@/config/org.config'
 
-const MAP_URL = 'https://www.google.com/maps/search/?api=1&query=975+Nimco+Dr+Unit+L+Crystal+Lake+IL+60014'
+const MAP_URL = ORG.facilityMapUrl
 
 const ABOUT_LINKS = [
   { href: '/about', label: 'Mission' },

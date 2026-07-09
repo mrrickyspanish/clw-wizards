@@ -17,7 +17,7 @@ const NAV_LINKS = [
 const MOBILE_NAV_LINKS = [...NAV_LINKS, { href: '/join', label: 'Join the Wizards' }]
 const DESKTOP_LEFT_LINKS = NAV_LINKS.slice(0, 3)
 const DESKTOP_RIGHT_LINKS = [NAV_LINKS[3]]
-const MAP_URL = 'https://www.google.com/maps/search/?api=1&query=975+Nimco+Dr+Unit+L+Crystal+Lake+IL+60014'
+const MAP_URL = ORG.facilityMapUrl
 
 const SEARCH_ITEMS = [
   {
@@ -67,6 +67,12 @@ const SEARCH_ITEMS = [
     description: 'Learn what to expect, explore training groups, and choose the right next step for your wrestler.',
     href: '/join',
     keywords: ['join', 'signup', 'register', 'registration', 'new family', 'first practice', 'visit'],
+  },
+  {
+    title: 'FAQ',
+    description: 'Answers about registration, costs, gear, practice groups, and tournaments.',
+    href: '/faq',
+    keywords: ['faq', 'questions', 'cost', 'fees', 'registration', 'gear', 'singlet', 'tournaments', 'parking'],
   },
 ]
 

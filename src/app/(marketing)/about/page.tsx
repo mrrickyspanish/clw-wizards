@@ -2,6 +2,8 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { ArrowRight, Award, Check, HeartHandshake, MapPin, ShieldCheck, Users } from 'lucide-react'
 
+import { ORG } from '@/config/org.config'
+
 const STAND_FOR = [
   'Safety is our most important priority.',
   'Members of the team are students first and athletes second.',
@@ -22,14 +24,6 @@ const FEATURED_LEADERS = [
   { name: 'Steve Swierk', role: 'Vice President of Operations & Tournaments', phone: '630-886-1769', initials: 'SS' },
 ]
 
-const PRACTICE_COACHES = [
-  { group: 'Group 1', coaches: 'Alex Flores, Ryan Schweikhofer' },
-  { group: 'Group 2', coaches: 'Tyler Simmons, Matt Fiodirosa' },
-  { group: 'Group 3', coaches: 'Jeramy Carbone, Anthony Fontanetta' },
-  { group: 'Group 4', coaches: 'Anthony Fontanetta, Steve Swierk' },
-]
-
-const MAP_URL = 'https://www.google.com/maps/search/?api=1&query=975+Nimco+Dr+Unit+L+Crystal+Lake+IL+60014'
 const SECTION_HEADING_CLASS = 'mt-4 font-display text-4xl uppercase leading-[0.96] text-clw-white sm:text-5xl'
 
 export const metadata: Metadata = {
@@ -69,15 +63,15 @@ export default function AboutPage() {
             <div className="grid grid-cols-3 border-t border-clw-gold/25 bg-clw-black">
               <div className="border-r border-clw-gold/20 px-3 py-5 text-center sm:px-5">
                 <p className="font-display text-3xl uppercase leading-none text-clw-gold sm:text-4xl">40+</p>
-                <p className="mt-2 font-cond text-xs uppercase tracking-[0.18em] text-clw-gray">Years</p>
+                <p className="mt-2 font-cond text-sm uppercase tracking-[0.18em] text-clw-gray">Years</p>
               </div>
               <div className="border-r border-clw-gold/20 px-3 py-5 text-center sm:px-5">
                 <p className="font-display text-3xl uppercase leading-none text-clw-gold sm:text-4xl">5–14</p>
-                <p className="mt-2 font-cond text-xs uppercase tracking-[0.18em] text-clw-gray">Ages</p>
+                <p className="mt-2 font-cond text-sm uppercase tracking-[0.18em] text-clw-gray">Ages</p>
               </div>
               <div className="px-3 py-5 text-center sm:px-5">
                 <p className="font-display text-3xl uppercase leading-none text-clw-gold sm:text-4xl">IKWF</p>
-                <p className="mt-2 font-cond text-xs uppercase tracking-[0.18em] text-clw-gray">Registered</p>
+                <p className="mt-2 font-cond text-sm uppercase tracking-[0.18em] text-clw-gray">Registered</p>
               </div>
             </div>
           </div>
@@ -189,17 +183,6 @@ export default function AboutPage() {
             ))}
           </div>
 
-          <div className="mt-8">
-            <p className="font-cond text-sm uppercase tracking-[0.24em] text-clw-gold">Practice Room Coaches</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {PRACTICE_COACHES.map((group) => (
-                <div key={group.group} className="grid grid-cols-[auto_1fr] gap-4 border-t border-clw-gold/15 py-4">
-                  <span className="font-display text-2xl uppercase text-clw-white">{group.group}</span>
-                  <span className="text-base leading-relaxed text-clw-gray">{group.coaches}</span>
-                </div>
-              ))}
-            </div>
-          </div>
         </article>
 
         <aside className="chamfer-md card-depth flex flex-col border border-clw-gold/20 bg-clw-black-2 p-7 sm:p-8 lg:col-span-4">
@@ -238,7 +221,7 @@ export default function AboutPage() {
 
           <div className="mt-7 space-y-3">
             <a
-              href={MAP_URL}
+              href={ORG.facilityMapUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="chamfer-sm flex min-h-12 items-center justify-center bg-clw-gold px-5 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-black transition hover:bg-clw-gold-l"
@@ -254,6 +237,29 @@ export default function AboutPage() {
             </Link>
           </div>
         </aside>
+      </section>
+
+      <section className="mission-frame relative mt-12 lg:mt-16">
+        <div className="chamfer-md card-depth border border-clw-gold/20 bg-clw-black-2 px-7 py-10 text-center sm:px-10 sm:py-12">
+          <p className="font-cond text-sm uppercase tracking-[0.3em] text-clw-gold">Thinking About Wrestling?</p>
+          <h2 className="mx-auto mt-4 max-w-3xl font-display text-4xl uppercase leading-[0.96] text-clw-white sm:text-5xl">
+            See if the room is the right fit for your wrestler.
+          </h2>
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+            <Link
+              href="/join"
+              className="chamfer-sm inline-flex min-h-12 items-center justify-center gap-2 bg-clw-gold px-7 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-black transition hover:bg-clw-gold-l"
+            >
+              New Families Start Here <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href="/program"
+              className="inline-flex min-h-12 items-center justify-center gap-2 border border-clw-gold/35 px-7 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-gold transition hover:border-clw-gold hover:text-clw-gold-l"
+            >
+              Explore Training Groups <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
       </section>
     </main>
   )

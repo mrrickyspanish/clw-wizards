@@ -36,7 +36,7 @@ export function PracticeGroups() {
         ))}
       </div>
 
-      <Link href="/signup" className="mt-auto inline-flex items-center gap-2 pt-7 font-display text-xl uppercase tracking-wide text-clw-gold hover:text-clw-gold-l">
+      <Link href="/program" className="mt-auto inline-flex items-center gap-2 pt-7 font-display text-xl uppercase tracking-wide text-clw-gold hover:text-clw-gold-l">
         View all groups
         <ChevronRight className="h-5 w-5" />
       </Link>

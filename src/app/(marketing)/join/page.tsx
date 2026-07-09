@@ -14,8 +14,9 @@ import {
 } from 'lucide-react'
 
 import { ORG } from '@/config/org.config'
+import { TRAINING_GROUPS } from '@/config/groups'
 
-const MAP_URL = 'https://www.google.com/maps/search/?api=1&query=975+Nimco+Dr+Unit+L+Crystal+Lake+IL+60014'
+const MAP_URL = ORG.facilityMapUrl
 const SECTION_HEADING_CLASS = 'mt-4 font-display text-4xl uppercase leading-[0.96] text-clw-white sm:text-5xl'
 
 const FIT_POINTS = [
@@ -45,24 +46,6 @@ const EXPECTATIONS = [
     title: 'Room to Compete',
     body: 'Tournament opportunities give wrestlers a chance to test their progress when they are ready.',
     icon: Trophy,
-  },
-]
-
-const GROUPS = [
-  {
-    name: 'White',
-    label: 'Learning the fundamentals',
-    body: 'For newer and younger wrestlers building stance, movement, discipline, confidence, and safe competition habits.',
-  },
-  {
-    name: 'Gold',
-    label: 'Developing consistent competitors',
-    body: 'For wrestlers strengthening technique, practice habits, mat confidence, and readiness for regular competition.',
-  },
-  {
-    name: 'Black',
-    label: 'Preparing for higher-level competition',
-    body: 'For experienced wrestlers training for more demanding practices, travel competition, and tougher tournament weekends.',
   },
 ]
 
@@ -157,7 +140,7 @@ export default function JoinPage() {
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
-            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-clw-gray/80">
+            <p className="mt-4 max-w-2xl text-base leading-relaxed text-clw-gray/80">
               Not sure which path applies? Start with a question. Club staff can confirm the right next step for your wrestler.
             </p>
           </div>
@@ -249,12 +232,12 @@ export default function JoinPage() {
           </div>
 
           <div className="mt-10 grid gap-5 lg:grid-cols-3">
-            {GROUPS.map((group) => (
+            {TRAINING_GROUPS.map((group) => (
               <article key={group.name} className="chamfer-md border border-clw-ink/15 bg-[#FFFDF7] p-7 shadow-xl shadow-black/5">
                 <p className="font-cond text-sm uppercase tracking-[0.24em] text-clw-gold">Practice Group</p>
                 <h3 className="mt-5 font-display text-5xl uppercase leading-none text-clw-ink">{group.name}</h3>
                 <p className="mt-4 font-semibold text-clw-ink">{group.label}</p>
-                <p className="mt-3 text-lg leading-relaxed text-clw-muted-dark">{group.body}</p>
+                <p className="mt-3 text-lg leading-relaxed text-clw-muted-dark">{group.description}</p>
               </article>
             ))}
           </div>
@@ -306,9 +289,6 @@ export default function JoinPage() {
               </div>
             </div>
 
-            <p className="mt-6 border-l-2 border-clw-gold pl-4 text-sm leading-relaxed text-clw-gray">
-              Completely new to the club? Contact us before arriving so we can confirm the appropriate visit or registration step for your family.
-            </p>
           </div>
 
           <div className="overflow-hidden border border-clw-gold/20 bg-clw-black-2 lg:col-span-5">
