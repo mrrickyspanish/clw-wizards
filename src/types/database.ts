@@ -56,6 +56,7 @@ export type Tournament = {
   external_platform: 'trackwrestling' | 'flowrestling' | 'internal' | 'other' | null
   weigh_in_time: string | null
   weigh_in_date: string | null
+  weigh_in_location: string | null
   start_time: string | null
   status: 'open' | 'closed' | 'cancelled'
   practice_groups: string[]

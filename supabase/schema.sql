@@ -98,6 +98,7 @@ CREATE TABLE public.tournaments (
   external_platform TEXT CHECK (external_platform IN ('trackwrestling', 'flowrestling', 'internal', 'other')),
   weigh_in_time TEXT,
   weigh_in_date DATE,
+  weigh_in_location TEXT,
   start_time TEXT,
   status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'closed', 'cancelled')),
   practice_groups TEXT[] NOT NULL DEFAULT '{}',

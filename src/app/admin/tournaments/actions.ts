@@ -25,6 +25,7 @@ const tournamentSchema = z.object({
     .nullable()
     .or(z.literal('')),
   weigh_in_time: z.string().trim().optional().nullable(),
+  weigh_in_location: z.string().trim().optional().nullable(),
   external_platform: z.enum(['trackwrestling', 'flowrestling', 'internal', 'other']).optional().nullable(),
   external_registration_url: z.string().trim().url('Must be a valid URL').optional().nullable().or(z.literal('')),
   practice_groups: z.array(z.enum(ORG.practiceGroups as unknown as [string, ...string[]])).default([]),
@@ -48,6 +49,7 @@ function normalize(values: TournamentInput) {
     start_time: parsed.start_time || null,
     weigh_in_date: parsed.weigh_in_date || null,
     weigh_in_time: parsed.weigh_in_time || null,
+    weigh_in_location: parsed.weigh_in_location || null,
     external_platform: parsed.external_platform || null,
     external_registration_url: parsed.external_registration_url || null,
     practice_groups: parsed.practice_groups,

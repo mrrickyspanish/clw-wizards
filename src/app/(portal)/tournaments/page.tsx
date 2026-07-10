@@ -1,4 +1,4 @@
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, Scale } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { chicagoDateString } from '@/lib/chicago-time'
@@ -85,14 +85,8 @@ export default async function TournamentsPage() {
                   <CardTitle className="text-clw-white">{t.name}</CardTitle>
                   <p className="mt-1 text-sm text-clw-gray">
                     {formatDate(t.date)} · {t.location}, {t.city}, {t.state}
+                    {t.start_time && ` · Starts ${formatTime(t.start_time)}`}
                   </p>
-                  {(t.weigh_in_date || t.weigh_in_time || t.start_time) && (
-                    <p className="mt-1 text-xs text-clw-gray/70">
-                      {t.weigh_in_date && `Weigh-in ${formatDate(t.weigh_in_date)}`}
-                      {t.weigh_in_time && ` at ${formatTime(t.weigh_in_time)}`}
-                      {t.start_time && ` · Starts ${formatTime(t.start_time)}`}
-                    </p>
-                  )}
                 </div>
                 <Badge variant="outline" className={STATUS_STYLES[t.status]}>
                   {t.status}
@@ -100,6 +94,22 @@ export default async function TournamentsPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Weigh-in shows as its own linked calendar entry for families —
+                  personal to the portal, never on the public marketing page. */}
+              {(t.weigh_in_date || t.weigh_in_time) && (
+                <div className="flex items-start gap-3 rounded-xl border border-clw-gold/15 bg-clw-black px-4 py-3">
+                  <Scale className="mt-0.5 h-4 w-4 shrink-0 text-clw-gold-ink" />
+                  <div className="min-w-0 text-sm">
+                    <p className="font-medium text-clw-white">Weigh-ins for {t.name}</p>
+                    <p className="mt-0.5 text-clw-gray">
+                      {formatDate(t.weigh_in_date || t.date)}
+                      {t.weigh_in_time && ` · ${formatTime(t.weigh_in_time)}`}
+                      {` · ${t.weigh_in_location || t.location}`}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {t.notes && <p className="text-sm text-clw-gray">{t.notes}</p>}
 
               {t.external_registration_url ? (

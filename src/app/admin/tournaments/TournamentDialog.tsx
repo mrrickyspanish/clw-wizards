@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Pencil } from 'lucide-react'
+import { Plus, Pencil, Upload } from 'lucide-react'
 
 import type { Tournament } from '@/types/database'
 import { ORG } from '@/config/org.config'
+import { createBrowserSupabase } from '@/lib/supabase/browser'
 import { createTournament, updateTournament, type TournamentInput } from './actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,6 +33,11 @@ import {
 
 const PLATFORM_NONE = 'none'
 
+// Strip anything that would confuse a storage path; keep it recognizable.
+function safeName(name: string) {
+  return name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-80)
+}
+
 export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
   const router = useRouter()
   const isEdit = Boolean(tournament)
@@ -49,12 +55,38 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
   const [startTime, setStartTime] = useState(tournament?.start_time ?? '')
   const [weighInDate, setWeighInDate] = useState(tournament?.weigh_in_date ?? '')
   const [weighInTime, setWeighInTime] = useState(tournament?.weigh_in_time ?? '')
+  const [weighInLocation, setWeighInLocation] = useState(tournament?.weigh_in_location ?? '')
   const [platform, setPlatform] = useState<string>(tournament?.external_platform ?? PLATFORM_NONE)
   const [regUrl, setRegUrl] = useState(tournament?.external_registration_url ?? '')
   const [groups, setGroups] = useState<string[]>(tournament?.practice_groups ?? [])
   const [competitionLevel, setCompetitionLevel] = useState(tournament?.competition_level ?? '')
   const [imageUrl, setImageUrl] = useState(tournament?.image_url ?? '')
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
   const [notes, setNotes] = useState(tournament?.notes ?? '')
+
+  async function handleFlyerFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setError(null)
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Flyer must be under 10MB.')
+      return
+    }
+    setUploading(true)
+    const supabase = createBrowserSupabase()
+    const path = `flyers/${Date.now()}-${safeName(file.name)}`
+    const { error: upErr } = await supabase.storage.from('tournament-flyers').upload(path, file, { upsert: false })
+    if (upErr) {
+      setUploading(false)
+      setError(upErr.message)
+      return
+    }
+    const { data } = supabase.storage.from('tournament-flyers').getPublicUrl(path)
+    setImageUrl(data.publicUrl)
+    setUploading(false)
+    if (fileRef.current) fileRef.current.value = ''
+  }
 
   function toggleGroup(group: string, checked: boolean) {
     setGroups((prev) => (checked ? [...prev, group] : prev.filter((g) => g !== group)))
@@ -75,6 +107,7 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
       setStartTime(tournament?.start_time ?? '')
       setWeighInDate(tournament?.weigh_in_date ?? '')
       setWeighInTime(tournament?.weigh_in_time ?? '')
+      setWeighInLocation(tournament?.weigh_in_location ?? '')
       setPlatform(tournament?.external_platform ?? PLATFORM_NONE)
       setRegUrl(tournament?.external_registration_url ?? '')
       setGroups(tournament?.practice_groups ?? [])
@@ -100,6 +133,7 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
       start_time: startTime,
       weigh_in_date: weighInDate,
       weigh_in_time: weighInTime,
+      weigh_in_location: weighInLocation,
       external_platform: platform === PLATFORM_NONE ? null : (platform as TournamentInput['external_platform']),
       external_registration_url: regUrl,
       practice_groups: groups,
@@ -206,6 +240,19 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="weigh_in_location">Weigh-in location</Label>
+            <Input
+              id="weigh_in_location"
+              placeholder="Leave blank to use the tournament venue"
+              value={weighInLocation}
+              onChange={(e) => setWeighInLocation(e.target.value)}
+            />
+            <p className="text-xs text-clw-gray">
+              Sometimes the club facility, sometimes the event site. Shows as a linked weigh-in on parents&apos; calendars.
+            </p>
+          </div>
+
+          <div className="space-y-2">
             <Label>Status</Label>
             <Select value={status} onValueChange={(v) => setStatus(v as Tournament['status'])}>
               <SelectTrigger>
@@ -282,15 +329,41 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="image_url">Flyer image URL</Label>
+            <Label htmlFor="image_url">Flyer image</Label>
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={uploading}
+                onClick={() => fileRef.current?.click()}
+              >
+                <Upload className="mr-1.5 h-4 w-4" />
+                {uploading ? 'Uploading…' : 'Upload file'}
+              </Button>
+              {imageUrl && (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- admin flyer preview thumbnail */}
+                  <img src={imageUrl} alt="Flyer preview" className="h-10 w-10 rounded object-cover" />
+                  <button
+                    type="button"
+                    className="text-xs text-clw-gray underline hover:text-clw-gold"
+                    onClick={() => setImageUrl('')}
+                  >
+                    Remove
+                  </button>
+                </>
+              )}
+            </div>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFlyerFile} />
             <Input
               id="image_url"
               type="url"
-              placeholder="https://…"
+              placeholder="…or paste an image URL (https://…)"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
             />
-            <p className="text-xs text-clw-gray">Shown as the event&apos;s preview image on the homepage.</p>
+            <p className="text-xs text-clw-gray">Upload a flyer or paste a URL — shown as the event&apos;s homepage preview.</p>
           </div>
 
           <div className="space-y-2">
