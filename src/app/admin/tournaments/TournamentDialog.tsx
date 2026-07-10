@@ -52,6 +52,8 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
   const [platform, setPlatform] = useState<string>(tournament?.external_platform ?? PLATFORM_NONE)
   const [regUrl, setRegUrl] = useState(tournament?.external_registration_url ?? '')
   const [groups, setGroups] = useState<string[]>(tournament?.practice_groups ?? [])
+  const [competitionLevel, setCompetitionLevel] = useState(tournament?.competition_level ?? '')
+  const [imageUrl, setImageUrl] = useState(tournament?.image_url ?? '')
   const [notes, setNotes] = useState(tournament?.notes ?? '')
 
   function toggleGroup(group: string, checked: boolean) {
@@ -76,6 +78,8 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
       setPlatform(tournament?.external_platform ?? PLATFORM_NONE)
       setRegUrl(tournament?.external_registration_url ?? '')
       setGroups(tournament?.practice_groups ?? [])
+      setCompetitionLevel(tournament?.competition_level ?? '')
+      setImageUrl(tournament?.image_url ?? '')
       setNotes(tournament?.notes ?? '')
     }
     setOpen(next)
@@ -99,6 +103,8 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
       external_platform: platform === PLATFORM_NONE ? null : (platform as TournamentInput['external_platform']),
       external_registration_url: regUrl,
       practice_groups: groups,
+      competition_level: competitionLevel,
+      image_url: imageUrl,
       notes,
     }
 
@@ -254,6 +260,37 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
                 </label>
               ))}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="competition_level">Competition level</Label>
+            <Input
+              id="competition_level"
+              list="competition-level-options"
+              placeholder="e.g. Beginner-friendly, Competitive, Elite / Invite-only"
+              value={competitionLevel}
+              onChange={(e) => setCompetitionLevel(e.target.value)}
+            />
+            <datalist id="competition-level-options">
+              <option value="Beginner-friendly" />
+              <option value="Competitive" />
+              <option value="Elite / Invite-only" />
+            </datalist>
+            <p className="text-xs text-clw-gray">
+              A difficulty grade so parents can judge readiness — every eligible group can still sign up.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="image_url">Flyer image URL</Label>
+            <Input
+              id="image_url"
+              type="url"
+              placeholder="https://…"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+            />
+            <p className="text-xs text-clw-gray">Shown as the event&apos;s preview image on the homepage.</p>
           </div>
 
           <div className="space-y-2">

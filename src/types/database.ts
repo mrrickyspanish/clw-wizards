@@ -59,6 +59,8 @@ export type Tournament = {
   start_time: string | null
   status: 'open' | 'closed' | 'cancelled'
   practice_groups: string[]
+  competition_level: string | null
+  image_url: string | null
   notes: string | null
   created_at: string
   updated_at: string

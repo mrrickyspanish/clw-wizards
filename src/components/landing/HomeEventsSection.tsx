@@ -60,11 +60,16 @@ export function HomeEventsSection({ tournaments }: { tournaments: Tournament[] }
                   className={`group relative isolate flex min-h-[230px] w-full flex-col overflow-hidden border border-clw-ink/45 bg-white shadow-xl shadow-clw-black/5 transition hover:-translate-y-1 hover:border-clw-gold sm:w-[calc(50%-0.625rem)] lg:min-h-[250px] lg:w-[calc(50%-0.625rem)] ${index > 2 ? 'hidden lg:flex' : ''}`}
                 >
                   <span aria-hidden className="pointer-events-none absolute inset-0 lg:right-auto lg:w-[40%]">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
-                    <img src={EVENT_PHOTOS[index % EVENT_PHOTOS.length]} alt="" className="h-full w-full object-cover opacity-10 lg:opacity-100" />
+                    {/* eslint-disable-next-line @next/next/no-img-element -- club flyer or repo-sourced photography */}
+                    <img src={event.image_url || EVENT_PHOTOS[index % EVENT_PHOTOS.length]} alt="" className="h-full w-full object-cover opacity-10 lg:opacity-100" />
                   </span>
                   <div className="relative flex flex-1">
                     <div className="flex flex-1 flex-col px-6 py-5 sm:px-7 lg:ml-[40%] lg:justify-center lg:pl-8">
+                      {event.competition_level && (
+                        <span className="mb-2 w-fit border border-clw-ink/25 bg-clw-black px-2.5 py-1 font-cond text-sm uppercase tracking-[0.16em] text-clw-gold">
+                          {event.competition_level}
+                        </span>
+                      )}
                       <h3 className="font-body text-2xl font-semibold leading-tight text-clw-ink xl:text-[1.35rem]">{event.name}</h3>
                       <div className="mt-3 h-px w-full bg-clw-gold" />
                       <div className="mt-4 space-y-2.5 text-clw-ink">

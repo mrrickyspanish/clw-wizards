@@ -77,7 +77,12 @@ export default async function AdminTournamentsPage() {
             <TableBody>
               {tournaments.map((t) => (
                 <TableRow key={t.id} className="border-clw-gold/10">
-                  <TableCell className="font-medium text-clw-white">{t.name}</TableCell>
+                  <TableCell className="font-medium text-clw-white">
+                    {t.name}
+                    {t.competition_level && (
+                      <span className="block text-xs font-normal text-clw-gold/80">{t.competition_level}</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-clw-gray">{formatDate(t.date)}</TableCell>
                   <TableCell className="text-clw-gray">
                     {t.location}

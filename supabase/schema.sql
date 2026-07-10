@@ -101,6 +101,8 @@ CREATE TABLE public.tournaments (
   start_time TEXT,
   status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'closed', 'cancelled')),
   practice_groups TEXT[] NOT NULL DEFAULT '{}',
+  competition_level TEXT,
+  image_url TEXT,
   notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

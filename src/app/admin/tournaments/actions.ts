@@ -28,6 +28,8 @@ const tournamentSchema = z.object({
   external_platform: z.enum(['trackwrestling', 'flowrestling', 'internal', 'other']).optional().nullable(),
   external_registration_url: z.string().trim().url('Must be a valid URL').optional().nullable().or(z.literal('')),
   practice_groups: z.array(z.enum(ORG.practiceGroups as unknown as [string, ...string[]])).default([]),
+  competition_level: z.string().trim().optional().nullable(),
+  image_url: z.string().trim().url('Flyer image must be a valid URL').optional().nullable().or(z.literal('')),
   notes: z.string().trim().optional().nullable(),
 })
 
@@ -49,6 +51,8 @@ function normalize(values: TournamentInput) {
     external_platform: parsed.external_platform || null,
     external_registration_url: parsed.external_registration_url || null,
     practice_groups: parsed.practice_groups,
+    competition_level: parsed.competition_level || null,
+    image_url: parsed.image_url || null,
     notes: parsed.notes || null,
   }
 }
