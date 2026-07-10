@@ -1,4 +1,4 @@
-import { chicagoWeekday, chicagoMinutesSinceMidnight } from '@/lib/chicago-time'
+import { chicagoWeekday, chicagoMinutesSinceMidnight, chicagoDatePlusDays } from '@/lib/chicago-time'
 import type { Practice } from '@/types/database'
 
 export const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const
@@ -28,7 +28,16 @@ export type NextPractice = { practice: Practice; label: string }
  * (weekday, start_time) in Chicago time. `label` is a human "when": Today,
  * Tomorrow, or the weekday name.
  */
-export function nextPractice(practices: Practice[], now: Date = new Date()): NextPractice | null {
+/**
+ * @param cancelled Set of cancelled occurrences keyed `${practiceId}|YYYY-MM-DD`
+ *   (Chicago date). A practice whose next occurrence is cancelled rolls forward
+ *   a week, so a holiday closure never surfaces as the next practice.
+ */
+export function nextPractice(
+  practices: Practice[],
+  now: Date = new Date(),
+  cancelled: Set<string> = new Set()
+): NextPractice | null {
   if (!practices.length) return null
   const todayDow = chicagoWeekday(now)
   const nowMin = chicagoMinutesSinceMidnight(now)
@@ -38,6 +47,12 @@ export function nextPractice(practices: Practice[], now: Date = new Date()): Nex
     let days = (p.weekday - todayDow + 7) % 7
     // Same day but already started -> next week.
     if (days === 0 && startMinutes(p) <= nowMin) days = 7
+    // Roll past any cancelled occurrences (cap ~1 year of lookahead).
+    let guard = 0
+    while (cancelled.has(`${p.id}|${chicagoDatePlusDays(days, now)}`) && guard < 60) {
+      days += 7
+      guard += 1
+    }
     const minutesAway = days * 24 * 60 + (startMinutes(p) - nowMin)
     if (!best || minutesAway < best.minutesAway) {
       best = { practice: p, minutesAway, daysAway: days }

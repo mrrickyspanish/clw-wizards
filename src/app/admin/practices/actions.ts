@@ -116,3 +116,45 @@ export async function deletePractice(id: string): Promise<ActionResult> {
   revalidatePath('/admin/practices')
   return { ok: true }
 }
+
+// Cancel a single dated occurrence of a recurring practice (e.g. a holiday)
+// without touching the weekly series.
+const cancellationSchema = z.object({
+  practice_id: z.string().uuid('Missing practice'),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Pick a date to cancel'),
+  reason: z.string().trim().optional().nullable(),
+})
+
+export type CancellationInput = z.input<typeof cancellationSchema>
+
+export async function cancelPracticeDate(values: CancellationInput): Promise<ActionResult> {
+  let row
+  try {
+    row = cancellationSchema.parse(values)
+  } catch (err) {
+    if (err instanceof z.ZodError) return { ok: false, error: err.issues[0]?.message ?? 'Invalid input' }
+    throw err
+  }
+  const supabase = await createServerSupabase()
+  const { error } = await supabase.from('practice_cancellations').insert({
+    practice_id: row.practice_id,
+    date: row.date,
+    reason: row.reason || null,
+  })
+  if (error) {
+    // Unique (practice_id, date) — a duplicate just means it's already cancelled.
+    if (error.code === '23505') return { ok: false, error: 'That date is already cancelled.' }
+    return { ok: false, error: error.message }
+  }
+  revalidatePath('/admin/practices')
+  return { ok: true }
+}
+
+export async function removePracticeCancellation(id: string): Promise<ActionResult> {
+  if (!id) return { ok: false, error: 'Missing cancellation id' }
+  const supabase = await createServerSupabase()
+  const { error } = await supabase.from('practice_cancellations').delete().eq('id', id)
+  if (error) return { ok: false, error: error.message }
+  revalidatePath('/admin/practices')
+  return { ok: true }
+}

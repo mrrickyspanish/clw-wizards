@@ -10,6 +10,7 @@ import {
   Upload,
   Mail,
   CheckCircle2,
+  PartyPopper,
   Plus,
 } from 'lucide-react'
 
@@ -17,7 +18,7 @@ import { createServerSupabase } from '@/lib/supabase/server'
 import { chicagoDateString, chicagoHour } from '@/lib/chicago-time'
 import { WEEKDAYS, formatTime, nextPractice } from '@/lib/practice'
 import { ORG } from '@/config/org.config'
-import type { Tournament, TournamentRegistration, Practice, Athlete } from '@/types/database'
+import type { Tournament, TournamentRegistration, Practice, Athlete, ClubEvent } from '@/types/database'
 
 function greeting(): string {
   const h = chicagoHour()
@@ -62,6 +63,8 @@ export default async function ParentDashboardPage() {
     { data: practices },
     { data: recentDocs },
     { data: paidDues },
+    { data: cancellations },
+    { data: clubEvents },
   ] = await Promise.all([
     supabase.from('profiles').select('full_name').eq('id', userId).single(),
     supabase.from('athletes').select('id, first_name, last_name, weight_class, practice_group').eq('parent_id', userId),
@@ -79,6 +82,8 @@ export default async function ParentDashboardPage() {
     supabase.from('practices').select('*').eq('active', true),
     supabase.from('athlete_documents').select('uploaded_at, doc_type').eq('parent_id', userId),
     supabase.from('dues_payments').select('updated_at, season').eq('parent_id', userId).eq('status', 'paid'),
+    supabase.from('practice_cancellations').select('practice_id, date').gte('date', today),
+    supabase.from('club_events').select('*').eq('active', true).gte('date', today).order('date', { ascending: true }).limit(6),
   ])
 
   const fullName = profile?.full_name ?? 'Wizard family'
@@ -109,7 +114,15 @@ export default async function ParentDashboardPage() {
   const myPractices = ((practices ?? []) as Practice[])
     .filter((p) => groups.has(p.practice_group))
     .sort((a, b) => a.weekday - b.weekday || a.start_time.localeCompare(b.start_time))
-  const next = nextPractice(myPractices)
+  const cancelledSet = new Set(
+    ((cancellations ?? []) as { practice_id: string; date: string }[]).map((c) => `${c.practice_id}|${c.date}`)
+  )
+  const next = nextPractice(myPractices, new Date(), cancelledSet)
+
+  // Upcoming one-off events: club-wide or matching one of the family's groups.
+  const upcomingEvents = ((clubEvents ?? []) as ClubEvent[])
+    .filter((ev) => !ev.practice_group || groups.has(ev.practice_group))
+    .slice(0, 4)
 
   type Activity = { label: string; date: string }
   const activity: Activity[] = [
@@ -316,6 +329,29 @@ export default async function ParentDashboardPage() {
                   <span className="block text-sm text-clw-gray">{p.location}</span>
                 </span>
                 <span className="text-sm text-clw-gold-ink">{formatTime(p.start_time)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* UPCOMING EVENTS (one-off: banquets, parent nights, fundraisers) */}
+      {upcomingEvents.length > 0 && (
+        <section className="card-depth mb-8 rounded-2xl border border-clw-gold/10 bg-clw-black-3 p-5">
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-clw-white">
+            <PartyPopper className="h-4 w-4 text-clw-gold-ink" /> Upcoming events
+          </h2>
+          <ul className="space-y-2">
+            {upcomingEvents.map((ev) => (
+              <li key={ev.id} className="flex items-center justify-between rounded-xl bg-clw-black px-3 py-3">
+                <span className="min-w-0">
+                  <span className="block truncate font-medium text-clw-white">{ev.title}</span>
+                  <span className="block text-sm text-clw-gray">
+                    {shortDate(ev.date)}
+                    {ev.start_time ? ` · ${formatTime(ev.start_time)}` : ''}
+                    {ev.location ? ` · ${ev.location}` : ''}
+                  </span>
+                </span>
               </li>
             ))}
           </ul>

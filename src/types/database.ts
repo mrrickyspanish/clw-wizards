@@ -157,6 +157,31 @@ export type Practice = {
   updated_at: string
 }
 
+export type ClubEventType = 'event' | 'banquet' | 'parent_night' | 'fundraiser' | 'meeting' | 'other'
+
+export type ClubEvent = {
+  id: string
+  title: string
+  event_type: ClubEventType
+  date: string
+  start_time: string | null
+  end_time: string | null
+  location: string | null
+  notes: string | null
+  practice_group: string | null
+  active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type PracticeCancellation = {
+  id: string
+  practice_id: string
+  date: string
+  reason: string | null
+  created_at: string
+}
+
 export type Donation = {
   id: string
   donor_name: string | null
@@ -232,6 +257,18 @@ export type Database = {
         Row: Practice
         Insert: Partial<Practice>
         Update: Partial<Practice>
+        Relationships: []
+      }
+      club_events: {
+        Row: ClubEvent
+        Insert: Partial<ClubEvent>
+        Update: Partial<ClubEvent>
+        Relationships: []
+      }
+      practice_cancellations: {
+        Row: PracticeCancellation
+        Insert: Partial<PracticeCancellation>
+        Update: Partial<PracticeCancellation>
         Relationships: []
       }
     }
