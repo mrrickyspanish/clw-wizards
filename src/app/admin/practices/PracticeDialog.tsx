@@ -7,7 +7,7 @@ import { Pencil, Plus } from 'lucide-react'
 import type { Practice } from '@/types/database'
 import { ORG } from '@/config/org.config'
 import { WEEKDAYS } from '@/lib/practice'
-import { createPractice, updatePractice, type PracticeInput } from './actions'
+import { createPractices, updatePractice, type PracticeInput } from './actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -33,33 +33,46 @@ export function PracticeDialog({ practice }: { practice?: Practice }) {
 
   const [group, setGroup] = useState(practice?.practice_group ?? ORG.practiceGroups[0])
   const [weekday, setWeekday] = useState(String(practice?.weekday ?? 2))
+  const [weekdays, setWeekdays] = useState<number[]>([])
   const [startTime, setStartTime] = useState(practice?.start_time ?? '18:30')
   const [endTime, setEndTime] = useState(practice?.end_time ?? '')
   const [location, setLocation] = useState(practice?.location ?? '')
   const [notes, setNotes] = useState(practice?.notes ?? '')
   const [active, setActive] = useState(practice?.active ?? true)
 
+  function toggleWeekday(day: number) {
+    setWeekdays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]))
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
+
+    if (!editing && weekdays.length === 0) {
+      setError('Pick at least one day of the week.')
+      return
+    }
+
     setLoading(true)
 
-    const values: PracticeInput = {
+    const base = {
       practice_group: group,
-      weekday: Number(weekday),
       start_time: startTime,
       end_time: endTime,
       location,
       notes,
       active,
     }
-    const result = editing ? await updatePractice(practice!.id, values) : await createPractice(values)
+    const result = editing
+      ? await updatePractice(practice!.id, { ...base, weekday: Number(weekday) } as PracticeInput)
+      : await createPractices({ ...base, weekdays })
     setLoading(false)
     if (!result.ok) {
       setError(result.error)
       return
     }
     setOpen(false)
+    setWeekdays([])
     router.refresh()
   }
 
@@ -79,7 +92,11 @@ export function PracticeDialog({ practice }: { practice?: Practice }) {
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-clw-gold">{editing ? 'Edit practice' : 'Add practice'}</DialogTitle>
-          <DialogDescription>Recurring weekly practice for a group.</DialogDescription>
+          <DialogDescription>
+            {editing
+              ? 'Recurring weekly practice for a group.'
+              : 'Pick one or more days — each becomes a recurring weekly practice for the group.'}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -105,21 +122,38 @@ export function PracticeDialog({ practice }: { practice?: Practice }) {
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label>Day of week</Label>
-            <Select value={weekday} onValueChange={setWeekday}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
+          {editing ? (
+            <div className="space-y-2">
+              <Label>Day of week</Label>
+              <Select value={weekday} onValueChange={setWeekday}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {WEEKDAYS.map((d, i) => (
+                    <SelectItem key={d} value={String(i)}>
+                      {d}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label>Days of week</Label>
+              <div className="grid grid-cols-2 gap-2">
                 {WEEKDAYS.map((d, i) => (
-                  <SelectItem key={d} value={String(i)}>
+                  <label
+                    key={d}
+                    className="flex cursor-pointer items-center gap-2 rounded-md border border-clw-gold/20 bg-clw-black/40 px-3 py-2 text-sm text-clw-white"
+                  >
+                    <Checkbox checked={weekdays.includes(i)} onCheckedChange={() => toggleWeekday(i)} />
                     {d}
-                  </SelectItem>
+                  </label>
                 ))}
-              </SelectContent>
-            </Select>
-          </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
