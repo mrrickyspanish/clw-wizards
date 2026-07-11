@@ -1,6 +1,7 @@
 import { ExternalLink, Scale } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
+import { resolveFamilyOwnerIds } from '@/lib/family'
 import { chicagoDateString } from '@/lib/chicago-time'
 import { formatTime } from '@/lib/practice'
 import type { Tournament, Athlete, TournamentRegistration } from '@/types/database'
@@ -33,16 +34,26 @@ export default async function TournamentsPage() {
   // past events would just clutter the top of an ascending (soonest-first) list.
   const today = chicagoDateString()
 
-  const [{ data: tournaments, error }, { data: athletes }, { data: registrations }] = await Promise.all([
+  const familyOwnerIds = await resolveFamilyOwnerIds(supabase, userId)
+  const [{ data: tournaments, error }, { data: athletes }] = await Promise.all([
     supabase.from('tournaments').select('*').gte('date', today).order('date', { ascending: true }),
-    supabase.from('athletes').select('id, first_name, last_name, active').eq('parent_id', userId),
-    supabase.from('tournament_registrations').select('id, tournament_id, athlete_id, status').eq('parent_id', userId),
+    supabase.from('athletes').select('id, first_name, last_name, active').in('parent_id', familyOwnerIds),
   ])
 
+  const allAthletes = (athletes ?? []) as Pick<Athlete, 'id' | 'first_name' | 'last_name' | 'active'>[]
+  const athleteIds = allAthletes.map((a) => a.id)
+
+  // Registrations resolve by the family's wrestlers, so a co-guardian sees the
+  // whole family's sign-ups (RLS: treg_guardian_all) — not just their own.
+  const { data: registrations } = athleteIds.length
+    ? await supabase
+        .from('tournament_registrations')
+        .select('id, tournament_id, athlete_id, status')
+        .in('athlete_id', athleteIds)
+    : { data: [] as Pick<TournamentRegistration, 'id' | 'tournament_id' | 'athlete_id' | 'status'>[] }
+
   const tournamentRows = (tournaments ?? []) as Tournament[]
-  const athleteRows = ((athletes ?? []) as Pick<Athlete, 'id' | 'first_name' | 'last_name' | 'active'>[]).filter(
-    (a) => a.active
-  )
+  const athleteRows = allAthletes.filter((a) => a.active)
   const athleteOptions = athleteRows.map((a) => ({ id: a.id, name: `${a.first_name} ${a.last_name}` }))
 
   // Index registrations by tournament, then by athlete, for quick lookup in the

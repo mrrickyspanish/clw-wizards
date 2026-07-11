@@ -17,6 +17,7 @@ import {
 import { createServerSupabase } from '@/lib/supabase/server'
 import { chicagoDateString, chicagoHour } from '@/lib/chicago-time'
 import { WEEKDAYS, formatTime, nextPractice } from '@/lib/practice'
+import { resolveFamilyOwnerIds } from '@/lib/family'
 import { ORG } from '@/config/org.config'
 import type { Tournament, TournamentRegistration, Practice, Athlete, ClubEvent } from '@/types/database'
 
@@ -54,6 +55,9 @@ export default async function ParentDashboardPage() {
   const userId = auth.user?.id ?? ''
   const today = chicagoDateString()
 
+  // Wrestlers a co-guardian can see span the whole family, not just their own account.
+  const familyOwnerIds = await resolveFamilyOwnerIds(supabase, userId)
+
   const [
     { data: profile },
     { data: athletes },
@@ -67,7 +71,7 @@ export default async function ParentDashboardPage() {
     { data: clubEvents },
   ] = await Promise.all([
     supabase.from('profiles').select('full_name').eq('id', userId).single(),
-    supabase.from('athletes').select('id, first_name, last_name, weight_class, practice_group').eq('parent_id', userId),
+    supabase.from('athletes').select('id, first_name, last_name, weight_class, practice_group').in('parent_id', familyOwnerIds),
     supabase
       .from('dues_payments')
       .select('amount_cents, amount_paid_cents')

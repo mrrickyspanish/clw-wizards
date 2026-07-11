@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
 import { createServerSupabase } from '@/lib/supabase/server'
+import { createAdminSupabase } from '@/lib/supabase/admin'
 import { SMS_CONSENT_TEXT } from '@/lib/twilio/opt-in'
 import { ORG } from '@/config/org.config'
 
@@ -67,6 +68,55 @@ export async function completeOnboarding(values: OnboardingInput): Promise<Actio
     })
     .eq('id', auth.user.id)
 
+  if (profileError) return { ok: false, error: profileError.message }
+
+  revalidatePath('/dashboard')
+  return { ok: true }
+}
+
+function normalizeCode(raw: string): string {
+  const s = raw.replace(/\s+/g, '').toUpperCase()
+  return s.length === 8 && !s.includes('-') ? `${s.slice(0, 4)}-${s.slice(4)}` : s
+}
+
+// Join an existing family with an invite code: links the signed-in user as a
+// guardian of the inviter's family and finishes onboarding (no wrestlers to add).
+export async function redeemFamilyInvite(rawCode: string): Promise<ActionResult> {
+  const supabase = await createServerSupabase()
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return { ok: false, error: 'Not signed in' }
+
+  const code = normalizeCode(rawCode)
+  if (!code) return { ok: false, error: 'Enter your invite code.' }
+
+  // Service role: the redeemer is not the inviter, so RLS would hide the invite
+  // and block the cross-family guardian link.
+  const admin = createAdminSupabase()
+  const { data: invite } = await admin
+    .from('family_invites')
+    .select('id, inviter_id, expires_at, redeemed_at')
+    .eq('code', code)
+    .maybeSingle()
+
+  if (!invite) return { ok: false, error: 'That invite code is not valid.' }
+  if (invite.redeemed_at) return { ok: false, error: 'That invite has already been used.' }
+  if (new Date(invite.expires_at).getTime() < Date.now()) return { ok: false, error: 'That invite has expired.' }
+  if (invite.inviter_id === auth.user.id) return { ok: false, error: 'You cannot join your own family.' }
+
+  const { error: linkError } = await admin
+    .from('family_guardians')
+    .upsert({ owner_id: invite.inviter_id, guardian_id: auth.user.id }, { onConflict: 'owner_id,guardian_id' })
+  if (linkError) return { ok: false, error: linkError.message }
+
+  await admin
+    .from('family_invites')
+    .update({ redeemed_by: auth.user.id, redeemed_at: new Date().toISOString() })
+    .eq('id', invite.id)
+
+  const { error: profileError } = await admin
+    .from('profiles')
+    .update({ onboarding_completed_at: new Date().toISOString() })
+    .eq('id', auth.user.id)
   if (profileError) return { ok: false, error: profileError.message }
 
   revalidatePath('/dashboard')

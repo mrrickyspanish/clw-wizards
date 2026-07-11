@@ -182,6 +182,23 @@ export type PracticeCancellation = {
   created_at: string
 }
 
+export type FamilyGuardian = {
+  id: string
+  owner_id: string
+  guardian_id: string
+  created_at: string
+}
+
+export type FamilyInvite = {
+  id: string
+  code: string
+  inviter_id: string
+  expires_at: string
+  redeemed_by: string | null
+  redeemed_at: string | null
+  created_at: string
+}
+
 export type Donation = {
   id: string
   donor_name: string | null
@@ -269,6 +286,18 @@ export type Database = {
         Row: PracticeCancellation
         Insert: Partial<PracticeCancellation>
         Update: Partial<PracticeCancellation>
+        Relationships: []
+      }
+      family_guardians: {
+        Row: FamilyGuardian
+        Insert: Partial<FamilyGuardian>
+        Update: Partial<FamilyGuardian>
+        Relationships: []
+      }
+      family_invites: {
+        Row: FamilyInvite
+        Insert: Partial<FamilyInvite>
+        Update: Partial<FamilyInvite>
         Relationships: []
       }
     }

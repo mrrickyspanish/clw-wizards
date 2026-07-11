@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { LayoutDashboard, Users, FolderOpen, HandCoins, Trophy, User } from 'lucide-react'
+import { LayoutDashboard, Users, FolderOpen, HandCoins, Trophy, User, UsersRound } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 
@@ -15,6 +15,7 @@ const PORTAL_NAV: NavItem[] = [
   { href: '/tournaments', label: 'Tournaments', icon: <Trophy className="w-4 h-4" /> },
   { href: '/dues', label: 'Dues', icon: <HandCoins className="w-4 h-4" /> },
   { href: '/documents', label: 'Documents', icon: <FolderOpen className="w-4 h-4" /> },
+  { href: '/family', label: 'Family', icon: <UsersRound className="w-4 h-4" /> },
   { href: '/profile', label: 'Profile', icon: <User className="w-4 h-4" /> },
 ]
 

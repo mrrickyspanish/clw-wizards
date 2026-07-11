@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { MapPin } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
+import { resolveFamilyOwnerIds } from '@/lib/family'
 import { WEEKDAYS, formatTime } from '@/lib/practice'
 import type { Practice } from '@/types/database'
 
@@ -18,9 +19,10 @@ export default async function SchedulePage({
   const { data: auth } = await supabase.auth.getUser()
   const userId = auth.user?.id ?? ''
 
+  const familyOwnerIds = await resolveFamilyOwnerIds(supabase, userId)
   const [{ data: practices, error }, { data: athletes }] = await Promise.all([
     supabase.from('practices').select('*').eq('active', true),
-    supabase.from('athletes').select('practice_group').eq('parent_id', userId),
+    supabase.from('athletes').select('practice_group').in('parent_id', familyOwnerIds),
   ])
 
   const myGroups = new Set((athletes ?? []).map((a) => a.practice_group))

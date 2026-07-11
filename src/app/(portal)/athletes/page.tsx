@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Plus, UserPlus } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
+import { resolveFamilyOwnerIds } from '@/lib/family'
 import type { Athlete } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -37,10 +38,11 @@ export default async function AthletesPage() {
   const supabase = await createServerSupabase()
   const { data: auth } = await supabase.auth.getUser()
 
+  const familyOwnerIds = await resolveFamilyOwnerIds(supabase, auth.user?.id ?? '')
   const { data: athletes, error } = await supabase
     .from('athletes')
     .select('*')
-    .eq('parent_id', auth.user?.id ?? '')
+    .in('parent_id', familyOwnerIds)
     .order('created_at', { ascending: true })
 
   const rows = (athletes ?? []) as Athlete[]

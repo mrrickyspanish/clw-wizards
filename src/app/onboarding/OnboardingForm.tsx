@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Trash2, Check } from 'lucide-react'
 
-import { completeOnboarding, skipOnboarding } from './actions'
+import { completeOnboarding, skipOnboarding, redeemFamilyInvite } from './actions'
 import { SMS_CONSENT_TEXT } from '@/lib/twilio/opt-in'
 import { ORG } from '@/config/org.config'
 import { Button } from '@/components/ui/button'
@@ -89,6 +89,26 @@ export function OnboardingForm({
   const [loading, setLoading] = useState(false)
   const [skipping, setSkipping] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [mode, setMode] = useState<'create' | 'join'>('create')
+  const [inviteCode, setInviteCode] = useState('')
+  const [joining, setJoining] = useState(false)
+
+  async function handleJoin() {
+    setError(null)
+    if (!inviteCode.trim()) {
+      setError('Enter the invite code your family shared.')
+      return
+    }
+    setJoining(true)
+    const result = await redeemFamilyInvite(inviteCode)
+    setJoining(false)
+    if (!result.ok) {
+      setError(result.error)
+      return
+    }
+    router.push('/dashboard')
+    router.refresh()
+  }
 
   function updateAthlete(key: string, patch: Partial<AthleteDraft>) {
     setAthletes((rows) => rows.map((row) => (row.key === key ? { ...row, ...patch } : row)))
@@ -158,6 +178,52 @@ export function OnboardingForm({
     router.refresh()
   }
 
+  if (mode === 'join') {
+    return (
+      <div className="space-y-6">
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        <div>
+          <h3 className="font-medium text-clw-white">Join an existing family</h3>
+          <p className="mt-1 text-sm text-clw-gray">
+            If another guardian already set up your wrestlers, enter the invite code they shared. You&apos;ll co-manage
+            the same family — no need to re-add anyone.
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="invite_code">Invite code</Label>
+          <Input
+            id="invite_code"
+            value={inviteCode}
+            onChange={(e) => setInviteCode(e.target.value)}
+            placeholder="ABCD-2345"
+            autoCapitalize="characters"
+            autoComplete="off"
+          />
+        </div>
+        <div className="flex items-center justify-between gap-3 pt-2">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              setMode('create')
+              setError(null)
+            }}
+            disabled={joining}
+          >
+            ← Set up my own
+          </Button>
+          <Button type="button" onClick={handleJoin} disabled={joining}>
+            {joining ? 'Joining…' : 'Join family'}
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <Stepper current={step} />
@@ -172,6 +238,16 @@ export function OnboardingForm({
       <div key={step} className="animate-step-in">
         {step === 0 && (
           <div className="space-y-4">
+            <button
+              type="button"
+              onClick={() => {
+                setMode('join')
+                setError(null)
+              }}
+              className="w-full rounded-md border border-clw-gold/20 bg-clw-gold/5 p-3 text-left text-sm text-clw-gray transition-colors hover:border-clw-gold/40"
+            >
+              <span className="font-medium text-clw-white">Joining an existing family?</span> Enter an invite code instead →
+            </button>
             <p className="text-sm text-clw-gray">How should the club reach you? (You can skip this for now.)</p>
             <div className="space-y-2">
               <Label htmlFor="phone">Phone (optional)</Label>
