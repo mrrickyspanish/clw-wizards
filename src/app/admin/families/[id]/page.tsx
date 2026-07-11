@@ -38,6 +38,15 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
     .order('first_name', { ascending: true })
   const athletes = (athleteRows ?? []) as Athlete[]
 
+  // Co-guardians who have joined this family via an invite code.
+  const { data: guardianLinks } = await supabase.from('family_guardians').select('guardian_id').eq('owner_id', id)
+  const guardianIds = (guardianLinks ?? []).map((g) => g.guardian_id)
+  let guardians: Pick<Profile, 'id' | 'full_name' | 'email'>[] = []
+  if (guardianIds.length) {
+    const { data } = await supabase.from('profiles').select('id, full_name, email').in('id', guardianIds)
+    guardians = (data ?? []) as Pick<Profile, 'id' | 'full_name' | 'email'>[]
+  }
+
   return (
     <div>
       <Link
@@ -78,6 +87,24 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
           </div>
         </CardContent>
       </Card>
+
+      {guardians.length > 0 && (
+        <Card className="mb-6 border-clw-gold/10 bg-clw-black">
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-clw-gray">
+              Co-guardians <span className="text-clw-gray/60">({guardians.length})</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {guardians.map((g) => (
+              <div key={g.id} className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-clw-white">{g.full_name ?? 'Unnamed guardian'}</span>
+                <span className="text-clw-gray">{g.email ?? '—'}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <h2 className="mb-3 text-lg font-display text-clw-white">
         Athletes <span className="text-sm text-clw-gray">({athletes.length})</span>

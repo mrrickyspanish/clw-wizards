@@ -127,8 +127,15 @@ async function checkoutDues(stripe: Stripe, body: DuesCheckoutBody, siteOrigin: 
   if (error || !dues) {
     return NextResponse.json({ error: 'Dues record not found.' }, { status: 404 })
   }
+  // The billed parent, or a co-guardian of that family, may pay these dues.
   if (dues.parent_id !== auth.user.id) {
-    return NextResponse.json({ error: 'Forbidden.' }, { status: 403 })
+    const { data: link } = await admin
+      .from('family_guardians')
+      .select('id')
+      .eq('owner_id', dues.parent_id)
+      .eq('guardian_id', auth.user.id)
+      .maybeSingle()
+    if (!link) return NextResponse.json({ error: 'Forbidden.' }, { status: 403 })
   }
 
   const remainingCents = dues.amount_cents - dues.amount_paid_cents

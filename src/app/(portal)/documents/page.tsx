@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Plus, UserPlus } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
+import { resolveFamilyOwnerIds } from '@/lib/family'
 import type { Athlete, AthleteDocument } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -38,20 +39,20 @@ export default async function DocumentsPage() {
   const { data: auth } = await supabase.auth.getUser()
   const userId = auth.user?.id ?? ''
 
-  const [{ data: athletes, error }, { data: docs }] = await Promise.all([
-    supabase
-      .from('athletes')
-      .select('id, first_name, last_name')
-      .eq('parent_id', userId)
-      .order('created_at', { ascending: true }),
-    supabase
-      .from('athlete_documents')
-      .select('*')
-      .eq('parent_id', userId)
-      .order('uploaded_at', { ascending: false }),
-  ])
+  const familyOwnerIds = await resolveFamilyOwnerIds(supabase, userId)
+  const { data: athletes, error } = await supabase
+    .from('athletes')
+    .select('id, first_name, last_name')
+    .in('parent_id', familyOwnerIds)
+    .order('created_at', { ascending: true })
 
   const athleteRows = (athletes ?? []) as Pick<Athlete, 'id' | 'first_name' | 'last_name'>[]
+  // Documents resolve by the family's wrestlers (RLS: adoc_guardian_read), so a
+  // co-guardian sees and can add docs for any wrestler in the family.
+  const athleteIds = athleteRows.map((a) => a.id)
+  const { data: docs } = athleteIds.length
+    ? await supabase.from('athlete_documents').select('*').in('athlete_id', athleteIds).order('uploaded_at', { ascending: false })
+    : { data: [] as AthleteDocument[] }
   // Index documents by athlete + type for quick lookup.
   const docByKey = new Map<string, AthleteDocument>()
   for (const d of (docs ?? []) as AthleteDocument[]) {

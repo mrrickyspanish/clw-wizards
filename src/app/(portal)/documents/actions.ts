@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
 import { createServerSupabase } from '@/lib/supabase/server'
+import { resolveFamilyOwnerIds } from '@/lib/family'
 
 export type ActionResult = { ok: true } | { ok: false; error: string }
 
@@ -29,13 +30,15 @@ export async function recordDocument(values: z.input<typeof recordSchema>): Prom
 
   const { athleteId, docType, fileUrl, fileName } = parsed.data
 
-  // Confirm the athlete belongs to this parent before attaching a document.
+  // Confirm the athlete is on the user's family roster (own or co-guardianed)
+  // before attaching a document.
+  const familyOwnerIds = await resolveFamilyOwnerIds(supabase, user.id)
   const { data: athlete } = await supabase
     .from('athletes')
     .select('id')
     .eq('id', athleteId)
-    .eq('parent_id', user.id)
-    .single()
+    .in('parent_id', familyOwnerIds)
+    .maybeSingle()
   if (!athlete) return { ok: false, error: 'That wrestler is not on your roster.' }
 
   const { error } = await supabase.from('athlete_documents').insert({

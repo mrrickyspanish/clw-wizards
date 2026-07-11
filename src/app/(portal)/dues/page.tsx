@@ -1,4 +1,5 @@
 import { createServerSupabase } from '@/lib/supabase/server'
+import { resolveFamilyOwnerIds } from '@/lib/family'
 import type { DuesPayment, Athlete } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -38,9 +39,10 @@ export default async function DuesPage({
   const { data: auth } = await supabase.auth.getUser()
   const userId = auth.user?.id ?? ''
 
+  const familyOwnerIds = await resolveFamilyOwnerIds(supabase, userId)
   const [{ data: dues, error }, { data: athletes }] = await Promise.all([
-    supabase.from('dues_payments').select('*').eq('parent_id', userId).order('created_at', { ascending: false }),
-    supabase.from('athletes').select('id, first_name, last_name').eq('parent_id', userId),
+    supabase.from('dues_payments').select('*').in('parent_id', familyOwnerIds).order('created_at', { ascending: false }),
+    supabase.from('athletes').select('id, first_name, last_name').in('parent_id', familyOwnerIds),
   ])
 
   const athleteById = new Map(

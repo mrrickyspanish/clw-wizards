@@ -3,6 +3,7 @@ import { UsersRound } from 'lucide-react'
 import { createServerSupabase } from '@/lib/supabase/server'
 import type { FamilyGuardian, FamilyInvite, Profile } from '@/types/database'
 import { FamilyControls } from './FamilyControls'
+import { RemoveGuardianButton } from './RemoveGuardianButton'
 
 function displayName(p: Pick<Profile, 'full_name' | 'email'> | undefined) {
   return p?.full_name || p?.email || 'Guardian'
@@ -59,7 +60,8 @@ export default async function FamilyPage() {
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-clw-gold/30 text-clw-gold-ink">
                   <UsersRound className="h-4 w-4" />
                 </span>
-                <span className="text-clw-white">{displayName(profileMap.get(g.owner_id))}&apos;s family</span>
+                <span className="flex-1 text-clw-white">{displayName(profileMap.get(g.owner_id))}&apos;s family</span>
+                <RemoveGuardianButton id={g.id} label={`${displayName(profileMap.get(g.owner_id))}'s family`} action="leave" />
               </li>
             ))}
           </ul>
@@ -77,10 +79,11 @@ export default async function FamilyPage() {
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-clw-gold/30 text-clw-gold-ink">
                   <UsersRound className="h-4 w-4" />
                 </span>
-                <span className="min-w-0">
+                <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium text-clw-white">{displayName(profileMap.get(g.guardian_id))}</span>
                   <span className="block text-sm text-clw-gray">Co-guardian</span>
                 </span>
+                <RemoveGuardianButton id={g.id} label={displayName(profileMap.get(g.guardian_id))} action="remove" />
               </li>
             ))}
           </ul>
