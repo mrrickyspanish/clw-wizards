@@ -66,7 +66,7 @@ export default async function SponsorshipPage({
 
       <section id="donate" className="scroll-mt-28 bg-[#F7F7F7] px-7 py-16 text-clw-black sm:px-10 sm:py-20">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">One-Time Support</p>
+          <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-on-light">One-Time Support</p>
           <h2 className="mt-6 font-display text-5xl uppercase leading-none sm:text-6xl">Make a Donation</h2>
           <p className="mx-auto mt-6 max-w-2xl text-xl leading-relaxed text-clw-black/70">Your gift helps cover tournament fees, practice equipment, scholarships, travel assistance, and facility improvements.</p>
           <DonationCheckoutForm presets={[25, 50, 100, 250]} defaultAmount={50} buttonLabel="Donate" light />
@@ -97,7 +97,7 @@ export default async function SponsorshipPage({
       <section id="sponsors" className="scroll-mt-28 bg-clw-white px-7 py-16 text-clw-black sm:px-10 sm:py-20">
         <div className="mx-auto max-w-5xl">
           <div className="text-center">
-            <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Business Support</p>
+            <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-on-light">Business Support</p>
             <h2 className="mt-6 font-display text-5xl uppercase leading-none sm:text-6xl">Corporate Sponsorship</h2>
           </div>
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -114,7 +114,7 @@ export default async function SponsorshipPage({
 
       <section id="contact" className="scroll-mt-28 bg-[#F7F7F7] px-7 py-16 text-clw-black sm:px-10 sm:py-20">
         <div className="mx-auto max-w-3xl">
-          <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Talk With Wizards Wrestling Club</p>
+          <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-on-light">Talk With Wizards Wrestling Club</p>
           <h2 className="mt-6 font-display text-5xl uppercase leading-none sm:text-6xl">Get in Touch</h2>
           <div className="mt-8 grid gap-6 text-lg sm:grid-cols-2">
             <p className="flex items-start gap-3"><MapPin className="mt-1 h-5 w-5 shrink-0 text-clw-gold" />{FACILITY_ADDRESS}</p>

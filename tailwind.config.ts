@@ -61,6 +61,7 @@ const config: Config = {
           'gold-l': 'rgb(var(--clw-gold-l) / <alpha-value>)',
           'gold-dim': 'rgb(var(--clw-gold-dim) / <alpha-value>)',
           'gold-ink': 'rgb(var(--clw-gold-ink) / <alpha-value>)',
+          'gold-on-light': 'rgb(var(--clw-gold-on-light) / <alpha-value>)',
           white: 'rgb(var(--clw-white) / <alpha-value>)',
           gray: 'rgb(var(--clw-gray) / <alpha-value>)',
           cream: 'rgb(var(--clw-cream) / <alpha-value>)',

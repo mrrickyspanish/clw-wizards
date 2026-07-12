@@ -15,12 +15,12 @@ export function HomeFacilitySection() {
 
       <div id="location" className="relative mx-auto grid max-w-7xl scroll-mt-32 gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-center lg:gap-14">
         <div>
-          <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Location</p>
+          <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-on-light">Location</p>
           <h2 className="mt-6 whitespace-nowrap uppercase leading-[0.92] text-clw-ink">
             <span className="mr-2 inline font-cond text-[clamp(2.2rem,9.5vw,5rem)] font-light tracking-[-0.04em] sm:mr-3">
               Visit the
             </span>
-            <span className="inline font-display text-[clamp(2.45rem,10.5vw,5.6rem)] font-black tracking-[-0.035em] text-clw-gold">
+            <span className="inline font-display text-[clamp(2.45rem,10.5vw,5.6rem)] font-black tracking-[-0.035em] text-clw-gold-on-light">
               Facility
             </span>
           </h2>
@@ -42,11 +42,11 @@ export function HomeFacilitySection() {
 
           <div className="grid gap-6 border-t border-clw-gold/30 bg-clw-black px-5 py-6 text-clw-white sm:grid-cols-[1fr_auto] sm:items-center sm:px-7 sm:py-7">
             <div className="flex min-w-0 items-start gap-4">
-              <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-clw-gold/40 bg-clw-gold/10 text-clw-gold">
+              <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-clw-gold/40 bg-clw-gold/10 text-clw-gold-on-light">
                 <MapPin className="h-5 w-5" />
               </span>
               <div className="min-w-0">
-                <p className="font-cond text-xs uppercase tracking-[0.24em] text-clw-gold">Wizards Wrestling Club</p>
+                <p className="font-cond text-xs uppercase tracking-[0.24em] text-clw-gold-on-light">Wizards Wrestling Club</p>
                 <p className="mt-2 text-lg font-semibold leading-snug text-clw-white sm:text-xl">975 Nimco Dr, Unit L</p>
                 <p className="text-base leading-relaxed text-clw-gray sm:text-lg">Crystal Lake, IL 60014</p>
               </div>
@@ -56,7 +56,7 @@ export function HomeFacilitySection() {
               href={MAP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="chamfer-sm inline-flex min-h-12 items-center justify-center gap-2 bg-clw-gold px-6 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-black transition hover:bg-clw-gold-l sm:min-w-44"
+              className="chamfer-sm inline-flex min-h-12 items-center justify-center gap-2 bg-clw-gold px-6 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-ink transition hover:bg-clw-gold-l sm:min-w-44"
             >
               <Navigation className="h-4 w-4" />
               Get directions

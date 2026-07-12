@@ -156,7 +156,7 @@ export default function JoinPage() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <a
                 href={`mailto:${ORG.contactEmail}?subject=Interested%20in%20Wizards%20Wrestling`}
-                className="chamfer-sm inline-flex min-h-[52px] items-center justify-center gap-2 bg-clw-gold px-7 py-4 font-cond text-base uppercase tracking-[0.16em] text-clw-black transition hover:bg-clw-gold-l"
+                className="chamfer-sm inline-flex min-h-[52px] items-center justify-center gap-2 bg-clw-gold px-7 py-4 font-cond text-base uppercase tracking-[0.16em] text-clw-ink transition hover:bg-clw-gold-l"
               >
                 Ask About Joining
                 <Mail className="h-4 w-4" />
@@ -179,10 +179,10 @@ export default function JoinPage() {
       <section className="section-light relative isolate overflow-hidden border-b border-clw-gold/25 bg-[#F7F7F7] py-14 text-clw-ink sm:py-16 lg:py-20">
         <div className="mission-frame relative grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:items-center lg:gap-16">
           <div>
-            <p className="font-cond text-sm uppercase tracking-[0.3em] text-clw-gold">Is This the Right Fit?</p>
+            <p className="font-cond text-sm uppercase tracking-[0.3em] text-clw-gold-on-light">Is This the Right Fit?</p>
             <h2 className="mt-5 uppercase leading-[0.92]">
               <span className="block font-cond text-[clamp(2.8rem,8vw,5rem)] font-light tracking-[-0.04em]">A place to learn.</span>
-              <span className="block font-display text-[clamp(3.2rem,9vw,5.7rem)] font-black tracking-[-0.04em] text-clw-gold">A room to grow.</span>
+              <span className="block font-display text-[clamp(3.2rem,9vw,5.7rem)] font-black tracking-[-0.04em] text-clw-gold-on-light">A room to grow.</span>
             </h2>
             <p className="mt-6 text-xl leading-relaxed text-clw-muted-dark sm:text-2xl sm:leading-relaxed lg:text-xl">
               Wizards Wrestling helps young athletes take the next step, whether they are learning the basics, building confidence, or chasing bigger competitive goals.
@@ -251,7 +251,7 @@ export default function JoinPage() {
       <section className="section-light relative isolate overflow-hidden border-y border-clw-gold/25 bg-[#F7F7F7] py-14 text-clw-ink sm:py-16 lg:py-20">
         <div className="mission-frame relative">
           <div className="max-w-4xl">
-            <p className="font-cond text-sm uppercase tracking-[0.3em] text-clw-gold">Finding the Right Training Group</p>
+            <p className="font-cond text-sm uppercase tracking-[0.3em] text-clw-gold-on-light">Finding the Right Training Group</p>
             <h2 className="mt-4 font-display text-4xl uppercase leading-[0.96] sm:text-5xl">
               Four groups. One clear roadmap.
             </h2>
@@ -264,8 +264,8 @@ export default function JoinPage() {
             {GROUPS.map((group) => (
               <article key={group.number} className="chamfer-md flex flex-col border border-clw-ink/15 bg-[#FFFDF7] p-6 shadow-xl shadow-black/5 sm:p-7">
                 <div className="flex items-baseline gap-2">
-                  <span className="font-cond text-sm uppercase tracking-[0.22em] text-clw-gold">Group</span>
-                  <span className="font-display text-5xl leading-none text-clw-gold">{group.number}</span>
+                  <span className="font-cond text-sm uppercase tracking-[0.22em] text-clw-gold-on-light">Group</span>
+                  <span className="font-display text-5xl leading-none text-clw-gold-on-light">{group.number}</span>
                 </div>
                 <h3 className="mt-4 font-display text-2xl uppercase leading-tight text-clw-ink">{group.label}</h3>
                 <div className="mt-3.5">
@@ -430,7 +430,7 @@ export default function JoinPage() {
       <section className="section-light relative isolate overflow-hidden border-t border-clw-gold/25 bg-[#F7F7F7] py-14 text-clw-ink sm:py-16 lg:py-20">
         <div className="mission-frame relative grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-14">
           <div>
-            <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold">Visit the Facility</p>
+            <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold-on-light">Visit the Facility</p>
             <h2 className="mt-4 font-display text-4xl uppercase leading-[0.96] sm:text-5xl">
               See where the work happens.
             </h2>
@@ -454,7 +454,7 @@ export default function JoinPage() {
                 href={MAP_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="chamfer-sm inline-flex min-h-12 items-center justify-center gap-2 bg-clw-gold px-6 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-black transition hover:bg-clw-gold-l"
+                className="chamfer-sm inline-flex min-h-12 items-center justify-center gap-2 bg-clw-gold px-6 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-ink transition hover:bg-clw-gold-l"
               >
                 Get Directions <Navigation className="h-4 w-4" />
               </a>
@@ -484,7 +484,7 @@ export default function JoinPage() {
           <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
             <a
               href={`mailto:${ORG.contactEmail}?subject=Interested%20in%20Wizards%20Wrestling`}
-              className="chamfer-sm inline-flex min-h-[52px] items-center justify-center gap-2 bg-clw-gold px-7 py-4 font-cond text-base uppercase tracking-[0.16em] text-clw-black transition hover:bg-clw-gold-l"
+              className="chamfer-sm inline-flex min-h-[52px] items-center justify-center gap-2 bg-clw-gold px-7 py-4 font-cond text-base uppercase tracking-[0.16em] text-clw-ink transition hover:bg-clw-gold-l"
             >
               Ask About Joining <Mail className="h-4 w-4" />
             </a>

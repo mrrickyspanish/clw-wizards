@@ -241,7 +241,7 @@ export default function AboutPage() {
               href={MAP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="chamfer-sm flex min-h-12 items-center justify-center bg-clw-gold px-5 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-black transition hover:bg-clw-gold-l"
+              className="chamfer-sm flex min-h-12 items-center justify-center bg-clw-gold px-5 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-ink transition hover:bg-clw-gold-l"
             >
               Get Directions
             </a>

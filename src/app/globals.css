@@ -43,6 +43,10 @@
     --clw-gold-l: 245 206 80;
     --clw-gold-dim: 240 192 32;
     --clw-gold-ink: 240 192 32;
+    /* Readable gold for TEXT on light/cream surfaces. Bright brand gold on white
+       is ~1.9:1 (fails). This deep bronze-gold clears ~5:1 while still reading
+       gold. Use text-clw-gold-on-light for any gold copy on a light background. */
+    --clw-gold-on-light: 138 98 12;
     --clw-white: 255 255 255;
     --clw-gray: 176 176 176;
     --card-shadow: 0 16px 42px -22px rgb(0 0 0 / 0.95);

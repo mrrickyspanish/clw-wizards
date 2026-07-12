@@ -109,7 +109,7 @@ export function SponsorCheckoutForm() {
                 className="sr-only"
               />
               <span className="block font-display text-xl uppercase text-clw-black">{level.label}</span>
-              <span className="mt-1 block font-cond text-2xl tracking-wide text-clw-gold-dim">${level.amount}</span>
+              <span className="mt-1 block font-cond text-2xl tracking-wide text-clw-gold-on-light">${level.amount}</span>
             </label>
           ))}
         </div>

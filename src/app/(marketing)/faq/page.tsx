@@ -92,7 +92,7 @@ export default function FaqPage() {
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
-            <Link href="/join" className="chamfer-sm inline-flex min-h-12 items-center justify-center gap-2 bg-clw-gold px-6 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-black hover:bg-clw-gold-l">
+            <Link href="/join" className="chamfer-sm inline-flex min-h-12 items-center justify-center gap-2 bg-clw-gold px-6 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-ink hover:bg-clw-gold-l">
               New Families <ArrowRight className="h-4 w-4" />
             </Link>
             <a href={`mailto:${ORG.contactEmail}`} className="inline-flex min-h-12 items-center justify-center gap-2 border border-clw-gold/35 px-6 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-gold hover:border-clw-gold">

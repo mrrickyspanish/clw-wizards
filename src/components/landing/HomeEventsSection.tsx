@@ -66,7 +66,7 @@ export function HomeEventsSection({ tournaments }: { tournaments: Tournament[] }
                   <div className="relative flex flex-1">
                     <div className="flex flex-1 flex-col px-6 py-5 sm:px-7 lg:ml-[40%] lg:justify-center lg:pl-8">
                       {event.competition_level && (
-                        <span className="mb-2 w-fit border border-clw-ink/25 bg-clw-black px-2.5 py-1 font-cond text-sm uppercase tracking-[0.16em] text-clw-gold">
+                        <span className="mb-2 w-fit border border-clw-ink/25 bg-clw-ink px-2.5 py-1 font-cond text-sm uppercase tracking-[0.16em] text-clw-gold">
                           {event.competition_level}
                         </span>
                       )}
@@ -87,7 +87,7 @@ export function HomeEventsSection({ tournaments }: { tournaments: Tournament[] }
         )}
 
         <div className="lg:text-center">
-          <Link href="/login" className="mt-8 inline-block font-cond text-xl uppercase tracking-[0.18em] text-clw-gold-ink underline-offset-4 hover:text-clw-ink hover:underline">View full calendar →</Link>
+          <Link href="/login" className="mt-8 inline-block font-cond text-xl uppercase tracking-[0.18em] text-clw-gold-on-light underline-offset-4 hover:text-clw-ink hover:underline">View full calendar →</Link>
         </div>
       </div>
     </section>
