@@ -29,7 +29,7 @@ export const CRYSTAL_LAKE_WIZARDS: OrgConfig = {
   contactEmail: 'arfont37@sbcglobal.net',
   ein: '45-5192515',
   mailingAddress: '1807 Black Oak Drive, McHenry, IL 60050',
-  practiceGroups: ['Black', 'Gold', 'White'],
+  practiceGroups: ['Group 1', 'Group 2', 'Group 3', 'Group 4'],
   social: {
     facebook: 'https://www.facebook.com/pages/Wizards-Wrestling-Club/103467966667221',
   },

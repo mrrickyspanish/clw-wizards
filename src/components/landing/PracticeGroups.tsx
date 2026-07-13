@@ -3,10 +3,12 @@ import { ChevronRight, Shield } from 'lucide-react'
 
 import { ORG } from '@/config/org.config'
 
+// Keyed to the club's four numbered practice groups (see ORG.practiceGroups).
 const GROUP_BLURBS: Record<string, string> = {
-  Black: 'Travel-level wrestlers training for high-level tournaments.',
-  Gold: 'Developing competitors building technique and mat time.',
-  White: 'New and younger wrestlers learning the fundamentals.',
+  'Group 1': 'New and youngest wrestlers learning the sport and safe habits.',
+  'Group 2': 'Developing wrestlers building fundamentals, technique, and confidence.',
+  'Group 3': 'Competitive wrestlers training at an advanced pace and competing often.',
+  'Group 4': 'Our most competitive group, training for state-level goals and beyond.',
 }
 
 export function PracticeGroups() {
