@@ -4,22 +4,23 @@ import { useState, type FormEvent } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import type { SponsorTierRow } from '@/types/database'
 
-const SPONSOR_LEVELS = [
-  { value: 'white', label: 'White Sponsor', amount: 150 },
-  { value: 'black', label: 'Black Sponsor', amount: 250 },
-  { value: 'yellow', label: 'Gold Sponsor', amount: 500 },
-  { value: 'platinum', label: 'Platinum Sponsor', amount: 1000 },
-] as const
+type SponsorLevel = { value: string; label: string; amount: number }
 
-type SponsorTier = (typeof SPONSOR_LEVELS)[number]['value']
+export function SponsorCheckoutForm({ tiers }: { tiers: SponsorTierRow[] }) {
+  // Only tiers with a set price can be checked out online.
+  const levels: SponsorLevel[] = tiers
+    .filter((t) => t.price_cents != null)
+    .map((t) => ({ value: t.slug, label: t.label, amount: (t.price_cents as number) / 100 }))
 
-export function SponsorCheckoutForm() {
-  const [tier, setTier] = useState<SponsorTier>('yellow')
+  const [tier, setTier] = useState<string>(levels[0]?.value ?? '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const selected = SPONSOR_LEVELS.find((level) => level.value === tier) ?? SPONSOR_LEVELS[2]
+  const selected = levels.find((level) => level.value === tier) ?? levels[0]
+
+  if (levels.length === 0) return null
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -91,7 +92,7 @@ export function SponsorCheckoutForm() {
       <fieldset>
         <legend className="text-sm font-semibold uppercase tracking-wide text-clw-black/70">Sponsorship level</legend>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          {SPONSOR_LEVELS.map((level) => (
+          {levels.map((level) => (
             <label
               key={level.value}
               className={`cursor-pointer border p-4 transition ${
@@ -109,7 +110,7 @@ export function SponsorCheckoutForm() {
                 className="sr-only"
               />
               <span className="block font-display text-xl uppercase text-clw-black">{level.label}</span>
-              <span className="mt-1 block font-cond text-2xl tracking-wide text-clw-gold-on-light">${level.amount}</span>
+              <span className="mt-1 block font-cond text-2xl tracking-wide text-clw-gold-on-light">${level.amount.toLocaleString('en-US')}</span>
             </label>
           ))}
         </div>
@@ -118,7 +119,7 @@ export function SponsorCheckoutForm() {
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <Button type="submit" disabled={loading} className="h-14 w-full rounded-none bg-clw-black font-display text-xl uppercase tracking-wide text-clw-gold hover:bg-clw-gold hover:text-clw-black">
-        {loading ? 'Starting checkout...' : `Continue to Stripe for $${selected.amount}`}
+        {loading ? 'Starting checkout...' : `Continue to Stripe for $${selected ? selected.amount.toLocaleString('en-US') : ''}`}
       </Button>
     </form>
   )

@@ -6,6 +6,7 @@ import { sendAlert } from '@/lib/alerts'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { ORG } from '@/config/org.config'
+import type { SponsorTier } from '@/types/database'
 
 interface DuesCheckoutBody {
   flow: 'dues'
@@ -22,8 +23,6 @@ interface DonationCheckoutBody {
   returnPath?: string
 }
 
-type PublicSponsorTier = 'white' | 'black' | 'yellow' | 'platinum'
-
 interface SponsorCheckoutBody {
   flow: 'sponsor'
   sponsorId?: string
@@ -31,18 +30,11 @@ interface SponsorCheckoutBody {
   contactName?: string
   contactEmail?: string
   websiteUrl?: string
-  tier?: PublicSponsorTier
+  tier?: string
   returnPath?: string
 }
 
 type CheckoutBody = DuesCheckoutBody | DonationCheckoutBody | SponsorCheckoutBody
-
-const PUBLIC_SPONSOR_LEVELS: Record<PublicSponsorTier, { amountCents: number; label: string }> = {
-  white: { amountCents: 15000, label: 'White' },
-  black: { amountCents: 25000, label: 'Black' },
-  yellow: { amountCents: 50000, label: 'Gold' },
-  platinum: { amountCents: 100000, label: 'Platinum' },
-}
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -246,10 +238,22 @@ async function checkoutSponsor(stripe: Stripe, body: SponsorCheckoutBody, siteOr
   const sponsorName = clean(body.sponsorName, 160)
   const contactName = clean(body.contactName, 160)
   const contactEmail = clean(body.contactEmail, 180).toLowerCase()
-  const tier = body.tier
+  const tier = clean(body.tier, 40)
 
-  if (!sponsorName || !contactName || !EMAIL_PATTERN.test(contactEmail) || !tier || !PUBLIC_SPONSOR_LEVELS[tier]) {
+  if (!sponsorName || !contactName || !EMAIL_PATTERN.test(contactEmail) || !tier) {
     return NextResponse.json({ error: 'Complete the required sponsorship information.' }, { status: 400 })
+  }
+
+  // Price + label come from the sponsor_tiers table (the editable source of
+  // truth), never the client, so a checkout always charges the current amount.
+  const { data: tierRow } = await admin
+    .from('sponsor_tiers')
+    .select('slug, label, price_cents, public_checkout, active')
+    .eq('slug', tier as SponsorTier)
+    .maybeSingle()
+
+  if (!tierRow || !tierRow.active || !tierRow.public_checkout || tierRow.price_cents == null) {
+    return NextResponse.json({ error: 'Select a valid sponsorship level.' }, { status: 400 })
   }
 
   const websiteUrl = safeWebsiteUrl(body.websiteUrl)
@@ -257,12 +261,12 @@ async function checkoutSponsor(stripe: Stripe, body: SponsorCheckoutBody, siteOr
     return NextResponse.json({ error: 'Enter a valid website URL beginning with http:// or https://.' }, { status: 400 })
   }
 
-  const level = PUBLIC_SPONSOR_LEVELS[tier]
+  const level = { amountCents: tierRow.price_cents, label: tierRow.label }
   const { data: sponsor, error: createError } = await admin
     .from('sponsors')
     .insert({
       name: sponsorName,
-      tier,
+      tier: tierRow.slug,
       contact_name: contactName,
       contact_email: contactEmail,
       website_url: websiteUrl,

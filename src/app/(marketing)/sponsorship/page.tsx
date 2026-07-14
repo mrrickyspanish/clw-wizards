@@ -3,7 +3,7 @@ import { Mail, MapPin } from 'lucide-react'
 
 import { ORG } from '@/config/org.config'
 import { createServerSupabase } from '@/lib/supabase/server'
-import type { Sponsor } from '@/types/database'
+import type { Sponsor, SponsorTierRow } from '@/types/database'
 import { SponsorsShowcase } from '@/components/landing/SponsorsShowcase'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { SupportOverview } from '@/components/sponsorship/SupportOverview'
@@ -22,12 +22,10 @@ const BOOSTER_LEVELS = [
   ['Champion Circle', '$250 / Month'],
 ]
 
-const SPONSOR_TIERS = [
-  ['White Sponsor', '$150'],
-  ['Black Sponsor', '$250'],
-  ['Gold Sponsor', '$500'],
-  ['Platinum Sponsor', '$1,000'],
-]
+function tierPrice(cents: number | null) {
+  if (cents == null) return 'Contact us'
+  return `$${(cents / 100).toLocaleString('en-US')}`
+}
 
 export const metadata: Metadata = {
   title: 'Support the Club',
@@ -43,6 +41,14 @@ export default async function SponsorshipPage({
   const supabase = await createServerSupabase()
   const { data } = await supabase.from('sponsors').select('*').eq('active', true)
   const sponsors = (data ?? []) as Sponsor[]
+
+  const { data: tierData } = await supabase
+    .from('sponsor_tiers')
+    .select('*')
+    .eq('active', true)
+    .eq('public_checkout', true)
+    .order('sort_order', { ascending: true })
+  const tiers = (tierData ?? []) as SponsorTierRow[]
 
   return (
     <main className="overflow-x-clip bg-clw-black text-clw-white">
@@ -101,14 +107,14 @@ export default async function SponsorshipPage({
             <h2 className="mt-6 font-display text-5xl uppercase leading-none sm:text-6xl">Corporate Sponsorship</h2>
           </div>
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {SPONSOR_TIERS.map(([name, amount]) => (
-              <div key={name} className="bg-clw-black p-6 text-clw-white">
-                <p className="font-display text-2xl uppercase">{name}</p>
-                <p className="mt-3 font-cond text-2xl tracking-wide text-clw-gold">{amount}</p>
+            {tiers.map((t) => (
+              <div key={t.slug} className="bg-clw-black p-6 text-clw-white">
+                <p className="font-display text-2xl uppercase">{t.label}</p>
+                <p className="mt-3 font-cond text-2xl tracking-wide text-clw-gold">{tierPrice(t.price_cents)}</p>
               </div>
             ))}
           </div>
-          <SponsorCheckoutForm />
+          <SponsorCheckoutForm tiers={tiers} />
         </div>
       </section>
 

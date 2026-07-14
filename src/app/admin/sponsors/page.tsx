@@ -1,7 +1,8 @@
 import { ExternalLink } from 'lucide-react'
 
 import { createAdminSupabase } from '@/lib/supabase/admin'
-import type { Sponsor, SponsorTier } from '@/types/database'
+import type { Sponsor, SponsorTier, SponsorTierRow } from '@/types/database'
+import { SponsorTierDialog } from './SponsorTierDialog'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -34,6 +35,12 @@ export default async function AdminSponsorsPage() {
     .select('*')
     .order('amount_cents', { ascending: false, nullsFirst: false })
 
+  const { data: tierData } = await supabase
+    .from('sponsor_tiers')
+    .select('*')
+    .order('sort_order', { ascending: true })
+  const tiers = (tierData ?? []) as SponsorTierRow[]
+
   const rows = (sponsors ?? []) as Sponsor[]
   const activeRows = rows.filter((s) => s.active)
   const totalCommitted = rows.reduce((sum, s) => sum + (s.amount_cents ?? 0), 0)
@@ -42,8 +49,79 @@ export default async function AdminSponsorsPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-display text-clw-gold">Sponsors</h1>
-        <p className="text-sm text-clw-gray">Club sponsors and their commitments. Editing is a follow-up build.</p>
+        <p className="text-sm text-clw-gray">Club sponsors and their commitments. Sponsor-record editing is a follow-up build.</p>
       </div>
+
+      <Card className="mb-8 border-clw-gold/10 bg-clw-black">
+        <CardHeader>
+          <CardTitle className="text-base text-clw-white">Sponsorship tiers</CardTitle>
+          <p className="text-sm text-clw-gray">
+            Labels, prices, and ordering shown on the public sponsorship page and used at checkout. Edit these to
+            update the site—no code change needed.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-hidden rounded-md border border-clw-gold/10">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-clw-gold/10 hover:bg-transparent">
+                  <TableHead className="text-clw-gray">Order</TableHead>
+                  <TableHead className="text-clw-gray">Label</TableHead>
+                  <TableHead className="text-clw-gray">Price</TableHead>
+                  <TableHead className="text-clw-gray">Public</TableHead>
+                  <TableHead className="text-clw-gray">Status</TableHead>
+                  <TableHead className="text-clw-gray text-right">Edit</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tiers.map((t) => (
+                  <TableRow key={t.slug} className="border-clw-gold/10">
+                    <TableCell className="text-clw-gray">{t.sort_order}</TableCell>
+                    <TableCell className="font-medium text-clw-white">{t.label}</TableCell>
+                    <TableCell className="text-clw-white">
+                      {t.price_cents == null ? <span className="text-clw-gray">Custom</span> : money(t.price_cents)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={
+                          t.public_checkout
+                            ? 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold'
+                            : 'border-clw-gray/40 bg-clw-gray/10 text-clw-gray'
+                        }
+                      >
+                        {t.public_checkout ? 'shown' : 'hidden'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={
+                          t.active
+                            ? 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold'
+                            : 'border-clw-gray/40 bg-clw-gray/10 text-clw-gray'
+                        }
+                      >
+                        {t.active ? 'active' : 'inactive'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <SponsorTierDialog tier={t} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {tiers.length === 0 && (
+                  <TableRow className="border-clw-gold/10">
+                    <TableCell colSpan={6} className="text-center text-clw-gray">
+                      No tiers configured.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card className="border-clw-gold/10 bg-clw-black">

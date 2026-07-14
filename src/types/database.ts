@@ -116,6 +116,17 @@ export type Sponsor = {
   updated_at: string
 }
 
+export type SponsorTierRow = {
+  slug: SponsorTier
+  label: string
+  price_cents: number | null
+  sort_order: number
+  public_checkout: boolean
+  active: boolean
+  created_at: string
+  updated_at: string
+}
+
 export type CommunicationLogRow = {
   id: string
   channel: CommChannel
@@ -250,6 +261,12 @@ export type Database = {
         Row: Sponsor
         Insert: Partial<Sponsor>
         Update: Partial<Sponsor>
+        Relationships: []
+      }
+      sponsor_tiers: {
+        Row: SponsorTierRow
+        Insert: Partial<SponsorTierRow>
+        Update: Partial<SponsorTierRow>
         Relationships: []
       }
       communication_log: {
