@@ -3,6 +3,7 @@ import { ExternalLink } from 'lucide-react'
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import type { Sponsor, SponsorTier, SponsorTierRow } from '@/types/database'
 import { SponsorTierDialog } from './SponsorTierDialog'
+import { SponsorDialog } from './SponsorDialog'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -47,9 +48,12 @@ export default async function AdminSponsorsPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-display text-clw-gold">Sponsors</h1>
-        <p className="text-sm text-clw-gray">Club sponsors and their commitments. Sponsor-record editing is a follow-up build.</p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-display text-clw-gold">Sponsors</h1>
+          <p className="text-sm text-clw-gray">Club sponsors and their commitments.</p>
+        </div>
+        <SponsorDialog tiers={tiers} />
       </div>
 
       <Card className="mb-8 border-clw-gold/10 bg-clw-black">
@@ -173,6 +177,7 @@ export default async function AdminSponsorsPage() {
                 <TableHead className="text-clw-gray">Contact</TableHead>
                 <TableHead className="text-clw-gray">Status</TableHead>
                 <TableHead className="text-clw-gray">Site</TableHead>
+                <TableHead className="text-clw-gray text-right">Edit</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -218,6 +223,9 @@ export default async function AdminSponsorsPage() {
                     ) : (
                       <span className="text-clw-gray/50">—</span>
                     )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <SponsorDialog sponsor={s} tiers={tiers} />
                   </TableCell>
                 </TableRow>
               ))}
