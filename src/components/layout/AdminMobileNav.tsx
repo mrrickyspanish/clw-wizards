@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   CalendarClock,
+  FileText,
   HandCoins,
   Handshake,
   LayoutDashboard,
@@ -35,6 +36,7 @@ const ADMIN_ITEMS = [
   { href: '/admin/practices', label: 'Practices & Events', icon: CalendarClock },
   { href: '/admin/dues', label: 'Dues', icon: HandCoins },
   { href: '/admin/sponsors', label: 'Sponsors', icon: Handshake },
+  { href: '/admin/content', label: 'Website content', icon: FileText },
   { href: '/admin/communications', label: 'Communications', icon: Megaphone },
 ]
 

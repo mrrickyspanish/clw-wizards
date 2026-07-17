@@ -1,12 +1,12 @@
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 
-// Placeholder philosophy quote in Tony's voice, grounded in the club's existing
-// mission language. Confirm / replace with Coach Tony's own words before launch.
-const TONY_QUOTE =
-  'I started this club to give McHenry County kids a room where they get pushed hard and supported harder. We build tough, confident kids first — the wins take care of themselves.'
+import { getSiteContent } from '@/lib/content/get'
 
-export function HomeTeamSection() {
+export async function HomeTeamSection() {
+  const content = await getSiteContent()
+  const tonyQuote = content.get('home.tony.quote')
+  const tonyPhoto = content.get('home.tony.photo')
   return (
     <section className="relative isolate overflow-hidden border-y border-clw-gold/25 bg-clw-black px-5 py-14 text-clw-white sm:px-8 sm:py-16 lg:px-12 lg:py-20 xl:px-16 2xl:px-20">
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[url('/images/textures/mat-dark.webp')] bg-cover bg-center opacity-40" />
@@ -20,7 +20,7 @@ export function HomeTeamSection() {
               <div className="relative aspect-[4/5] overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
                 <img
-                  src="/images/real/clw-wizards-youth-banquet-tony.jpg"
+                  src={tonyPhoto}
                   alt="Coach Tony Fontanetta with Wizards wrestlers at the club banquet"
                   className="h-full w-full origin-[50%_30%] scale-[1.55] object-cover object-center contrast-105 saturate-[0.9]"
                 />
@@ -52,7 +52,7 @@ export function HomeTeamSection() {
             <figure className="mt-8 border-l-2 border-clw-gold/70 pl-6">
               <blockquote className="font-body text-2xl font-medium leading-snug text-clw-white sm:text-3xl sm:leading-snug">
                 <span aria-hidden className="mr-1 font-display text-clw-gold">&ldquo;</span>
-                {TONY_QUOTE}
+                {tonyQuote}
               </blockquote>
               <figcaption className="mt-5 font-cond text-base uppercase tracking-[0.18em] text-clw-gray">
                 Tony Fontanetta — President, Head Coach &amp; Club Coordinator

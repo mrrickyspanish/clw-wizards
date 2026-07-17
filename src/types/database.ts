@@ -116,6 +116,12 @@ export type Sponsor = {
   updated_at: string
 }
 
+export type PageContentRow = {
+  key: string
+  value: string
+  updated_at: string
+}
+
 export type SponsorTierRow = {
   slug: SponsorTier
   label: string
@@ -267,6 +273,12 @@ export type Database = {
         Row: SponsorTierRow
         Insert: Partial<SponsorTierRow>
         Update: Partial<SponsorTierRow>
+        Relationships: []
+      }
+      page_content: {
+        Row: PageContentRow
+        Insert: Partial<PageContentRow>
+        Update: Partial<PageContentRow>
         Relationships: []
       }
       communication_log: {

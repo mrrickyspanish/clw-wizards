@@ -1,8 +1,14 @@
 import Link from 'next/link'
 
 import { Button } from '@/components/ui/button'
+import { getSiteContent } from '@/lib/content/get'
 
-export function ProgramIntro() {
+export async function ProgramIntro() {
+  const content = await getSiteContent()
+  const body1 = content.get('home.intro.body1')
+  const body2 = content.get('home.intro.body2')
+  const statYears = content.get('home.intro.stat_years')
+  const statWrestlers = content.get('home.intro.stat_wrestlers')
   return (
     <section className="section-light relative border-b border-clw-gold/35 bg-[#F7F7F7] px-5 pb-12 pt-20 sm:px-8 sm:pb-16 sm:pt-24 lg:px-12 lg:pb-16 lg:pt-28 xl:px-16 2xl:px-20">
       <div className="relative mx-auto flex max-w-7xl flex-col lg:flex-row lg:items-center lg:gap-12">
@@ -22,12 +28,8 @@ export function ProgramIntro() {
             </span>
           </h2>
           <div className="mt-7 max-w-3xl space-y-5 text-xl leading-relaxed text-clw-ink/85 sm:text-2xl sm:leading-relaxed lg:max-w-[26rem] lg:text-lg lg:leading-relaxed">
-            <p>
-              The Wizards Wrestling Club helps young wrestlers take the next step, whether they are learning the basics or chasing bigger goals. Our club gives kids a place to train hard, build confidence, and represent McHenry County with pride.
-            </p>
-            <p>
-              We are volunteer-run, family-powered, and committed to helping every wrestler grow.
-            </p>
+            <p>{body1}</p>
+            <p>{body2}</p>
           </div>
           <Button asChild size="lg" className="chamfer-sm mt-8 rounded-none">
             <Link href="/program">Explore the program →</Link>
@@ -50,7 +52,7 @@ export function ProgramIntro() {
               </div>
               <figcaption className="grid grid-cols-3 border-t-2 border-clw-gold bg-clw-ink text-center">
                 <div className="border-r border-white/10 px-2 py-4">
-                  <p className="font-display text-2xl leading-none text-clw-gold sm:text-3xl">45+</p>
+                  <p className="font-display text-2xl leading-none text-clw-gold sm:text-3xl">{statYears}</p>
                   <p className="mt-1.5 font-cond text-sm uppercase tracking-[0.12em] text-white/70">Years</p>
                 </div>
                 <div className="border-r border-white/10 px-2 py-4">
@@ -58,7 +60,7 @@ export function ProgramIntro() {
                   <p className="mt-1.5 font-cond text-sm uppercase tracking-[0.12em] text-white/70">Registered</p>
                 </div>
                 <div className="px-2 py-4">
-                  <p className="font-display text-2xl leading-none text-clw-gold sm:text-3xl">120+</p>
+                  <p className="font-display text-2xl leading-none text-clw-gold sm:text-3xl">{statWrestlers}</p>
                   <p className="mt-1.5 font-cond text-sm uppercase tracking-[0.12em] text-white/70">Wrestlers</p>
                 </div>
               </figcaption>

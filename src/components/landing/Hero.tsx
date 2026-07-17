@@ -1,16 +1,23 @@
+import { getSiteContent } from '@/lib/content/get'
+
 /**
  * Mission-control hero: full-bleed horizontally like a premium sports landing
  * page. The text stays on a safe internal grid while the media and panel chrome
  * run edge to edge.
  */
-export function Hero() {
+export async function Hero() {
+  const content = await getSiteContent()
+  const line1 = content.get('home.hero.line1')
+  const line2 = content.get('home.hero.line2')
+  const line3 = content.get('home.hero.line3')
+  const mobilePhoto = content.get('home.hero.photo')
   return (
     <section className="relative isolate overflow-hidden border-b border-clw-gold/10 bg-clw-black">
       <div className="relative flex min-h-[550px] overflow-hidden bg-clw-black-2 sm:min-h-[580px] lg:h-[calc(100vh-104px)] lg:min-h-[616px] lg:max-h-[900px]">
         <div className="absolute inset-0">
           {/* eslint-disable-next-line @next/next/no-img-element -- real club team photo */}
           <img
-            src="/images/real/clw-wizards-hero-photo-2.jpg"
+            src={mobilePhoto}
             alt=""
             aria-hidden
             className="animate-kenburns absolute inset-0 h-full w-full object-cover opacity-90 lg:hidden"
@@ -78,9 +85,9 @@ export function Hero() {
             Wizards Wrestling
           </p>
           <h1 className="max-w-3xl font-display text-[5.625rem] uppercase leading-[0.88] text-clw-white sm:text-[6.75rem] md:mt-0 lg:max-w-none lg:font-impact lg:text-[6.625rem] lg:font-black lg:leading-[0.82] xl:text-[8.125rem] 2xl:text-[9.5rem]">
-            <span className="block">Work.</span>
-            <span className="block">Compete.</span>
-            <span className="block text-clw-gold">Repeat.</span>
+            <span className="block">{line1}</span>
+            <span className="block">{line2}</span>
+            <span className="block text-clw-gold">{line3}</span>
           </h1>
         </div>
       </div>
