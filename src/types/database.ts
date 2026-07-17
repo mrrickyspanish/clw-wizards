@@ -122,6 +122,16 @@ export type PageContentRow = {
   updated_at: string
 }
 
+export type FaqItem = {
+  id: string
+  question: string
+  answer: string
+  sort_order: number
+  active: boolean
+  created_at: string
+  updated_at: string
+}
+
 export type SponsorTierRow = {
   slug: SponsorTier
   label: string
@@ -279,6 +289,12 @@ export type Database = {
         Row: PageContentRow
         Insert: Partial<PageContentRow>
         Update: Partial<PageContentRow>
+        Relationships: []
+      }
+      faq_items: {
+        Row: FaqItem
+        Insert: Partial<FaqItem>
+        Update: Partial<FaqItem>
         Relationships: []
       }
       communication_log: {

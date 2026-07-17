@@ -1,11 +1,21 @@
 import { CONTENT_FIELDS } from '@/lib/content/registry'
 import { getSiteContent } from '@/lib/content/get'
+import { createAdminSupabase } from '@/lib/supabase/admin'
+import type { FaqItem } from '@/types/database'
 import { ContentEditor } from './ContentEditor'
+import { FaqManager } from './FaqManager'
 
 export default async function AdminContentPage() {
   const content = await getSiteContent()
   const initial: Record<string, string> = {}
   for (const field of CONTENT_FIELDS) initial[field.key] = content.get(field.key)
+
+  const admin = createAdminSupabase()
+  const { data: faqData } = await admin
+    .from('faq_items')
+    .select('*')
+    .order('sort_order', { ascending: true })
+  const faqItems = (faqData ?? []) as FaqItem[]
 
   return (
     <div>
@@ -18,6 +28,10 @@ export default async function AdminContentPage() {
       </div>
 
       <ContentEditor initial={initial} />
+
+      <div className="mt-8">
+        <FaqManager items={faqItems} />
+      </div>
     </div>
   )
 }

@@ -4,7 +4,11 @@ import { ArrowRight, HelpCircle, Mail } from 'lucide-react'
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { ORG } from '@/config/org.config'
+import { createServerSupabase } from '@/lib/supabase/server'
+import type { FaqItem } from '@/types/database'
 
+// Fallback copy — used only if the faq_items table is empty/unavailable, so the
+// page always renders even before the content migration is applied.
 const FAQS = [
   {
     q: 'How do I register, and what does it cost?',
@@ -49,7 +53,16 @@ export const metadata: Metadata = {
   description: 'Answers to common questions about joining Wizards Wrestling Club, practice, equipment, tournaments, and coaching.',
 }
 
-export default function FaqPage() {
+export default async function FaqPage() {
+  const supabase = await createServerSupabase()
+  const { data } = await supabase
+    .from('faq_items')
+    .select('*')
+    .eq('active', true)
+    .order('sort_order', { ascending: true })
+  const rows = (data ?? []) as FaqItem[]
+  const faqs = rows.length > 0 ? rows.map((r) => ({ q: r.question, a: r.answer })) : FAQS
+
   return (
     <main className="relative overflow-hidden bg-clw-black pb-16 text-clw-white lg:pb-24">
       <div className="pointer-events-none absolute inset-0 opacity-35 [background-image:radial-gradient(circle_at_80%_4%,rgba(240,192,32,.13),transparent_24%),linear-gradient(180deg,rgba(255,255,255,.03),transparent_35%)]" />
@@ -70,7 +83,7 @@ export default function FaqPage() {
 
         <div className="chamfer-md card-depth mt-10 border border-clw-gold/15 bg-clw-black-2 p-5 sm:p-7 lg:p-9">
           <Accordion type="single" collapsible className="w-full">
-            {FAQS.map(({ q, a }) => (
+            {faqs.map(({ q, a }) => (
               <AccordionItem key={q} value={q} className="border-clw-gold/15">
                 <AccordionTrigger className="py-6 text-left text-lg font-semibold leading-snug text-clw-white hover:no-underline hover:text-clw-gold sm:text-xl">
                   {q}
