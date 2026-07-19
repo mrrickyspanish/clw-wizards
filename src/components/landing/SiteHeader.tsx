@@ -9,7 +9,7 @@ import { ORG } from '@/config/org.config'
 
 const NAV_LINKS = [
   { href: '/about', label: 'Mission' },
-  { href: '/#events', label: 'Events' },
+  { href: '/events', label: 'Events' },
   { href: '/program', label: 'Groups' },
   { href: '/sponsorship', label: 'Support' },
 ]
@@ -33,8 +33,8 @@ const SEARCH_ITEMS = [
   },
   {
     title: 'Upcoming Events',
-    description: 'See upcoming tournaments, fundraisers, and club events.',
-    href: '/#events',
+    description: 'See the full calendar of tournaments, fundraisers, and club events.',
+    href: '/events',
     keywords: ['events', 'calendar', 'tournaments', 'schedule'],
   },
   {

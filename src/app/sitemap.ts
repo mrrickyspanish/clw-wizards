@@ -7,6 +7,7 @@ const BASE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? `https://${ORG.domain}`).r
 // intentionally excluded (and disallowed in robots.ts).
 const PUBLIC_ROUTES: Array<{ path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'] }> = [
   { path: '/', priority: 1.0, changeFrequency: 'weekly' },
+  { path: '/events', priority: 0.8, changeFrequency: 'weekly' },
   { path: '/about', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/program', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/coaches', priority: 0.6, changeFrequency: 'monthly' },

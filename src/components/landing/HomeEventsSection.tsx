@@ -87,7 +87,7 @@ export function HomeEventsSection({ tournaments }: { tournaments: Tournament[] }
         )}
 
         <div className="lg:text-center">
-          <Link href="/login" className="mt-8 inline-block font-cond text-xl uppercase tracking-[0.18em] text-clw-gold-on-light underline-offset-4 hover:text-clw-ink hover:underline">View full calendar →</Link>
+          <Link href="/events" className="mt-8 inline-block font-cond text-xl uppercase tracking-[0.18em] text-clw-gold-on-light underline-offset-4 hover:text-clw-ink hover:underline">View full calendar →</Link>
         </div>
       </div>
     </section>

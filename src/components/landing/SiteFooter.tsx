@@ -14,7 +14,7 @@ const ABOUT_LINKS = [
 ]
 
 const QUICK_LINKS = [
-  { href: '/#events', label: 'Events' },
+  { href: '/events', label: 'Events' },
   { href: '/program', label: 'Groups' },
   { href: '/sponsorship', label: 'Support' },
   { href: '/login', label: 'Parent / Staff Login' },
