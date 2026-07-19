@@ -2,12 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { ArrowRight, Award, Check, HeartHandshake, MapPin, ShieldCheck, Users } from 'lucide-react'
 
-const STAND_FOR = [
-  'Safety is our most important priority.',
-  'Members of the team are students first and athletes second.',
-  'Sportsmanship is expected of every Wizard wrestler and coach.',
-  'Every wrestler should be challenged, supported, and held accountable.',
-]
+import { getSiteContent } from '@/lib/content/get'
 
 const WHY_WRESTLING = [
   { number: '01', title: 'Discipline', body: 'The willingness to make the sacrifices required to improve as an athlete and a person.' },
@@ -29,7 +24,6 @@ const PRACTICE_COACHES = [
   { group: 'Group 4', coaches: 'Anthony Fontanetta, Steve Swierk' },
 ]
 
-const MAP_URL = 'https://www.google.com/maps/search/?api=1&query=975+Nimco+Dr+Unit+L+Crystal+Lake+IL+60014'
 const SECTION_HEADING_CLASS = 'mt-4 font-display text-4xl uppercase leading-[0.96] text-clw-white sm:text-5xl'
 
 export const metadata: Metadata = {
@@ -37,7 +31,23 @@ export const metadata: Metadata = {
   description: 'The mission, values, leadership, and community behind Wizards Wrestling Club in McHenry County.',
 }
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const content = await getSiteContent()
+  const intro = content.get('about.intro')
+  const heroPhoto = content.get('about.hero_photo')
+  const story1 = content.get('about.story1')
+  const story2 = content.get('about.story2')
+  const standFor = [
+    content.get('about.value1'),
+    content.get('about.value2'),
+    content.get('about.value3'),
+    content.get('about.value4'),
+  ]
+  const facilityPhoto = content.get('facility.photo')
+  const addressLine1 = content.get('facility.address_line1')
+  const addressLine2 = content.get('facility.address_line2')
+  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${addressLine1} ${addressLine2}`)}`
+
   return (
     <main className="relative overflow-hidden bg-clw-black pb-16 text-clw-white lg:pb-24">
       <div className="pointer-events-none absolute inset-0 opacity-35 [background-image:radial-gradient(circle_at_85%_4%,rgba(240,192,32,.14),transparent_24%),linear-gradient(180deg,rgba(255,255,255,.035),transparent_32%)]" />
@@ -53,7 +63,7 @@ export default function AboutPage() {
               </span>
             </h1>
             <p className="mt-7 max-w-3xl text-xl leading-relaxed text-clw-gray sm:text-2xl sm:leading-relaxed lg:text-[1.35rem]">
-              Wizards Wrestling Club gives young athletes a serious place to learn, compete, and grow. We combine high expectations with a supportive room where kids build confidence, discipline, and a lasting respect for the sport.
+              {intro}
             </p>
           </div>
 
@@ -61,7 +71,7 @@ export default function AboutPage() {
             <div className="h-72 overflow-hidden sm:h-96 lg:h-[30rem]">
               {/* eslint-disable-next-line @next/next/no-img-element -- real club photography */}
               <img
-                src="/images/real/clw-wizards-coach-team-photo.jpg"
+                src={heroPhoto}
                 alt="Wizards Wrestling coaches and wrestlers together"
                 className="h-full w-full object-cover object-center contrast-105 saturate-[0.82]"
               />
@@ -93,12 +103,8 @@ export default function AboutPage() {
           </h2>
           <div className="mt-6 h-px w-full bg-clw-gold/35" />
           <div className="mt-6 space-y-5 text-lg leading-relaxed text-clw-gray sm:text-xl sm:leading-relaxed">
-            <p>
-              Now in our fifth decade, Wizards Wrestling is one of the area&apos;s established youth wrestling programs. Each season, wrestlers from across McHenry County train with us, from kids learning their first stance to experienced competitors preparing for the highest levels of youth wrestling.
-            </p>
-            <p>
-              Our goal is simple: introduce wrestling in a competitive but positive environment and help every athlete reach their potential through serious commitment. State qualifiers, state placers, high school wrestlers, and college athletes have all come through the room, but progress is measured one wrestler at a time.
-            </p>
+            <p>{story1}</p>
+            <p>{story2}</p>
           </div>
         </article>
 
@@ -112,7 +118,7 @@ export default function AboutPage() {
             <span className="block whitespace-nowrap">Inside the Room.</span>
           </h2>
           <ul className="mt-7 space-y-5">
-            {STAND_FOR.map((point) => (
+            {standFor.map((point) => (
               <li key={point} className="flex gap-3 text-lg leading-relaxed text-clw-gray">
                 <Check className="mt-1 h-5 w-5 shrink-0 text-clw-gold" />
                 <span>{point}</span>
@@ -215,7 +221,7 @@ export default function AboutPage() {
           <div className="mt-7 overflow-hidden border border-clw-gold/15">
             {/* eslint-disable-next-line @next/next/no-img-element -- real club facility photo */}
             <img
-              src="/images/real/facility_pano.jpg"
+              src={facilityPhoto}
               alt="Wizards Wrestling training facility"
               className="h-44 w-full object-cover contrast-105 saturate-[0.72]"
             />
@@ -224,7 +230,7 @@ export default function AboutPage() {
           <div className="mt-6 space-y-5 text-lg leading-relaxed text-clw-gray">
             <p>
               <span className="block font-cond text-sm uppercase tracking-[0.2em] text-clw-gold">Facility</span>
-              <span className="mt-1 block text-clw-white">975 Nimco Dr, Unit L<br />Crystal Lake, IL 60014</span>
+              <span className="mt-1 block text-clw-white">{addressLine1}<br />{addressLine2}</span>
             </p>
             <p>
               <span className="block font-cond text-sm uppercase tracking-[0.2em] text-clw-gold">Affiliation</span>
@@ -238,7 +244,7 @@ export default function AboutPage() {
 
           <div className="mt-7 space-y-3">
             <a
-              href={MAP_URL}
+              href={mapUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="chamfer-sm flex min-h-12 items-center justify-center bg-clw-gold px-5 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-ink transition hover:bg-clw-gold-l"

@@ -1,8 +1,14 @@
 import { MapPin, Navigation } from 'lucide-react'
 
-const MAP_URL = 'https://www.google.com/maps/search/?api=1&query=975+Nimco+Dr+Unit+L+Crystal+Lake+IL+60014'
+import { getSiteContent } from '@/lib/content/get'
 
-export function HomeFacilitySection() {
+export async function HomeFacilitySection() {
+  const content = await getSiteContent()
+  const body = content.get('home.facility.body')
+  const photo = content.get('facility.photo')
+  const addressLine1 = content.get('facility.address_line1')
+  const addressLine2 = content.get('facility.address_line2')
+  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${addressLine1} ${addressLine2}`)}`
   return (
     <section className="section-light relative isolate overflow-hidden border-y border-clw-gold/25 bg-[#F7F7F7] px-5 py-14 text-clw-ink sm:px-8 sm:py-16 lg:px-12 lg:py-20 xl:px-16 2xl:px-20">
       <div className="absolute inset-0 opacity-45 [background-image:linear-gradient(180deg,rgba(255,255,255,.86),transparent_48%),radial-gradient(circle_at_14%_10%,rgba(240,192,32,.12),transparent_26%)]" />
@@ -25,8 +31,7 @@ export function HomeFacilitySection() {
             </span>
           </h2>
           <p className="mt-6 max-w-2xl text-xl leading-relaxed text-clw-muted-dark sm:text-2xl sm:leading-relaxed lg:text-[1.15rem]">
-            Centrally located in Crystal Lake, our training space is built to be the easy choice for McHenry County wrestlers.
-            Convenient access means more time on the mat and less time in the car.
+            {body}
           </p>
         </div>
 
@@ -34,7 +39,7 @@ export function HomeFacilitySection() {
           <div className="h-64 overflow-hidden sm:h-80 lg:h-[24rem]">
             {/* eslint-disable-next-line @next/next/no-img-element -- real club facility photo */}
             <img
-              src="/images/real/facility_pano.jpg"
+              src={photo}
               alt="Wizards Wrestling training facility in Crystal Lake"
               className="h-full w-full object-cover contrast-105 saturate-[0.72]"
             />
@@ -47,13 +52,13 @@ export function HomeFacilitySection() {
               </span>
               <div className="min-w-0">
                 <p className="font-cond text-xs uppercase tracking-[0.24em] text-clw-gold-on-light">Wizards Wrestling Club</p>
-                <p className="mt-2 text-lg font-semibold leading-snug text-clw-white sm:text-xl">975 Nimco Dr, Unit L</p>
-                <p className="text-base leading-relaxed text-clw-gray sm:text-lg">Crystal Lake, IL 60014</p>
+                <p className="mt-2 text-lg font-semibold leading-snug text-clw-white sm:text-xl">{addressLine1}</p>
+                <p className="text-base leading-relaxed text-clw-gray sm:text-lg">{addressLine2}</p>
               </div>
             </div>
 
             <a
-              href={MAP_URL}
+              href={mapUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="chamfer-sm inline-flex min-h-12 items-center justify-center gap-2 bg-clw-gold px-6 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-ink transition hover:bg-clw-gold-l sm:min-w-44"

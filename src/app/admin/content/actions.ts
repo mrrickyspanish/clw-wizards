@@ -26,7 +26,7 @@ export async function updateContent(values: Record<string, string>): Promise<Act
   const paths = new Set<string>(['/admin/content'])
   for (const [key] of entries) {
     const field = contentField(key)
-    if (field) paths.add(field.revalidate)
+    if (field) for (const path of field.revalidate) paths.add(path)
   }
   for (const path of paths) revalidatePath(path)
 
