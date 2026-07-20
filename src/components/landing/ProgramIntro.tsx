@@ -10,7 +10,7 @@ export async function ProgramIntro() {
   const statYears = content.get('home.intro.stat_years')
   const statWrestlers = content.get('home.intro.stat_wrestlers')
   return (
-    <section className="section-light relative border-b border-clw-gold/35 bg-[#F7F7F7] px-5 pb-12 pt-20 sm:px-8 sm:pb-16 sm:pt-24 lg:px-12 lg:pb-16 lg:pt-28 xl:px-16 2xl:px-20">
+    <section className="section-light relative border-b border-clw-gold/35 bg-[#F7F7F7] px-5 pb-12 pt-10 sm:px-8 sm:pb-16 sm:pt-12 lg:px-12 lg:pb-16 lg:pt-16 xl:px-16 2xl:px-20">
       <div className="relative mx-auto flex max-w-7xl flex-col lg:flex-row lg:items-center lg:gap-12">
         <div className="max-w-3xl lg:flex-1">
           <p className="block font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-on-light lg:hidden">

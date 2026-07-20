@@ -12,7 +12,7 @@ import { HomeSupportIntro } from '@/components/landing/HomeSupportIntro'
 import { HomeFacilitySection } from '@/components/landing/HomeFacilitySection'
 import { HomeTeamSection } from '@/components/landing/HomeTeamSection'
 import { HomeFacebookSection } from '@/components/landing/HomeFacebookSection'
-import { HomeMatTapeDivider } from '@/components/landing/HomeMatTapeDivider'
+import { HomeSectionDivider } from '@/components/landing/HomeSectionDivider'
 import { SectionSlideOver } from '@/components/landing/SectionSlideOver'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { MobileCtaBar } from '@/components/landing/MobileCtaBar'
@@ -69,7 +69,7 @@ export default async function HomePage({
         background={<Hero />}
         foreground={
           <>
-            <HomeMatTapeDivider profile="white-left" />
+            <HomeSectionDivider variant="into-light" />
             <ProgramIntro />
           </>
         }
@@ -81,7 +81,7 @@ export default async function HomePage({
         background={<HomeEventsSection tournaments={tournamentRows} />}
         foreground={
           <>
-            <HomeMatTapeDivider profile="black-right" />
+            <HomeSectionDivider variant="into-dark" />
             <HomeSupportIntro />
           </>
         }
