@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react'
 import Link from 'next/link'
 
 import { createBrowserSupabase } from '@/lib/supabase/browser'
+import { useTurnstile } from '@/components/auth/useTurnstile'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -17,21 +18,30 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState<string | null>(null)
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
+  const turnstile = useTurnstile()
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
+
+    if (turnstile.enabled && !turnstile.token) {
+      setError('Complete the security check before requesting a reset link.')
+      return
+    }
+
     setLoading(true)
 
     const supabase = createBrowserSupabase()
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${siteUrl}/update-password`,
+      ...(turnstile.token ? { captchaToken: turnstile.token } : {}),
     })
 
     setLoading(false)
     if (resetError) {
       setError(resetError.message)
+      turnstile.reset()
       return
     }
     setSent(true)
@@ -70,7 +80,12 @@ export default function ForgotPasswordPage() {
                   autoComplete="email"
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
+              {turnstile.widget}
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading || (turnstile.enabled && !turnstile.token)}
+              >
                 {loading ? 'Sending…' : 'Send reset link'}
               </Button>
             </form>

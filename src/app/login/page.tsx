@@ -6,6 +6,7 @@ import Link from 'next/link'
 
 import { createBrowserSupabase } from '@/lib/supabase/browser'
 import { homeForRole } from '@/lib/auth/session'
+import { useTurnstile } from '@/components/auth/useTurnstile'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -29,17 +30,29 @@ function LoginForm() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const turnstile = useTurnstile()
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
+
+    if (turnstile.enabled && !turnstile.token) {
+      setError('Complete the security check before signing in.')
+      return
+    }
+
     setLoading(true)
 
     const supabase = createBrowserSupabase()
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+      options: turnstile.token ? { captchaToken: turnstile.token } : {},
+    })
 
     if (signInError) {
       setError(signInError.message)
+      turnstile.reset()
       setLoading(false)
       return
     }
@@ -96,7 +109,12 @@ function LoginForm() {
                 autoComplete="current-password"
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            {turnstile.widget}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loading || (turnstile.enabled && !turnstile.token)}
+            >
               {loading ? 'Signing in…' : 'Sign In'}
             </Button>
             <div className="flex justify-between text-sm text-muted-foreground">
