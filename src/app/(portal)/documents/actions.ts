@@ -41,6 +41,20 @@ export async function recordDocument(values: z.input<typeof recordSchema>): Prom
     .maybeSingle()
   if (!athlete) return { ok: false, error: 'That wrestler is not on your roster.' }
 
+  // Replace-in-place: a slot holds one document per (athlete, doc_type). Record
+  // the caller's own prior row(s) for this slot, insert the new upload, then
+  // remove the old one(s) — so "Replace" swaps the file instead of stacking a
+  // second row (the older of which the documents view was surfacing). Insert
+  // first so a failure here never empties the slot; the cleanup delete is
+  // RLS-scoped to the caller's own rows. A replaced doc starts unverified again
+  // (fresh row defaults verified=false), which is correct — it needs re-review.
+  const { data: priorOwn } = await supabase
+    .from('athlete_documents')
+    .select('id')
+    .eq('athlete_id', athleteId)
+    .eq('doc_type', docType)
+    .eq('parent_id', user.id)
+
   const { error } = await supabase.from('athlete_documents').insert({
     athlete_id: athleteId,
     parent_id: user.id,
@@ -49,6 +63,11 @@ export async function recordDocument(values: z.input<typeof recordSchema>): Prom
     file_name: fileName,
   })
   if (error) return { ok: false, error: error.message }
+
+  const priorIds = (priorOwn ?? []).map((r) => r.id)
+  if (priorIds.length) {
+    await supabase.from('athlete_documents').delete().in('id', priorIds)
+  }
 
   revalidatePath('/documents')
   revalidatePath('/dashboard')

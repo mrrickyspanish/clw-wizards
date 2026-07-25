@@ -53,10 +53,13 @@ export default async function DocumentsPage() {
   const { data: docs } = athleteIds.length
     ? await supabase.from('athlete_documents').select('*').in('athlete_id', athleteIds).order('uploaded_at', { ascending: false })
     : { data: [] as AthleteDocument[] }
-  // Index documents by athlete + type for quick lookup.
+  // Index documents by athlete + type for quick lookup. The query is
+  // newest-first (uploaded_at desc), so keep the FIRST row seen per slot —
+  // otherwise a replaced document would render the older upload it replaced.
   const docByKey = new Map<string, AthleteDocument>()
   for (const d of (docs ?? []) as AthleteDocument[]) {
-    docByKey.set(`${d.athlete_id}:${d.doc_type}`, d)
+    const key = `${d.athlete_id}:${d.doc_type}`
+    if (!docByKey.has(key)) docByKey.set(key, d)
   }
 
   return (
