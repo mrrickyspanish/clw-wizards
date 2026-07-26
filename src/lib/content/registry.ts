@@ -54,8 +54,8 @@ export const CONTENT_FIELDS: ContentField[] = [
     label: 'Mobile hero photo',
     type: 'image',
     group: 'Home · Hero',
-    default: '/images/real/clw-wizards-hero-photo-2.jpg',
-    help: 'Background photo on phones. Desktop uses the composed hero artwork.',
+    default: '/images/real/clw-wizards-hero-mobile.jpg',
+    help: 'Background photo on phones (portrait crop). Desktop uses the composed hero artwork.',
     revalidate: ['/'],
   },
 

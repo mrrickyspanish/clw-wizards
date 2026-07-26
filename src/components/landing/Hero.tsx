@@ -20,7 +20,7 @@ export async function Hero() {
             src={mobilePhoto}
             alt=""
             aria-hidden
-            className="animate-kenburns absolute inset-0 h-full w-full object-cover opacity-90 lg:hidden"
+            className="animate-kenburns absolute inset-0 h-full w-full object-cover object-[50%_38%] lg:hidden"
           />
 
           {/* eslint-disable-next-line @next/next/no-img-element -- supplied desktop hero artwork */}
@@ -66,18 +66,10 @@ export async function Hero() {
             }}
           />
 
-          <video
-            className="absolute inset-0 h-full w-full object-cover opacity-95 lg:hidden"
-            autoPlay
-            muted
-            loop
-            playsInline
-            poster="/hero.jpg"
-          >
-            <source src="/hero.mp4" type="video/mp4" />
-          </video>
-          <div className="absolute inset-0 bg-gradient-to-r from-clw-black-2/80 via-clw-black-2/45 to-clw-black/5 lg:hidden" />
-          <div className="absolute inset-0 bg-gradient-to-t from-clw-black-2/75 via-clw-black/10 to-clw-black/10 lg:hidden" />
+          {/* Text-legibility scrims over the mobile photo: darken the left (behind
+              the headline) and the bottom, leaving the wrestler on the right clear. */}
+          <div className="absolute inset-0 bg-gradient-to-r from-clw-black-2/85 via-clw-black-2/45 to-transparent lg:hidden" />
+          <div className="absolute inset-0 bg-gradient-to-t from-clw-black-2/80 via-clw-black/15 to-clw-black/5 lg:hidden" />
         </div>
 
         <div className="relative z-10 flex max-w-4xl flex-col justify-end px-5 pb-10 pt-16 sm:px-8 sm:pb-12 lg:min-h-[616px] lg:w-[42%] lg:max-w-none lg:items-start lg:justify-center lg:px-12 lg:py-0 lg:text-left xl:w-[44%] xl:px-16 2xl:w-[46%] 2xl:px-20">
