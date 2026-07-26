@@ -82,13 +82,22 @@ export default async function HomePage({
         foreground={
           <>
             <HomeMatTapeDivider profile="black-right" />
-            <HomeSupportIntro />
+            {/* Nested: support pins and the Tony section slides over it with the
+                gray diagonal, the same "card slides over the section above"
+                parallax the other dividers use. */}
+            <SectionSlideOver
+              background={<HomeSupportIntro />}
+              foreground={
+                <>
+                  <HomeMatTapeDivider profile="gray-left" />
+                  <HomeTeamSection />
+                </>
+              }
+            />
           </>
         }
       />
 
-      <HomeMatTapeDivider profile="gray-left" />
-      <HomeTeamSection />
       <HomeFacilitySection />
       <HomeFacebookSection />
       <SiteFooter />
