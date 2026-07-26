@@ -87,6 +87,7 @@ export default async function HomePage({
         }
       />
 
+      <HomeMatTapeDivider profile="gray-left" />
       <HomeTeamSection />
       <HomeFacilitySection />
       <HomeFacebookSection />
