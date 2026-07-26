@@ -1,5 +1,6 @@
 export type AppRole = 'admin' | 'staff' | 'parent'
 export type AdminScope = 'full' | 'limited'
+export type CoachSection = 'board' | 'practice'
 
 export type SponsorTier = 'platinum' | 'yellow' | 'black' | 'white' | 'wizard_for_life'
 export type CommChannel = 'email' | 'sms'
@@ -230,6 +231,18 @@ export type FamilyInvite = {
   created_at: string
 }
 
+export type Coach = {
+  id: string
+  name: string
+  role: string
+  section: CoachSection
+  practice_group: string | null
+  sort_order: number
+  active: boolean
+  created_at: string
+  updated_at: string
+}
+
 export type AdminInvite = {
   id: string
   code: string
@@ -364,6 +377,12 @@ export type Database = {
         Row: AdminInvite
         Insert: Partial<AdminInvite>
         Update: Partial<AdminInvite>
+        Relationships: []
+      }
+      coaches: {
+        Row: Coach
+        Insert: Partial<Coach>
+        Update: Partial<Coach>
         Relationships: []
       }
     }

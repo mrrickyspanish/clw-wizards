@@ -2,7 +2,12 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowRight, Users } from 'lucide-react'
 
-const BOARD = [
+import { createServerSupabase } from '@/lib/supabase/server'
+import type { Coach } from '@/types/database'
+
+// Fallback roster — used only if the coaches table is empty/unavailable, so the
+// page always renders even before the coaches migration is applied.
+const BOARD_FALLBACK = [
   { name: 'Tony Fontanetta', role: 'President, Head Coach & Club Coordinator' },
   { name: 'Sabrina Jimenez', role: 'Secretary-Treasurer, Singlets, Pictures & Payments' },
   { name: 'Steve Swierk', role: 'Vice President of Operations & Tournaments' },
@@ -11,7 +16,7 @@ const BOARD = [
   { name: 'Julie Swierk', role: 'Board Assistant & Hotel Blocks' },
 ]
 
-const PRACTICE_COACHES = [
+const PRACTICE_FALLBACK = [
   { group: 'Group 1', coaches: 'Alex Flores, Ryan Schweikhofer' },
   { group: 'Group 2', coaches: 'Tyler Simmons, Matt Fiodirosa' },
   { group: 'Group 3', coaches: 'Jeramy Carbone, Anthony Fontanetta' },
@@ -23,7 +28,33 @@ export const metadata: Metadata = {
   description: 'Meet the volunteer coaches, board members, and team leaders behind Wizards Wrestling Club.',
 }
 
-export default function CoachesPage() {
+// Group practice-room coaches by their assigned practice_group, preserving the
+// roster's sort order, into the "Group 1 — Name, Name" shape the page renders.
+function groupPracticeCoaches(rows: Coach[]): { group: string; coaches: string }[] {
+  const byGroup = new Map<string, string[]>()
+  for (const c of rows) {
+    const g = c.practice_group ?? 'Coaches'
+    if (!byGroup.has(g)) byGroup.set(g, [])
+    byGroup.get(g)!.push(c.name)
+  }
+  return [...byGroup.entries()].map(([group, names]) => ({ group, coaches: names.join(', ') }))
+}
+
+export default async function CoachesPage() {
+  const supabase = await createServerSupabase()
+  const { data } = await supabase
+    .from('coaches')
+    .select('*')
+    .eq('active', true)
+    .order('sort_order', { ascending: true })
+  const rows = (data ?? []) as Coach[]
+
+  const boardRows = rows.filter((c) => c.section === 'board')
+  const practiceRows = rows.filter((c) => c.section === 'practice')
+
+  const BOARD = boardRows.length > 0 ? boardRows.map((c) => ({ name: c.name, role: c.role })) : BOARD_FALLBACK
+  const PRACTICE_COACHES = practiceRows.length > 0 ? groupPracticeCoaches(practiceRows) : PRACTICE_FALLBACK
+
   return (
     <main className="relative overflow-hidden bg-clw-black pb-16 text-clw-white lg:pb-24">
       <div className="pointer-events-none absolute inset-0 opacity-35 [background-image:radial-gradient(circle_at_82%_3%,rgba(240,192,32,.14),transparent_25%),linear-gradient(180deg,rgba(255,255,255,.03),transparent_34%)]" />
