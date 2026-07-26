@@ -6,6 +6,7 @@ import type { AdminInvite, AdminScope, Profile } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { TeamControls } from './TeamControls'
+import { AdminRowActions } from './AdminRowActions'
 
 const SCOPE_STYLES: Record<AdminScope, string> = {
   full: 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold',
@@ -16,6 +17,11 @@ export default async function AdminTeamPage() {
   const supabase = await createServerSupabase()
   // Middleware already blocks limited admins here; this is defense in depth.
   if (!(await isFullAdmin(supabase))) redirect('/admin')
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  const currentUserId = user?.id ?? ''
 
   const nowIso = new Date().toISOString()
   const [{ data: admins }, { data: invites }] = await Promise.all([
@@ -56,7 +62,7 @@ export default async function AdminTeamPage() {
             <p className="text-sm text-clw-gray">No admins yet.</p>
           ) : (
             adminRows.map((a) => (
-              <div key={a.id} className="flex items-center justify-between gap-3 rounded-xl bg-clw-black-3 px-4 py-3">
+              <div key={a.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-clw-black-3 px-4 py-3">
                 <div className="min-w-0">
                   <p className="truncate font-medium text-clw-white">{a.full_name ?? 'Unnamed admin'}</p>
                   <p className="truncate text-sm text-clw-gray">{a.email ?? '—'}</p>
@@ -70,6 +76,13 @@ export default async function AdminTeamPage() {
                   <Badge variant="outline" className={SCOPE_STYLES[a.admin_scope ?? 'limited']}>
                     {a.admin_scope === 'full' ? 'Full access' : 'Limited access'}
                   </Badge>
+                  <AdminRowActions
+                    id={a.id}
+                    name={a.full_name ?? a.email ?? 'this admin'}
+                    scope={a.admin_scope ?? 'limited'}
+                    isActive={a.is_active}
+                    isSelf={a.id === currentUserId}
+                  />
                 </div>
               </div>
             ))
