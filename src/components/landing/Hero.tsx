@@ -13,14 +13,14 @@ export async function Hero() {
   const mobilePhoto = content.get('home.hero.photo')
   return (
     <section className="relative isolate overflow-hidden border-b border-clw-gold/10 bg-clw-black">
-      <div className="relative flex min-h-[550px] overflow-hidden bg-clw-black-2 sm:min-h-[580px] lg:h-[calc(100vh-104px)] lg:min-h-[616px] lg:max-h-[900px]">
+      <div className="relative flex min-h-[86svh] overflow-hidden bg-clw-black-2 sm:min-h-[620px] lg:h-[calc(100vh-104px)] lg:min-h-[616px] lg:max-h-[900px]">
         <div className="absolute inset-0">
           {/* eslint-disable-next-line @next/next/no-img-element -- real club team photo */}
           <img
             src={mobilePhoto}
             alt=""
             aria-hidden
-            className="animate-kenburns absolute inset-0 h-full w-full object-cover object-[50%_38%] lg:hidden"
+            className="animate-kenburns absolute inset-0 h-full w-full object-cover object-[57%_26%] lg:hidden"
           />
 
           {/* eslint-disable-next-line @next/next/no-img-element -- supplied desktop hero artwork */}
@@ -67,16 +67,18 @@ export async function Hero() {
           />
 
           {/* Text-legibility scrims over the mobile photo: darken the left (behind
-              the headline) and the bottom, leaving the wrestler on the right clear. */}
-          <div className="absolute inset-0 bg-gradient-to-r from-clw-black-2/85 via-clw-black-2/45 to-transparent lg:hidden" />
-          <div className="absolute inset-0 bg-gradient-to-t from-clw-black-2/80 via-clw-black/15 to-clw-black/5 lg:hidden" />
+              the headline) and the bottom hard, leaving the wrestler on the right
+              lit. Stronger than a subtle wash so the big headline reads cleanly. */}
+          <div className="absolute inset-0 bg-gradient-to-r from-clw-black via-clw-black-2/60 to-transparent lg:hidden" />
+          <div className="absolute inset-0 bg-gradient-to-t from-clw-black via-clw-black/30 to-clw-black/10 lg:hidden" />
         </div>
 
-        <div className="relative z-10 flex max-w-4xl flex-col justify-end px-5 pb-10 pt-16 sm:px-8 sm:pb-12 lg:min-h-[616px] lg:w-[42%] lg:max-w-none lg:items-start lg:justify-center lg:px-12 lg:py-0 lg:text-left xl:w-[44%] xl:px-16 2xl:w-[46%] 2xl:px-20">
-          <p className="mb-4 font-cond text-xs uppercase tracking-[0.34em] text-clw-gold sm:text-sm lg:hidden">
-            Wizards Wrestling
+        <div className="relative z-10 flex max-w-4xl flex-col justify-end px-5 pb-28 pt-16 sm:px-8 sm:pb-24 lg:min-h-[616px] lg:w-[42%] lg:max-w-none lg:items-start lg:justify-center lg:px-12 lg:py-0 lg:text-left xl:w-[44%] xl:px-16 2xl:w-[46%] 2xl:px-20">
+          <p className="mb-3 flex items-center gap-2 font-cond text-sm font-semibold uppercase tracking-[0.32em] text-clw-gold lg:hidden">
+            <span className="h-px w-6 bg-clw-gold" />
+            Crystal Lake Wizards
           </p>
-          <h1 className="max-w-3xl font-display text-[5.625rem] uppercase leading-[0.88] text-clw-white sm:text-[6.75rem] md:mt-0 lg:max-w-none lg:font-impact lg:text-[6.625rem] lg:font-black lg:leading-[0.82] xl:text-[8.125rem] 2xl:text-[9.5rem]">
+          <h1 className="font-display uppercase text-clw-white text-[7rem] leading-[0.82] tracking-[0.01em] sm:text-[8rem] lg:max-w-none lg:font-impact lg:text-[6.625rem] lg:font-black lg:leading-[0.82] lg:tracking-normal xl:text-[8.125rem] 2xl:text-[9.5rem]">
             <span className="block">{line1}</span>
             <span className="block">{line2}</span>
             <span className="block text-clw-gold">{line3}</span>
