@@ -8,6 +8,10 @@ const PUBLIC_AUTH_PATHS = ['/login', '/signup', '/forgot-password', '/update-pas
 const PORTAL_PATHS = ['/dashboard', '/athletes', '/documents', '/dues', '/tournaments', '/profile', '/schedule']
 const ONBOARDING_PATH = '/onboarding'
 
+// Admin areas reserved for FULL admins only (editing public website content and
+// managing the admin team). Limited admins get the rest of /admin.
+const FULL_ADMIN_PATHS = ['/admin/content', '/admin/team']
+
 function matchesPrefix(pathname: string, prefixes: string[]) {
   return prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`))
 }
@@ -29,7 +33,7 @@ export async function middleware(req: NextRequest) {
   }
 
   const { supabase, response } = await getSupabaseAndResponse(req)
-  const { user, role, onboardingCompleted } = await getSessionRole(supabase)
+  const { user, role, adminScope, onboardingCompleted } = await getSessionRole(supabase)
 
   if (!user) {
     const loginUrl = req.nextUrl.clone()
@@ -55,6 +59,14 @@ export async function middleware(req: NextRequest) {
   if (!allowed) {
     const redirectUrl = req.nextUrl.clone()
     redirectUrl.pathname = homeForRole(role)
+    return NextResponse.redirect(redirectUrl)
+  }
+
+  // Full-admin-only corners of /admin: a limited admin is bounced to the admin
+  // home rather than shown the website-content editor or the team manager.
+  if (isAdminPath && matchesPrefix(pathname, FULL_ADMIN_PATHS) && adminScope !== 'full') {
+    const redirectUrl = req.nextUrl.clone()
+    redirectUrl.pathname = '/admin'
     return NextResponse.redirect(redirectUrl)
   }
 

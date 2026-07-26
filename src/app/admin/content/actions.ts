@@ -3,10 +3,12 @@
 import { revalidatePath } from 'next/cache'
 
 import { createServerSupabase } from '@/lib/supabase/server'
+import { isFullAdmin } from '@/lib/auth/admin'
 import { contentField, isContentKey } from '@/lib/content/registry'
 
-// Writes go through the authenticated server client; `admin_write_page_content`
-// RLS enforces admin-only, and /admin is middleware-gated (defense in depth).
+// Writes go through the authenticated server client; `full_admin_write_page_content`
+// RLS enforces full-admin-only, and /admin/content is middleware-gated to full
+// admins (defense in depth).
 
 export type ActionResult = { ok: true } | { ok: false; error: string }
 
@@ -19,6 +21,7 @@ export async function updateContent(values: Record<string, string>): Promise<Act
   const rows = entries.map(([key, value]) => ({ key, value: (value ?? '').trim(), updated_at: now }))
 
   const supabase = await createServerSupabase()
+  if (!(await isFullAdmin(supabase))) return { ok: false, error: 'Only full admins can edit website content.' }
   const { error } = await supabase.from('page_content').upsert(rows, { onConflict: 'key' })
   if (error) return { ok: false, error: error.message }
 

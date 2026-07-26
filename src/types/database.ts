@@ -1,4 +1,5 @@
 export type AppRole = 'admin' | 'staff' | 'parent'
+export type AdminScope = 'full' | 'limited'
 
 export type SponsorTier = 'platinum' | 'yellow' | 'black' | 'white' | 'wizard_for_life'
 export type CommChannel = 'email' | 'sms'
@@ -16,6 +17,9 @@ export type Profile = {
   full_name: string | null
   email: string | null
   role: AppRole
+  // Only set for admins: 'full' can also edit public website content; 'limited'
+  // does everything else operational. null for staff/parents.
+  admin_scope: AdminScope | null
   phone: string | null
   practice_group: string | null
   sms_opt_in: boolean
@@ -226,6 +230,17 @@ export type FamilyInvite = {
   created_at: string
 }
 
+export type AdminInvite = {
+  id: string
+  code: string
+  scope: AdminScope
+  inviter_id: string | null
+  expires_at: string
+  redeemed_by: string | null
+  redeemed_at: string | null
+  created_at: string
+}
+
 export type Donation = {
   id: string
   donor_name: string | null
@@ -343,6 +358,12 @@ export type Database = {
         Row: FamilyInvite
         Insert: Partial<FamilyInvite>
         Update: Partial<FamilyInvite>
+        Relationships: []
+      }
+      admin_invites: {
+        Row: AdminInvite
+        Insert: Partial<AdminInvite>
+        Update: Partial<AdminInvite>
         Relationships: []
       }
     }

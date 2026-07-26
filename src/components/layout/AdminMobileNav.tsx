@@ -11,6 +11,7 @@ import {
   LogOut,
   Megaphone,
   Menu,
+  ShieldCheck,
   Trophy,
   Users,
 } from 'lucide-react'
@@ -36,13 +37,23 @@ const ADMIN_ITEMS = [
   { href: '/admin/practices', label: 'Practices & Events', icon: CalendarClock },
   { href: '/admin/dues', label: 'Dues', icon: HandCoins },
   { href: '/admin/sponsors', label: 'Sponsors', icon: Handshake },
-  { href: '/admin/content', label: 'Website content', icon: FileText },
+  { href: '/admin/content', label: 'Website content', icon: FileText, fullOnly: true },
   { href: '/admin/communications', label: 'Communications', icon: Megaphone },
+  { href: '/admin/team', label: 'Admin team', icon: ShieldCheck, fullOnly: true },
 ]
 
-export function AdminMobileNav({ userName, role }: { userName: string | null; role: string | null }) {
+export function AdminMobileNav({
+  userName,
+  role,
+  isFullAdmin,
+}: {
+  userName: string | null
+  role: string | null
+  isFullAdmin: boolean
+}) {
   const pathname = usePathname()
   const router = useRouter()
+  const items = ADMIN_ITEMS.filter((item) => isFullAdmin || !item.fullOnly)
 
   async function handleSignOut() {
     const supabase = createBrowserSupabase()
@@ -72,7 +83,7 @@ export function AdminMobileNav({ userName, role }: { userName: string | null; ro
           </SheetHeader>
 
           <nav className="flex-1 space-y-1 overflow-y-auto p-4">
-            {ADMIN_ITEMS.map((item) => {
+            {items.map((item) => {
               const active = item.href === '/admin' ? pathname === item.href : pathname.startsWith(item.href)
               const Icon = item.icon
 

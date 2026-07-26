@@ -4,9 +4,11 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
 import { createServerSupabase } from '@/lib/supabase/server'
+import { isFullAdmin } from '@/lib/auth/admin'
 
-// Writes go through the authenticated server client; `admin_write_faq` RLS
-// enforces admin-only, and /admin is middleware-gated (defense in depth).
+// Writes go through the authenticated server client; `full_admin_write_faq` RLS
+// enforces full-admin-only, and /admin/content is middleware-gated to full
+// admins (defense in depth).
 
 const faqSchema = z.object({
   question: z.string().trim().min(1, 'Question is required').max(300),
@@ -42,6 +44,7 @@ export async function createFaqItem(values: FaqInput): Promise<ActionResult> {
     throw err
   }
   const supabase = await createServerSupabase()
+  if (!(await isFullAdmin(supabase))) return { ok: false, error: 'Only full admins can edit the FAQ.' }
   const { error } = await supabase.from('faq_items').insert(row)
   if (error) return { ok: false, error: error.message }
   revalidate()
@@ -58,6 +61,7 @@ export async function updateFaqItem(id: string, values: FaqInput): Promise<Actio
     throw err
   }
   const supabase = await createServerSupabase()
+  if (!(await isFullAdmin(supabase))) return { ok: false, error: 'Only full admins can edit the FAQ.' }
   const { error } = await supabase.from('faq_items').update(row).eq('id', id)
   if (error) return { ok: false, error: error.message }
   revalidate()
@@ -67,6 +71,7 @@ export async function updateFaqItem(id: string, values: FaqInput): Promise<Actio
 export async function deleteFaqItem(id: string): Promise<ActionResult> {
   if (!id) return { ok: false, error: 'Missing FAQ id' }
   const supabase = await createServerSupabase()
+  if (!(await isFullAdmin(supabase))) return { ok: false, error: 'Only full admins can edit the FAQ.' }
   const { error } = await supabase.from('faq_items').delete().eq('id', id)
   if (error) return { ok: false, error: error.message }
   revalidate()

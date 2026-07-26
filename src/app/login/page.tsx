@@ -82,6 +82,13 @@ function LoginForm() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {searchParams.get('created') === 'admin' && !error && (
+              <Alert className="border-clw-gold/40 bg-clw-gold/10">
+                <AlertDescription className="text-clw-gold-ink">
+                  Admin account created. Sign in to open your dashboard.
+                </AlertDescription>
+              </Alert>
+            )}
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
