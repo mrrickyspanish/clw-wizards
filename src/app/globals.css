@@ -98,6 +98,10 @@
     --clw-white: var(--clw-ink);
     --clw-gray: var(--clw-muted-dark);
     --card-shadow: 0 10px 25px rgb(0 0 0 / 0.08);
+    /* Faintest grain so the off-white reads with a little depth instead of a
+       flat fill. Layers over the section's background-color; far too low to
+       touch readability. */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='clwn'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23clwn)' opacity='0.045'/%3E%3C/svg%3E");
   }
 }
 

@@ -65,7 +65,7 @@ export function HomeSupportIntro() {
             </h2>
           </div>
 
-          <div className="max-w-2xl text-xl leading-relaxed text-clw-gray sm:text-2xl sm:leading-relaxed lg:mx-auto lg:max-w-3xl">
+          <div className="max-w-2xl text-xl leading-relaxed text-white/85 sm:text-2xl sm:leading-relaxed lg:mx-auto lg:max-w-3xl">
             <p>
               Wizards Wrestling Club exists because families, alumni, local businesses, and community partners like you choose to invest in young wrestlers.
             </p>
@@ -93,7 +93,7 @@ export function HomeSupportIntro() {
                 <h3 className="mt-7 font-display text-4xl uppercase leading-none tracking-wide text-clw-white sm:text-5xl lg:mt-5 lg:text-4xl xl:text-5xl">
                   {title}
                 </h3>
-                <p className="mx-auto mt-4 max-w-xs text-base font-medium leading-relaxed text-clw-gray lg:mt-3">
+                <p className="mx-auto mt-4 max-w-xs text-base font-medium leading-relaxed text-white/85 lg:mt-3">
                   {body}
                 </p>
                 <span className="mt-auto pt-6 font-cond text-base uppercase tracking-[0.2em] text-clw-gold transition group-hover:text-clw-gold-l sm:text-lg lg:pt-4 lg:text-base xl:text-base">

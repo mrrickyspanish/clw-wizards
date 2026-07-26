@@ -13,7 +13,20 @@ export async function HomeTeamSection() {
       <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_82%_4%,rgba(240,192,32,.16),transparent_24%),linear-gradient(135deg,rgba(255,255,255,.08),transparent_42%)]" />
 
       <div id="team" className="relative mx-auto max-w-7xl scroll-mt-24">
-        <div className="grid items-center gap-10 lg:grid-cols-[0.92fr_1.08fr] lg:gap-14">
+        <header className="max-w-3xl">
+          <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Why We Started</p>
+          <h2 className="mt-4 uppercase leading-[0.94] text-clw-white">
+            <span className="block font-cond text-[clamp(2.4rem,7vw,4rem)] font-light tracking-[-0.02em]">Built on one</span>
+            <span className="block font-display text-[clamp(2.7rem,7.6vw,4.6rem)] font-black tracking-[-0.01em] text-clw-gold">
+              Belief.
+            </span>
+          </h2>
+          <p className="mt-5 max-w-2xl text-lg leading-relaxed text-white/85 sm:text-xl">
+            The idea Wizards Wrestling was built on — and the standard behind every practice.
+          </p>
+        </header>
+
+        <div className="mt-10 grid items-center gap-10 lg:mt-14 lg:grid-cols-[0.92fr_1.08fr] lg:gap-14">
           {/* Coach Tony — branded, framed portrait */}
           <figure className="relative mx-auto w-full max-w-md lg:mx-0">
             <div className="chamfer-md relative overflow-hidden border-2 border-clw-gold/60 bg-clw-black-2 shadow-2xl shadow-black/40">
@@ -43,13 +56,7 @@ export async function HomeTeamSection() {
 
           {/* Philosophy + links */}
           <div>
-            <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold">Why We Started</p>
-            <h2 className="mt-5 uppercase leading-[0.94] text-clw-white">
-              <span className="block font-cond text-[clamp(2.4rem,7vw,4rem)] font-light tracking-[-0.02em]">Built on one</span>
-              <span className="block font-display text-[clamp(2.7rem,7.6vw,4.6rem)] font-black tracking-[-0.01em] text-clw-gold">Belief.</span>
-            </h2>
-
-            <figure className="mt-8 border-l-2 border-clw-gold/70 pl-6">
+            <figure className="border-l-2 border-clw-gold/70 pl-6">
               <blockquote className="font-body text-2xl font-medium leading-snug text-clw-white sm:text-3xl sm:leading-snug">
                 <span aria-hidden className="mr-1 font-display text-clw-gold">&ldquo;</span>
                 {tonyQuote}
