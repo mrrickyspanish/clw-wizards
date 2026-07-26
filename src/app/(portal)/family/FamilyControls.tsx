@@ -71,9 +71,15 @@ export function FamilyControls({ invites }: { invites: FamilyInvite[] }) {
             <li key={inv.id} className="flex items-center justify-between gap-3 rounded-xl bg-clw-black px-4 py-3">
               <span className="font-mono text-lg tracking-[0.18em] text-clw-white">{inv.code}</span>
               <span className="flex items-center gap-1">
-                <Button variant="ghost" size="sm" onClick={() => handleCopy(inv.code)} className="text-clw-gray hover:text-clw-gold">
-                  {copied === inv.code ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
-                </Button>
+                {copied === inv.code ? (
+                  <Button size="sm" className="pointer-events-none bg-clw-gold text-clw-black hover:bg-clw-gold">
+                    <Check className="mr-1.5 h-4 w-4" /> Copied!
+                  </Button>
+                ) : (
+                  <Button variant="ghost" size="sm" onClick={() => handleCopy(inv.code)} className="text-clw-gray hover:text-clw-gold">
+                    <Copy className="mr-1.5 h-4 w-4" /> Copy
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"

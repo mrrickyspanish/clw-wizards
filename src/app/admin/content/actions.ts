@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { isFullAdmin } from '@/lib/auth/admin'
-import { contentField, isContentKey } from '@/lib/content/registry'
+import { contentField, contentLimit, isContentKey } from '@/lib/content/registry'
 
 // Writes go through the authenticated server client; `full_admin_write_page_content`
 // RLS enforces full-admin-only, and /admin/content is middleware-gated to full
@@ -19,6 +19,20 @@ export async function updateContent(values: Record<string, string>): Promise<Act
 
   const now = new Date().toISOString()
   const rows = entries.map(([key, value]) => ({ key, value: (value ?? '').trim(), updated_at: now }))
+
+  // Enforce the per-field character caps server-side too — the editor stops
+  // typing at the max, but never trust the client.
+  for (const row of rows) {
+    const limit = contentLimit(row.key)
+    if (!limit) continue
+    const label = contentField(row.key)?.label ?? row.key
+    if (row.value.length > limit.max) {
+      return { ok: false, error: `"${label}" must be ${limit.max} characters or fewer.` }
+    }
+    if (row.value.length < limit.min) {
+      return { ok: false, error: `"${label}" must be at least ${limit.min} characters.` }
+    }
+  }
 
   const supabase = await createServerSupabase()
   if (!(await isFullAdmin(supabase))) return { ok: false, error: 'Only full admins can edit website content.' }

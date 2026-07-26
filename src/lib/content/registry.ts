@@ -224,6 +224,39 @@ export const CONTENT_DEFAULTS: Record<string, string> = Object.fromEntries(
   CONTENT_FIELDS.map((f) => [f.key, f.default]),
 )
 
+// Character limits per editable text field, calibrated to the actual space each
+// slot has on the public site so edits can't overflow or break the layout:
+//   * Hero headline words render up to ~152px, one word per line (max_w ~42% of
+//     the viewport on desktop) — so a short word only.
+//   * The stat numbers render in a huge clamp font + a 3-up caption row.
+//   * Paragraphs sit in constrained max-w columns; these caps keep them to a
+//     believable 2–4 sentences so a section doesn't grow unboundedly.
+// Image fields aren't listed (their value is a URL/path, not display copy).
+export const CONTENT_LIMITS: Record<string, { min: number; max: number }> = {
+  'home.hero.line1': { min: 2, max: 14 },
+  'home.hero.line2': { min: 2, max: 14 },
+  'home.hero.line3': { min: 2, max: 14 },
+  'home.intro.body1': { min: 40, max: 320 },
+  'home.intro.body2': { min: 20, max: 170 },
+  'home.intro.stat_years': { min: 1, max: 6 },
+  'home.intro.stat_wrestlers': { min: 1, max: 6 },
+  'home.tony.quote': { min: 40, max: 320 },
+  'facility.address_line1': { min: 3, max: 60 },
+  'facility.address_line2': { min: 3, max: 60 },
+  'home.facility.body': { min: 40, max: 320 },
+  'about.intro': { min: 40, max: 400 },
+  'about.story1': { min: 40, max: 520 },
+  'about.story2': { min: 40, max: 520 },
+  'about.value1': { min: 5, max: 120 },
+  'about.value2': { min: 5, max: 120 },
+  'about.value3': { min: 5, max: 120 },
+  'about.value4': { min: 5, max: 120 },
+}
+
+export function contentLimit(key: string): { min: number; max: number } | undefined {
+  return CONTENT_LIMITS[key]
+}
+
 const FIELD_BY_KEY = new Map(CONTENT_FIELDS.map((f) => [f.key, f]))
 
 export function isContentKey(key: string): boolean {

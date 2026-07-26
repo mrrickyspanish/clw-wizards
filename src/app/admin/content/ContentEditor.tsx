@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { RotateCcw, Upload } from 'lucide-react'
 
-import { CONTENT_FIELDS, CONTENT_DEFAULTS, type ContentField } from '@/lib/content/registry'
+import { CONTENT_FIELDS, CONTENT_DEFAULTS, CONTENT_LIMITS, type ContentField } from '@/lib/content/registry'
 import { createBrowserSupabase } from '@/lib/supabase/browser'
 import { updateContent } from './actions'
 import { Button } from '@/components/ui/button'
@@ -25,6 +25,23 @@ function groupFields(): [string, ContentField[]][] {
   return Object.entries(groups)
 }
 
+// Live character counter + min hint for a capped text field.
+function CharCounter({ value, limit }: { value: string; limit: { min: number; max: number } }) {
+  const len = value.trim().length
+  const over = len > limit.max
+  const under = len < limit.min
+  const near = !over && len >= limit.max - 10
+  const color = over || under ? 'text-red-400' : near ? 'text-clw-gold' : 'text-clw-gray/60'
+  return (
+    <div className="flex items-center justify-end gap-3">
+      {under && <span className="text-xs text-red-400">At least {limit.min} characters</span>}
+      <span className={`text-xs tabular-nums ${color}`}>
+        {len} / {limit.max}
+      </span>
+    </div>
+  )
+}
+
 export function ContentEditor({ initial }: { initial: Record<string, string> }) {
   const router = useRouter()
   const groups = useMemo(groupFields, [])
@@ -39,6 +56,15 @@ export function ContentEditor({ initial }: { initial: Record<string, string> }) 
 
   const dirtyKeys = CONTENT_FIELDS.filter((f) => (values[f.key] ?? '') !== (baseline[f.key] ?? '')).map((f) => f.key)
   const isDirty = dirtyKeys.length > 0
+
+  // Block saving while any changed field is outside its character limits.
+  const limitViolations = dirtyKeys.filter((key) => {
+    const limit = CONTENT_LIMITS[key]
+    if (!limit) return false
+    const len = (values[key] ?? '').trim().length
+    return len < limit.min || len > limit.max
+  })
+  const hasViolation = limitViolations.length > 0
 
   function setValue(key: string, value: string) {
     setSaved(false)
@@ -123,12 +149,22 @@ export function ContentEditor({ initial }: { initial: Record<string, string> }) 
                       id={field.key}
                       rows={3}
                       value={value}
+                      maxLength={CONTENT_LIMITS[field.key]?.max}
                       onChange={(e) => setValue(field.key, e.target.value)}
                     />
                   )}
 
                   {field.type === 'text' && (
-                    <Input id={field.key} value={value} onChange={(e) => setValue(field.key, e.target.value)} />
+                    <Input
+                      id={field.key}
+                      value={value}
+                      maxLength={CONTENT_LIMITS[field.key]?.max}
+                      onChange={(e) => setValue(field.key, e.target.value)}
+                    />
+                  )}
+
+                  {CONTENT_LIMITS[field.key] && field.type !== 'image' && (
+                    <CharCounter value={value} limit={CONTENT_LIMITS[field.key]} />
                   )}
 
                   {field.type === 'image' && (
@@ -178,8 +214,18 @@ export function ContentEditor({ initial }: { initial: Record<string, string> }) 
 
       <div className="sticky bottom-4 flex items-center justify-end gap-4 rounded-md border border-clw-gold/20 bg-clw-black-2/95 p-4 backdrop-blur">
         {saved && !isDirty && <span className="text-sm text-clw-gold">Saved.</span>}
-        {isDirty && <span className="text-sm text-clw-gray">{dirtyKeys.length} unsaved change{dirtyKeys.length === 1 ? '' : 's'}</span>}
-        <Button type="button" disabled={!isDirty || saving} onClick={handleSave}>
+        {hasViolation ? (
+          <span className="text-sm text-red-400">
+            {limitViolations.length} field{limitViolations.length === 1 ? '' : 's'} outside the character limit
+          </span>
+        ) : (
+          isDirty && (
+            <span className="text-sm text-clw-gray">
+              {dirtyKeys.length} unsaved change{dirtyKeys.length === 1 ? '' : 's'}
+            </span>
+          )
+        )}
+        <Button type="button" disabled={!isDirty || saving || hasViolation} onClick={handleSave}>
           {saving ? 'Saving…' : 'Save changes'}
         </Button>
       </div>
