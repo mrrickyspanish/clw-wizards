@@ -14,6 +14,7 @@ import { HomeTeamSection } from '@/components/landing/HomeTeamSection'
 import { HomeFacebookSection } from '@/components/landing/HomeFacebookSection'
 import { HomeSponsorWall } from '@/components/landing/HomeSponsorWall'
 import { HomeMatTapeDivider } from '@/components/landing/HomeMatTapeDivider'
+import { SponsorTicker } from '@/components/landing/SponsorTicker'
 import { SectionSlideOver } from '@/components/landing/SectionSlideOver'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { MobileCtaBar } from '@/components/landing/MobileCtaBar'
@@ -48,6 +49,7 @@ export default async function HomePage({
     <main className="marketing-site min-h-screen overflow-x-clip bg-clw-black">
       <SiteHeader />
       <div aria-hidden className="h-[98px] sm:h-[100px] lg:h-[104px]" />
+      <SponsorTicker />
 
       {donation === 'success' && (
         <div className="px-4 pt-4 sm:px-6 lg:px-8">
