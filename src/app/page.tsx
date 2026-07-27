@@ -46,7 +46,7 @@ export default async function HomePage({
   return (
     <main className="marketing-site min-h-screen overflow-x-clip bg-clw-black">
       <SiteHeader />
-      <div aria-hidden className="h-[142px] sm:h-[144px] lg:h-[148px]" />
+      <div aria-hidden className="h-[98px] sm:h-[100px] lg:h-[104px]" />
 
       {donation === 'success' && (
         <div className="px-4 pt-4 sm:px-6 lg:px-8">
