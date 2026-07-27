@@ -14,7 +14,7 @@ export type TickerItem = {
 }
 
 export type ScrollingTickerProps = {
-  items: TickerItem[]
+  items?: TickerItem[]
   ariaLabel?: string
   intervalMs?: number
   className?: string
@@ -76,7 +76,7 @@ function eventTickerText(event: CalendarCandidate) {
 }
 
 export default function ScrollingTicker({
-  items,
+  items = [],
   ariaLabel = 'Updates and offers',
   intervalMs = 4240,
   className = '',
