@@ -40,10 +40,10 @@ const CLW_HEADER_ITEMS: TickerItem[] = [
   },
 ]
 
-function Sparkle({ className }: { className?: string }) {
+function Star({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
-      <path d="M12 2c.5 4.6 2.4 6.5 7 7-4.6.5-6.5 2.4-7 7-.5-4.6-2.4-6.5-7-7 4.6-.5 6.5-2.4 7-7Z" />
+      <path d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 7.1-1.01z" />
     </svg>
   )
 }
@@ -184,11 +184,7 @@ export default function ScrollingTicker({
           style={{ '--ticker-duration': `${intervalMs}ms` } as CSSProperties}
         >
           <span className={`${styles.text} ${isPromo ? styles.promoText : styles.infoText}`}>
-            {isPromo ? (
-              <Sparkle className={styles.sparkle} />
-            ) : (
-              <span className={styles.dot} />
-            )}
+            <Star className={styles.star} />
             {item.text}
           </span>
         </div>
