@@ -32,7 +32,7 @@ export default function ScrollingTicker({
   intervalMs = 4240,
   className = '',
 }: ScrollingTickerProps) {
-  const safeItems = items.length ? items : [{ text: 'Add ticker content' }]
+  const safeItems: TickerItem[] = items.length ? items : [{ text: 'Add ticker content' }]
   const reducedMotionRef = useRef(false)
   const [index, setIndex] = useState(0)
 
@@ -83,15 +83,15 @@ export default function ScrollingTicker({
             href={item.href}
             className={styles.hitArea}
             aria-label={`${item.text}. View Wizards sponsorship options.`}
-          />
+          >
+            <span aria-hidden="true" />
+          </Link>
         ) : null}
       </div>
 
       <ul className={styles.screenReaderOnly}>
         {safeItems.map((tickerItem, itemIndex) => (
-          <li key={`${tickerItem.text}-${itemIndex}`}>
-            {tickerItem.href ? <Link href={tickerItem.href}>{tickerItem.text}</Link> : tickerItem.text}
-          </li>
+          <li key={`${tickerItem.text}-${itemIndex}`}>{tickerItem.text}</li>
         ))}
       </ul>
     </section>
