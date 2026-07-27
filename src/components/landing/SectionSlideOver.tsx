@@ -11,21 +11,30 @@ export function SectionSlideOver({
   foreground: ReactNode
 }) {
   const rootRef = useRef<HTMLDivElement>(null)
+  const stickyRef = useRef<HTMLDivElement>(null)
   const backgroundRef = useRef<HTMLDivElement>(null)
   const shadeRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const root = rootRef.current
+    const stickyEl = stickyRef.current
     const backgroundEl = backgroundRef.current
     const shade = shadeRef.current
 
-    if (!root || !backgroundEl || !shade) return
+    if (!root || !stickyEl || !backgroundEl || !shade) return
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
     let frame = 0
 
     const update = () => {
       frame = 0
+
+      // A background taller than the viewport (e.g. the 4-card support section)
+      // must scroll all the way through before the foreground slides over it —
+      // so pin it only once its bottom reaches the viewport bottom, not at the
+      // very top. Viewport-height backgrounds (hero/events) keep top: 0.
+      const overflow = backgroundEl.offsetHeight - window.innerHeight
+      stickyEl.style.top = overflow > 0 ? `${-overflow}px` : '0px'
 
       if (reduceMotion.matches) {
         backgroundEl.style.transform = 'none'
@@ -63,7 +72,7 @@ export function SectionSlideOver({
 
   return (
     <div ref={rootRef} className="relative isolate">
-      <div className="sticky top-0 z-0 overflow-hidden">
+      <div ref={stickyRef} className="sticky top-0 z-0 overflow-hidden">
         <div ref={backgroundRef} className="origin-center will-change-transform">
           {background}
         </div>
