@@ -18,9 +18,11 @@ export async function HomeTeamSection() {
       <div id="team" className="relative mx-auto max-w-7xl scroll-mt-24">
         <header className="max-w-3xl">
           <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-on-light">Why We Started</p>
-          <h2 className="mt-4 uppercase leading-[0.94] text-clw-ink">
-            <span className="block font-cond text-[clamp(2.4rem,7vw,4rem)] font-light tracking-[-0.02em]">Built on one</span>
-            <span className="block font-display text-[clamp(2.7rem,7.6vw,4.6rem)] font-black tracking-[-0.01em] text-clw-gold-on-light">
+          <h2 className="mt-4 whitespace-nowrap uppercase leading-[0.92] text-clw-ink">
+            <span className="mr-2 inline font-cond text-[clamp(2.2rem,9.5vw,5rem)] font-light tracking-[-0.04em] sm:mr-3">
+              Built on one
+            </span>
+            <span className="inline font-display text-[clamp(2.45rem,10.5vw,5.6rem)] font-black tracking-[-0.035em] text-clw-gold-on-light">
               Belief.
             </span>
           </h2>
