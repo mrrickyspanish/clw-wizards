@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, ArrowUpRight, MapPin, Search, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import ScrollingTicker, { type TickerItem } from '@/components/landing/ScrollingTicker'
 import { ORG } from '@/config/org.config'
 
 const NAV_LINKS = [
@@ -17,6 +18,18 @@ const NAV_LINKS = [
 const MOBILE_NAV_LINKS = [...NAV_LINKS, { href: '/join', label: 'Join the Wizards' }]
 const DESKTOP_LEFT_LINKS = NAV_LINKS.slice(0, 3)
 const DESKTOP_RIGHT_LINKS = [NAV_LINKS[3]]
+
+const SPONSOR_TICKER_ITEMS: TickerItem[] = [
+  { text: 'White Sponsor • $150', href: '/sponsorship#sponsors' },
+  { text: 'Black Sponsor • $250', href: '/sponsorship#sponsors' },
+  { text: 'Gold Sponsor • $500', href: '/sponsorship#sponsors' },
+  { text: 'Platinum Sponsor • $1,000', href: '/sponsorship#sponsors' },
+  {
+    text: 'Back the next generation of Wizards • Become a sponsor',
+    kind: 'promo',
+    href: '/sponsorship#sponsors',
+  },
+]
 
 const SEARCH_ITEMS = [
   {
@@ -245,6 +258,11 @@ export function SiteHeader() {
             </div>
           </div>
         </div>
+
+        <ScrollingTicker
+          items={SPONSOR_TICKER_ITEMS}
+          ariaLabel="Wizards Wrestling sponsorship levels"
+        />
 
         <div
           className={`grid overflow-hidden transition-[grid-template-rows] duration-300 ease-out lg:hidden ${
