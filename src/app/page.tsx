@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { chicagoDateString } from '@/lib/chicago-time'
-import type { Tournament } from '@/types/database'
+import type { Sponsor, Tournament } from '@/types/database'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Hero } from '@/components/landing/Hero'
 import { ProgramIntro } from '@/components/landing/ProgramIntro'
@@ -14,6 +14,7 @@ import { HomeTeamSection } from '@/components/landing/HomeTeamSection'
 import { HomeFacebookSection } from '@/components/landing/HomeFacebookSection'
 import { HomeMatTapeDivider } from '@/components/landing/HomeMatTapeDivider'
 import { SectionSlideOver } from '@/components/landing/SectionSlideOver'
+import { SponsorsShowcase } from '@/components/landing/SponsorsShowcase'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { MobileCtaBar } from '@/components/landing/MobileCtaBar'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -33,15 +34,23 @@ export default async function HomePage({
   const supabase = await createServerSupabase()
   const today = chicagoDateString()
 
-  const { data: tournaments } = await supabase
-    .from('tournaments')
-    .select('*')
-    .eq('status', 'open')
-    .gte('date', today)
-    .order('date', { ascending: true })
-    .limit(4)
+  const [{ data: tournaments }, { data: sponsors }] = await Promise.all([
+    supabase
+      .from('tournaments')
+      .select('*')
+      .eq('status', 'open')
+      .gte('date', today)
+      .order('date', { ascending: true })
+      .limit(4),
+    supabase
+      .from('sponsors')
+      .select('*')
+      .eq('active', true)
+      .order('created_at', { ascending: true }),
+  ])
 
   const tournamentRows = (tournaments ?? []) as Tournament[]
+  const sponsorRows = (sponsors ?? []) as Sponsor[]
 
   return (
     <main className="marketing-site min-h-screen overflow-x-clip bg-clw-black">
@@ -76,6 +85,12 @@ export default async function HomePage({
       />
 
       <ProgramStructure />
+
+      <section className="bg-clw-black px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
+        <div className="mx-auto max-w-7xl">
+          <SponsorsShowcase sponsors={sponsorRows} />
+        </div>
+      </section>
 
       <SectionSlideOver
         background={<HomeEventsSection tournaments={tournamentRows} />}
