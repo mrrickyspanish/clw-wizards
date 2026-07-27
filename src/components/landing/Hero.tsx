@@ -13,7 +13,7 @@ export async function Hero() {
   const mobilePhoto = content.get('home.hero.photo')
   return (
     <section className="relative isolate overflow-hidden border-b border-clw-gold/10 bg-clw-black">
-      <div className="relative flex min-h-[calc(86svh-44px)] overflow-hidden bg-clw-black-2 sm:min-h-[620px] lg:h-[calc(100vh-148px)] lg:min-h-[616px] lg:max-h-[900px]">
+      <div className="relative flex min-h-[86svh] overflow-hidden bg-clw-black-2 sm:min-h-[620px] lg:h-[calc(100vh-104px)] lg:min-h-[616px] lg:max-h-[900px]">
         <div className="absolute inset-0">
           {/* eslint-disable-next-line @next/next/no-img-element -- real club team photo */}
           <img
