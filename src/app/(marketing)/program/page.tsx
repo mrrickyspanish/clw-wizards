@@ -52,8 +52,13 @@ export default function ProgramPage() {
         <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-14">
           <header>
             <p className="font-cond text-sm uppercase tracking-[0.3em] text-clw-gold">Wizards Program</p>
-            <h1 className="mt-5 font-display text-5xl uppercase leading-[0.92] text-clw-white sm:text-6xl lg:text-7xl">
-              Four groups. One clear roadmap.
+            <h1 className="mt-5 uppercase leading-[0.9] text-clw-white">
+              <span className="block font-cond text-[clamp(3rem,8vw,5.6rem)] font-light tracking-[-0.045em]">
+                Four groups.
+              </span>
+              <span className="block font-display text-[clamp(3.4rem,9vw,6.4rem)] font-black tracking-[-0.04em] text-clw-gold">
+                One clear roadmap.
+              </span>
             </h1>
             <p className="mt-6 max-w-2xl text-xl leading-relaxed text-clw-gray sm:text-2xl sm:leading-relaxed lg:text-xl">
               Wrestlers start where they fit today and grow toward the most competitive room. Being one of the area&apos;s bigger clubs is the advantage: we group by ability, experience, age, and size, so a first-year wrestler learns with peers instead of being stuck across the mat from an eighth-grader.

@@ -73,8 +73,13 @@ export default async function FaqPage() {
             <HelpCircle className="h-6 w-6 text-clw-gold" />
             <p className="font-cond text-sm uppercase tracking-[0.3em] text-clw-gold">New Family Questions</p>
           </div>
-          <h1 className="mt-5 font-display text-5xl uppercase leading-[0.92] text-clw-white sm:text-6xl lg:text-7xl">
-            Answers before your wrestler steps into the room.
+          <h1 className="mt-5 max-w-4xl uppercase leading-[0.92] text-clw-white">
+            <span className="block font-cond text-[clamp(2.5rem,6vw,4.4rem)] font-light tracking-[-0.04em]">
+              Answers before your wrestler
+            </span>
+            <span className="block font-display text-[clamp(2.9rem,7vw,5rem)] font-black tracking-[-0.035em] text-clw-gold">
+              steps into the room.
+            </span>
           </h1>
           <p className="mt-6 max-w-3xl text-xl leading-relaxed text-clw-gray sm:text-2xl sm:leading-relaxed">
             Registration, equipment, practices, tournaments, and the first visit—all in one place.

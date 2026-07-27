@@ -66,8 +66,13 @@ export default async function CoachesPage() {
               <Users className="h-6 w-6 text-clw-gold" />
               <p className="font-cond text-sm uppercase tracking-[0.3em] text-clw-gold">Leadership & Coaching</p>
             </div>
-            <h1 className="mt-5 font-display text-5xl uppercase leading-[0.92] text-clw-white sm:text-6xl lg:text-7xl">
-              People who keep the room moving.
+            <h1 className="mt-5 uppercase leading-[0.9] text-clw-white">
+              <span className="block font-cond text-[clamp(2.9rem,7.4vw,5.3rem)] font-light tracking-[-0.045em]">
+                People who keep
+              </span>
+              <span className="block font-display text-[clamp(3.3rem,8.4vw,6rem)] font-black tracking-[-0.04em] text-clw-gold">
+                the room moving.
+              </span>
             </h1>
             <p className="mt-6 max-w-2xl text-xl leading-relaxed text-clw-gray sm:text-2xl sm:leading-relaxed lg:text-xl">
               Meet the volunteers who lead the club, organize the season, and coach our wrestlers through every stage of development.

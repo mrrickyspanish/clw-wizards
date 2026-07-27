@@ -39,8 +39,13 @@ export default function GolfOutingPage() {
       <header className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         <div className="lg:col-span-8">
           <p className="font-cond text-sm uppercase tracking-[0.3em] text-clw-gold">Annual fundraiser — every August</p>
-          <h1 className="mt-3 font-display text-5xl uppercase leading-[0.95] text-clw-white sm:text-6xl">
-            The Wizards golf outing
+          <h1 className="mt-3 uppercase leading-[0.9] text-clw-white">
+            <span className="block font-cond text-[clamp(3rem,8vw,5.6rem)] font-light tracking-[-0.045em]">
+              The Wizards
+            </span>
+            <span className="block font-display text-[clamp(3.4rem,9vw,6.4rem)] font-black tracking-[-0.04em] text-clw-gold">
+              Golf Outing.
+            </span>
           </h1>
           <p className="mt-4 max-w-2xl text-clw-gray">
             Our biggest fundraiser of the year — and the most fun way to back the Wizards. Grab a foursome, sponsor a
@@ -59,7 +64,7 @@ export default function GolfOutingPage() {
       </header>
 
       <section className="mt-10">
-        <h2 className="font-display text-2xl uppercase tracking-wide text-clw-white">Golf outing tiers</h2>
+        <h2 className="font-display text-3xl uppercase tracking-wide text-clw-white sm:text-4xl">Golf outing tiers</h2>
         <p className="mt-1 text-base text-clw-gray">Each tier includes everything in the tier below it.</p>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {GOLF_TIERS.map((tier) => (
