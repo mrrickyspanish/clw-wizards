@@ -72,6 +72,14 @@ const LOGO_HEIGHTS = {
   legacy: 'max-h-20 sm:max-h-24',
 }
 
+const TIER_LABELS: Record<SponsorTier, string> = {
+  platinum: 'Platinum Partner',
+  yellow: 'Yellow Sponsor',
+  black: 'Black Sponsor',
+  white: 'White Sponsor',
+  wizard_for_life: 'Wizard for Life',
+}
+
 function sponsorInitials(name: string) {
   return name
     .split(/\s+/)
@@ -91,7 +99,7 @@ function PartnerCard({
 }) {
   const card = (
     <div
-      className={`group relative flex ${CARD_HEIGHTS[size]} h-full flex-col overflow-hidden border border-clw-gold/35 bg-[#FFFDF7] p-5 text-clw-ink shadow-[0_18px_45px_-28px_rgba(0,0,0,.8)] transition duration-300 hover:-translate-y-1 hover:border-clw-gold hover:shadow-[0_22px_52px_-26px_rgba(240,192,32,.42)] sm:p-6 ${
+      className={`group relative flex ${CARD_HEIGHTS[size]} h-full flex-col overflow-hidden border border-clw-gold/35 bg-[#FFFDF7] p-5 text-[#111111] shadow-[0_18px_45px_-28px_rgba(0,0,0,.8)] transition duration-300 hover:-translate-y-1 hover:border-clw-gold hover:shadow-[0_22px_52px_-26px_rgba(240,192,32,.42)] sm:p-6 ${
         size === 'platinum' ? 'chamfer-lg' : 'chamfer-md'
       }`}
     >
@@ -109,7 +117,7 @@ function PartnerCard({
           />
         ) : (
           <span
-            className={`flex items-center justify-center border-2 border-clw-gold bg-clw-black font-display uppercase text-clw-gold ${
+            className={`flex items-center justify-center border-2 border-clw-gold bg-[#0B0B0B] font-display uppercase text-clw-gold ${
               size === 'platinum' ? 'h-24 w-24 text-4xl sm:h-28 sm:w-28 sm:text-5xl' : 'h-20 w-20 text-3xl'
             }`}
           >
@@ -118,7 +126,7 @@ function PartnerCard({
         )}
       </div>
 
-      <div className="border-t border-clw-ink/10 pt-4 text-center">
+      <div className="border-t border-black/10 pt-4 text-center">
         <p
           className={`font-cond font-semibold uppercase leading-tight tracking-[0.08em] ${
             size === 'platinum' ? 'text-xl sm:text-2xl' : size === 'compact' ? 'text-sm sm:text-base' : 'text-base sm:text-lg'
@@ -133,7 +141,7 @@ function PartnerCard({
   if (!sponsor.website_url) return card
 
   return (
-    <a href={sponsor.website_url} target="_blank" rel="noopener noreferrer" aria-label={`Visit ${sponsor.name}`}>
+    <a className="block h-full" href={sponsor.website_url} target="_blank" rel="noopener noreferrer" aria-label={`Visit ${sponsor.name}`}>
       {card}
     </a>
   )
@@ -217,11 +225,11 @@ export function PartnersProof({ sponsors }: { sponsors: Sponsor[] }) {
   const supporting = sorted.filter((sponsor) => sponsor.id !== featured.id).slice(0, 4)
 
   return (
-    <section className="mt-12 overflow-hidden border border-clw-gold/35 bg-clw-black p-5 text-left text-clw-white shadow-2xl shadow-black/15 sm:p-7 lg:p-8">
-      <div className="flex flex-col gap-4 border-b border-clw-white/10 pb-6 sm:flex-row sm:items-end sm:justify-between">
+    <section className="mt-12 overflow-hidden border border-clw-gold/35 bg-[#0B0B0B] p-5 text-left text-white shadow-2xl shadow-black/15 sm:p-7 lg:p-8">
+      <div className="flex flex-col gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="font-cond text-sm font-semibold uppercase tracking-[0.28em] text-clw-gold">Current Partners</p>
-          <h3 className="mt-3 font-display text-4xl uppercase leading-none sm:text-5xl">Already in their corner.</h3>
+          <h3 className="mt-3 font-display text-4xl uppercase leading-none text-white sm:text-5xl">Already in their corner.</h3>
         </div>
         <Link href="/partners" className="inline-flex items-center gap-2 font-cond text-base font-semibold uppercase tracking-[0.16em] text-clw-gold hover:text-clw-gold-l">
           Meet all partners <ArrowUpRight className="h-4 w-4" />
@@ -230,8 +238,8 @@ export function PartnersProof({ sponsors }: { sponsors: Sponsor[] }) {
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(18rem,.85fr)]">
         <div className="relative">
-          <div className="absolute left-4 top-4 z-10 inline-flex items-center gap-2 bg-clw-black px-3 py-1.5 font-cond text-xs font-semibold uppercase tracking-[0.16em] text-clw-gold">
-            <Star className="h-3.5 w-3.5 fill-current" /> Platinum Partner
+          <div className="absolute left-4 top-4 z-10 inline-flex items-center gap-2 bg-[#0B0B0B] px-3 py-1.5 font-cond text-xs font-semibold uppercase tracking-[0.16em] text-clw-gold">
+            <Star className="h-3.5 w-3.5 fill-current" /> {TIER_LABELS[featured.tier]}
           </div>
           <PartnerCard sponsor={featured} size="platinum" />
         </div>
@@ -243,7 +251,7 @@ export function PartnersProof({ sponsors }: { sponsors: Sponsor[] }) {
             ))}
           </div>
         ) : (
-          <div className="flex min-h-[230px] items-center justify-center border border-dashed border-clw-gold/30 px-6 text-center text-clw-gray">
+          <div className="flex min-h-[230px] items-center justify-center border border-dashed border-clw-gold/30 px-6 text-center text-[#B0B0B0]">
             Additional partner recognition will appear here as new businesses join the Wizards.
           </div>
         )}
