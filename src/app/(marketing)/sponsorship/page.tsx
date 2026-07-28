@@ -130,9 +130,9 @@ export default async function SponsorshipPage({
 
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {tiers.map((tier) => (
-                <div key={tier.slug} className="chamfer-md border border-clw-gold/35 bg-clw-black p-6 text-clw-white shadow-xl shadow-black/10">
+                <div key={tier.slug} className="chamfer-md border border-clw-gold/35 bg-[#0B0B0B] p-6 text-white shadow-xl shadow-black/10">
                   <p className="font-cond text-sm font-semibold uppercase tracking-[0.18em] text-clw-gold">Sponsorship Level</p>
-                  <p className="mt-4 font-display text-3xl uppercase leading-none">{tier.label}</p>
+                  <p className="mt-4 font-display text-3xl uppercase leading-none text-white">{tier.label}</p>
                   <p className="mt-4 font-cond text-2xl font-semibold tracking-wide text-clw-gold">{tierPrice(tier.price_cents)}</p>
                 </div>
               ))}
