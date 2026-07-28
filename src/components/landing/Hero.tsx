@@ -66,10 +66,17 @@ export async function Hero() {
             }}
           />
 
-          {/* Text-legibility scrims over the mobile photo: darken the left (behind
-              the headline) and the bottom hard, leaving the wrestler on the right
-              lit. Stronger than a subtle wash so the big headline reads cleanly. */}
-          <div className="absolute inset-0 bg-gradient-to-r from-clw-black via-clw-black-2/60 to-transparent lg:hidden" />
+          {/* Keep only a light, localized left scrim for headline contrast. The
+              bottom gradient does most of the legibility work so the arena and
+              photo detail remain visible across the mobile frame. */}
+          <div
+            aria-hidden
+            className="absolute inset-0 lg:hidden"
+            style={{
+              background:
+                'linear-gradient(90deg, rgba(11,11,11,.42) 0%, rgba(11,11,11,.12) 38%, transparent 62%)',
+            }}
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-clw-black via-clw-black/30 to-clw-black/10 lg:hidden" />
         </div>
 
