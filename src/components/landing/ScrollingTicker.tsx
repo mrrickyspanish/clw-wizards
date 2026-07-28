@@ -34,7 +34,7 @@ const CLW_HEADER_ITEMS: TickerItem[] = [
     href: '/sponsorship#sponsors',
   },
   {
-    text: 'Creative Eye Multimedia.',
+    text: 'Creative Eye Multimedia',
     kind: 'promo',
     href: '/sponsorship#sponsors',
   },
@@ -169,9 +169,19 @@ export default function ScrollingTicker({
 
   const item = safeItems[index] ?? safeItems[0]
   const isPromo = item.kind === 'promo'
+  const isEvent = item.text.startsWith('Next Event')
   const resolvedAriaLabel = isClwHeaderFeed
     ? 'Wizards Wrestling sponsors and next calendar event'
     : ariaLabel
+
+  const textClassName = [
+    styles.text,
+    isPromo ? styles.promoText : styles.infoText,
+    isPromo ? styles.featuredText : '',
+    isEvent ? styles.eventText : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   return (
     <section aria-label={resolvedAriaLabel} className={`${styles.card} ${className}`.trim()}>
@@ -183,9 +193,10 @@ export default function ScrollingTicker({
           className={styles.row}
           style={{ '--ticker-duration': `${intervalMs}ms` } as CSSProperties}
         >
-          <span className={`${styles.text} ${isPromo ? styles.promoText : styles.infoText}`}>
-            <Star className={styles.star} />
-            {item.text}
+          <span className={textClassName}>
+            {isPromo ? <Star className={styles.star} /> : null}
+            <span className={styles.message}>{item.text}</span>
+            {isPromo ? <Star className={`${styles.star} ${styles.starEnd}`} /> : null}
           </span>
         </div>
 
