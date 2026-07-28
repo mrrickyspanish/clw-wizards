@@ -31,12 +31,12 @@ const CLW_HEADER_ARIA_LABEL = 'Wizards Wrestling sponsorship levels'
 const CLW_HEADER_ITEMS: TickerItem[] = [
   {
     text: 'Thank you to our Platinum tier sponsors.',
-    href: '/sponsorship#sponsors',
+    href: '/partners#platinum',
   },
   {
     text: 'Creative Eye Multimedia',
     kind: 'promo',
-    href: '/sponsorship#sponsors',
+    href: '/partners#platinum',
   },
 ]
 
