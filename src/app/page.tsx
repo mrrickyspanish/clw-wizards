@@ -2,12 +2,12 @@ import type { Metadata } from 'next'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { chicagoDateString } from '@/lib/chicago-time'
-import type { Tournament } from '@/types/database'
+import type { ClubEvent, Tournament } from '@/types/database'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Hero } from '@/components/landing/Hero'
 import { ProgramIntro } from '@/components/landing/ProgramIntro'
 import { ProgramStructure } from '@/components/landing/ProgramStructure'
-import { HomeEventsSection } from '@/components/landing/HomeEventsSection'
+import { HomeEventsSection, type HomeEventItem } from '@/components/landing/HomeEventsSection'
 import { HomeSupportIntro } from '@/components/landing/HomeSupportIntro'
 import { HomeFacilitySection } from '@/components/landing/HomeFacilitySection'
 import { HomeTeamSection } from '@/components/landing/HomeTeamSection'
@@ -33,15 +33,51 @@ export default async function HomePage({
   const supabase = await createServerSupabase()
   const today = chicagoDateString()
 
-  const { data: tournaments } = await supabase
-    .from('tournaments')
-    .select('*')
-    .eq('status', 'open')
-    .gte('date', today)
-    .order('date', { ascending: true })
-    .limit(4)
+  const [{ data: tournaments }, { data: clubEvents }] = await Promise.all([
+    supabase
+      .from('tournaments')
+      .select('*')
+      .neq('status', 'cancelled')
+      .gte('date', today)
+      .order('date', { ascending: true })
+      .limit(6),
+    supabase
+      .from('club_events')
+      .select('*')
+      .eq('active', true)
+      .gte('date', today)
+      .order('date', { ascending: true })
+      .limit(6),
+  ])
 
   const tournamentRows = (tournaments ?? []) as Tournament[]
+  const clubEventRows = (clubEvents ?? []) as ClubEvent[]
+
+  const homeEvents: HomeEventItem[] = [
+    ...tournamentRows.map((event) => ({
+      id: `t-${event.id}`,
+      date: event.date,
+      title: event.name,
+      kind: 'tournament' as const,
+      startTime: event.start_time,
+      location: event.location || [event.city, event.state].filter(Boolean).join(', ') || null,
+      imageUrl: event.image_url,
+    })),
+    ...clubEventRows.map((event) => ({
+      id: `e-${event.id}`,
+      date: event.date,
+      title: event.title,
+      kind: event.event_type,
+      startTime: event.start_time,
+      location: event.location,
+      imageUrl: null,
+    })),
+  ]
+    .sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date)
+      return (a.startTime ?? '23:59:59').localeCompare(b.startTime ?? '23:59:59')
+    })
+    .slice(0, 3)
 
   return (
     <main className="marketing-site min-h-screen overflow-x-clip bg-clw-black">
@@ -78,7 +114,7 @@ export default async function HomePage({
       <ProgramStructure />
 
       <SectionSlideOver
-        background={<HomeEventsSection tournaments={tournamentRows} />}
+        background={<HomeEventsSection events={homeEvents} />}
         foreground={
           <>
             <HomeMatTapeDivider profile="black-right" />
