@@ -56,6 +56,18 @@ export async function Hero() {
             }}
           />
 
+          {/* Desktop keeps the original stronger left-side cinema fade because
+              the headline occupies a dedicated left column. Mobile uses the
+              lighter localized scrim below so the portrait photo stays open. */}
+          <div
+            aria-hidden
+            className="absolute inset-0 hidden lg:block"
+            style={{
+              background:
+                'linear-gradient(90deg, rgba(11,11,11,.92) 0%, rgba(11,11,11,.7) 30%, rgba(11,11,11,.2) 54%, transparent 70%)',
+            }}
+          />
+
           <div
             aria-hidden
             className="absolute inset-0 hidden opacity-[0.045] mix-blend-soft-light lg:block"
