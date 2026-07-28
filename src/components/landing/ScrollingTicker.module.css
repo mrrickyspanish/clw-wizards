@@ -28,7 +28,7 @@
   justify-content: center;
   padding-inline: 0.85rem;
   animation: ticker-roll var(--ticker-duration, 4240ms) cubic-bezier(0.4, 0, 0.2, 1) both;
-  will-change: transform, opacity;
+  will-change: transform;
 }
 
 .text {
@@ -113,21 +113,12 @@
 }
 
 @keyframes ticker-roll {
-  0% {
-    transform: translateY(110%);
-    opacity: 0;
-  }
-  10% {
+  0%,
+  86% {
     transform: translateY(0);
-    opacity: 1;
-  }
-  90% {
-    transform: translateY(0);
-    opacity: 1;
   }
   100% {
     transform: translateY(-110%);
-    opacity: 0;
   }
 }
 
@@ -153,6 +144,5 @@
   .row {
     animation: none;
     transform: none;
-    opacity: 1;
   }
 }
