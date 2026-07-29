@@ -101,28 +101,23 @@ export async function reviewSeasonEnrollment(values: z.input<typeof reviewSchema
     return { ok: false, error: enrollmentError?.message ?? 'Registration not found.' }
   }
 
-  const [{ data: season }, { data: athlete }, { data: parent }, { data: dues }, { data: documents }] = await Promise.all([
+  const [{ data: season }, { data: athlete }, { data: parent }, { data: dues }, { data: card }] = await Promise.all([
     admin.from('season_registrations').select('*').eq('id', enrollment.season_registration_id).single(),
     admin.from('athletes').select('first_name, last_name').eq('id', enrollment.athlete_id).single(),
     admin.from('profiles').select('full_name, email').eq('id', enrollment.parent_id).single(),
     enrollment.dues_payment_id
       ? admin.from('dues_payments').select('status').eq('id', enrollment.dues_payment_id).single()
       : Promise.resolve({ data: null, error: null }),
-    admin
-      .from('athlete_documents')
-      .select('id, verified')
-      .eq('athlete_id', enrollment.athlete_id)
-      .eq('doc_type', 'usa_wrestling_card')
-      .order('uploaded_at', { ascending: false })
-      .limit(1),
+    enrollment.usa_card_document_id
+      ? admin.from('athlete_documents').select('id, verified').eq('id', enrollment.usa_card_document_id).single()
+      : Promise.resolve({ data: null, error: null }),
   ])
 
   if (!season || !athlete) return { ok: false, error: 'Registration details are incomplete.' }
 
-  const latestCard = documents?.[0]
   if (parsed.data.status === 'approved') {
-    if (season.require_usa_card && !latestCard?.verified) {
-      return { ok: false, error: 'Verify the current USA Wrestling card before approving this registration.' }
+    if (season.require_usa_card && !card?.verified) {
+      return { ok: false, error: 'Verify the current-season USA Wrestling card before approving this registration.' }
     }
     if (season.dues_amount_cents > 0 && dues?.status !== 'paid' && dues?.status !== 'waived') {
       return { ok: false, error: 'Season dues must be paid or waived before approval.' }
@@ -142,14 +137,18 @@ export async function reviewSeasonEnrollment(values: z.input<typeof reviewSchema
   if (updateError) return { ok: false, error: updateError.message }
 
   if (parent?.email) {
-    await sendStatusEmail({
-      to: parent.email,
-      parentName: parent.full_name,
-      athleteName: `${athlete.first_name} ${athlete.last_name}`,
-      seasonLabel: season.season_label,
-      status: parsed.data.status,
-      note: parsed.data.note || null,
-    })
+    try {
+      await sendStatusEmail({
+        to: parent.email,
+        parentName: parent.full_name,
+        athleteName: `${athlete.first_name} ${athlete.last_name}`,
+        seasonLabel: season.season_label,
+        status: parsed.data.status,
+        note: parsed.data.note || null,
+      })
+    } catch (error) {
+      console.error('Season registration status email failed:', error)
+    }
   }
 
   revalidateRegistrationSurfaces()
@@ -184,10 +183,12 @@ async function sendStatusEmail(params: {
         : `${params.athleteName}'s registration for ${params.seasonLabel} was marked withdrawn.`
 
   const resend = new Resend(key)
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: process.env.RESEND_FROM_EMAIL ?? `${ORG.shortName} <onboarding@resend.dev>`,
     to: params.to,
     subject,
     text: `Hi ${firstName},\n\n${statusCopy}${params.note ? `\n\nClub note: ${params.note}` : ''}\n\nView registration: ${siteUrl}/registration\n\n${ORG.name}`,
   })
+
+  if (error) throw new Error(error.message)
 }
