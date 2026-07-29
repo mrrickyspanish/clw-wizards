@@ -117,6 +117,7 @@ export default async function RegistrationPage({
   const { season, event } = selected
   const athletes = (athleteData ?? []) as Athlete[]
   const athleteIds = athletes.map((athlete) => athlete.id)
+  const currentCardWindow = `${season.registration_open_date}T00:00:00.000Z`
 
   const [{ data: enrollmentData }, { data: documentData }] = athleteIds.length
     ? await Promise.all([
@@ -126,6 +127,7 @@ export default async function RegistrationPage({
           .select('*')
           .in('athlete_id', athleteIds)
           .eq('doc_type', 'usa_wrestling_card')
+          .gte('uploaded_at', currentCardWindow)
           .order('uploaded_at', { ascending: false }),
       ])
     : [{ data: [] as SeasonEnrollment[] }, { data: [] as AthleteDocument[] }]
@@ -186,7 +188,7 @@ export default async function RegistrationPage({
           </div>
           <div>
             <p className="text-clw-gray/70">USA Wrestling card</p>
-            <p className="mt-1 text-clw-white">{season.require_usa_card ? 'Required and reviewed' : 'Not required'}</p>
+            <p className="mt-1 text-clw-white">{season.require_usa_card ? 'Current-season upload required' : 'Not required'}</p>
           </div>
         </CardContent>
       </Card>
@@ -212,7 +214,7 @@ export default async function RegistrationPage({
               Your parent account stays year to year. Add your wrestler once, then register that saved profile each season.
             </p>
             <Button asChild className="mt-5">
-              <Link href="/athletes/new">Add wrestler</Link>
+              <Link href="/athletes/new?redirectTo=/registration">Add wrestler</Link>
             </Button>
           </CardContent>
         </Card>
@@ -222,8 +224,9 @@ export default async function RegistrationPage({
             const enrollment = enrollmentByAthlete.get(athlete.id)
             const card = latestCardByAthlete.get(athlete.id)
             const dues = enrollment?.dues_payment_id ? duesById.get(enrollment.dues_payment_id) : undefined
-            const paid = !dues || dues.status === 'paid' || dues.status === 'waived'
-            const remaining = dues ? Math.max(0, dues.amount_cents - dues.amount_paid_cents) : 0
+            const paid =
+              season.dues_amount_cents === 0 || dues?.status === 'paid' || dues?.status === 'waived'
+            const remaining = dues ? Math.max(0, dues.amount_cents - dues.amount_paid_cents) : season.dues_amount_cents
             const canSubmit = isOpen && (!season.require_usa_card || Boolean(card))
             const resubmitting = enrollment?.status === 'changes_requested' || enrollment?.status === 'withdrawn'
 
@@ -262,14 +265,16 @@ export default async function RegistrationPage({
                           <p className="mt-1 text-xs text-clw-gray">
                             {!season.require_usa_card
                               ? 'Not required for this season'
-                              : !card
-                                ? 'Upload required'
-                                : card.verified
-                                  ? 'Verified by the club'
-                                  : 'Uploaded, awaiting review'}
+                              : !isOpen && !card
+                                ? `Upload available ${formatDate(season.registration_open_date)}`
+                                : !card
+                                  ? 'Current-season upload required'
+                                  : card.verified
+                                    ? 'Verified by the club for this season'
+                                    : 'Uploaded for this season, awaiting review'}
                           </p>
                         </div>
-                        {season.require_usa_card && (
+                        {season.require_usa_card && isOpen && enrollment?.status !== 'approved' && (
                           <DocumentControls
                             userId={userId}
                             athleteId={athlete.id}
@@ -289,7 +294,9 @@ export default async function RegistrationPage({
                           ? `${money(season.dues_amount_cents)} due after submission`
                           : paid
                             ? 'Paid or waived'
-                            : `${money(remaining)} remaining`}
+                            : dues
+                              ? `${money(remaining)} remaining`
+                              : 'Payment record is being prepared'}
                       </p>
                       {enrollment && dues && !paid && remaining > 0 && (
                         <div className="mt-3">
@@ -313,7 +320,7 @@ export default async function RegistrationPage({
                       <div>
                         <p className="font-medium text-blue-200">Submitted for club review</p>
                         <p className="mt-1 text-sm text-blue-100/70">
-                          The club will verify the wrestling card and payment before final approval.
+                          The club will verify the current wrestling card and payment before final approval.
                         </p>
                       </div>
                     </div>
@@ -325,7 +332,7 @@ export default async function RegistrationPage({
                             ? `Registration opens ${formatDate(season.registration_open_date)}.`
                             : 'Registration is closed.'
                           : season.require_usa_card && !card
-                            ? 'Upload the wrestling card before submitting.'
+                            ? 'Upload the current-season wrestling card before submitting.'
                             : 'Submit this wrestler for the current season. You will pay dues after the registration is created.'}
                       </p>
                       <EnrollmentControls
