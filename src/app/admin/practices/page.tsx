@@ -1,5 +1,5 @@
 import { createAdminSupabase } from '@/lib/supabase/admin'
-import type { Practice, ClubEvent, PracticeCancellation } from '@/types/database'
+import type { Practice, ClubEvent, PracticeCancellation, SeasonRegistration } from '@/types/database'
 import { WEEKDAYS, formatTime } from '@/lib/practice'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -22,6 +22,7 @@ const EVENT_TYPE_LABELS: Record<ClubEvent['event_type'], string> = {
   parent_night: 'Parent Night',
   fundraiser: 'Fundraiser',
   meeting: 'Meeting',
+  season_registration: 'Season Registration',
   other: 'Other',
 }
 
@@ -34,27 +35,37 @@ function formatEventDate(value: string) {
   })
 }
 
+function shortDate(value: string) {
+  return new Date(`${value}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
 export default async function AdminPracticesPage() {
   const supabase = createAdminSupabase()
-  const [{ data: practices, error }, { data: cancellations }, { data: events, error: eventsError }] = await Promise.all([
+  const [
+    { data: practices, error },
+    { data: cancellations },
+    { data: events, error: eventsError },
+    { data: seasons },
+  ] = await Promise.all([
     supabase.from('practices').select('*').order('weekday', { ascending: true }).order('start_time', { ascending: true }),
     supabase.from('practice_cancellations').select('*').order('date', { ascending: true }),
     supabase.from('club_events').select('*').order('date', { ascending: true }),
+    supabase.from('season_registrations').select('*').order('registration_open_date', { ascending: false }),
   ])
 
   const rows = (practices ?? []) as Practice[]
   const eventRows = (events ?? []) as ClubEvent[]
+  const seasonByEvent = new Map(((seasons ?? []) as SeasonRegistration[]).map((season) => [season.event_id, season]))
 
   const cancelsByPractice = new Map<string, PracticeCancellation[]>()
-  for (const c of (cancellations ?? []) as PracticeCancellation[]) {
-    const list = cancelsByPractice.get(c.practice_id) ?? []
-    list.push(c)
-    cancelsByPractice.set(c.practice_id, list)
+  for (const cancellation of (cancellations ?? []) as PracticeCancellation[]) {
+    const list = cancelsByPractice.get(cancellation.practice_id) ?? []
+    list.push(cancellation)
+    cancelsByPractice.set(cancellation.practice_id, list)
   }
 
   return (
     <div className="space-y-10">
-      {/* Recurring practices */}
       <section>
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
@@ -90,38 +101,38 @@ export default async function AdminPracticesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((p) => {
-                  const label = `${WEEKDAYS[p.weekday]} ${formatTime(p.start_time)}`
+                {rows.map((practice) => {
+                  const label = `${WEEKDAYS[practice.weekday]} ${formatTime(practice.start_time)}`
                   return (
-                    <TableRow key={p.id} className="border-clw-gold/10">
-                      <TableCell className="font-medium text-clw-white">{WEEKDAYS[p.weekday]}</TableCell>
+                    <TableRow key={practice.id} className="border-clw-gold/10">
+                      <TableCell className="font-medium text-clw-white">{WEEKDAYS[practice.weekday]}</TableCell>
                       <TableCell className="text-clw-gray">
-                        {formatTime(p.start_time)}
-                        {p.end_time ? ` - ${formatTime(p.end_time)}` : ''}
+                        {formatTime(practice.start_time)}
+                        {practice.end_time ? ` - ${formatTime(practice.end_time)}` : ''}
                       </TableCell>
-                      <TableCell className="text-clw-gray">{p.practice_group}</TableCell>
-                      <TableCell className="text-clw-gray">{p.location}</TableCell>
+                      <TableCell className="text-clw-gray">{practice.practice_group}</TableCell>
+                      <TableCell className="text-clw-gray">{practice.location}</TableCell>
                       <TableCell>
                         <Badge
                           variant="outline"
                           className={
-                            p.active
+                            practice.active
                               ? 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold'
                               : 'border-clw-gray/40 bg-clw-gray/10 text-clw-gray'
                           }
                         >
-                          {p.active ? 'active' : 'inactive'}
+                          {practice.active ? 'active' : 'inactive'}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-1">
                           <CancelDateDialog
-                            practiceId={p.id}
+                            practiceId={practice.id}
                             label={label}
-                            cancellations={cancelsByPractice.get(p.id) ?? []}
+                            cancellations={cancelsByPractice.get(practice.id) ?? []}
                           />
-                          <PracticeDialog practice={p} />
-                          <DeletePracticeButton id={p.id} label={label} />
+                          <PracticeDialog practice={practice} />
+                          <DeletePracticeButton id={practice.id} label={label} />
                         </div>
                       </TableCell>
                     </TableRow>
@@ -133,12 +144,13 @@ export default async function AdminPracticesPage() {
         )}
       </section>
 
-      {/* One-off events */}
       <section>
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-display text-clw-gold">Events</h2>
-            <p className="text-sm text-clw-gray">Banquets, parent nights, fundraisers, and other one-off dates.</p>
+            <p className="text-sm text-clw-gray">
+              Banquets, meetings, fundraisers, and annual season registration all start here.
+            </p>
           </div>
           <EventDialog />
         </div>
@@ -151,7 +163,7 @@ export default async function AdminPracticesPage() {
 
         {!eventsError && eventRows.length === 0 && (
           <div className="rounded-md border border-clw-gold/10 bg-clw-black p-10 text-center">
-            <p className="text-clw-gray">No events yet. Add a banquet, parent night, or fundraiser.</p>
+            <p className="text-clw-gray">No events yet. Add a club date or open season registration.</p>
           </div>
         )}
 
@@ -162,32 +174,45 @@ export default async function AdminPracticesPage() {
                 <TableRow className="border-clw-gold/10 hover:bg-transparent">
                   <TableHead className="text-clw-gray">Event</TableHead>
                   <TableHead className="text-clw-gray">Type</TableHead>
-                  <TableHead className="text-clw-gray">Date</TableHead>
+                  <TableHead className="text-clw-gray">Date / window</TableHead>
                   <TableHead className="text-clw-gray">Group</TableHead>
                   <TableHead className="w-[120px]" />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {eventRows.map((ev) => (
-                  <TableRow key={ev.id} className="border-clw-gold/10">
-                    <TableCell className="font-medium text-clw-white">
-                      {ev.title}
-                      {!ev.active && <span className="ml-2 text-xs text-clw-gray">(inactive)</span>}
-                    </TableCell>
-                    <TableCell className="text-clw-gray">{EVENT_TYPE_LABELS[ev.event_type]}</TableCell>
-                    <TableCell className="text-clw-gray">
-                      {formatEventDate(ev.date)}
-                      {ev.start_time ? ` · ${formatTime(ev.start_time)}` : ''}
-                    </TableCell>
-                    <TableCell className="text-clw-gray">{ev.practice_group ?? 'All'}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-1">
-                        <EventDialog event={ev} />
-                        <DeleteEventButton id={ev.id} label={ev.title} />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {eventRows.map((event) => {
+                  const season = seasonByEvent.get(event.id)
+                  return (
+                    <TableRow key={event.id} className="border-clw-gold/10">
+                      <TableCell className="font-medium text-clw-white">
+                        {event.title}
+                        {!event.active && <span className="ml-2 text-xs text-clw-gray">(inactive)</span>}
+                        {season && <span className="mt-1 block text-xs text-clw-gold">{season.season_label}</span>}
+                      </TableCell>
+                      <TableCell className="text-clw-gray">{EVENT_TYPE_LABELS[event.event_type]}</TableCell>
+                      <TableCell className="text-clw-gray">
+                        {season ? (
+                          <>
+                            <span className="block">Opens {shortDate(season.registration_open_date)}</span>
+                            <span className="block text-xs text-clw-gray/70">Closes {shortDate(season.registration_close_date)}</span>
+                          </>
+                        ) : (
+                          <>
+                            {formatEventDate(event.date)}
+                            {event.start_time ? ` · ${formatTime(event.start_time)}` : ''}
+                          </>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-clw-gray">{event.practice_group ?? 'All'}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-1">
+                          <EventDialog event={event} season={season} />
+                          <DeleteEventButton id={event.id} label={event.title} />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           </div>
