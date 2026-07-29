@@ -5,7 +5,16 @@ import { getSessionRole, homeForRole } from '@/lib/auth/session'
 
 const PUBLIC_AUTH_PATHS = ['/login', '/signup', '/forgot-password', '/update-password']
 
-const PORTAL_PATHS = ['/dashboard', '/athletes', '/documents', '/dues', '/tournaments', '/profile', '/schedule']
+const PORTAL_PATHS = [
+  '/dashboard',
+  '/athletes',
+  '/documents',
+  '/dues',
+  '/tournaments',
+  '/registration',
+  '/profile',
+  '/schedule',
+]
 const ONBOARDING_PATH = '/onboarding'
 
 // Admin areas reserved for FULL admins only (editing public website content and
@@ -38,15 +47,17 @@ export async function middleware(req: NextRequest) {
   if (!user) {
     const loginUrl = req.nextUrl.clone()
     loginUrl.pathname = '/login'
-    loginUrl.searchParams.set('redirectTo', pathname)
+    loginUrl.searchParams.set('redirectTo', `${pathname}${req.nextUrl.search}`)
     return NextResponse.redirect(loginUrl)
   }
 
-  // A parent who hasn't finished onboarding can only be on /onboarding —
-  // everywhere else in the portal bounces them there first.
+  // A parent who has not finished onboarding can only be on /onboarding. Keep
+  // the original destination so a registration link resumes after setup.
   if (role === 'parent' && !onboardingCompleted && isPortalPath) {
     const onboardingUrl = req.nextUrl.clone()
     onboardingUrl.pathname = ONBOARDING_PATH
+    onboardingUrl.search = ''
+    onboardingUrl.searchParams.set('redirectTo', `${pathname}${req.nextUrl.search}`)
     return NextResponse.redirect(onboardingUrl)
   }
 
@@ -82,6 +93,7 @@ export const config = {
     '/documents/:path*',
     '/dues/:path*',
     '/tournaments/:path*',
+    '/registration/:path*',
     '/profile/:path*',
     '/schedule',
     '/onboarding',
