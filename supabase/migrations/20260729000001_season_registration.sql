@@ -85,8 +85,9 @@ CREATE TRIGGER update_season_enrollments_updated_at
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- Parents submit through this function rather than direct table writes. It keeps
--- annual enrollment and the matching dues record atomic, validates the season
--- window, and works for both primary parents and linked co-guardians.
+-- annual enrollment and the matching dues record in one transaction, validates
+-- the season window, works for co-guardians, and never lets a parent reopen an
+-- enrollment that the club has already approved.
 CREATE OR REPLACE FUNCTION public.submit_season_enrollment(
   _season_registration_id UUID,
   _athlete_id UUID
@@ -103,6 +104,7 @@ DECLARE
   _event public.club_events%ROWTYPE;
   _enrollment_id UUID;
   _dues_id UUID;
+  _existing_status TEXT;
   _today DATE := (NOW() AT TIME ZONE 'America/Chicago')::DATE;
 BEGIN
   IF _caller IS NULL THEN
@@ -141,34 +143,50 @@ BEGIN
     RAISE EXCEPTION 'That wrestler is not on your family roster';
   END IF;
 
-  INSERT INTO public.season_enrollments (
-    season_registration_id,
-    athlete_id,
-    parent_id,
-    status,
-    submitted_at,
-    reviewed_by,
-    reviewed_at,
-    admin_note
-  )
-  VALUES (
-    _season_registration_id,
-    _athlete_id,
-    _owner,
-    'submitted',
-    NOW(),
-    NULL,
-    NULL,
-    NULL
-  )
-  ON CONFLICT (season_registration_id, athlete_id)
-  DO UPDATE SET
-    status = 'submitted',
-    submitted_at = NOW(),
-    reviewed_by = NULL,
-    reviewed_at = NULL,
-    admin_note = NULL
-  RETURNING id, dues_payment_id INTO _enrollment_id, _dues_id;
+  SELECT id, status, dues_payment_id
+  INTO _enrollment_id, _existing_status, _dues_id
+  FROM public.season_enrollments
+  WHERE season_registration_id = _season_registration_id
+    AND athlete_id = _athlete_id
+  FOR UPDATE;
+
+  IF _existing_status = 'approved' THEN
+    RAISE EXCEPTION 'This wrestler is already approved for the season';
+  END IF;
+
+  IF _enrollment_id IS NULL THEN
+    INSERT INTO public.season_enrollments (
+      season_registration_id,
+      athlete_id,
+      parent_id,
+      status,
+      submitted_at,
+      reviewed_by,
+      reviewed_at,
+      admin_note
+    )
+    VALUES (
+      _season_registration_id,
+      _athlete_id,
+      _owner,
+      'submitted',
+      NOW(),
+      NULL,
+      NULL,
+      NULL
+    )
+    RETURNING id, dues_payment_id INTO _enrollment_id, _dues_id;
+  ELSE
+    UPDATE public.season_enrollments
+    SET
+      parent_id = _owner,
+      status = 'submitted',
+      submitted_at = NOW(),
+      reviewed_by = NULL,
+      reviewed_at = NULL,
+      admin_note = NULL
+    WHERE id = _enrollment_id;
+  END IF;
 
   IF _dues_id IS NULL THEN
     INSERT INTO public.dues_payments (
@@ -208,13 +226,19 @@ SET search_path = public
 AS $$
 DECLARE
   _athlete_id UUID;
+  _status TEXT;
 BEGIN
-  SELECT athlete_id INTO _athlete_id
+  SELECT athlete_id, status INTO _athlete_id, _status
   FROM public.season_enrollments
-  WHERE id = _enrollment_id;
+  WHERE id = _enrollment_id
+  FOR UPDATE;
 
   IF _athlete_id IS NULL OR NOT public.guards_athlete(_athlete_id) THEN
     RAISE EXCEPTION 'Registration not found';
+  END IF;
+
+  IF _status = 'approved' THEN
+    RAISE EXCEPTION 'Contact the club to withdraw an approved registration';
   END IF;
 
   UPDATE public.season_enrollments
