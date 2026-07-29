@@ -6,7 +6,6 @@ import {
   FolderOpen,
   MapPin,
   ChevronRight,
-  Ticket,
   Upload,
   Mail,
   CheckCircle2,
@@ -20,6 +19,7 @@ import { WEEKDAYS, formatTime, nextPractice } from '@/lib/practice'
 import { resolveFamilyOwnerIds } from '@/lib/family'
 import { ORG } from '@/config/org.config'
 import type { Tournament, TournamentRegistration, Practice, Athlete, ClubEvent } from '@/types/database'
+import { SeasonRegistrationCard } from './SeasonRegistrationCard'
 
 function greeting(): string {
   const h = chicagoHour()
@@ -124,7 +124,9 @@ export default async function ParentDashboardPage() {
   const next = nextPractice(myPractices, new Date(), cancelledSet)
 
   // Upcoming one-off events: club-wide or matching one of the family's groups.
+  // Season registration has its own state-aware dashboard card below.
   const upcomingEvents = ((clubEvents ?? []) as ClubEvent[])
+    .filter((ev) => ev.event_type !== 'season_registration')
     .filter((ev) => !ev.practice_group || groups.has(ev.practice_group))
     .slice(0, 4)
 
@@ -157,6 +159,7 @@ export default async function ParentDashboardPage() {
     return (
       <div className="mx-auto max-w-3xl">
         {greetingBlock}
+        <SeasonRegistrationCard familyOwnerIds={familyOwnerIds} />
         <section className="card-depth relative overflow-hidden rounded-2xl border border-clw-gold/15 bg-clw-black-3 p-7">
           <HeroMark />
           <div className="relative">
@@ -188,7 +191,7 @@ export default async function ParentDashboardPage() {
   ]
 
   const quickActions = [
-    { href: '/tournaments', label: 'Register', sub: 'Sign up for a program', icon: Ticket },
+    { href: '/tournaments', label: 'Tournaments', sub: 'Browse upcoming events', icon: Trophy },
     { href: '/documents', label: 'Documents', sub: 'Upload paperwork', icon: Upload },
     { href: `mailto:${ORG.contactEmail}`, label: 'Contact', sub: 'Email the club', icon: Mail },
   ]
@@ -238,6 +241,8 @@ export default async function ParentDashboardPage() {
           )}
         </div>
       </section>
+
+      <SeasonRegistrationCard familyOwnerIds={familyOwnerIds} />
 
       {/* BALANCE: focal only when owed */}
       {outstandingCents > 0 && (
