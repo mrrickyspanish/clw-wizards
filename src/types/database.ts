@@ -235,6 +235,7 @@ export type SeasonEnrollment = {
   athlete_id: string
   parent_id: string
   dues_payment_id: string | null
+  usa_card_document_id: string | null
   status: SeasonEnrollmentStatus
   submitted_at: string
   reviewed_by: string | null
