@@ -36,6 +36,7 @@ export function ReviewControls({
   const [error, setError] = useState<string | null>(null)
   const [note, setNote] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
+  const approved = status === 'approved'
 
   function run(action: () => Promise<{ ok: boolean; error?: string }>, onSuccess?: () => void) {
     setError(null)
@@ -82,7 +83,7 @@ export function ReviewControls({
           </Button>
         )}
 
-        {documentId && (
+        {documentId && !approved && (
           <Button
             type="button"
             variant="outline"
@@ -104,7 +105,7 @@ export function ReviewControls({
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button type="button" variant="outline" size="sm" disabled={pending || status === 'approved'}>
+            <Button type="button" variant="outline" size="sm" disabled={pending || approved}>
               Request update
             </Button>
           </DialogTrigger>
@@ -137,11 +138,11 @@ export function ReviewControls({
         <Button
           type="button"
           size="sm"
-          disabled={pending || !approvalReady || status === 'approved'}
+          disabled={pending || !approvalReady || approved}
           onClick={() => run(() => reviewSeasonEnrollment({ enrollmentId, status: 'approved', note: null }))}
         >
           <CheckCircle2 className="mr-1.5 h-4 w-4" />
-          {status === 'approved' ? 'Approved' : 'Approve'}
+          {approved ? 'Approved' : 'Approve'}
         </Button>
       </div>
       {error && <p className="text-right text-xs text-red-400">{error}</p>}
