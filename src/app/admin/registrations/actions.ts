@@ -126,6 +126,9 @@ export async function reviewSeasonEnrollment(values: z.input<typeof reviewSchema
   if (enrollmentError || !enrollment) {
     return { ok: false, error: enrollmentError?.message ?? 'Registration not found.' }
   }
+  if (enrollment.status === 'approved' && parsed.data.status !== 'approved') {
+    return { ok: false, error: 'Approved registrations are locked. Contact a full administrator for a manual correction.' }
+  }
 
   const [{ data: season }, { data: athlete }, { data: parent }, { data: dues }, { data: card }] = await Promise.all([
     admin.from('season_registrations').select('*').eq('id', enrollment.season_registration_id).single(),
