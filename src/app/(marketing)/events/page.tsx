@@ -54,7 +54,7 @@ export default async function EventsPage() {
       kind: e.event_type,
       startTime: e.start_time,
       location: e.location,
-      registerUrl: null,
+      registerUrl: e.event_type === 'season_registration' ? '/registration' : null,
       competitionLevel: null,
       practiceGroup: e.practice_group,
     })),
