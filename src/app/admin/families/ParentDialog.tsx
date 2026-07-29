@@ -34,7 +34,17 @@ type EditableParent = Pick<
   'id' | 'full_name' | 'email' | 'phone' | 'practice_group' | 'sms_opt_in'
 >
 
-export function ParentDialog({ parent }: { parent: EditableParent }) {
+type ParentRelationship = 'primary' | 'co-guardian'
+
+export function ParentDialog({
+  parent,
+  relationship = 'primary',
+  familyId,
+}: {
+  parent: EditableParent
+  relationship?: ParentRelationship
+  familyId?: string
+}) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -45,6 +55,8 @@ export function ParentDialog({ parent }: { parent: EditableParent }) {
   const [phone, setPhone] = useState(parent.phone ?? '')
   const [practiceGroup, setPracticeGroup] = useState(parent.practice_group ?? 'none')
   const [smsOptIn, setSmsOptIn] = useState(parent.sms_opt_in)
+
+  const isCoGuardian = relationship === 'co-guardian'
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -59,7 +71,7 @@ export function ParentDialog({ parent }: { parent: EditableParent }) {
       sms_opt_in: smsOptIn,
     }
 
-    const result = await updateParent(parent.id, values)
+    const result = await updateParent(parent.id, values, familyId)
     setLoading(false)
 
     if (!result.ok) {
@@ -75,14 +87,16 @@ export function ParentDialog({ parent }: { parent: EditableParent }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" className="text-clw-gray hover:text-clw-gold">
-          <Pencil className="mr-1.5 h-4 w-4" /> Edit parent
+          <Pencil className="mr-1.5 h-4 w-4" /> {isCoGuardian ? 'Edit guardian' : 'Edit parent'}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-clw-gold">Edit parent account</DialogTitle>
+          <DialogTitle className="text-clw-gold">
+            Edit {isCoGuardian ? 'co-guardian' : 'parent account'}
+          </DialogTitle>
           <DialogDescription>
-            Update the primary guardian&apos;s contact information and account email.
+            Update this guardian&apos;s contact information and account email.
           </DialogDescription>
         </DialogHeader>
 
@@ -94,9 +108,9 @@ export function ParentDialog({ parent }: { parent: EditableParent }) {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="parent_full_name">Full name</Label>
+            <Label htmlFor={`parent_full_name_${parent.id}`}>Full name</Label>
             <Input
-              id="parent_full_name"
+              id={`parent_full_name_${parent.id}`}
               required
               maxLength={120}
               value={fullName}
@@ -106,9 +120,9 @@ export function ParentDialog({ parent }: { parent: EditableParent }) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="parent_email">Email</Label>
+            <Label htmlFor={`parent_email_${parent.id}`}>Email</Label>
             <Input
-              id="parent_email"
+              id={`parent_email_${parent.id}`}
               type="email"
               required
               maxLength={254}
@@ -117,14 +131,14 @@ export function ParentDialog({ parent }: { parent: EditableParent }) {
               autoComplete="email"
             />
             <p className="text-sm text-clw-gray">
-              Changing this also changes the email the parent uses to sign in.
+              Changing this also changes the email this guardian uses to sign in.
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="parent_phone">Phone</Label>
+            <Label htmlFor={`parent_phone_${parent.id}`}>Phone</Label>
             <Input
-              id="parent_phone"
+              id={`parent_phone_${parent.id}`}
               type="tel"
               maxLength={20}
               value={phone}
@@ -160,7 +174,7 @@ export function ParentDialog({ parent }: { parent: EditableParent }) {
               <span>
                 <span className="block font-medium">SMS communication consent</span>
                 <span className="mt-1 block leading-relaxed text-clw-gray">
-                  Only enable this after the parent has explicitly agreed to receive club text messages. Turning it off
+                  Only enable this after the guardian has explicitly agreed to receive club text messages. Turning it off
                   preserves the prior consent record.
                 </span>
               </span>
@@ -169,7 +183,7 @@ export function ParentDialog({ parent }: { parent: EditableParent }) {
 
           <DialogFooter>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Saving…' : 'Save parent'}
+              {loading ? 'Saving…' : `Save ${isCoGuardian ? 'guardian' : 'parent'}`}
             </Button>
           </DialogFooter>
         </form>
