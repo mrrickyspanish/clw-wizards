@@ -78,7 +78,8 @@ export async function middleware(req: NextRequest) {
   // The onboarding form currently returns to /dashboard. On that first request,
   // send the parent back to the action that originally brought them into setup.
   if (role === 'parent' && onboardingCompleted && pathname === '/dashboard') {
-    const destination = safeInternalPath(req.cookies.get(POST_ONBOARDING_COOKIE)?.value)
+    const storedDestination = req.cookies.get(POST_ONBOARDING_COOKIE)?.value
+    const destination = safeInternalPath(storedDestination)
     if (destination && destination !== '/dashboard') {
       const redirectUrl = req.nextUrl.clone()
       redirectUrl.pathname = destination.split('?')[0]
@@ -87,6 +88,7 @@ export async function middleware(req: NextRequest) {
       redirect.cookies.delete(POST_ONBOARDING_COOKIE)
       return redirect
     }
+    if (storedDestination) response.cookies.delete(POST_ONBOARDING_COOKIE)
   }
 
   const allowed =
