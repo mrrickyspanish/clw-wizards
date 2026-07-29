@@ -1,10 +1,11 @@
 import Link from 'next/link'
+import { headers } from 'next/headers'
 import { ChevronLeft } from 'lucide-react'
 
 import { AddAthleteForm } from '../AddAthleteForm'
 
 function safeRedirect(value: string | undefined) {
-  return value && value.startsWith('/') && !value.startsWith('//') ? value : '/athletes'
+  return value && value.startsWith('/') && !value.startsWith('//') ? value : null
 }
 
 export default async function NewAthletePage({
@@ -13,7 +14,10 @@ export default async function NewAthletePage({
   searchParams: Promise<{ redirectTo?: string }>
 }) {
   const { redirectTo } = await searchParams
-  const destination = safeRedirect(redirectTo)
+  const requestHeaders = await headers()
+  const referer = requestHeaders.get('referer')
+  const cameFromRegistration = Boolean(referer && new URL(referer).pathname === '/registration')
+  const destination = safeRedirect(redirectTo) ?? (cameFromRegistration ? '/registration' : '/athletes')
 
   return (
     <div className="mx-auto max-w-xl space-y-5">
