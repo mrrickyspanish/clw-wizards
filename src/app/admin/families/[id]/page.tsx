@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AthleteDialog } from '../AthleteDialog'
 import { FamilyActiveToggle } from '../FamilyActiveToggle'
+import { ParentDialog } from '../ParentDialog'
 
 function formatDate(value: string) {
   return new Date(`${value}T00:00:00`).toLocaleDateString('en-US', {
@@ -65,8 +66,9 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
       </div>
 
       <Card className="mb-6 border-clw-gold/10 bg-clw-black">
-        <CardHeader>
-          <CardTitle className="text-sm font-medium text-clw-gray">Contact & preferences</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-sm font-medium text-clw-gray">Contact &amp; preferences</CardTitle>
+          <ParentDialog parent={parent} />
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
           <div>
