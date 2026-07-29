@@ -133,7 +133,7 @@ export async function SeasonRegistrationCard({
   } else if (approved > 0 && approved === athletes.length) {
     eyebrow = 'Registration complete'
     title = `Approved for ${season.season_label}`
-    body = `All ${approved === 1 ? 'wrestler is' : `${approved} wrestlers are`} cleared for the season.`
+    body = approved === 1 ? 'Your wrestler is cleared for the season.' : `All ${approved} wrestlers are cleared for the season.`
     action = 'View confirmation'
     Icon = CheckCircle2
     accent = 'border-emerald-500/35'
