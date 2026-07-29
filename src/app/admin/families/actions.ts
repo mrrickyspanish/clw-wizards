@@ -39,7 +39,11 @@ const parentSchema = z.object({
 
 export type ParentInput = z.input<typeof parentSchema>
 
-export async function updateParent(id: string, values: ParentInput): Promise<ActionResult> {
+export async function updateParent(
+  id: string,
+  values: ParentInput,
+  familyId?: string
+): Promise<ActionResult> {
   const auth = await assertAdmin()
   if (!auth.ok) return auth
   if (!id) return { ok: false, error: 'Missing parent id' }
@@ -72,8 +76,8 @@ export async function updateParent(id: string, values: ParentInput): Promise<Act
   const previousAuthEmail = authUser.user.email ?? current.email ?? ''
   const previousMetadata = authUser.user.user_metadata ?? {}
 
-  // Keep the login identity and the public profile synchronized. The admin API
-  // changes the sign-in email immediately without requiring a second confirmation.
+  // Keep the login identity and the profile synchronized. The admin API changes
+  // the sign-in email immediately without requiring a second confirmation.
   const { error: loginError } = await admin.auth.admin.updateUserById(id, {
     email,
     user_metadata: { ...previousMetadata, full_name: parsed.full_name },
@@ -112,7 +116,8 @@ export async function updateParent(id: string, values: ParentInput): Promise<Act
   }
 
   revalidatePath('/admin/families')
-  revalidatePath(`/admin/families/${id}`)
+  revalidatePath(`/admin/families/${familyId ?? id}`)
+  if (familyId && familyId !== id) revalidatePath(`/admin/families/${id}`)
   revalidatePath('/dashboard')
   revalidatePath('/profile')
   return { ok: true }
@@ -166,16 +171,29 @@ export async function updateAthlete(id: string, values: AthleteInput): Promise<A
   return { ok: true }
 }
 
-export async function setFamilyActive(parentId: string, isActive: boolean): Promise<ActionResult> {
+export async function setFamilyActive(
+  parentId: string,
+  isActive: boolean,
+  familyId?: string
+): Promise<ActionResult> {
   const auth = await assertAdmin()
   if (!auth.ok) return auth
-  if (!parentId) return { ok: false, error: 'Missing family id' }
+  if (!parentId) return { ok: false, error: 'Missing parent id' }
 
   const supabase = createAdminSupabase()
-  const { error } = await supabase.from('profiles').update({ is_active: isActive }).eq('id', parentId)
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ is_active: isActive })
+    .eq('id', parentId)
+    .eq('role', 'parent')
+    .select('id')
+    .maybeSingle()
+
   if (error) return { ok: false, error: error.message }
+  if (!data) return { ok: false, error: 'Parent account not found.' }
 
   revalidatePath('/admin/families')
-  revalidatePath(`/admin/families/${parentId}`)
+  revalidatePath(`/admin/families/${familyId ?? parentId}`)
+  if (familyId && familyId !== parentId) revalidatePath(`/admin/families/${parentId}`)
   return { ok: true }
 }
