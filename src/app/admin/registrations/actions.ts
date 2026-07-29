@@ -36,6 +36,31 @@ export async function setDocumentVerified(values: z.input<typeof documentSchema>
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid document.' }
 
   const admin = createAdminSupabase()
+  const { data: document, error: documentError } = await admin
+    .from('athlete_documents')
+    .select('id, doc_type')
+    .eq('id', parsed.data.documentId)
+    .maybeSingle()
+
+  if (documentError) return { ok: false, error: documentError.message }
+  if (!document || document.doc_type !== 'usa_wrestling_card') {
+    return { ok: false, error: 'USA Wrestling card not found.' }
+  }
+
+  if (!parsed.data.verified) {
+    const { data: approvedEnrollment } = await admin
+      .from('season_enrollments')
+      .select('id')
+      .eq('usa_card_document_id', parsed.data.documentId)
+      .eq('status', 'approved')
+      .limit(1)
+      .maybeSingle()
+
+    if (approvedEnrollment) {
+      return { ok: false, error: 'This card belongs to an approved registration and can no longer be unverified.' }
+    }
+  }
+
   const { data, error } = await admin
     .from('athlete_documents')
     .update({
@@ -44,6 +69,7 @@ export async function setDocumentVerified(values: z.input<typeof documentSchema>
       verified_at: parsed.data.verified ? new Date().toISOString() : null,
     })
     .eq('id', parsed.data.documentId)
+    .eq('doc_type', 'usa_wrestling_card')
     .select('id')
     .maybeSingle()
 
