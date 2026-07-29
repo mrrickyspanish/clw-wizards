@@ -134,6 +134,7 @@ export default async function RegistrationPage({
 
   const enrollments = (enrollmentData ?? []) as SeasonEnrollment[]
   const enrollmentByAthlete = new Map(enrollments.map((enrollment) => [enrollment.athlete_id, enrollment]))
+  const documentById = new Map(((documentData ?? []) as AthleteDocument[]).map((document) => [document.id, document]))
 
   const latestCardByAthlete = new Map<string, AthleteDocument>()
   for (const document of (documentData ?? []) as AthleteDocument[]) {
@@ -222,12 +223,22 @@ export default async function RegistrationPage({
         <div className="space-y-4">
           {athletes.map((athlete) => {
             const enrollment = enrollmentByAthlete.get(athlete.id)
-            const card = latestCardByAthlete.get(athlete.id)
+            const latestCard = latestCardByAthlete.get(athlete.id)
+            const boundCard = enrollment?.usa_card_document_id
+              ? documentById.get(enrollment.usa_card_document_id)
+              : undefined
+            const card =
+              enrollment?.status === 'submitted' || enrollment?.status === 'approved'
+                ? boundCard ?? latestCard
+                : latestCard
+            const canEditCard =
+              isOpen &&
+              (!enrollment || enrollment.status === 'changes_requested' || enrollment.status === 'withdrawn')
             const dues = enrollment?.dues_payment_id ? duesById.get(enrollment.dues_payment_id) : undefined
             const paid =
               season.dues_amount_cents === 0 || dues?.status === 'paid' || dues?.status === 'waived'
             const remaining = dues ? Math.max(0, dues.amount_cents - dues.amount_paid_cents) : season.dues_amount_cents
-            const canSubmit = isOpen && (!season.require_usa_card || Boolean(card))
+            const canSubmit = isOpen && (!season.require_usa_card || Boolean(latestCard))
             const resubmitting = enrollment?.status === 'changes_requested' || enrollment?.status === 'withdrawn'
 
             return (
@@ -271,15 +282,17 @@ export default async function RegistrationPage({
                                   ? 'Current-season upload required'
                                   : card.verified
                                     ? 'Verified by the club for this season'
-                                    : 'Uploaded for this season, awaiting review'}
+                                    : enrollment?.status === 'submitted'
+                                      ? 'Submitted with this registration, awaiting review'
+                                      : 'Uploaded for this season, awaiting review'}
                           </p>
                         </div>
-                        {season.require_usa_card && isOpen && enrollment?.status !== 'approved' && (
+                        {season.require_usa_card && canEditCard && (
                           <DocumentControls
                             userId={userId}
                             athleteId={athlete.id}
                             docType="usa_wrestling_card"
-                            existingPath={card?.file_url ?? null}
+                            existingPath={latestCard?.file_url ?? null}
                           />
                         )}
                       </div>
@@ -320,7 +333,7 @@ export default async function RegistrationPage({
                       <div>
                         <p className="font-medium text-blue-200">Submitted for club review</p>
                         <p className="mt-1 text-sm text-blue-100/70">
-                          The club will verify the current wrestling card and payment before final approval.
+                          The submitted card is locked while the club reviews it. Payment can still be completed above.
                         </p>
                       </div>
                     </div>
@@ -331,7 +344,7 @@ export default async function RegistrationPage({
                           ? isUpcoming
                             ? `Registration opens ${formatDate(season.registration_open_date)}.`
                             : 'Registration is closed.'
-                          : season.require_usa_card && !card
+                          : season.require_usa_card && !latestCard
                             ? 'Upload the current-season wrestling card before submitting.'
                             : 'Submit this wrestler for the current season. You will pay dues after the registration is created.'}
                       </p>
