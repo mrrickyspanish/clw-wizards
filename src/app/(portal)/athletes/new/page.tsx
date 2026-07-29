@@ -8,6 +8,15 @@ function safeRedirect(value: string | undefined) {
   return value && value.startsWith('/') && !value.startsWith('//') ? value : null
 }
 
+function refererPath(value: string | null) {
+  if (!value) return null
+  try {
+    return new URL(value).pathname
+  } catch {
+    return null
+  }
+}
+
 export default async function NewAthletePage({
   searchParams,
 }: {
@@ -15,8 +24,7 @@ export default async function NewAthletePage({
 }) {
   const { redirectTo } = await searchParams
   const requestHeaders = await headers()
-  const referer = requestHeaders.get('referer')
-  const cameFromRegistration = Boolean(referer && new URL(referer).pathname === '/registration')
+  const cameFromRegistration = refererPath(requestHeaders.get('referer')) === '/registration'
   const destination = safeRedirect(redirectTo) ?? (cameFromRegistration ? '/registration' : '/athletes')
 
   return (
