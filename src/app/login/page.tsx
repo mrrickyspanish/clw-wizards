@@ -15,6 +15,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AuthBrand } from '@/components/layout/AuthBrand'
 import { ORG } from '@/config/org.config'
 
+function safeRedirect(value: string | null) {
+  return value && value.startsWith('/') && !value.startsWith('//') ? value : null
+}
+
 export default function LoginPage() {
   return (
     <Suspense>
@@ -31,6 +35,8 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const turnstile = useTurnstile()
+  const redirectTo = safeRedirect(searchParams.get('redirectTo'))
+  const signupHref = redirectTo ? `/signup?redirectTo=${encodeURIComponent(redirectTo)}` : '/signup'
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -57,7 +63,6 @@ function LoginForm() {
       return
     }
 
-    const redirectTo = searchParams.get('redirectTo')
     if (redirectTo) {
       router.push(redirectTo)
       return
@@ -86,6 +91,13 @@ function LoginForm() {
               <Alert className="border-clw-gold/40 bg-clw-gold/10">
                 <AlertDescription className="text-clw-gold-ink">
                   Admin account created. Sign in to open your dashboard.
+                </AlertDescription>
+              </Alert>
+            )}
+            {redirectTo === '/registration' && !error && (
+              <Alert className="border-clw-gold/30 bg-clw-gold/5">
+                <AlertDescription className="text-clw-gray">
+                  Sign in to continue to season registration.
                 </AlertDescription>
               </Alert>
             )}
@@ -128,7 +140,7 @@ function LoginForm() {
               <Link href="/forgot-password" className="hover:underline">
                 Forgot password?
               </Link>
-              <Link href="/signup" className="hover:underline">
+              <Link href={signupHref} className="hover:underline">
                 Create account
               </Link>
             </div>
