@@ -19,6 +19,7 @@ const KIND_LABELS: Record<HomeEventItem['kind'], string> = {
   parent_night: 'Parent Night',
   fundraiser: 'Fundraiser',
   meeting: 'Meeting',
+  season_registration: 'Season Registration',
   event: 'Club Event',
   other: 'Club Event',
 }
