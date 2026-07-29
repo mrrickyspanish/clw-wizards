@@ -49,6 +49,7 @@ export default async function AdminRegistrationsPage() {
   const athleteIds = [...new Set(enrollments.map((row) => row.athlete_id))]
   const parentIds = [...new Set(enrollments.map((row) => row.parent_id))]
   const duesIds = [...new Set(enrollments.map((row) => row.dues_payment_id).filter(Boolean))] as string[]
+  const documentIds = [...new Set(enrollments.map((row) => row.usa_card_document_id).filter(Boolean))] as string[]
 
   const [{ data: seasonData }, { data: athleteData }, { data: parentData }, { data: duesData }, { data: documentData }] =
     await Promise.all([
@@ -64,13 +65,8 @@ export default async function AdminRegistrationsPage() {
       duesIds.length
         ? supabase.from('dues_payments').select('*').in('id', duesIds)
         : Promise.resolve({ data: [] as DuesPayment[] }),
-      athleteIds.length
-        ? supabase
-            .from('athlete_documents')
-            .select('*')
-            .in('athlete_id', athleteIds)
-            .eq('doc_type', 'usa_wrestling_card')
-            .order('uploaded_at', { ascending: false })
+      documentIds.length
+        ? supabase.from('athlete_documents').select('*').in('id', documentIds)
         : Promise.resolve({ data: [] as AthleteDocument[] }),
     ])
 
@@ -85,11 +81,7 @@ export default async function AdminRegistrationsPage() {
   const athleteById = new Map(((athleteData ?? []) as Athlete[]).map((athlete) => [athlete.id, athlete]))
   const parentById = new Map(((parentData ?? []) as Profile[]).map((parent) => [parent.id, parent]))
   const duesById = new Map(((duesData ?? []) as DuesPayment[]).map((dues) => [dues.id, dues]))
-
-  const latestCardByAthlete = new Map<string, AthleteDocument>()
-  for (const document of (documentData ?? []) as AthleteDocument[]) {
-    if (!latestCardByAthlete.has(document.athlete_id)) latestCardByAthlete.set(document.athlete_id, document)
-  }
+  const documentById = new Map(((documentData ?? []) as AthleteDocument[]).map((document) => [document.id, document]))
 
   const submittedCount = enrollments.filter((row) => row.status === 'submitted').length
   const attentionCount = enrollments.filter((row) => row.status === 'changes_requested').length
@@ -97,11 +89,16 @@ export default async function AdminRegistrationsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-display text-clw-gold">Season Registrations</h1>
-        <p className="text-sm text-clw-gray">
-          Verify wrestling cards, confirm payment, and clear wrestlers for the active season.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-display text-clw-gold">Season Registrations</h1>
+          <p className="text-sm text-clw-gray">
+            Verify the card submitted for this season, confirm payment, and clear wrestlers to participate.
+          </p>
+        </div>
+        <Link href="/admin/communications" className="text-sm text-clw-gold hover:text-clw-gold-l">
+          Send registration reminder
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -162,7 +159,9 @@ export default async function AdminRegistrationsPage() {
           const athlete = athleteById.get(enrollment.athlete_id)
           const parent = parentById.get(enrollment.parent_id)
           const dues = enrollment.dues_payment_id ? duesById.get(enrollment.dues_payment_id) : undefined
-          const card = latestCardByAthlete.get(enrollment.athlete_id)
+          const card = enrollment.usa_card_document_id
+            ? documentById.get(enrollment.usa_card_document_id)
+            : undefined
           const documentReady = !season?.require_usa_card || Boolean(card?.verified)
           const paymentReady =
             !season || season.dues_amount_cents === 0 || dues?.status === 'paid' || dues?.status === 'waived'
@@ -196,7 +195,7 @@ export default async function AdminRegistrationsPage() {
                       {!season?.require_usa_card
                         ? 'Not required'
                         : !card
-                          ? 'Missing'
+                          ? 'Current-season card missing'
                           : card.verified
                             ? `Verified · ${card.file_name}`
                             : `Awaiting verification · ${card.file_name}`}
@@ -227,8 +226,8 @@ export default async function AdminRegistrationsPage() {
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-clw-gold/10 pt-4">
                   <p className="text-xs text-clw-gray">
                     {approvalReady
-                      ? 'Documentation and payment are ready for approval.'
-                      : `${documentReady ? '' : 'Verify the wrestling card. '}${paymentReady ? '' : 'Payment is still outstanding.'}`}
+                      ? 'Current-season documentation and payment are ready for approval.'
+                      : `${documentReady ? '' : 'Verify the submitted wrestling card. '}${paymentReady ? '' : 'Payment is still outstanding.'}`}
                   </p>
                   <ReviewControls
                     enrollmentId={enrollment.id}
