@@ -8,7 +8,7 @@ import { PartnersWall } from '@/components/sponsorship/PartnersShowcase'
 
 export const metadata: Metadata = {
   title: 'Partners',
-  description: 'Meet the businesses and community partners who support Wizards Wrestling Club.',
+  description: 'Meet the sponsors and community partners who support Wizards Wrestling Club.',
   alternates: { canonical: '/partners' },
 }
 

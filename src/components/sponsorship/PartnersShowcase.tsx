@@ -19,7 +19,7 @@ const TIER_DETAILS: Record<
   platinum: {
     eyebrow: 'Premier Partners',
     title: 'Platinum Partners',
-    description: 'The businesses making the largest investment in the room, the wrestlers, and the future of Wizards Wrestling.',
+    description: 'The sponsors making the largest investment in the room, the wrestlers, and the future of Wizards Wrestling.',
     dark: true,
     cardSize: 'platinum',
     gridClass: 'grid-cols-1 lg:grid-cols-2',

@@ -43,7 +43,7 @@ const SEARCH_ITEMS = [
   },
   {
     title: 'Partners',
-    description: 'Meet the businesses and community partners who back Wizards Wrestling.',
+    description: 'Meet the sponsors and community partners who back Wizards Wrestling.',
     href: '/partners',
     keywords: ['partners', 'sponsors', 'businesses', 'community', 'platinum', 'supporters'],
   },
