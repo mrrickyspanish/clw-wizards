@@ -53,7 +53,7 @@ export default async function PartnersPage() {
               These partners invest in the room, the athletes, and the opportunities that help Wizards wrestlers keep growing long after the final whistle.
             </p>
             <Link
-              href="/sponsorship#sponsors"
+              href="/sponsorship/sponsor"
               className="chamfer-sm mt-9 inline-flex h-14 items-center gap-3 bg-clw-gold px-7 font-cond text-base font-bold uppercase tracking-[0.14em] text-clw-black transition hover:bg-clw-gold-l"
             >
               Become a partner <ArrowRight className="h-4 w-4" />
@@ -86,7 +86,7 @@ export default async function PartnersPage() {
             </h2>
           </div>
           <Link
-            href="/sponsorship#sponsors"
+            href="/sponsorship/sponsor"
             className="chamfer-sm inline-flex h-16 items-center justify-center gap-3 border-2 border-clw-black bg-clw-black px-8 font-cond text-lg font-bold uppercase tracking-[0.14em] text-clw-gold transition hover:bg-transparent hover:text-clw-black"
           >
             View sponsorship levels <ArrowRight className="h-5 w-5" />

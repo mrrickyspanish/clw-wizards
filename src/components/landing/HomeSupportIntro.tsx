@@ -12,28 +12,28 @@ const SUPPORT_OPTIONS = [
   {
     title: 'Donate',
     body: 'Help cover equipment, tournament costs, scholarships, and the day-to-day needs that keep the room strong.',
-    href: '/sponsorship#donate',
+    href: '/sponsorship/donate',
     cta: 'Donate today',
     Icon: CircleDollarSign,
   },
   {
     title: 'Sponsor',
-    body: 'Back McHenry County wrestlers and put your business in front of the whole club community — families, alumni, and fans.',
-    href: '/sponsorship#sponsors',
+    body: 'Back McHenry County wrestlers and put your business in front of the club community, including families, alumni, and fans.',
+    href: '/sponsorship/sponsor',
     cta: 'See sponsor options',
     Icon: HeartHandshake,
   },
   {
     title: 'Boosters',
     body: 'Join the families, alumni, and supporters who help fund steady growth throughout the season.',
-    href: '/sponsorship#boosters',
+    href: '/sponsorship/boosters',
     cta: 'Join the boosters',
     Icon: HandHeart,
   },
   {
     title: 'Volunteer',
-    body: 'Commit to coaching (certification required) or lend a hand game-day — tournaments, fundraising, setup, and the details that keep the room running.',
-    href: '/sponsorship#volunteer',
+    body: 'Commit to coaching, certification required, or lend a hand with tournaments, fundraising, setup, and the details that keep the room running.',
+    href: '/sponsorship/volunteer',
     cta: 'Get involved',
     Icon: Users,
   },
@@ -106,7 +106,7 @@ export function HomeSupportIntro() {
 
         <div className="mt-5 flex justify-start border-t border-clw-gold/25 pt-5 sm:mt-6 sm:pt-6 lg:justify-center 2xl:mt-8 2xl:pt-7">
           <Link href="/sponsorship" className="font-cond text-lg uppercase tracking-[0.16em] text-clw-gold underline-offset-4 hover:text-clw-gold-l hover:underline sm:text-xl sm:tracking-[0.18em]">
-            View sponsorship page →
+            See where support goes →
           </Link>
         </div>
       </div>

@@ -11,6 +11,7 @@ interface DonationCheckoutFormProps {
   defaultAmount: number
   buttonLabel: string
   light?: boolean
+  returnPath?: string
 }
 
 export function DonationCheckoutForm({
@@ -19,6 +20,7 @@ export function DonationCheckoutForm({
   defaultAmount,
   buttonLabel,
   light = false,
+  returnPath = '/sponsorship',
 }: DonationCheckoutFormProps) {
   const [amount, setAmount] = useState(defaultAmount)
   const [custom, setCustom] = useState('')
@@ -46,7 +48,7 @@ export function DonationCheckoutForm({
           flow: 'donation',
           amountCents: Math.round(effectiveAmount * 100),
           recurring,
-          returnPath: '/sponsorship',
+          returnPath,
         }),
       })
       const data = await response.json()
