@@ -25,12 +25,12 @@ export function ProgramStructure() {
             </span>
           </h2>
 
-          <div className="mt-5 max-w-3xl space-y-5 text-xl leading-relaxed text-clw-gray sm:text-2xl sm:leading-relaxed lg:mx-auto lg:grid lg:max-w-5xl lg:grid-cols-2 lg:gap-8 lg:space-y-0 lg:text-lg lg:leading-[1.65]">
+          <div className="mt-5 max-w-3xl space-y-5 text-xl leading-relaxed text-clw-gray sm:text-2xl sm:leading-relaxed lg:mx-auto lg:grid lg:max-w-5xl lg:grid-cols-2 lg:gap-10 lg:space-y-0 lg:text-lg lg:leading-[1.65]">
             <p>
-              Located in Crystal Lake, Illinois, Wizards Wrestling Club helps young wrestlers grow through structured practice groups, focused coaching, and regular competition opportunities. Wrestlers train with athletes at a similar stage so they can build the right skills, confidence, and discipline at the right pace.
+              Located in Crystal Lake, Illinois, Wizards Wrestling Club helps young wrestlers grow through structured practice groups, focused coaching, and consistent development at the right pace. Athletes train alongside wrestlers at a similar stage so every session builds the right skills and habits.
             </p>
             <p>
-              Throughout the season, practices prepare our athletes for tournament weekends, team goals, and the next step in their wrestling journey.
+              Throughout the season, practices prepare athletes for tournament weekends, team goals, and the next step in their wrestling journey. Along the way, wrestlers build confidence, discipline, competitive readiness, and the resilience to keep progressing.
             </p>
           </div>
 
