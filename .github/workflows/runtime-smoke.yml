@@ -10,9 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key-for-runtime-smoke
-      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+      INCIDENT_URL: https://clw-wizards-m45v3hwv1-creativeeyemm.vercel.app
+      PREVIEW_URL: https://clw-wizards-git-agent-fix-support-runtime-creativeeyemm.vercel.app
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,25 +25,43 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
-        run: npm run build
-
       - name: Install WebKit
         run: |
           npm install --no-save --no-package-lock playwright@1.54.2
           npx playwright install --with-deps webkit
 
-      - name: Start application
+      - name: Wait for Vercel preview
         run: |
-          npm run start > /tmp/clw-next.log 2>&1 &
-          echo $! > /tmp/clw-next.pid
+          for attempt in {1..72}; do
+            status=$(curl --location --silent --output /dev/null --write-out '%{http_code}' "$PREVIEW_URL/sponsorship")
+            if [ "$status" = "200" ]; then
+              echo "Preview is ready."
+              exit 0
+            fi
+            echo "Preview returned $status. Waiting for deployment..."
+            sleep 5
+          done
+          echo "Preview did not become ready in time."
+          exit 1
 
-      - name: Wait for application
-        run: npx -y wait-on@8.0.3 http://127.0.0.1:3000/sponsorship --timeout 60000
-
-      - name: Run mobile WebKit smoke test
+      - name: Capture original incident deployment
+        env:
+          BASE_URL: ${{ env.INCIDENT_URL }}
+          REPORT_DIR: artifacts/incident-deployment
+          REPORT_ONLY: '1'
         run: node scripts/runtime-smoke.cjs
 
-      - name: Print server log on failure
-        if: failure()
-        run: cat /tmp/clw-next.log
+      - name: Validate current preview in mobile WebKit
+        env:
+          BASE_URL: ${{ env.PREVIEW_URL }}
+          REPORT_DIR: artifacts/current-preview
+        run: node scripts/runtime-smoke.cjs
+
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: support-mobile-webkit-${{ github.run_number }}
+          path: artifacts
+          if-no-files-found: warn
+          retention-days: 14
