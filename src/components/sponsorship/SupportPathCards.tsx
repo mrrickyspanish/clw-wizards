@@ -5,6 +5,7 @@ import { SupportMedia } from './SupportMedia'
 
 const SUPPORT_PATHS = [
   {
+    anchor: 'donate',
     title: 'One-Time Donation',
     description: 'Make a direct gift toward equipment, competition, athlete access, and the needs that keep the room moving.',
     cta: 'Explore one-time giving',
@@ -15,6 +16,7 @@ const SUPPORT_PATHS = [
     Icon: CircleDollarSign,
   },
   {
+    anchor: 'boosters',
     title: 'Monthly Boosters',
     description: 'Create dependable month-to-month support for steady program growth, scholarships, and wrestler development.',
     cta: 'Join the boosters',
@@ -25,6 +27,7 @@ const SUPPORT_PATHS = [
     Icon: HandHeart,
   },
   {
+    anchor: 'sponsors',
     title: 'Corporate Sponsorship',
     description: 'Put your business behind local wrestlers while earning meaningful recognition across the Wizards community.',
     cta: 'Review sponsor options',
@@ -35,6 +38,7 @@ const SUPPORT_PATHS = [
     Icon: HeartHandshake,
   },
   {
+    anchor: 'volunteer',
     title: 'Volunteer With Us',
     description: 'Help with coaching, tournaments, events, fundraising, communications, and the work that keeps the club strong.',
     cta: 'Find a way to help',
@@ -48,7 +52,7 @@ const SUPPORT_PATHS = [
 
 export function SupportPathCards() {
   return (
-    <section className="bg-clw-black px-5 py-12 text-clw-white sm:px-8 sm:py-16 lg:px-12 lg:py-20 xl:px-16 2xl:px-20">
+    <section id="options" className="scroll-mt-32 bg-clw-black px-5 py-12 text-clw-white sm:px-8 sm:py-16 lg:px-12 lg:py-20 xl:px-16 2xl:px-20">
       <div className="mx-auto max-w-7xl">
         <div className="mx-auto max-w-4xl text-center">
           <p className="font-cond text-sm font-semibold uppercase tracking-[0.3em] text-clw-gold">Choose Your Path</p>
@@ -59,11 +63,12 @@ export function SupportPathCards() {
         </div>
 
         <div className="mt-9 grid grid-cols-2 gap-3 sm:mt-12 sm:gap-5 lg:grid-cols-4">
-          {SUPPORT_PATHS.map(({ title, description, cta, href, imageSrc, imageAlt, imagePosition, Icon }) => (
+          {SUPPORT_PATHS.map(({ anchor, title, description, cta, href, imageSrc, imageAlt, imagePosition, Icon }) => (
             <Link
+              id={anchor}
               key={title}
               href={href}
-              className="group flex min-h-[250px] flex-col overflow-hidden border border-clw-gold/30 bg-clw-black-2 transition duration-300 hover:-translate-y-1 hover:border-clw-gold sm:min-h-[330px]"
+              className="group scroll-mt-32 flex min-h-[250px] flex-col overflow-hidden border border-clw-gold/30 bg-clw-black-2 transition duration-300 hover:-translate-y-1 hover:border-clw-gold sm:min-h-[330px]"
             >
               <div className="relative min-h-[125px] flex-1 overflow-hidden sm:min-h-[175px]">
                 <SupportMedia src={imageSrc} alt={imageAlt} position={imagePosition} className="absolute inset-0" dim="bg-clw-black/30" />
