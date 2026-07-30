@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, ArrowUpRight, MapPin, Search, X } from 'lucide-react'
 
@@ -18,7 +19,7 @@ const NAV_LINKS = [
 
 const MOBILE_NAV_LINKS = [...NAV_LINKS, { href: '/join', label: 'Join the Wizards' }]
 const DESKTOP_LEFT_LINKS = NAV_LINKS.slice(0, 3)
-const DESKTOP_RIGHT_LINKS = NAV_LINKS.slice(3)
+const DESKTOP_RIGHT_LINKS = [...NAV_LINKS.slice(3), { href: '/join', label: 'Join' }]
 
 const SEARCH_ITEMS = [
   {
@@ -78,6 +79,7 @@ const SEARCH_ITEMS = [
 ]
 
 export function SiteHeader() {
+  const pathname = usePathname()
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -96,19 +98,21 @@ export function SiteHeader() {
   }, [])
 
   useEffect(() => {
-    if (!searchOpen) return
-
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setSearchOpen(false)
     }
 
     window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  useEffect(() => {
+    if (!searchOpen) return
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     return () => {
       document.body.style.overflow = previousOverflow
-      window.removeEventListener('keydown', handleKeyDown)
     }
   }, [searchOpen])
 
@@ -125,6 +129,32 @@ export function SiteHeader() {
     setSearchOpen(true)
   }
 
+  function isActive(href: string) {
+    return pathname === href || pathname.startsWith(`${href}/`)
+  }
+
+  function DesktopLink({ href, label }: { href: string; label: string }) {
+    const active = isActive(href)
+
+    return (
+      <Link
+        href={href}
+        aria-current={active ? 'page' : undefined}
+        className={`group relative flex items-center whitespace-nowrap font-cond text-[1rem] font-bold uppercase tracking-[0.11em] transition-colors xl:text-[1.08rem] xl:tracking-[0.12em] 2xl:text-[1.12rem] ${
+          active ? 'text-clw-gold' : 'text-clw-white/90 hover:text-clw-white'
+        }`}
+      >
+        {label}
+        <span
+          aria-hidden
+          className={`absolute inset-x-0 bottom-0 h-[3px] origin-center bg-clw-gold transition-transform duration-200 ${
+            active ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+          }`}
+        />
+      </Link>
+    )
+  }
+
   return (
     <>
       <div ref={sentinelRef} aria-hidden className="pointer-events-none absolute left-0 top-0 h-24 w-px" />
@@ -133,26 +163,26 @@ export function SiteHeader() {
           scrolled ? 'border-b border-clw-gold/15 bg-clw-black/90 backdrop-blur-md' : 'bg-clw-black/55 backdrop-blur-sm'
         }`}
       >
-        <div className="border-b border-clw-white/10 bg-clw-black/75 px-5 py-1.5 sm:px-8 lg:px-12 xl:px-16 2xl:px-20">
-          <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4">
+        <div className="border-b border-clw-white/10 bg-clw-black/85 px-5 py-1.5 sm:px-8 min-[1180px]:px-10 min-[1180px]:py-0 xl:px-12 2xl:px-16">
+          <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 min-[1180px]:min-h-[42px]">
             <Link
               href="/#location"
-              className="flex min-w-0 items-center gap-1.5 whitespace-nowrap font-cond text-[0.68rem] uppercase tracking-[0.13em] text-clw-white/75 transition-colors hover:text-clw-gold sm:text-xs"
+              className="flex min-w-0 items-center gap-1.5 whitespace-nowrap font-cond text-[0.68rem] uppercase tracking-[0.13em] text-clw-white/75 transition-colors hover:text-clw-gold sm:text-xs min-[1180px]:gap-2.5 min-[1180px]:text-[0.76rem] min-[1180px]:tracking-[0.15em]"
             >
-              <MapPin className="h-3.5 w-3.5 shrink-0 text-clw-gold" />
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-clw-gold min-[1180px]:h-4 min-[1180px]:w-4" />
               <span className="font-semibold text-clw-white/90">Wizards Facility</span>
               <span className="hidden text-clw-white/55 sm:inline">975 Nimco Dr, Unit L, Crystal Lake, IL</span>
             </Link>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-[1180px]:gap-2.5">
               <button
                 type="button"
                 onClick={openSearch}
-                className="flex h-7 w-28 items-center justify-between border-b border-clw-white/25 px-1 text-xs text-clw-white/55 transition-colors hover:border-clw-gold hover:text-clw-white sm:w-36 lg:w-44"
+                className="flex h-7 w-28 items-center justify-between border-b border-clw-white/25 px-1 text-xs text-clw-white/55 transition-colors hover:border-clw-gold hover:text-clw-white sm:w-36 min-[1180px]:h-8 min-[1180px]:w-44 min-[1180px]:border min-[1180px]:border-clw-white/15 min-[1180px]:bg-clw-white/[0.03] min-[1180px]:px-3 min-[1180px]:font-cond min-[1180px]:text-[0.72rem] min-[1180px]:uppercase min-[1180px]:tracking-[0.12em] xl:w-48"
                 aria-label="Open site search"
               >
                 <span>Search</span>
-                <Search className="h-3.5 w-3.5" />
+                <Search className="h-3.5 w-3.5 min-[1180px]:h-4 min-[1180px]:w-4" />
               </button>
 
               {ORG.social.facebook && (
@@ -161,9 +191,9 @@ export function SiteHeader() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Wizards Wrestling on Facebook"
-                  className="flex h-6 w-6 items-center justify-center rounded-full border border-clw-white/25 text-clw-white/80 transition-colors hover:border-clw-gold hover:text-clw-gold"
+                  className="flex h-6 w-6 items-center justify-center rounded-full border border-clw-white/25 text-clw-white/80 transition-colors hover:border-clw-gold hover:text-clw-gold min-[1180px]:h-8 min-[1180px]:w-8"
                 >
-                  <svg viewBox="0 0 24 24" aria-hidden className="h-3.5 w-3.5 fill-current">
+                  <svg viewBox="0 0 24 24" aria-hidden className="h-3.5 w-3.5 fill-current min-[1180px]:h-4 min-[1180px]:w-4">
                     <path d="M13.7 21v-8h2.7l.4-3h-3.1V8.1c0-.9.2-1.5 1.6-1.5H17V3.9c-.3 0-1.3-.1-2.4-.1-2.4 0-4 1.4-4 4.1V10H8v3h2.6v8h3.1Z" />
                   </svg>
                 </a>
@@ -172,8 +202,8 @@ export function SiteHeader() {
           </div>
         </div>
 
-        <div className="bg-clw-black px-5 py-3 sm:px-8 sm:py-3.5 lg:min-h-[78px] lg:px-12 lg:py-4 xl:px-16 2xl:px-20">
-          <div className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-3 lg:hidden">
+        <div className="bg-clw-black px-5 py-3 sm:px-8 sm:py-3.5 min-[1180px]:px-0 min-[1180px]:py-0">
+          <div className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-3 min-[1180px]:hidden">
             <button
               type="button"
               className="flex flex-col justify-self-start gap-1.5 text-clw-white"
@@ -207,55 +237,47 @@ export function SiteHeader() {
             </Link>
           </div>
 
-          <div className="hidden grid-cols-[1fr_auto_1fr] items-center lg:grid">
-            <nav className="flex items-center justify-self-end gap-5 pr-5 xl:gap-7 xl:pr-7">
+          <div className="relative mx-auto hidden h-[86px] max-w-[1600px] min-[1180px]:block xl:h-[88px]">
+            <nav
+              className="absolute inset-y-0 right-[calc(50%+54px)] flex items-stretch gap-7 xl:right-[calc(50%+58px)] xl:gap-9 2xl:gap-11"
+              aria-label="Primary navigation left"
+            >
               {DESKTOP_LEFT_LINKS.map((link) => (
-                <Link
-                  key={link.label}
-                  href={link.href}
-                  className="whitespace-nowrap text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-clw-white/85 transition-colors hover:text-clw-gold xl:text-[0.78rem]"
-                >
-                  {link.label}
-                </Link>
+                <DesktopLink key={link.label} {...link} />
               ))}
             </nav>
 
             <Link
               href="/"
-              className="justify-self-center whitespace-nowrap font-cond text-2xl font-semibold uppercase tracking-[0.04em] text-clw-gold xl:text-[1.65rem]"
+              aria-label="Wizards Wrestling home"
+              className="group absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center bg-clw-black"
             >
-              Wizards Wrestling
+              <span className="relative flex h-[66px] w-[66px] items-center justify-center rounded-full border-[3px] border-clw-gold text-clw-gold transition-transform duration-200 group-hover:scale-105 xl:h-[70px] xl:w-[70px]">
+                <span className="absolute -top-[9px] bg-clw-black px-1.5 text-[0.68rem] leading-none">★</span>
+                <span className="pr-1 font-display text-[2.95rem] font-black leading-none tracking-[-0.13em] xl:text-[3.15rem]">W</span>
+              </span>
             </Link>
 
-            <div className="grid min-w-0 grid-cols-[auto_auto_auto_1fr] items-center gap-x-4 pl-5 xl:gap-x-6 xl:pl-7">
-              {DESKTOP_RIGHT_LINKS.map((link) => (
-                <Link
-                  key={link.label}
-                  href={link.href}
-                  className="whitespace-nowrap text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-clw-white/85 transition-colors hover:text-clw-gold xl:text-[0.78rem]"
-                >
-                  {link.label}
-                </Link>
-              ))}
+            <div className="absolute inset-y-0 left-[calc(50%+54px)] right-6 flex items-center xl:left-[calc(50%+58px)] xl:right-8 2xl:right-10">
+              <nav className="flex h-full items-stretch gap-7 xl:gap-9 2xl:gap-11" aria-label="Primary navigation right">
+                {DESKTOP_RIGHT_LINKS.map((link) => (
+                  <DesktopLink key={link.label} {...link} />
+                ))}
+              </nav>
+
               <Link
-                href="/join"
-                className="whitespace-nowrap text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-clw-white/85 transition-colors hover:text-clw-gold xl:text-[0.78rem]"
+                href="/login"
+                className="chamfer-sm ml-auto flex h-[46px] items-center justify-center gap-1.5 bg-clw-gold px-4 font-cond text-[0.7rem] font-bold uppercase tracking-[0.09em] text-clw-black transition-colors hover:bg-clw-gold-l xl:h-12 xl:px-5 xl:text-[0.76rem]"
               >
-                Join the Wizards
+                Parent / Staff Login
+                <ArrowUpRight className="h-3.5 w-3.5" />
               </Link>
-              <Button
-                asChild
-                size="sm"
-                className="chamfer-sm h-9 justify-self-end rounded-none bg-clw-gold px-3 text-[0.65rem] font-bold uppercase tracking-[0.07em] text-clw-black hover:bg-clw-gold-l xl:px-5 xl:text-[0.72rem]"
-              >
-                <Link href="/login">Parent / Staff Login</Link>
-              </Button>
             </div>
           </div>
         </div>
 
         <div
-          className={`grid overflow-hidden transition-[grid-template-rows] duration-300 ease-out lg:hidden ${
+          className={`grid overflow-hidden transition-[grid-template-rows] duration-300 ease-out min-[1180px]:hidden ${
             open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
           }`}
         >

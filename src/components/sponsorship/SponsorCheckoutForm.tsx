@@ -68,37 +68,41 @@ export function SponsorCheckoutForm({ tiers }: { tiers: SponsorTierRow[] }) {
     }
   }
 
+  const inputClassName =
+    'h-14 rounded-none border-clw-ink/25 bg-white px-4 text-clw-ink placeholder:text-clw-muted-dark/65 focus-visible:ring-clw-gold focus-visible:ring-offset-[#F7F7F7]'
+  const labelClassName = 'font-cond text-sm font-semibold uppercase tracking-[0.16em] text-clw-ink/75'
+
   return (
-    <form onSubmit={handleSubmit} className="mt-10 space-y-5 border border-clw-black/15 bg-[#F7F7F7] p-6 sm:p-8">
+    <form onSubmit={handleSubmit} className="mt-10 space-y-6 border border-clw-ink/15 bg-[#F7F7F7] p-6 text-clw-ink sm:p-8">
       <div className="grid gap-5 sm:grid-cols-2">
-        <label className="space-y-2">
-          <span className="text-sm font-semibold uppercase tracking-wide text-clw-black/70">Business name</span>
-          <Input name="sponsorName" required className="border-clw-black/25 bg-clw-white text-clw-black" />
+        <label className="space-y-2.5">
+          <span className={labelClassName}>Business name</span>
+          <Input name="sponsorName" required className={inputClassName} />
         </label>
-        <label className="space-y-2">
-          <span className="text-sm font-semibold uppercase tracking-wide text-clw-black/70">Contact name</span>
-          <Input name="contactName" required className="border-clw-black/25 bg-clw-white text-clw-black" />
+        <label className="space-y-2.5">
+          <span className={labelClassName}>Contact name</span>
+          <Input name="contactName" required className={inputClassName} />
         </label>
-        <label className="space-y-2">
-          <span className="text-sm font-semibold uppercase tracking-wide text-clw-black/70">Email</span>
-          <Input name="contactEmail" type="email" required className="border-clw-black/25 bg-clw-white text-clw-black" />
+        <label className="space-y-2.5">
+          <span className={labelClassName}>Email</span>
+          <Input name="contactEmail" type="email" required className={inputClassName} />
         </label>
-        <label className="space-y-2">
-          <span className="text-sm font-semibold uppercase tracking-wide text-clw-black/70">Website</span>
-          <Input name="websiteUrl" type="url" placeholder="https://" className="border-clw-black/25 bg-clw-white text-clw-black" />
+        <label className="space-y-2.5">
+          <span className={labelClassName}>Website</span>
+          <Input name="websiteUrl" type="url" placeholder="https://" className={inputClassName} />
         </label>
       </div>
 
       <fieldset>
-        <legend className="text-sm font-semibold uppercase tracking-wide text-clw-black/70">Sponsorship level</legend>
+        <legend className={labelClassName}>Sponsorship level</legend>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {levels.map((level) => (
             <label
               key={level.value}
-              className={`cursor-pointer border p-4 transition ${
+              className={`cursor-pointer border p-5 transition ${
                 tier === level.value
                   ? 'border-clw-gold bg-clw-gold/15'
-                  : 'border-clw-black/20 bg-clw-white hover:border-clw-gold'
+                  : 'border-clw-ink/20 bg-white hover:border-clw-gold'
               }`}
             >
               <input
@@ -109,16 +113,20 @@ export function SponsorCheckoutForm({ tiers }: { tiers: SponsorTierRow[] }) {
                 onChange={() => setTier(level.value)}
                 className="sr-only"
               />
-              <span className="block font-display text-xl uppercase text-clw-black">{level.label}</span>
+              <span className="block font-display text-xl uppercase text-clw-ink">{level.label}</span>
               <span className="mt-1 block font-cond text-2xl tracking-wide text-clw-gold-on-light">${level.amount.toLocaleString('en-US')}</span>
             </label>
           ))}
         </div>
       </fieldset>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm font-medium text-red-700">{error}</p>}
 
-      <Button type="submit" disabled={loading} className="h-14 w-full rounded-none bg-clw-black font-display text-xl uppercase tracking-wide text-clw-gold hover:bg-clw-gold hover:text-clw-black">
+      <Button
+        type="submit"
+        disabled={loading}
+        className="h-14 w-full rounded-none bg-[#0B0B0B] font-display text-xl uppercase tracking-wide text-clw-gold hover:bg-clw-gold hover:text-[#0B0B0B]"
+      >
         {loading ? 'Starting checkout...' : `Continue to Stripe for $${selected ? selected.amount.toLocaleString('en-US') : ''}`}
       </Button>
     </form>

@@ -13,7 +13,7 @@ export function FacebookFeedWithFallback({ href }: { href: string }) {
       href,
       tabs: 'timeline',
       width: '500',
-      height: '560',
+      height: '420',
       small_header: 'false',
       adapt_container_width: 'true',
       hide_cover: 'false',
@@ -39,9 +39,9 @@ export function FacebookFeedWithFallback({ href }: { href: string }) {
   }
 
   return (
-    <div className="border border-clw-gold/25 bg-clw-black-2 p-3 shadow-2xl shadow-black/30">
+    <div className="border border-clw-gold/25 bg-clw-black-2 p-2 shadow-2xl shadow-black/30 sm:p-3">
       {loading && (
-        <div className="flex min-h-[160px] items-center justify-center px-6 py-10 text-center text-lg leading-relaxed text-clw-gray">
+        <div className="flex min-h-[150px] items-center justify-center px-6 py-8 text-center text-lg leading-relaxed text-clw-gray">
           Loading the latest Facebook updates...
         </div>
       )}
@@ -50,8 +50,8 @@ export function FacebookFeedWithFallback({ href }: { href: string }) {
         title="Crystal Lake Wizards Facebook feed"
         src={src}
         width="500"
-        height="560"
-        className={loading ? 'hidden' : 'block min-h-[520px] w-full border-0 bg-clw-white'}
+        height="420"
+        className={loading ? 'hidden' : 'block min-h-[400px] w-full border-0 bg-clw-white'}
         loading="lazy"
         onLoad={() => setLoading(false)}
         onError={() => {
