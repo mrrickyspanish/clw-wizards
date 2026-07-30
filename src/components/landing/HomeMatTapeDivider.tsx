@@ -36,9 +36,17 @@ export function HomeMatTapeDivider({ profile }: { profile: TapeProfile }) {
       {/* below-section colour with an angled top; the wedge above stays transparent */}
       <div className="absolute inset-0" style={{ background: fill, clipPath: clip, WebkitClipPath: clip }} />
 
-      {/* gold edge line exactly on the diagonal */}
+      {/* gold edge line exactly on the diagonal: stronger on mobile, restrained on desktop */}
       <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-        <line x1="0" y1={y1} x2="100" y2={y2} stroke="#F0C020" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+        <line
+          x1="0"
+          y1={y1}
+          x2="100"
+          y2={y2}
+          stroke="#F0C020"
+          vectorEffect="non-scaling-stroke"
+          className="[stroke-width:3] lg:[stroke-width:2]"
+        />
       </svg>
 
       {/* star badge centred on the seam (every diagonal crosses the midpoint) */}
