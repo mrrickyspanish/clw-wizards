@@ -1,5 +1,3 @@
-const { webkit, devices } = require('playwright')
-
 const routes = [
   '/',
   '/sponsorship',
@@ -9,6 +7,7 @@ const routes = [
 ]
 
 async function main() {
+  const { webkit, devices } = await import('playwright')
   const browser = await webkit.launch()
   const context = await browser.newContext({
     ...devices['iPhone 13'],
