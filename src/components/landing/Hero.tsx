@@ -25,7 +25,8 @@ export async function Hero() {
   )
 
   return (
-    <section className="relative isolate overflow-hidden border-b border-clw-gold/10 bg-clw-black">
+    <section id="home-hero" className="relative isolate overflow-hidden border-b border-clw-gold/10 bg-clw-black">
+      <div id="mobile-cta-trigger" aria-hidden className="pointer-events-none absolute left-0 top-[65%] h-px w-px md:hidden" />
       <div className="relative flex min-h-[86svh] overflow-hidden bg-clw-black-2 sm:min-h-[620px] lg:h-[calc(100vh-104px)] lg:min-h-[616px] lg:max-h-[900px]">
         <div className="absolute inset-0">
           {/* eslint-disable-next-line @next/next/no-img-element -- real club team photo */}
