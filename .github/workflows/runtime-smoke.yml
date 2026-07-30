@@ -30,7 +30,9 @@ jobs:
         run: npm run build
 
       - name: Install WebKit
-        run: npx -y playwright@1.54.2 install --with-deps webkit
+        run: |
+          npm install --no-save --no-package-lock playwright@1.54.2
+          npx playwright install --with-deps webkit
 
       - name: Start application
         run: |
@@ -41,7 +43,7 @@ jobs:
         run: npx -y wait-on@8.0.3 http://127.0.0.1:3000/sponsorship --timeout 60000
 
       - name: Run mobile WebKit smoke test
-        run: npx -y -p playwright@1.54.2 -c 'node scripts/runtime-smoke.cjs'
+        run: node scripts/runtime-smoke.cjs
 
       - name: Print server log on failure
         if: failure()
