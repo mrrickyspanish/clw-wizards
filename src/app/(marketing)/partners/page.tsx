@@ -43,10 +43,10 @@ export default async function PartnersPage() {
             </p>
             <h1 className="mt-7 max-w-4xl uppercase leading-[0.86]">
               <span className="block font-cond text-[clamp(3.8rem,12vw,7rem)] font-light tracking-[-0.025em] text-clw-white">
-                The businesses
+                Partners of
               </span>
               <span className="block font-display text-[clamp(4.4rem,13vw,8rem)] font-black tracking-[-0.025em] text-clw-gold">
-                behind the Wizards.
+                the Program.
               </span>
             </h1>
             <p className="mt-7 max-w-2xl text-xl leading-relaxed text-clw-white/80 sm:text-2xl">
