@@ -1,0 +1,95 @@
+name: Runtime smoke
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  mobile-webkit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key-for-runtime-smoke
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+      PRODUCTION_URL: https://clw-wizards.vercel.app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Extract known-good public Supabase config
+        if: github.event_name == 'pull_request'
+        run: node scripts/extract-public-supabase-config.cjs
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Install WebKit
+        run: |
+          npm install --no-save --no-package-lock playwright@1.54.2
+          npx playwright install --with-deps webkit
+
+      - name: Start local application
+        if: github.event_name == 'pull_request'
+        run: |
+          npm run start > /tmp/clw-next.log 2>&1 &
+          echo $! > /tmp/clw-next.pid
+
+      - name: Wait for local application
+        if: github.event_name == 'pull_request'
+        run: npx -y wait-on@8.0.3 http://127.0.0.1:3000/sponsorship --timeout 60000
+
+      - name: Validate pull request locally in mobile WebKit
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_URL: http://127.0.0.1:3000
+          REPORT_DIR: artifacts/local-preview
+        run: node scripts/runtime-smoke.cjs
+
+      - name: Wait for rebuilt Support system in production
+        if: github.event_name == 'push'
+        run: |
+          for attempt in {1..96}; do
+            status=$(curl --location --silent --output /tmp/support-donate.html --write-out '%{http_code}' "$PRODUCTION_URL/sponsorship/donate")
+            if [ "$status" = "200" ] && grep --quiet "One-Time Donation" /tmp/support-donate.html; then
+              echo "Production Support deployment is ready."
+              exit 0
+            fi
+            echo "Production has not updated yet. Waiting..."
+            sleep 5
+          done
+          echo "Production did not publish the rebuilt Support system in time."
+          exit 1
+
+      - name: Validate production in mobile WebKit
+        if: github.event_name == 'push'
+        env:
+          BASE_URL: ${{ env.PRODUCTION_URL }}
+          REPORT_DIR: artifacts/production
+        run: node scripts/runtime-smoke.cjs
+
+      - name: Print local server log on failure
+        if: failure() && github.event_name == 'pull_request'
+        run: cat /tmp/clw-next.log
+
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: support-mobile-webkit-${{ github.event_name }}-${{ github.run_number }}
+          path: artifacts
+          if-no-files-found: warn
+          retention-days: 14

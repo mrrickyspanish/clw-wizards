@@ -12,6 +12,10 @@ const PUBLIC_ROUTES: Array<{ path: string; priority: number; changeFrequency: Me
   { path: '/program', priority: 0.8, changeFrequency: 'monthly' },
   { path: '/coaches', priority: 0.6, changeFrequency: 'monthly' },
   { path: '/sponsorship', priority: 0.7, changeFrequency: 'monthly' },
+  { path: '/sponsorship/donate', priority: 0.6, changeFrequency: 'monthly' },
+  { path: '/sponsorship/boosters', priority: 0.6, changeFrequency: 'monthly' },
+  { path: '/sponsorship/sponsor', priority: 0.6, changeFrequency: 'monthly' },
+  { path: '/sponsorship/volunteer', priority: 0.55, changeFrequency: 'monthly' },
   { path: '/golf-outing', priority: 0.6, changeFrequency: 'yearly' },
   { path: '/faq', priority: 0.5, changeFrequency: 'monthly' },
 ]
