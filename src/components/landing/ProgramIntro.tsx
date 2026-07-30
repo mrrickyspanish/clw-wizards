@@ -41,7 +41,7 @@ export async function ProgramIntro() {
                 <img
                   src="/images/real/clw-wizards-trio-featured-photo.jpg"
                   alt="Three young Wizards wrestlers in club gear at an IKWF state-series tournament"
-                  className="h-full w-full object-cover object-[center_18%] contrast-105 lg:object-[center_20%]"
+                  className="h-full w-full object-cover object-top contrast-105"
                 />
                 <div aria-hidden className="pointer-events-none absolute inset-0 [box-shadow:inset_0_0_0_1px_rgba(17,17,17,0.14)]" />
               </div>
