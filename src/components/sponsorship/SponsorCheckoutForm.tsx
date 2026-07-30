@@ -141,7 +141,7 @@ export function SponsorCheckoutForm({ tiers }: { tiers: SponsorTierRow[] }) {
       <Button
         type="submit"
         disabled={loading}
-        className="h-13 w-full rounded-none bg-[#0B0B0B] font-display text-lg uppercase tracking-wide text-clw-gold hover:bg-clw-gold hover:text-[#0B0B0B] sm:h-14 sm:text-xl"
+        className="h-[3.25rem] w-full rounded-none bg-[#0B0B0B] font-display text-lg uppercase tracking-wide text-clw-gold hover:bg-clw-gold hover:text-[#0B0B0B] sm:h-14 sm:text-xl"
       >
         {loading ? 'Starting checkout...' : `Continue to Stripe for $${selected ? selected.amount.toLocaleString('en-US') : ''}`}
       </Button>
