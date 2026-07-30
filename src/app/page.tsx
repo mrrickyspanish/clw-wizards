@@ -137,7 +137,6 @@ export default async function HomePage({
       <HomeFacilitySection />
       <HomeFacebookSection />
       <SiteFooter />
-      <div className="h-20 md:hidden" />
       <MobileCtaBar />
     </main>
   )
