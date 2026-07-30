@@ -23,8 +23,13 @@ function tierBandClass(value: string) {
   }
 }
 
-export function SponsorCheckoutForm({ tiers }: { tiers: SponsorTierRow[] }) {
-  // Only tiers with a set price can be checked out online.
+export function SponsorCheckoutForm({
+  tiers,
+  returnPath = '/sponsorship',
+}: {
+  tiers: SponsorTierRow[]
+  returnPath?: string
+}) {
   const levels: SponsorLevel[] = tiers
     .filter((t) => t.price_cents != null)
     .map((t) => ({ value: t.slug, label: t.label, amount: (t.price_cents as number) / 100 }))
@@ -65,7 +70,7 @@ export function SponsorCheckoutForm({ tiers }: { tiers: SponsorTierRow[] }) {
           contactEmail,
           websiteUrl: websiteUrl || undefined,
           tier,
-          returnPath: '/sponsorship',
+          returnPath,
         }),
       })
       const data = await response.json()
