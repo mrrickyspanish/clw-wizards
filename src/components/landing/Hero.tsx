@@ -102,7 +102,7 @@ export async function Hero() {
               <path d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 7.1-1.01z" />
             </svg>
           </p>
-          <h1 className="font-impact text-[7rem] font-black uppercase leading-[0.82] tracking-normal text-clw-white sm:text-[8rem] lg:max-w-none lg:text-[6.625rem] xl:text-[8.125rem] 2xl:text-[9.5rem]">
+          <h1 className="font-impact text-[5rem] font-black uppercase leading-[0.83] tracking-[-0.02em] text-clw-white sm:text-[6.1rem] lg:max-w-none lg:text-[6.625rem] lg:tracking-normal xl:text-[8.125rem] 2xl:text-[9.5rem]">
             <span className="block">{line1}</span>
             <span className="block">{line2}</span>
             <span className="block text-clw-gold">{line3}</span>
