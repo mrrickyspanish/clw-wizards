@@ -67,21 +67,8 @@ export async function ProgramIntro() {
               alt=""
               aria-hidden
               draggable={false}
-              className="absolute -right-3 -top-4 h-16 w-16 rotate-[8deg] select-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.4)] sm:-right-5 sm:-top-5 sm:h-20 sm:w-20 lg:h-20 lg:w-20 2xl:h-24 2xl:w-24"
+              className="absolute -right-2.5 -top-3 h-14 w-14 rotate-[8deg] select-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.4)] sm:-right-4 sm:-top-4 sm:h-16 sm:w-16 lg:h-16 lg:w-16 2xl:h-20 2xl:w-20"
             />
-
-            <figure className="absolute bottom-16 -left-3 w-[38%] max-w-[140px] sm:bottom-20 sm:-left-5 sm:max-w-[165px] lg:bottom-20 lg:w-[38%] lg:max-w-[170px] 2xl:bottom-24 2xl:w-[42%] 2xl:max-w-[200px]">
-              <div className="chamfer-sm overflow-hidden border-2 border-clw-gold bg-clw-black-2 shadow-xl shadow-black/40">
-                <div className="relative aspect-[4/3] overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
-                  <img
-                    src="/images/real/clw-wizards-youth-win.jpg"
-                    alt="Wizards youth team holding a tournament trophy"
-                    className="h-full w-full object-cover object-center contrast-105"
-                  />
-                </div>
-              </div>
-            </figure>
           </div>
         </div>
       </div>
