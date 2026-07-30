@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ArrowUpRight, Building2, Dumbbell, GraduationCap, HandCoins, Trophy } from 'lucide-react'
 
 import { ORG } from '@/config/org.config'
+import { getSiteContent } from '@/lib/content/get'
 import { SupportImpactChart } from './SupportImpactChart'
 import { SupportPageHero } from './SupportPageHero'
 import { SupportPathCards } from './SupportPathCards'
@@ -34,7 +35,11 @@ const FUNDING_PRIORITIES = [
   },
 ]
 
-export function SupportOverview() {
+export async function SupportOverview() {
+  const content = await getSiteContent()
+  const statYears = content.get('home.intro.stat_years')
+  const statWrestlers = content.get('home.intro.stat_wrestlers')
+
   return (
     <>
       <SupportPageHero
@@ -89,9 +94,46 @@ export function SupportOverview() {
         <SupportImpactChart />
       </section>
 
+      <section className="bg-clw-black px-5 py-12 text-clw-white sm:px-8 sm:py-16 lg:px-12 lg:py-20 xl:px-16 2xl:px-20">
+        <div className="mx-auto grid max-w-7xl overflow-hidden border border-clw-gold/25 bg-clw-black-2 lg:grid-cols-[1.1fr_.9fr]">
+          <div className="relative h-[250px] overflow-hidden sm:h-[320px] lg:h-auto lg:min-h-[390px]">
+            {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
+            <img
+              src="/images/real/clw-wizards-youth-team-photo-2.jpg"
+              alt="Wizards youth wrestlers together as a team"
+              className="absolute inset-0 h-full w-full object-cover object-center grayscale contrast-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-clw-black/55 via-transparent to-clw-black/10" />
+          </div>
+
+          <div className="flex flex-col justify-center p-5 sm:p-8 lg:p-10">
+            <p className="font-cond text-sm font-semibold uppercase tracking-[0.3em] text-clw-gold">Proof of Community Impact</p>
+            <h2 className="mt-4 font-display text-[clamp(3rem,8vw,5rem)] uppercase leading-[0.88] text-clw-white">Support becomes opportunity.</h2>
+            <p className="mt-5 text-lg font-medium leading-relaxed text-clw-gray sm:text-xl">
+              Community investment turns into coaching, mat time, competition experience, team connection, and a room where young wrestlers learn to keep showing up.
+            </p>
+
+            <div className="mt-7 grid grid-cols-3 border-y border-clw-gold/25 py-5 text-center">
+              <div className="border-r border-clw-white/10 px-2">
+                <p className="font-display text-3xl leading-none text-clw-gold sm:text-4xl">{statYears}</p>
+                <p className="mt-2 font-cond text-xs uppercase tracking-[0.16em] text-clw-gray sm:text-sm">Years</p>
+              </div>
+              <div className="border-r border-clw-white/10 px-2">
+                <p className="font-display text-3xl leading-none text-clw-gold sm:text-4xl">IKWF</p>
+                <p className="mt-2 font-cond text-xs uppercase tracking-[0.16em] text-clw-gray sm:text-sm">Registered</p>
+              </div>
+              <div className="px-2">
+                <p className="font-display text-3xl leading-none text-clw-gold sm:text-4xl">{statWrestlers}</p>
+                <p className="mt-2 font-cond text-xs uppercase tracking-[0.16em] text-clw-gray sm:text-sm">Wrestlers</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <SupportPathCards />
 
-      <section className="section-light bg-[#F7F7F7] px-5 py-10 text-clw-ink sm:px-8 sm:py-14 lg:px-12 lg:py-16 xl:px-16 2xl:px-20">
+      <section id="contact" className="section-light scroll-mt-32 bg-[#F7F7F7] px-5 py-10 text-clw-ink sm:px-8 sm:py-14 lg:px-12 lg:py-16 xl:px-16 2xl:px-20">
         <div className="mx-auto grid max-w-6xl gap-6 border-y border-clw-ink/15 py-8 text-center lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:text-left">
           <div>
             <p className="font-cond text-sm font-semibold uppercase tracking-[0.28em] text-clw-gold-on-light">Not sure where to start?</p>
