@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, ArrowUpRight, MapPin, Search, X } from 'lucide-react'
 
@@ -17,8 +18,7 @@ const NAV_LINKS = [
 ]
 
 const MOBILE_NAV_LINKS = [...NAV_LINKS, { href: '/join', label: 'Join the Wizards' }]
-const DESKTOP_LEFT_LINKS = NAV_LINKS.slice(0, 3)
-const DESKTOP_RIGHT_LINKS = NAV_LINKS.slice(3)
+const DESKTOP_NAV_LINKS = [...NAV_LINKS, { href: '/join', label: 'Join' }]
 
 const SEARCH_ITEMS = [
   {
@@ -78,6 +78,7 @@ const SEARCH_ITEMS = [
 ]
 
 export function SiteHeader() {
+  const pathname = usePathname()
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -125,6 +126,10 @@ export function SiteHeader() {
     setSearchOpen(true)
   }
 
+  function isActive(href: string) {
+    return pathname === href || pathname.startsWith(`${href}/`)
+  }
+
   return (
     <>
       <div ref={sentinelRef} aria-hidden className="pointer-events-none absolute left-0 top-0 h-24 w-px" />
@@ -133,26 +138,26 @@ export function SiteHeader() {
           scrolled ? 'border-b border-clw-gold/15 bg-clw-black/90 backdrop-blur-md' : 'bg-clw-black/55 backdrop-blur-sm'
         }`}
       >
-        <div className="border-b border-clw-white/10 bg-clw-black/75 px-5 py-1.5 sm:px-8 lg:px-12 xl:px-16 2xl:px-20">
-          <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4">
+        <div className="border-b border-clw-white/10 bg-clw-black/75 px-5 py-1.5 sm:px-8 lg:px-12 lg:py-0 xl:px-16 2xl:px-20">
+          <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 lg:min-h-10">
             <Link
               href="/#location"
-              className="flex min-w-0 items-center gap-1.5 whitespace-nowrap font-cond text-[0.68rem] uppercase tracking-[0.13em] text-clw-white/75 transition-colors hover:text-clw-gold sm:text-xs"
+              className="flex min-w-0 items-center gap-1.5 whitespace-nowrap font-cond text-[0.68rem] uppercase tracking-[0.13em] text-clw-white/75 transition-colors hover:text-clw-gold sm:text-xs lg:gap-2.5 lg:text-[0.76rem] lg:tracking-[0.16em]"
             >
-              <MapPin className="h-3.5 w-3.5 shrink-0 text-clw-gold" />
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-clw-gold lg:h-4 lg:w-4" />
               <span className="font-semibold text-clw-white/90">Wizards Facility</span>
               <span className="hidden text-clw-white/55 sm:inline">975 Nimco Dr, Unit L, Crystal Lake, IL</span>
             </Link>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 lg:gap-2.5">
               <button
                 type="button"
                 onClick={openSearch}
-                className="flex h-7 w-28 items-center justify-between border-b border-clw-white/25 px-1 text-xs text-clw-white/55 transition-colors hover:border-clw-gold hover:text-clw-white sm:w-36 lg:w-44"
+                className="flex h-7 w-28 items-center justify-between border-b border-clw-white/25 px-1 text-xs text-clw-white/55 transition-colors hover:border-clw-gold hover:text-clw-white sm:w-36 lg:h-8 lg:w-48 lg:border lg:border-clw-white/15 lg:bg-clw-white/[0.03] lg:px-3 lg:font-cond lg:text-[0.72rem] lg:uppercase lg:tracking-[0.12em]"
                 aria-label="Open site search"
               >
                 <span>Search</span>
-                <Search className="h-3.5 w-3.5" />
+                <Search className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
               </button>
 
               {ORG.social.facebook && (
@@ -161,9 +166,9 @@ export function SiteHeader() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Wizards Wrestling on Facebook"
-                  className="flex h-6 w-6 items-center justify-center rounded-full border border-clw-white/25 text-clw-white/80 transition-colors hover:border-clw-gold hover:text-clw-gold"
+                  className="flex h-6 w-6 items-center justify-center rounded-full border border-clw-white/25 text-clw-white/80 transition-colors hover:border-clw-gold hover:text-clw-gold lg:h-8 lg:w-8"
                 >
-                  <svg viewBox="0 0 24 24" aria-hidden className="h-3.5 w-3.5 fill-current">
+                  <svg viewBox="0 0 24 24" aria-hidden className="h-3.5 w-3.5 fill-current lg:h-4 lg:w-4">
                     <path d="M13.7 21v-8h2.7l.4-3h-3.1V8.1c0-.9.2-1.5 1.6-1.5H17V3.9c-.3 0-1.3-.1-2.4-.1-2.4 0-4 1.4-4 4.1V10H8v3h2.6v8h3.1Z" />
                   </svg>
                 </a>
@@ -172,7 +177,7 @@ export function SiteHeader() {
           </div>
         </div>
 
-        <div className="bg-clw-black px-5 py-3 sm:px-8 sm:py-3.5 lg:min-h-[78px] lg:px-12 lg:py-4 xl:px-16 2xl:px-20">
+        <div className="bg-clw-black px-5 py-3 sm:px-8 sm:py-3.5 lg:px-12 lg:py-0 xl:px-16 2xl:px-20">
           <div className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-3 lg:hidden">
             <button
               type="button"
@@ -207,46 +212,43 @@ export function SiteHeader() {
             </Link>
           </div>
 
-          <div className="hidden grid-cols-[1fr_auto_1fr] items-center lg:grid">
-            <nav className="flex items-center justify-self-end gap-5 pr-5 xl:gap-7 xl:pr-7">
-              {DESKTOP_LEFT_LINKS.map((link) => (
-                <Link
-                  key={link.label}
-                  href={link.href}
-                  className="whitespace-nowrap text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-clw-white/85 transition-colors hover:text-clw-gold xl:text-[0.78rem]"
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
-
+          <div className="mx-auto hidden min-h-[80px] max-w-[1600px] grid-cols-[minmax(11.5rem,auto)_minmax(0,1fr)_auto] items-stretch gap-7 lg:grid xl:grid-cols-[minmax(14rem,auto)_minmax(0,1fr)_auto] xl:gap-10">
             <Link
               href="/"
-              className="justify-self-center whitespace-nowrap font-cond text-2xl font-semibold uppercase tracking-[0.04em] text-clw-gold xl:text-[1.65rem]"
+              className="group flex items-center whitespace-nowrap font-cond text-[1.55rem] font-semibold uppercase leading-none tracking-[0.035em] text-clw-gold transition-colors hover:text-clw-gold-l xl:text-[1.72rem]"
+              aria-label="Wizards Wrestling home"
             >
               Wizards Wrestling
             </Link>
 
-            <div className="grid min-w-0 grid-cols-[auto_auto_auto_1fr] items-center gap-x-4 pl-5 xl:gap-x-6 xl:pl-7">
-              {DESKTOP_RIGHT_LINKS.map((link) => (
-                <Link
-                  key={link.label}
-                  href={link.href}
-                  className="whitespace-nowrap text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-clw-white/85 transition-colors hover:text-clw-gold xl:text-[0.78rem]"
-                >
-                  {link.label}
-                </Link>
-              ))}
-              <Link
-                href="/join"
-                className="whitespace-nowrap text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-clw-white/85 transition-colors hover:text-clw-gold xl:text-[0.78rem]"
-              >
-                Join the Wizards
-              </Link>
+            <nav className="flex min-w-0 items-stretch justify-center gap-3 xl:gap-6 2xl:gap-8" aria-label="Primary navigation">
+              {DESKTOP_NAV_LINKS.map((link) => {
+                const active = isActive(link.href)
+                return (
+                  <Link
+                    key={link.label}
+                    href={link.href}
+                    aria-current={active ? 'page' : undefined}
+                    className={`group relative flex items-center whitespace-nowrap font-cond text-[0.74rem] font-semibold uppercase tracking-[0.14em] transition-colors xl:text-[0.8rem] xl:tracking-[0.16em] ${
+                      active ? 'text-clw-gold' : 'text-clw-white/80 hover:text-clw-white'
+                    }`}
+                  >
+                    {link.label}
+                    <span
+                      aria-hidden
+                      className={`absolute inset-x-0 bottom-0 h-0.5 origin-center bg-clw-gold transition-transform duration-200 ${
+                        active ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                      }`}
+                    />
+                  </Link>
+                )
+              })}
+            </nav>
+
+            <div className="flex items-center justify-end">
               <Button
                 asChild
-                size="sm"
-                className="chamfer-sm h-9 justify-self-end rounded-none bg-clw-gold px-3 text-[0.65rem] font-bold uppercase tracking-[0.07em] text-clw-black hover:bg-clw-gold-l xl:px-5 xl:text-[0.72rem]"
+                className="chamfer-sm h-11 rounded-none bg-clw-gold px-5 font-cond text-[0.72rem] font-bold uppercase tracking-[0.1em] text-clw-black hover:bg-clw-gold-l xl:px-6 xl:text-[0.78rem]"
               >
                 <Link href="/login">Parent / Staff Login</Link>
               </Button>
