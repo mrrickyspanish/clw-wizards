@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 
 import { chicagoDateString } from '@/lib/chicago-time'
-import { createBrowserSupabase } from '@/lib/supabase/browser'
+import { createOptionalBrowserSupabase } from '@/lib/supabase/browser'
 import styles from './ScrollingTicker.module.css'
 
 export type TickerItem = {
@@ -89,20 +89,25 @@ export default function ScrollingTicker({
   useEffect(() => {
     if (!isClwHeaderFeed) return
 
-    let cancelled = false
-    const supabase = createBrowserSupabase()
+    // The live calendar is an enhancement on top of the static feed. If the
+    // browser client is unavailable, keep the static items rather than
+    // throwing out of the effect and blanking every page that has a header.
+    const supabase = createOptionalBrowserSupabase()
+    if (!supabase) return
 
-    async function loadNextEvent() {
+    let cancelled = false
+
+    async function loadNextEvent(client: NonNullable<typeof supabase>) {
       const today = chicagoDateString()
       const [{ data: tournaments }, { data: clubEvents }] = await Promise.all([
-        supabase
+        client
           .from('tournaments')
           .select('name,date,start_time')
           .neq('status', 'cancelled')
           .gte('date', today)
           .order('date', { ascending: true })
           .limit(8),
-        supabase
+        client
           .from('club_events')
           .select('title,date,start_time')
           .eq('active', true)
@@ -130,7 +135,10 @@ export default function ScrollingTicker({
       if (!cancelled) setNextEvent(candidates[0] ?? null)
     }
 
-    void loadNextEvent()
+    loadNextEvent(supabase).catch(() => {
+      // A failed calendar lookup just leaves the static feed in place.
+    })
+
     return () => {
       cancelled = true
     }

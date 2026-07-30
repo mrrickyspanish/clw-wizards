@@ -7,6 +7,7 @@ import { ArrowRight, ArrowUpRight, MapPin, Search, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import ScrollingTicker from '@/components/landing/ScrollingTicker'
+import { QuietBoundary } from '@/components/landing/QuietBoundary'
 import { ORG } from '@/config/org.config'
 
 const NAV_LINKS = [
@@ -309,7 +310,9 @@ export function SiteHeader() {
           </nav>
         </div>
 
-        <ScrollingTicker ariaLabel="Wizards Wrestling sponsorship levels" />
+        <QuietBoundary>
+          <ScrollingTicker ariaLabel="Wizards Wrestling sponsorship levels" />
+        </QuietBoundary>
       </header>
 
       {searchOpen && (
