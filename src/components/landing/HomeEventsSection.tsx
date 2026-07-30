@@ -99,15 +99,15 @@ export function HomeEventsSection({ events }: { events: HomeEventItem[] }) {
   const [featured, ...upcoming] = events.slice(0, 3)
 
   return (
-    <section className="section-light relative overflow-hidden border-y border-clw-gold/35 bg-[#F7F7F7] px-5 pb-32 pt-14 text-clw-ink sm:px-8 sm:pb-32 sm:pt-16 lg:px-12 lg:py-20 xl:px-16 2xl:px-20">
+    <section className="section-light relative overflow-hidden border-y border-clw-gold/35 bg-[#F7F7F7] px-5 pb-24 pt-12 text-clw-ink sm:px-8 sm:pb-24 sm:pt-14 lg:px-12 lg:py-14 xl:px-16 2xl:px-20 2xl:py-20">
       <div className="absolute inset-0 opacity-45 [background-image:linear-gradient(180deg,rgba(255,255,255,.84),transparent_48%),radial-gradient(circle_at_12%_0%,rgba(240,192,32,.1),transparent_24%)]" />
-      <span aria-hidden className="pointer-events-none absolute -right-8 -top-8 select-none font-display text-[11rem] leading-none text-clw-gold-dim/[0.05] sm:text-[14rem] lg:text-[18rem]">W</span>
+      <span aria-hidden className="pointer-events-none absolute -right-8 -top-8 select-none font-display text-[11rem] leading-none text-clw-gold-dim/[0.05] sm:text-[14rem] lg:text-[15rem] 2xl:text-[18rem]">W</span>
 
       <div id="events" className="relative mx-auto max-w-7xl scroll-mt-24">
         <div className="flex items-end justify-between gap-6">
           <h2 className="whitespace-nowrap uppercase leading-[0.92] text-clw-ink">
-            <span className="mr-2 inline font-cond text-[clamp(2.15rem,9.4vw,5rem)] font-light tracking-[-0.04em] sm:mr-3">Upcoming</span>
-            <span className="inline font-display text-[clamp(2.4rem,10.2vw,5.6rem)] font-black tracking-[-0.035em]">Events</span>
+            <span className="mr-2 inline font-cond text-[clamp(2.15rem,9.4vw,5rem)] font-light tracking-[-0.04em] sm:mr-3 lg:text-[3.7rem] xl:text-[4.2rem] 2xl:text-[5rem]">Upcoming</span>
+            <span className="inline font-display text-[clamp(2.4rem,10.2vw,5.6rem)] font-black tracking-[-0.035em] lg:text-[4rem] xl:text-[4.6rem] 2xl:text-[5.6rem]">Events</span>
           </h2>
           <Link href="/events" className="hidden shrink-0 pb-1 font-cond text-lg font-semibold uppercase tracking-[0.14em] text-[#8A620C] underline-offset-4 hover:text-[#111111] hover:underline lg:inline-block">
             Full calendar →
@@ -115,15 +115,15 @@ export function HomeEventsSection({ events }: { events: HomeEventItem[] }) {
         </div>
 
         {!featured ? (
-          <div className="mt-8 border border-dashed border-clw-ink/25 bg-white p-7 sm:p-8">
+          <div className="mt-6 border border-dashed border-clw-ink/25 bg-white p-7 sm:p-8">
             <p className="font-display text-3xl uppercase leading-none text-clw-ink">No upcoming events posted yet.</p>
             <p className="mt-4 max-w-2xl text-lg leading-relaxed text-clw-muted-dark">Once dates are added to the calendar, the next tournaments, fundraisers, and club updates will appear here.</p>
           </div>
         ) : (
-          <div className="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(20rem,.75fr)] lg:gap-5">
+          <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(20rem,.75fr)] lg:gap-4 2xl:mt-8 2xl:grid-cols-[minmax(0,1.45fr)_minmax(20rem,.75fr)] 2xl:gap-5">
             <Link
               href={eventHref(featured)}
-              className="group relative isolate flex min-h-[220px] overflow-hidden border border-[#8A620C] bg-[#0B0B0B] text-white shadow-[0_18px_44px_-28px_rgba(0,0,0,.9)] transition hover:border-[#F0C020] lg:min-h-[360px]"
+              className="group relative isolate flex min-h-[220px] overflow-hidden border border-[#8A620C] bg-[#0B0B0B] text-white shadow-[0_18px_44px_-28px_rgba(0,0,0,.9)] transition hover:border-[#F0C020] lg:min-h-[300px] 2xl:min-h-[360px]"
             >
               <span aria-hidden className="absolute inset-0">
                 {/* eslint-disable-next-line @next/next/no-img-element -- club event photography */}
@@ -136,7 +136,7 @@ export function HomeEventsSection({ events }: { events: HomeEventItem[] }) {
               <span aria-hidden className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,.94)_0%,rgba(0,0,0,.78)_52%,rgba(0,0,0,.38)_100%)]" />
               <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-black/20" />
 
-              <div className="relative flex w-full flex-col justify-between p-5 sm:p-6 lg:p-8">
+              <div className="relative flex w-full flex-col justify-between p-5 sm:p-6 lg:p-6 2xl:p-8">
                 <div className="flex items-start justify-between gap-5">
                   <span className="border border-[#F0C020]/70 bg-black/85 px-3 py-1.5 font-cond text-sm font-semibold uppercase tracking-[0.14em] text-[#F5CE50] backdrop-blur-sm">
                     Next up · {KIND_LABELS[featured.kind]}
@@ -149,10 +149,10 @@ export function HomeEventsSection({ events }: { events: HomeEventItem[] }) {
 
                 <div className="max-w-[32rem]">
                   <p className="font-cond text-sm font-semibold uppercase tracking-[0.14em] text-[#F5CE50] sm:text-base">{formatFullDate(featured.date)}</p>
-                  <h3 className="mt-2 font-display text-[clamp(2.35rem,10vw,4.8rem)] uppercase leading-[0.9] tracking-[-0.02em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,.8)]">
+                  <h3 className="mt-2 font-display text-[clamp(2.35rem,10vw,4.8rem)] uppercase leading-[0.9] tracking-[-0.02em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,.8)] lg:text-[3.35rem] xl:text-[3.8rem] 2xl:text-[4.8rem]">
                     {featured.title}
                   </h3>
-                  <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-base font-medium text-white/90 sm:text-lg">
+                  <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-base font-medium text-white/90 sm:text-lg 2xl:mt-4">
                     <span>{formatTime(featured.startTime)}</span>
                     {featured.location && (
                       <span className="flex min-w-0 items-center gap-1.5">
@@ -175,17 +175,17 @@ export function HomeEventsSection({ events }: { events: HomeEventItem[] }) {
                   <Link
                     key={event.id}
                     href={eventHref(event)}
-                    className="group grid min-h-[112px] grid-cols-[4.25rem_minmax(0,1fr)_auto] items-center gap-4 border border-[#D9C98A] bg-[#FFFDF7] px-4 py-4 text-[#111111] shadow-[0_12px_28px_-24px_rgba(0,0,0,.55)] transition hover:border-[#8A620C] sm:grid-cols-[4.75rem_minmax(0,1fr)_auto] sm:px-5 lg:min-h-[172px] lg:px-6"
+                    className="group grid min-h-[112px] grid-cols-[4.25rem_minmax(0,1fr)_auto] items-center gap-4 border border-[#D9C98A] bg-[#FFFDF7] px-4 py-4 text-[#111111] shadow-[0_12px_28px_-24px_rgba(0,0,0,.55)] transition hover:border-[#8A620C] sm:grid-cols-[4.75rem_minmax(0,1fr)_auto] sm:px-5 lg:min-h-[142px] lg:px-5 2xl:min-h-[172px] 2xl:px-6"
                   >
                     <span className="flex h-full flex-col items-center justify-center border-r border-[#D9C98A] pr-4 text-center">
                       <span className="font-cond text-sm font-semibold uppercase tracking-[0.16em] text-[#8A620C]">{formatWeekday(event.date)}</span>
-                      <span className="mt-1 font-display text-4xl leading-none text-[#111111] lg:text-5xl">{formatDay(event.date)}</span>
+                      <span className="mt-1 font-display text-4xl leading-none text-[#111111] 2xl:text-5xl">{formatDay(event.date)}</span>
                     </span>
 
                     <span className="min-w-0">
                       <span className="font-cond text-xs font-semibold uppercase tracking-[0.14em] text-[#8A620C] sm:text-sm">{KIND_LABELS[event.kind]}</span>
-                      <span className="mt-1.5 block truncate text-lg font-semibold leading-tight text-[#111111] sm:text-xl lg:whitespace-normal">{event.title}</span>
-                      <span className="mt-2 flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium text-[#4F4F46] sm:text-base">
+                      <span className="mt-1.5 block truncate text-lg font-semibold leading-tight text-[#111111] sm:text-xl lg:whitespace-normal lg:text-lg 2xl:text-xl">{event.title}</span>
+                      <span className="mt-2 flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium text-[#4F4F46] sm:text-base lg:text-sm 2xl:text-base">
                         <span>{formatTime(event.startTime)}</span>
                         {event.location && (
                           <span className="flex min-w-0 items-center gap-1.5">
