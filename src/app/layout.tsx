@@ -6,6 +6,7 @@ import './globals.css'
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? `https://${ORG.domain}`).replace(/\/$/, '')
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID
+const SITE_TITLE = 'Wizards Wrestling Club | Youth Wrestling in Crystal Lake, IL'
 
 const SITE_DESCRIPTION =
   'Crystal Lake Wizards Wrestling Club develops youth wrestlers in Crystal Lake and across McHenry County, IL through structured practice groups, dedicated coaching, and regular tournament competition.'
@@ -69,7 +70,7 @@ const bigShoulders = Big_Shoulders({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${ORG.name} | Youth Wrestling in Crystal Lake, IL`,
+    default: SITE_TITLE,
     template: `%s · ${ORG.shortName}`,
   },
   description: SITE_DESCRIPTION,
@@ -103,7 +104,7 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: `${ORG.name} | Youth Wrestling in Crystal Lake, IL`,
+    title: SITE_TITLE,
     description: SITE_DESCRIPTION,
     url: SITE_URL,
     siteName: ORG.name,
@@ -112,7 +113,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: `${ORG.name} | Youth Wrestling in Crystal Lake, IL`,
+    title: SITE_TITLE,
     description: SITE_DESCRIPTION,
   },
 }
