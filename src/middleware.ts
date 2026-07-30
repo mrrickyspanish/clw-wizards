@@ -5,8 +5,18 @@ import { getSessionRole, homeForRole } from '@/lib/auth/session'
 
 const PUBLIC_AUTH_PATHS = ['/login', '/signup', '/forgot-password', '/update-password']
 
-const PORTAL_PATHS = ['/dashboard', '/athletes', '/documents', '/dues', '/tournaments', '/profile', '/schedule']
+const PORTAL_PATHS = [
+  '/dashboard',
+  '/athletes',
+  '/documents',
+  '/dues',
+  '/tournaments',
+  '/registration',
+  '/profile',
+  '/schedule',
+]
 const ONBOARDING_PATH = '/onboarding'
+const POST_ONBOARDING_COOKIE = 'clw_post_onboarding'
 
 // Admin areas reserved for FULL admins only (editing public website content and
 // managing the admin team). Limited admins get the rest of /admin.
@@ -14,6 +24,10 @@ const FULL_ADMIN_PATHS = ['/admin/content', '/admin/team']
 
 function matchesPrefix(pathname: string, prefixes: string[]) {
   return prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+}
+
+function safeInternalPath(value: string | undefined | null) {
+  return value && value.startsWith('/') && !value.startsWith('//') ? value : null
 }
 
 export async function middleware(req: NextRequest) {
@@ -38,16 +52,43 @@ export async function middleware(req: NextRequest) {
   if (!user) {
     const loginUrl = req.nextUrl.clone()
     loginUrl.pathname = '/login'
-    loginUrl.searchParams.set('redirectTo', pathname)
+    loginUrl.searchParams.set('redirectTo', `${pathname}${req.nextUrl.search}`)
     return NextResponse.redirect(loginUrl)
   }
 
-  // A parent who hasn't finished onboarding can only be on /onboarding —
-  // everywhere else in the portal bounces them there first.
+  // A parent who has not finished onboarding can only be on /onboarding. Save
+  // the original portal destination briefly so the existing onboarding form can
+  // finish normally and the first dashboard request resumes that destination.
   if (role === 'parent' && !onboardingCompleted && isPortalPath) {
+    const destination = safeInternalPath(`${pathname}${req.nextUrl.search}`) ?? '/dashboard'
     const onboardingUrl = req.nextUrl.clone()
     onboardingUrl.pathname = ONBOARDING_PATH
-    return NextResponse.redirect(onboardingUrl)
+    onboardingUrl.search = ''
+    const redirect = NextResponse.redirect(onboardingUrl)
+    redirect.cookies.set(POST_ONBOARDING_COOKIE, destination, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 30 * 60,
+      path: '/',
+    })
+    return redirect
+  }
+
+  // The onboarding form currently returns to /dashboard. On that first request,
+  // send the parent back to the action that originally brought them into setup.
+  if (role === 'parent' && onboardingCompleted && pathname === '/dashboard') {
+    const storedDestination = req.cookies.get(POST_ONBOARDING_COOKIE)?.value
+    const destination = safeInternalPath(storedDestination)
+    if (destination && destination !== '/dashboard') {
+      const redirectUrl = req.nextUrl.clone()
+      redirectUrl.pathname = destination.split('?')[0]
+      redirectUrl.search = destination.includes('?') ? destination.slice(destination.indexOf('?')) : ''
+      const redirect = NextResponse.redirect(redirectUrl)
+      redirect.cookies.delete(POST_ONBOARDING_COOKIE)
+      return redirect
+    }
+    if (storedDestination) response.cookies.delete(POST_ONBOARDING_COOKIE)
   }
 
   const allowed =
@@ -82,6 +123,7 @@ export const config = {
     '/documents/:path*',
     '/dues/:path*',
     '/tournaments/:path*',
+    '/registration/:path*',
     '/profile/:path*',
     '/schedule',
     '/onboarding',

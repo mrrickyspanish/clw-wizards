@@ -189,7 +189,14 @@ export type Practice = {
   updated_at: string
 }
 
-export type ClubEventType = 'event' | 'banquet' | 'parent_night' | 'fundraiser' | 'meeting' | 'other'
+export type ClubEventType =
+  | 'event'
+  | 'banquet'
+  | 'parent_night'
+  | 'fundraiser'
+  | 'meeting'
+  | 'season_registration'
+  | 'other'
 
 export type ClubEvent = {
   id: string
@@ -202,6 +209,38 @@ export type ClubEvent = {
   notes: string | null
   practice_group: string | null
   active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type SeasonRegistration = {
+  id: string
+  event_id: string
+  season_label: string
+  registration_open_date: string
+  registration_close_date: string
+  dues_amount_cents: number
+  dues_due_date: string | null
+  instructions: string | null
+  require_usa_card: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type SeasonEnrollmentStatus = 'submitted' | 'changes_requested' | 'approved' | 'withdrawn'
+
+export type SeasonEnrollment = {
+  id: string
+  season_registration_id: string
+  athlete_id: string
+  parent_id: string
+  dues_payment_id: string | null
+  usa_card_document_id: string | null
+  status: SeasonEnrollmentStatus
+  submitted_at: string
+  reviewed_by: string | null
+  reviewed_at: string | null
+  admin_note: string | null
   created_at: string
   updated_at: string
 }
@@ -355,6 +394,18 @@ export type Database = {
         Update: Partial<ClubEvent>
         Relationships: []
       }
+      season_registrations: {
+        Row: SeasonRegistration
+        Insert: Partial<SeasonRegistration>
+        Update: Partial<SeasonRegistration>
+        Relationships: []
+      }
+      season_enrollments: {
+        Row: SeasonEnrollment
+        Insert: Partial<SeasonEnrollment>
+        Update: Partial<SeasonEnrollment>
+        Relationships: []
+      }
       practice_cancellations: {
         Row: PracticeCancellation
         Insert: Partial<PracticeCancellation>
@@ -387,6 +438,15 @@ export type Database = {
       }
     }
     Views: { [_ in never]: never }
-    Functions: { [_ in never]: never }
+    Functions: {
+      submit_season_enrollment: {
+        Args: { _season_registration_id: string; _athlete_id: string }
+        Returns: string
+      }
+      withdraw_season_enrollment: {
+        Args: { _enrollment_id: string }
+        Returns: undefined
+      }
+    }
   }
 }

@@ -12,6 +12,7 @@ interface DuesCheckoutBody {
   flow: 'dues'
   duesId: string
   amountCents?: number
+  returnPath?: string
 }
 
 interface DonationCheckoutBody {
@@ -136,12 +137,13 @@ async function checkoutDues(stripe: Stripe, body: DuesCheckoutBody, siteOrigin: 
   }
 
   const amountCents = Math.min(remainingCents, Math.max(1, body.amountCents ?? remainingCents))
+  const returnPath = safeReturnPath(body.returnPath, '/dues')
 
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
     customer_email: auth.user.email,
-    success_url: `${siteOrigin}/dues?checkout=success`,
-    cancel_url: `${siteOrigin}/dues?checkout=cancelled`,
+    success_url: returnUrl(siteOrigin, returnPath, 'checkout', 'success'),
+    cancel_url: returnUrl(siteOrigin, returnPath, 'checkout', 'cancelled'),
     line_items: [
       {
         quantity: 1,

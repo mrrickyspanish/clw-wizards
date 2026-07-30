@@ -1,5 +1,16 @@
 import type { Metadata } from 'next'
-import { LayoutDashboard, Users, Trophy, Megaphone, HandCoins, Handshake, CalendarClock, FileText, ShieldCheck } from 'lucide-react'
+import {
+  CalendarClock,
+  ClipboardCheck,
+  FileText,
+  HandCoins,
+  Handshake,
+  LayoutDashboard,
+  Megaphone,
+  ShieldCheck,
+  Trophy,
+  Users,
+} from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 
@@ -14,6 +25,7 @@ type AdminNavItem = NavItem & { fullOnly?: boolean }
 const ADMIN_NAV: AdminNavItem[] = [
   { href: '/admin', label: 'Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
   { href: '/admin/families', label: 'Families', icon: <Users className="w-4 h-4" /> },
+  { href: '/admin/registrations', label: 'Registrations', icon: <ClipboardCheck className="w-4 h-4" /> },
   { href: '/admin/tournaments', label: 'Tournaments', icon: <Trophy className="w-4 h-4" /> },
   { href: '/admin/practices', label: 'Practices & Events', icon: <CalendarClock className="w-4 h-4" /> },
   { href: '/admin/dues', label: 'Dues', icon: <HandCoins className="w-4 h-4" /> },

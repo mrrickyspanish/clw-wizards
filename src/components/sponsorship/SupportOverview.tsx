@@ -44,7 +44,7 @@ const SUPPORT_CARDS = [
 export function SupportOverview() {
   return (
     <>
-      <section className="bg-clw-black pt-20 text-center text-clw-black md:pt-24">
+      <section className="bg-clw-black text-center text-clw-black">
         <SupportMedia src="/images/real/team_march2025.jpg" alt="Crystal Lake Wizards team photo" className="h-72 w-full sm:h-[30rem]" position="center" dim="bg-clw-black/10" />
         <div className="bg-clw-white px-6 pb-12 pt-12 sm:px-8 sm:pb-16">
           <p className="mx-auto max-w-[21rem] font-cond text-5xl uppercase leading-[0.9] tracking-wide sm:max-w-xl sm:text-7xl">

@@ -21,7 +21,7 @@ export function PracticeGroups() {
         {ORG.practiceGroups.map((group) => (
           <Link
             key={group}
-            href="/signup"
+            href="/join"
             className="group flex items-center gap-4 border border-clw-gold/20 bg-clw-black/55 px-4 py-5 transition-colors hover:border-clw-gold/50 hover:bg-clw-black/80"
           >
             <span className="flex h-12 w-12 shrink-0 items-center justify-center bg-clw-gold/15 text-clw-gold-ink">
@@ -38,7 +38,7 @@ export function PracticeGroups() {
         ))}
       </div>
 
-      <Link href="/signup" className="mt-auto inline-flex items-center gap-2 pt-7 font-display text-xl uppercase tracking-wide text-clw-gold hover:text-clw-gold-l">
+      <Link href="/join" className="mt-auto inline-flex items-center gap-2 pt-7 font-display text-xl uppercase tracking-wide text-clw-gold hover:text-clw-gold-l">
         View all groups
         <ChevronRight className="h-5 w-5" />
       </Link>

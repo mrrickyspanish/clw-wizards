@@ -4,7 +4,15 @@ import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 
-export function PayButton({ duesId, label }: { duesId: string; label: string }) {
+export function PayButton({
+  duesId,
+  label,
+  returnPath = '/dues',
+}: {
+  duesId: string
+  label: string
+  returnPath?: string
+}) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -15,7 +23,7 @@ export function PayButton({ duesId, label }: { duesId: string; label: string }) 
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ flow: 'dues', duesId }),
+        body: JSON.stringify({ flow: 'dues', duesId, returnPath }),
       })
       const data = await res.json()
       if (!res.ok || !data.url) {
@@ -23,7 +31,6 @@ export function PayButton({ duesId, label }: { duesId: string; label: string }) 
         setLoading(false)
         return
       }
-      // Hand off to Stripe's hosted checkout.
       window.location.href = data.url
     } catch {
       setError('Network error — please try again.')

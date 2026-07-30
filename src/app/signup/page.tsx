@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState, type FormEvent } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 import { createBrowserSupabase } from '@/lib/supabase/browser'
@@ -14,8 +14,23 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AuthBrand } from '@/components/layout/AuthBrand'
 import { ORG } from '@/config/org.config'
 
+function safeRedirect(value: string | null) {
+  return value && value.startsWith('/') && !value.startsWith('//') ? value : null
+}
+
 export default function SignupPage() {
+  return (
+    <Suspense>
+      <SignupForm />
+    </Suspense>
+  )
+}
+
+function SignupForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = safeRedirect(searchParams.get('redirectTo'))
+  const loginHref = redirectTo ? `/login?redirectTo=${encodeURIComponent(redirectTo)}` : '/login'
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -52,13 +67,11 @@ export default function SignupPage() {
       return
     }
 
-    // handle_new_user() creates the profiles row server-side. Contact info
-    // and the athlete roster are collected afterward in /onboarding, never
-    // here, since signUp() may not return a session yet (email confirmation
-    // required) and there'd be nowhere authenticated for that data to land.
+    // handle_new_user() creates the profiles row server-side. Contact info and
+    // the athlete roster are collected afterward in /onboarding.
     if (data.session) {
       setLoading(false)
-      router.push('/dashboard')
+      router.push(redirectTo ?? '/dashboard')
       return
     }
 
@@ -78,7 +91,7 @@ export default function SignupPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Link href="/login" className="text-sm hover:underline">
+            <Link href={loginHref} className="text-sm hover:underline">
               Back to sign in
             </Link>
           </CardContent>
@@ -97,6 +110,13 @@ export default function SignupPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {redirectTo === '/registration' && !error && (
+              <Alert className="border-clw-gold/30 bg-clw-gold/5">
+                <AlertDescription className="text-clw-gray">
+                  Create your family account, then you will continue to season registration.
+                </AlertDescription>
+              </Alert>
+            )}
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
@@ -141,7 +161,7 @@ export default function SignupPage() {
             </Button>
             <div className="text-center text-sm text-muted-foreground">
               Already have an account?{' '}
-              <Link href="/login" className="hover:underline">
+              <Link href={loginHref} className="hover:underline">
                 Sign in
               </Link>
             </div>

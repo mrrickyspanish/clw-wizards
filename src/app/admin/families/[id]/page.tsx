@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AthleteDialog } from '../AthleteDialog'
 import { FamilyActiveToggle } from '../FamilyActiveToggle'
+import { ParentDialog } from '../ParentDialog'
 
 function formatDate(value: string) {
   return new Date(`${value}T00:00:00`).toLocaleDateString('en-US', {
@@ -16,6 +17,11 @@ function formatDate(value: string) {
     year: 'numeric',
   })
 }
+
+type GuardianRow = Pick<
+  Profile,
+  'id' | 'full_name' | 'email' | 'phone' | 'practice_group' | 'sms_opt_in' | 'is_active'
+>
 
 export default async function FamilyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -41,10 +47,14 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
   // Co-guardians who have joined this family via an invite code.
   const { data: guardianLinks } = await supabase.from('family_guardians').select('guardian_id').eq('owner_id', id)
   const guardianIds = (guardianLinks ?? []).map((g) => g.guardian_id)
-  let guardians: Pick<Profile, 'id' | 'full_name' | 'email'>[] = []
+  let guardians: GuardianRow[] = []
   if (guardianIds.length) {
-    const { data } = await supabase.from('profiles').select('id, full_name, email').in('id', guardianIds)
-    guardians = (data ?? []) as Pick<Profile, 'id' | 'full_name' | 'email'>[]
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, full_name, email, phone, practice_group, sms_opt_in, is_active')
+      .in('id', guardianIds)
+      .order('full_name', { ascending: true })
+    guardians = (data ?? []) as GuardianRow[]
   }
 
   return (
@@ -61,12 +71,13 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
           <h1 className="text-2xl font-display text-clw-gold">{parent.full_name ?? 'Unnamed parent'}</h1>
           <p className="text-sm text-clw-gray">{parent.email ?? '—'}</p>
         </div>
-        <FamilyActiveToggle parentId={parent.id} isActive={parent.is_active} />
+        <FamilyActiveToggle parentId={parent.id} isActive={parent.is_active} familyId={parent.id} />
       </div>
 
       <Card className="mb-6 border-clw-gold/10 bg-clw-black">
-        <CardHeader>
-          <CardTitle className="text-sm font-medium text-clw-gray">Contact & preferences</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-sm font-medium text-clw-gray">Primary parent contact &amp; preferences</CardTitle>
+          <ParentDialog parent={parent} familyId={parent.id} />
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
           <div>
@@ -95,11 +106,49 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
               Co-guardians <span className="text-clw-gray/60">({guardians.length})</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {guardians.map((g) => (
-              <div key={g.id} className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-clw-white">{g.full_name ?? 'Unnamed guardian'}</span>
-                <span className="text-clw-gray">{g.email ?? '—'}</span>
+          <CardContent className="space-y-4">
+            {guardians.map((guardian) => (
+              <div key={guardian.id} className="rounded-md border border-clw-gold/10 bg-clw-black-2 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-clw-white">{guardian.full_name ?? 'Unnamed guardian'}</p>
+                    <p className="text-sm text-clw-gray">{guardian.email ?? '—'}</p>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={
+                      guardian.is_active
+                        ? 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold'
+                        : 'border-clw-gray/40 bg-clw-gray/10 text-clw-gray'
+                    }
+                  >
+                    {guardian.is_active ? 'active' : 'inactive'}
+                  </Badge>
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 gap-3 border-t border-clw-gold/10 pt-4 text-sm sm:grid-cols-3">
+                  <div>
+                    <p className="text-clw-gray/70">Phone</p>
+                    <p className="text-clw-white">{guardian.phone ?? '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-clw-gray/70">Practice group</p>
+                    <p className="text-clw-white">{guardian.practice_group ?? '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-clw-gray/70">SMS opt-in</p>
+                    <p className="text-clw-white">{guardian.sms_opt_in ? 'Yes' : 'No'}</p>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-clw-gold/10 pt-4">
+                  <ParentDialog parent={guardian} relationship="co-guardian" familyId={parent.id} />
+                  <FamilyActiveToggle
+                    parentId={guardian.id}
+                    isActive={guardian.is_active}
+                    familyId={parent.id}
+                  />
+                </div>
               </div>
             ))}
           </CardContent>

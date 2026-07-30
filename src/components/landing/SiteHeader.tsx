@@ -5,18 +5,20 @@ import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, ArrowUpRight, MapPin, Search, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import ScrollingTicker from '@/components/landing/ScrollingTicker'
 import { ORG } from '@/config/org.config'
 
 const NAV_LINKS = [
   { href: '/about', label: 'Mission' },
   { href: '/events', label: 'Events' },
   { href: '/program', label: 'Groups' },
+  { href: '/partners', label: 'Partners' },
   { href: '/sponsorship', label: 'Support' },
 ]
 
 const MOBILE_NAV_LINKS = [...NAV_LINKS, { href: '/join', label: 'Join the Wizards' }]
 const DESKTOP_LEFT_LINKS = NAV_LINKS.slice(0, 3)
-const DESKTOP_RIGHT_LINKS = [NAV_LINKS[3]]
+const DESKTOP_RIGHT_LINKS = NAV_LINKS.slice(3)
 
 const SEARCH_ITEMS = [
   {
@@ -27,7 +29,7 @@ const SEARCH_ITEMS = [
   },
   {
     title: 'Training Groups',
-    description: 'Explore our four practice groups — from first-timers to state-level competitors — and find the right level.',
+    description: 'Explore our four practice groups, from first-timers to state-level competitors, and find the right level.',
     href: '/program',
     keywords: ['groups', 'practice', 'training', 'program', 'beginner', 'advanced', 'levels'],
   },
@@ -36,6 +38,12 @@ const SEARCH_ITEMS = [
     description: 'See the full calendar of tournaments, fundraisers, and club events.',
     href: '/events',
     keywords: ['events', 'calendar', 'tournaments', 'schedule'],
+  },
+  {
+    title: 'Partners',
+    description: 'Meet the businesses and community partners who back Wizards Wrestling.',
+    href: '/partners',
+    keywords: ['partners', 'sponsors', 'businesses', 'community', 'platinum', 'supporters'],
   },
   {
     title: 'Support the Club',
@@ -133,7 +141,7 @@ export function SiteHeader() {
             >
               <MapPin className="h-3.5 w-3.5 shrink-0 text-clw-gold" />
               <span className="font-semibold text-clw-white/90">Wizards Facility</span>
-              <span className="hidden text-clw-white/55 sm:inline">— 975 Nimco Dr, Unit L, Crystal Lake, IL</span>
+              <span className="hidden text-clw-white/55 sm:inline">975 Nimco Dr, Unit L, Crystal Lake, IL</span>
             </Link>
 
             <div className="flex items-center gap-3">
@@ -164,7 +172,7 @@ export function SiteHeader() {
           </div>
         </div>
 
-        <div className="min-h-[72px] px-5 py-4 sm:min-h-[74px] sm:px-8 lg:min-h-[78px] lg:px-12 xl:px-16 2xl:px-20">
+        <div className="bg-clw-black px-5 py-3 sm:px-8 sm:py-3.5 lg:min-h-[78px] lg:px-12 lg:py-4 xl:px-16 2xl:px-20">
           <div className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-3 lg:hidden">
             <button
               type="button"
@@ -200,12 +208,12 @@ export function SiteHeader() {
           </div>
 
           <div className="hidden grid-cols-[1fr_auto_1fr] items-center lg:grid">
-            <nav className="flex items-center justify-self-end gap-6 pr-6 xl:gap-8 xl:pr-8">
+            <nav className="flex items-center justify-self-end gap-5 pr-5 xl:gap-7 xl:pr-7">
               {DESKTOP_LEFT_LINKS.map((link) => (
                 <Link
                   key={link.label}
                   href={link.href}
-                  className="whitespace-nowrap text-[0.74rem] font-semibold uppercase tracking-[0.13em] text-clw-white/85 transition-colors hover:text-clw-gold xl:text-[0.8rem]"
+                  className="whitespace-nowrap text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-clw-white/85 transition-colors hover:text-clw-gold xl:text-[0.78rem]"
                 >
                   {link.label}
                 </Link>
@@ -219,26 +227,26 @@ export function SiteHeader() {
               Wizards Wrestling
             </Link>
 
-            <div className="grid min-w-0 grid-cols-[auto_auto_1fr] items-center gap-x-6 pl-6 xl:gap-x-8 xl:pl-8">
+            <div className="grid min-w-0 grid-cols-[auto_auto_auto_1fr] items-center gap-x-4 pl-5 xl:gap-x-6 xl:pl-7">
               {DESKTOP_RIGHT_LINKS.map((link) => (
                 <Link
                   key={link.label}
                   href={link.href}
-                  className="whitespace-nowrap text-[0.74rem] font-semibold uppercase tracking-[0.13em] text-clw-white/85 transition-colors hover:text-clw-gold xl:text-[0.8rem]"
+                  className="whitespace-nowrap text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-clw-white/85 transition-colors hover:text-clw-gold xl:text-[0.78rem]"
                 >
                   {link.label}
                 </Link>
               ))}
               <Link
                 href="/join"
-                className="whitespace-nowrap text-[0.74rem] font-semibold uppercase tracking-[0.13em] text-clw-white/85 transition-colors hover:text-clw-gold xl:text-[0.8rem]"
+                className="whitespace-nowrap text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-clw-white/85 transition-colors hover:text-clw-gold xl:text-[0.78rem]"
               >
                 Join the Wizards
               </Link>
               <Button
                 asChild
                 size="sm"
-                className="chamfer-sm h-9 justify-self-end rounded-none bg-clw-gold px-4 text-[0.68rem] font-bold uppercase tracking-[0.08em] text-clw-black hover:bg-clw-gold-l xl:px-5 xl:text-[0.72rem]"
+                className="chamfer-sm h-9 justify-self-end rounded-none bg-clw-gold px-3 text-[0.65rem] font-bold uppercase tracking-[0.07em] text-clw-black hover:bg-clw-gold-l xl:px-5 xl:text-[0.72rem]"
               >
                 <Link href="/login">Parent / Staff Login</Link>
               </Button>
@@ -277,6 +285,8 @@ export function SiteHeader() {
             </div>
           </nav>
         </div>
+
+        <ScrollingTicker ariaLabel="Wizards Wrestling sponsorship levels" />
       </header>
 
       {searchOpen && (
@@ -339,7 +349,7 @@ export function SiteHeader() {
               ) : (
                 <div className="border border-dashed border-clw-white/20 px-5 py-10 text-center">
                   <p className="font-display text-2xl uppercase text-clw-white">No matching pages</p>
-                  <p className="mt-3 text-sm text-clw-gray">Try new families, events, groups, facility, coaches, support, or login.</p>
+                  <p className="mt-3 text-sm text-clw-gray">Try partners, new families, events, groups, facility, coaches, support, or login.</p>
                 </div>
               )}
             </div>

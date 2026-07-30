@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
-export function AddAthleteForm() {
+export function AddAthleteForm({ redirectTo = '/athletes' }: { redirectTo?: string }) {
   const router = useRouter()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -41,7 +41,7 @@ export function AddAthleteForm() {
       setError(result.error)
       return
     }
-    router.push('/athletes')
+    router.push(redirectTo)
     router.refresh()
   }
 
@@ -103,9 +103,9 @@ export function AddAthleteForm() {
 
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={loading}>
-          {loading ? 'Saving…' : 'Add wrestler'}
+          {loading ? 'Saving…' : redirectTo === '/registration' ? 'Add and continue' : 'Add wrestler'}
         </Button>
-        <Button type="button" variant="ghost" onClick={() => router.push('/athletes')} disabled={loading}>
+        <Button type="button" variant="ghost" onClick={() => router.push(redirectTo)} disabled={loading}>
           Cancel
         </Button>
       </div>

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   CalendarClock,
+  ClipboardCheck,
   FileText,
   HandCoins,
   Handshake,
@@ -33,6 +34,7 @@ import { ThemeToggle } from './ThemeToggle'
 const ADMIN_ITEMS = [
   { href: '/admin', label: 'Overview', icon: LayoutDashboard },
   { href: '/admin/families', label: 'Families', icon: Users },
+  { href: '/admin/registrations', label: 'Registrations', icon: ClipboardCheck },
   { href: '/admin/tournaments', label: 'Tournaments', icon: Trophy },
   { href: '/admin/practices', label: 'Practices & Events', icon: CalendarClock },
   { href: '/admin/dues', label: 'Dues', icon: HandCoins },

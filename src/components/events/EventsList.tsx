@@ -20,6 +20,7 @@ const KIND_LABELS: Record<CalendarItem['kind'], string> = {
   parent_night: 'Parent Night',
   fundraiser: 'Fundraiser',
   meeting: 'Meeting',
+  season_registration: 'Season Registration',
   event: 'Club Event',
   other: 'Club Event',
 }
@@ -39,10 +40,33 @@ function formatWeekday(date: string) {
 
 function formatTime(value: string | null) {
   if (!value) return null
-  const [hours = '0', minutes = '0'] = value.split(':')
-  const d = new Date()
-  d.setHours(Number(hours), Number(minutes), 0, 0)
-  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+
+  const normalized = value.trim().toUpperCase()
+  const twelveHour = normalized.match(/^(\d{1,2})(?::(\d{2}))?(?::\d{2})?\s*([AP]M)$/)
+  const twentyFourHour = normalized.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/)
+
+  let hours: number
+  let minutes: number
+
+  if (twelveHour) {
+    hours = Number(twelveHour[1])
+    minutes = Number(twelveHour[2] ?? '00')
+    if (hours < 1 || hours > 12 || minutes > 59) return null
+    if (twelveHour[3] === 'PM' && hours !== 12) hours += 12
+    if (twelveHour[3] === 'AM' && hours === 12) hours = 0
+  } else if (twentyFourHour) {
+    hours = Number(twentyFourHour[1])
+    minutes = Number(twentyFourHour[2])
+    if (hours > 23 || minutes > 59) return null
+  } else {
+    return null
+  }
+
+  return new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(2000, 0, 1, hours, minutes)))
 }
 
 /**
@@ -136,7 +160,7 @@ export function EventsList({ items }: { items: CalendarItem[] }) {
                       </h3>
 
                       <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-base leading-relaxed text-clw-gray">
-                        {time && <span>{time}</span>}
+                        <span>{time || 'Time TBD'}</span>
                         {item.location && (
                           <span className="flex min-w-0 items-center gap-1.5">
                             <MapPin className="h-4 w-4 shrink-0 text-clw-gold" />
