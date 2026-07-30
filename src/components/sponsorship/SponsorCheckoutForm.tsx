@@ -90,7 +90,7 @@ export function SponsorCheckoutForm({
 
   const inputClassName =
     'h-12 rounded-none border-clw-ink/25 bg-white px-4 text-base text-clw-ink placeholder:text-clw-muted-dark/65 focus-visible:ring-clw-gold focus-visible:ring-offset-[#F7F7F7] sm:h-14'
-  const labelClassName = 'font-cond text-xs font-semibold uppercase tracking-[0.15em] text-clw-ink/75 sm:text-sm sm:tracking-[0.16em]'
+  const labelClassName = 'font-cond text-sm font-semibold uppercase tracking-[0.15em] text-clw-ink/75 sm:tracking-[0.16em]'
 
   return (
     <form onSubmit={handleSubmit} className="mt-8 space-y-5 border border-clw-ink/15 bg-[#F7F7F7] p-4 text-clw-ink sm:mt-10 sm:space-y-6 sm:p-8">

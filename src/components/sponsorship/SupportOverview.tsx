@@ -116,15 +116,15 @@ export async function SupportOverview() {
             <div className="mt-7 grid grid-cols-3 border-y border-clw-gold/25 py-5 text-center">
               <div className="border-r border-clw-white/10 px-2">
                 <p className="font-display text-3xl leading-none text-clw-gold sm:text-4xl">{statYears}</p>
-                <p className="mt-2 font-cond text-xs uppercase tracking-[0.16em] text-clw-gray sm:text-sm">Years</p>
+                <p className="mt-2 font-cond text-sm uppercase tracking-[0.16em] text-clw-gray">Years</p>
               </div>
               <div className="border-r border-clw-white/10 px-2">
                 <p className="font-display text-3xl leading-none text-clw-gold sm:text-4xl">IKWF</p>
-                <p className="mt-2 font-cond text-xs uppercase tracking-[0.16em] text-clw-gray sm:text-sm">Registered</p>
+                <p className="mt-2 font-cond text-sm uppercase tracking-[0.16em] text-clw-gray">Registered</p>
               </div>
               <div className="px-2">
                 <p className="font-display text-3xl leading-none text-clw-gold sm:text-4xl">{statWrestlers}</p>
-                <p className="mt-2 font-cond text-xs uppercase tracking-[0.16em] text-clw-gray sm:text-sm">Wrestlers</p>
+                <p className="mt-2 font-cond text-sm uppercase tracking-[0.16em] text-clw-gray">Wrestlers</p>
               </div>
             </div>
           </div>

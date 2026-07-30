@@ -48,20 +48,32 @@ function Star({ className }: { className?: string }) {
   )
 }
 
-function formatEventDate(date: string) {
+// These run during render, so anything unparseable has to return null rather
+// than let Intl throw "RangeError: Invalid time value" and take the ticker
+// down. A plain date column gives `YYYY-MM-DD`, but a timestamp column gives
+// a full ISO string, and both have to survive.
+function formatEventDate(date: string | null) {
+  if (!date) return null
+
+  const value = new Date(/^\d{4}-\d{2}-\d{2}$/.test(date) ? `${date}T12:00:00Z` : date)
+  if (Number.isNaN(value.getTime())) return null
+
   return new Intl.DateTimeFormat('en-US', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
     timeZone: 'UTC',
-  }).format(new Date(`${date}T12:00:00Z`))
+  }).format(value)
 }
 
 function formatEventTime(time: string | null) {
   if (!time) return null
 
-  const [hours, minutes = '00'] = time.split(':')
-  const value = new Date(Date.UTC(2000, 0, 1, Number(hours), Number(minutes)))
+  const match = /^(\d{1,2}):(\d{2})/.exec(time)
+  if (!match) return null
+
+  const value = new Date(Date.UTC(2000, 0, 1, Number(match[1]), Number(match[2])))
+  if (Number.isNaN(value.getTime())) return null
 
   return new Intl.DateTimeFormat('en-US', {
     hour: 'numeric',
@@ -71,8 +83,11 @@ function formatEventTime(time: string | null) {
 }
 
 function eventTickerText(event: CalendarCandidate) {
+  const date = formatEventDate(event.date)
+  if (!date) return null
+
   const time = formatEventTime(event.startTime)
-  return `Next Event • ${event.title} • ${formatEventDate(event.date)}${time ? ` • ${time}` : ''}`
+  return `Next Event • ${event.title} • ${date}${time ? ` • ${time}` : ''}`
 }
 
 export default function ScrollingTicker({
@@ -127,10 +142,12 @@ export default function ScrollingTicker({
           date: event.date,
           startTime: event.start_time,
         })),
-      ].sort((a, b) => {
-        if (a.date !== b.date) return a.date.localeCompare(b.date)
-        return (a.startTime ?? '23:59:59').localeCompare(b.startTime ?? '23:59:59')
-      })
+      ]
+        .filter((event) => Boolean(event.title && event.date))
+        .sort((a, b) => {
+          if (a.date !== b.date) return a.date.localeCompare(b.date)
+          return (a.startTime ?? '23:59:59').localeCompare(b.startTime ?? '23:59:59')
+        })
 
       if (!cancelled) setNextEvent(candidates[0] ?? null)
     }
@@ -148,7 +165,8 @@ export default function ScrollingTicker({
     ? [
         ...CLW_HEADER_ITEMS,
         {
-          text: nextEvent ? eventTickerText(nextEvent) : 'Next Event • View the club calendar.',
+          text:
+            (nextEvent && eventTickerText(nextEvent)) || 'Next Event • View the club calendar.',
           href: '/events',
         },
       ]

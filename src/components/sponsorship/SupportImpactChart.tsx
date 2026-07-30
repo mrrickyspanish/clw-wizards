@@ -67,7 +67,7 @@ export function SupportImpactChart({
             >
               <div className="flex items-center justify-between gap-4 md:block">
                 <p className="font-display text-3xl uppercase leading-none text-clw-gold-on-light sm:text-4xl">{row.amount}</p>
-                <span className="bg-clw-black px-3 py-1.5 font-cond text-xs font-semibold uppercase tracking-[0.14em] text-clw-gold md:hidden">
+                <span className="bg-clw-black px-3 py-1.5 font-cond text-sm font-semibold uppercase tracking-[0.14em] text-clw-gold md:hidden">
                   {row.category}
                 </span>
               </div>

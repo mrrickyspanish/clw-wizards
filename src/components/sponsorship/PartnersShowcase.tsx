@@ -238,7 +238,7 @@ export function PartnersProof({ sponsors }: { sponsors: Sponsor[] }) {
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(18rem,.85fr)]">
         <div className="relative">
-          <div className="absolute left-4 top-4 z-10 inline-flex items-center gap-2 bg-[#0B0B0B] px-3 py-1.5 font-cond text-xs font-semibold uppercase tracking-[0.16em] text-clw-gold">
+          <div className="absolute left-4 top-4 z-10 inline-flex items-center gap-2 bg-[#0B0B0B] px-3 py-1.5 font-cond text-sm font-semibold uppercase tracking-[0.16em] text-clw-gold">
             <Star className="h-3.5 w-3.5 fill-current" /> {TIER_LABELS[featured.tier]}
           </div>
           <PartnerCard sponsor={featured} size="platinum" />

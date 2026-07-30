@@ -30,7 +30,7 @@ export function SupportPageHero({
 
         <div className="absolute inset-0 flex items-center justify-center px-5 py-8 sm:px-10 sm:py-10">
           <div className="w-full max-w-5xl text-center">
-            <p className="font-cond text-xs font-semibold uppercase tracking-[0.26em] text-clw-gold sm:text-base sm:tracking-[0.32em]">
+            <p className="font-cond text-sm font-semibold uppercase tracking-[0.26em] text-clw-gold sm:text-base sm:tracking-[0.32em]">
               {eyebrow}
             </p>
             <div className="mx-auto mt-4 h-1.5 w-full max-w-4xl bg-clw-gold sm:mt-5 sm:h-2" />

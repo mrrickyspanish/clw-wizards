@@ -81,7 +81,7 @@ export function SupportPathCards() {
               <div className="flex flex-1 flex-col p-4 sm:p-5">
                 <h3 className="font-display text-[1.55rem] uppercase leading-[0.92] tracking-wide text-clw-white sm:text-3xl">{title}</h3>
                 <p className="mt-3 hidden text-base font-medium leading-relaxed text-clw-gray sm:block">{description}</p>
-                <span className="mt-auto flex items-center gap-2 pt-4 font-cond text-xs font-semibold uppercase tracking-[0.12em] text-clw-gold sm:text-sm sm:tracking-[0.14em]">
+                <span className="mt-auto flex items-center gap-2 pt-4 font-cond text-sm font-semibold uppercase tracking-[0.12em] text-clw-gold sm:tracking-[0.14em]">
                   {cta} <ArrowUpRight className="h-4 w-4" />
                 </span>
               </div>
