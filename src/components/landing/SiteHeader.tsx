@@ -235,7 +235,7 @@ export function SiteHeader() {
               className="group flex h-12 w-full flex-col items-end justify-center justify-self-end text-clw-white transition-colors hover:text-clw-gold"
             >
               <ArrowUpRight className="h-5 w-5 text-clw-gold transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-              <span className="font-cond text-[0.78rem] font-bold uppercase tracking-[0.08em]">Join Now</span>
+              <span className="font-cond text-base font-bold uppercase tracking-[0.08em]">Join Now</span>
             </Link>
           </div>
 

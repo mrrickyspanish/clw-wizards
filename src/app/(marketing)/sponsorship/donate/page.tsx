@@ -5,6 +5,7 @@ import { ArrowUpRight, LockKeyhole } from 'lucide-react'
 import { DonationCheckoutForm } from '@/components/sponsorship/DonationCheckoutForm'
 import { SupportImpactChart } from '@/components/sponsorship/SupportImpactChart'
 import { SupportPageHero } from '@/components/sponsorship/SupportPageHero'
+import { TaxStatusNote } from '@/components/sponsorship/TaxStatusNote'
 import { SupportStatusAlert } from '@/components/sponsorship/SupportStatusAlert'
 
 export const metadata: Metadata = {
@@ -56,6 +57,7 @@ export default async function DonationPage({
             <p className="mt-4 flex items-center justify-center gap-2 text-center text-sm text-clw-gray">
               <LockKeyhole className="h-4 w-4 text-clw-gold" /> Secure checkout is processed by Stripe.
             </p>
+            <TaxStatusNote className="mt-4 text-center text-clw-gray/85" />
           </div>
 
           <div className="mt-8 text-center">

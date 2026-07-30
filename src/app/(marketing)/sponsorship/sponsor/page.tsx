@@ -7,6 +7,7 @@ import type { Sponsor, SponsorTierRow } from '@/types/database'
 import { PartnersProof } from '@/components/sponsorship/PartnersShowcase'
 import { SponsorCheckoutForm } from '@/components/sponsorship/SponsorCheckoutForm'
 import { SupportPageHero } from '@/components/sponsorship/SupportPageHero'
+import { TaxStatusNote } from '@/components/sponsorship/TaxStatusNote'
 import { SupportStatusAlert } from '@/components/sponsorship/SupportStatusAlert'
 
 const SPONSORSHIP_IMPACT = [
@@ -141,6 +142,7 @@ export default async function SponsorPage({
               <h2 className="mt-4 font-display text-[clamp(3rem,9vw,5rem)] uppercase leading-[0.88] text-clw-ink">Choose your package and continue to Stripe.</h2>
             </div>
             <SponsorCheckoutForm tiers={tiers} returnPath="/sponsorship/sponsor" />
+            <TaxStatusNote variant="sponsorship" className="mx-auto mt-6 max-w-3xl text-center text-clw-muted-dark" />
           </div>
 
           <div className="mt-8 text-center">

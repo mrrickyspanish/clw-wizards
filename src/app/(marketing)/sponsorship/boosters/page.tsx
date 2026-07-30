@@ -4,6 +4,7 @@ import { ArrowUpRight, CalendarHeart, LockKeyhole } from 'lucide-react'
 
 import { DonationCheckoutForm } from '@/components/sponsorship/DonationCheckoutForm'
 import { SupportPageHero } from '@/components/sponsorship/SupportPageHero'
+import { TaxStatusNote } from '@/components/sponsorship/TaxStatusNote'
 import { SupportStatusAlert } from '@/components/sponsorship/SupportStatusAlert'
 
 const BOOSTER_LEVELS = [
@@ -113,6 +114,7 @@ export default async function BoostersPage({
             <p className="mt-4 flex items-center justify-center gap-2 text-center text-sm text-clw-gray">
               <LockKeyhole className="h-4 w-4 text-clw-gold" /> Secure recurring checkout is processed by Stripe.
             </p>
+            <TaxStatusNote className="mt-4 text-center text-clw-gray/85" />
           </div>
 
           <div className="mt-8 text-center">
