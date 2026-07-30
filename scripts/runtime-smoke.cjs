@@ -7,8 +7,17 @@ const routes = [
   '/sponsorship/volunteer',
 ]
 
+const IGNORED_PAGE_ERROR_PATTERNS = [
+  /ResizeObserver loop completed with undelivered notifications/i,
+  /due to access control checks/i,
+]
+
 function routeSlug(route) {
   return route === '/' ? 'home' : route.replace(/^\//, '').replaceAll('/', '-')
+}
+
+function isIgnoredPageError(message) {
+  return IGNORED_PAGE_ERROR_PATTERNS.some((pattern) => pattern.test(message))
 }
 
 async function main() {
@@ -17,7 +26,6 @@ async function main() {
 
   const baseUrl = (process.env.BASE_URL || 'http://127.0.0.1:3000').replace(/\/$/, '')
   const reportDir = process.env.REPORT_DIR || 'artifacts/runtime-smoke'
-  const reportOnly = process.env.REPORT_ONLY === '1'
 
   await mkdir(reportDir, { recursive: true })
 
@@ -52,7 +60,9 @@ async function main() {
       status: null,
       hasApplicationError: false,
       hasMain: false,
+      isVercelLogin: false,
       pageErrors,
+      fatalPageErrors: [],
       consoleErrors,
       failedRequests,
       bodyPreview: '',
@@ -73,6 +83,8 @@ async function main() {
       result.bodyPreview = bodyText.slice(0, 1_000)
       result.hasApplicationError = bodyText.includes('Application error: a client-side exception has occurred')
       result.hasMain = (await page.locator('main').count()) > 0
+      result.isVercelLogin = bodyText.includes('Log in to Vercel') && bodyText.includes('Continue with GitHub')
+      result.fatalPageErrors = pageErrors.filter((message) => !isIgnoredPageError(message))
 
       await page.screenshot({
         path: `${reportDir}/${routeSlug(route)}.png`,
@@ -95,8 +107,9 @@ async function main() {
       result.status === null ||
       result.status >= 400 ||
       result.hasApplicationError ||
+      result.isVercelLogin ||
       !result.hasMain ||
-      result.pageErrors.length > 0
+      result.fatalPageErrors.length > 0
 
     if (failed) {
       failures.push(result)
@@ -113,7 +126,7 @@ async function main() {
 
   if (failures.length > 0) {
     console.error(JSON.stringify(failures, null, 2))
-    if (!reportOnly) process.exit(1)
+    process.exit(1)
   }
 }
 
