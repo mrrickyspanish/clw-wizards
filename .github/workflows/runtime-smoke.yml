@@ -27,10 +27,6 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Extract known-good public Supabase config
-        if: github.event_name == 'pull_request'
-        run: node scripts/extract-public-supabase-config.cjs
-
       - name: Install dependencies
         run: npm ci
 
