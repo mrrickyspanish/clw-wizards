@@ -51,20 +51,22 @@ export function ContactForm() {
     }
   }
 
+  const inputClassName = 'h-12 border-clw-black/25 bg-clw-white px-4 text-base text-clw-black sm:h-14 sm:px-6 sm:text-xl'
+
   return (
-    <form onSubmit={handleSubmit} className="mt-14 space-y-6">
+    <form onSubmit={handleSubmit} className="mt-8 space-y-4 sm:mt-14 sm:space-y-6">
       <div className="hidden" aria-hidden>
         <label>
           Company
           <input name="company" tabIndex={-1} autoComplete="off" />
         </label>
       </div>
-      <div className="grid gap-6 sm:grid-cols-2">
-        <Input name="firstName" required placeholder="First name" className="border-clw-black/25 bg-clw-white px-6 py-5 text-xl text-clw-black" />
-        <Input name="lastName" required placeholder="Last name" className="border-clw-black/25 bg-clw-white px-6 py-5 text-xl text-clw-black" />
+      <div className="grid gap-4 sm:grid-cols-2 sm:gap-6">
+        <Input name="firstName" required placeholder="First name" className={inputClassName} />
+        <Input name="lastName" required placeholder="Last name" className={inputClassName} />
       </div>
-      <Input name="email" type="email" required placeholder="Email" className="border-clw-black/25 bg-clw-white px-6 py-5 text-xl text-clw-black" />
-      <select name="topic" required defaultValue="" className="h-14 w-full border border-clw-black/25 bg-clw-white px-6 text-lg text-clw-black">
+      <Input name="email" type="email" required placeholder="Email" className={inputClassName} />
+      <select name="topic" required defaultValue="" className="h-12 w-full border border-clw-black/25 bg-clw-white px-4 text-base text-clw-black sm:h-14 sm:px-6 sm:text-lg">
         <option value="" disabled>Select a topic</option>
         <option value="Donation">Donation</option>
         <option value="Booster Club">Booster Club</option>
@@ -72,12 +74,12 @@ export function ContactForm() {
         <option value="Volunteer">Volunteer</option>
         <option value="General Question">General Question</option>
       </select>
-      <Textarea name="message" required minLength={10} rows={6} placeholder="How can we help?" className="border-clw-black/25 bg-clw-white px-6 py-5 text-xl text-clw-black" />
+      <Textarea name="message" required minLength={10} rows={4} placeholder="How can we help?" className="border-clw-black/25 bg-clw-white px-4 py-4 text-base text-clw-black sm:px-6 sm:py-5 sm:text-xl" />
 
       {error && <p className="text-sm text-red-600">{error}</p>}
       {success && <p className="border border-emerald-600/30 bg-emerald-50 p-4 text-sm text-emerald-800">Your message was sent to the Wizards.</p>}
 
-      <Button type="submit" disabled={loading} className="h-16 w-full rounded-none bg-clw-black font-display text-2xl uppercase tracking-wide text-clw-gold hover:bg-clw-gold hover:text-clw-black">
+      <Button type="submit" disabled={loading} className="h-14 w-full rounded-none bg-clw-black font-display text-xl uppercase tracking-wide text-clw-gold hover:bg-clw-gold hover:text-clw-black sm:h-16 sm:text-2xl">
         {loading ? 'Sending...' : 'Submit Inquiry'}
       </Button>
     </form>
