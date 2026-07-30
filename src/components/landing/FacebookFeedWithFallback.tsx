@@ -41,7 +41,7 @@ export function FacebookFeedWithFallback({ href }: { href: string }) {
   return (
     <div className="border border-clw-gold/25 bg-clw-black-2 p-2 shadow-2xl shadow-black/30 sm:p-3">
       {loading && (
-        <div className="flex min-h-[150px] items-center justify-center px-6 py-8 text-center text-lg leading-relaxed text-clw-gray">
+        <div className="flex min-h-[130px] items-center justify-center px-5 py-7 text-center text-base leading-relaxed text-clw-gray sm:min-h-[150px] sm:px-6 sm:py-8 sm:text-lg">
           Loading the latest Facebook updates...
         </div>
       )}
@@ -51,7 +51,7 @@ export function FacebookFeedWithFallback({ href }: { href: string }) {
         src={src}
         width="500"
         height="420"
-        className={loading ? 'hidden' : 'block min-h-[400px] w-full border-0 bg-clw-white'}
+        className={loading ? 'hidden' : 'block h-[320px] w-full border-0 bg-clw-white sm:h-[380px] lg:h-[420px]'}
         loading="lazy"
         onLoad={() => setLoading(false)}
         onError={() => {
