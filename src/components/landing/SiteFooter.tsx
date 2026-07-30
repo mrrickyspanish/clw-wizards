@@ -23,7 +23,7 @@ const QUICK_LINKS = [
 
 export function SiteFooter() {
   return (
-    <footer className="relative isolate overflow-hidden border-t border-clw-gold/20 bg-clw-black text-clw-white">
+    <footer id="site-footer" className="relative isolate overflow-hidden border-t border-clw-gold/20 bg-clw-black text-clw-white">
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[url('/images/textures/mat-dark.webp')] bg-cover bg-center opacity-45" />
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_8%,rgba(240,192,32,0.08),transparent_24%),linear-gradient(180deg,rgba(0,0,0,0.05),rgba(0,0,0,0.72))]" />
 
