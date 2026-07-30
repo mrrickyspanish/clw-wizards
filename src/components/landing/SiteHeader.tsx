@@ -140,7 +140,7 @@ export function SiteHeader() {
       <Link
         href={href}
         aria-current={active ? 'page' : undefined}
-        className={`group relative flex items-center whitespace-nowrap font-cond text-[0.8rem] font-bold uppercase tracking-[0.12em] transition-colors xl:text-[0.88rem] xl:tracking-[0.14em] 2xl:text-[0.94rem] ${
+        className={`group relative flex items-center whitespace-nowrap font-cond text-[0.9rem] font-bold uppercase tracking-[0.1em] transition-colors xl:text-[0.98rem] xl:tracking-[0.115em] 2xl:text-[1.02rem] ${
           active ? 'text-clw-gold' : 'text-clw-white/90 hover:text-clw-white'
         }`}
       >
@@ -237,8 +237,11 @@ export function SiteHeader() {
             </Link>
           </div>
 
-          <div className="mx-auto hidden h-[86px] max-w-[1600px] grid-cols-[minmax(0,1fr)_84px_minmax(0,1fr)_196px] items-stretch min-[1180px]:grid xl:h-[88px] xl:grid-cols-[minmax(0,1fr)_88px_minmax(0,1fr)_204px]">
-            <nav className="flex items-stretch justify-end gap-5 pr-6 xl:gap-7 xl:pr-8 2xl:gap-10 2xl:pr-11" aria-label="Primary navigation left">
+          <div className="relative mx-auto hidden h-[86px] max-w-[1600px] min-[1180px]:block xl:h-[88px]">
+            <nav
+              className="absolute inset-y-0 right-[calc(50%+54px)] flex items-stretch gap-6 xl:right-[calc(50%+58px)] xl:gap-8 2xl:gap-10"
+              aria-label="Primary navigation left"
+            >
               {DESKTOP_LEFT_LINKS.map((link) => (
                 <DesktopLink key={link.label} {...link} />
               ))}
@@ -247,7 +250,7 @@ export function SiteHeader() {
             <Link
               href="/"
               aria-label="Wizards Wrestling home"
-              className="group relative flex items-center justify-center bg-clw-black"
+              className="group absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center bg-clw-black"
             >
               <span className="relative flex h-[66px] w-[66px] items-center justify-center rounded-full border-[3px] border-clw-gold text-clw-gold transition-transform duration-200 group-hover:scale-105 xl:h-[70px] xl:w-[70px]">
                 <span className="absolute -top-[9px] bg-clw-black px-1.5 text-[0.68rem] leading-none">★</span>
@@ -255,19 +258,21 @@ export function SiteHeader() {
               </span>
             </Link>
 
-            <nav className="flex items-stretch justify-start gap-5 pl-6 xl:gap-7 xl:pl-8 2xl:gap-10 2xl:pl-11" aria-label="Primary navigation right">
-              {DESKTOP_RIGHT_LINKS.map((link) => (
-                <DesktopLink key={link.label} {...link} />
-              ))}
-            </nav>
+            <div className="absolute inset-y-0 left-[calc(50%+54px)] right-6 flex items-center xl:left-[calc(50%+58px)] xl:right-8 2xl:right-10">
+              <nav className="flex h-full items-stretch gap-6 xl:gap-8 2xl:gap-10" aria-label="Primary navigation right">
+                {DESKTOP_RIGHT_LINKS.map((link) => (
+                  <DesktopLink key={link.label} {...link} />
+                ))}
+              </nav>
 
-            <Link
-              href="/login"
-              className="chamfer-sm flex h-full items-center justify-center gap-2 bg-clw-gold px-4 font-cond text-[0.78rem] font-bold uppercase tracking-[0.1em] text-clw-black transition-colors hover:bg-clw-gold-l xl:px-5 xl:text-[0.84rem]"
-            >
-              Parent / Staff Login
-              <ArrowUpRight className="h-4 w-4" />
-            </Link>
+              <Link
+                href="/login"
+                className="chamfer-sm ml-auto flex h-[46px] items-center justify-center gap-1.5 bg-clw-gold px-4 font-cond text-[0.7rem] font-bold uppercase tracking-[0.09em] text-clw-black transition-colors hover:bg-clw-gold-l xl:h-12 xl:px-5 xl:text-[0.76rem]"
+              >
+                Parent / Staff Login
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
           </div>
         </div>
 
