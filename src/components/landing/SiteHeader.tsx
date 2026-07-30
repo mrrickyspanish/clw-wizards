@@ -163,27 +163,27 @@ export function SiteHeader() {
           scrolled ? 'border-b border-clw-gold/15 bg-clw-black/90 backdrop-blur-md' : 'bg-clw-black/55 backdrop-blur-sm'
         }`}
       >
-        <div className="border-b border-clw-white/10 bg-clw-black/85 px-5 py-1.5 sm:px-8 min-[1180px]:px-10 min-[1180px]:py-0 xl:px-12 2xl:px-16">
-          <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 min-[1180px]:min-h-[42px]">
+        <div className="border-b border-clw-white/10 bg-clw-black/90 px-5 py-1.5 sm:px-8 min-[1180px]:px-10 min-[1180px]:py-0 xl:px-12 2xl:px-16">
+          <div className="mx-auto flex min-h-[38px] max-w-[1600px] items-center justify-between gap-4 min-[1180px]:min-h-[42px]">
             <Link
               href="/#location"
-              className="flex min-w-0 items-center gap-1.5 whitespace-nowrap font-cond text-[0.68rem] uppercase tracking-[0.13em] text-clw-white/75 transition-colors hover:text-clw-gold sm:text-xs min-[1180px]:gap-2.5 min-[1180px]:text-[0.76rem] min-[1180px]:tracking-[0.15em]"
+              className="flex min-w-0 items-center gap-1.5 whitespace-nowrap font-cond text-[0.66rem] uppercase tracking-[0.14em] text-clw-white/65 transition-colors hover:text-clw-gold sm:text-[0.72rem] min-[1180px]:gap-2.5 min-[1180px]:text-[0.76rem] min-[1180px]:tracking-[0.15em]"
             >
               <MapPin className="h-3.5 w-3.5 shrink-0 text-clw-gold min-[1180px]:h-4 min-[1180px]:w-4" />
-              <span className="font-semibold text-clw-white/90 min-[1180px]:hidden">Crystal Lake, IL</span>
+              <span className="font-semibold text-clw-white/80 min-[1180px]:hidden">Crystal Lake, IL</span>
               <span className="hidden font-semibold text-clw-white/90 min-[1180px]:inline">Wizards Facility</span>
               <span className="hidden text-clw-white/55 min-[1180px]:inline">975 Nimco Dr, Unit L, Crystal Lake, IL</span>
             </Link>
 
-            <div className="flex items-center gap-3 min-[1180px]:gap-2.5">
+            <div className="flex items-center gap-2 min-[1180px]:gap-2.5">
               <button
                 type="button"
                 onClick={openSearch}
-                className="flex h-7 w-28 items-center justify-between border-b border-clw-white/25 px-1 text-xs text-clw-white/55 transition-colors hover:border-clw-gold hover:text-clw-white sm:w-36 min-[1180px]:h-8 min-[1180px]:w-44 min-[1180px]:border min-[1180px]:border-clw-white/15 min-[1180px]:bg-clw-white/[0.03] min-[1180px]:px-3 min-[1180px]:font-cond min-[1180px]:text-[0.72rem] min-[1180px]:uppercase min-[1180px]:tracking-[0.12em] xl:w-48"
+                className="flex h-8 w-8 items-center justify-center text-clw-white/65 transition-colors hover:text-clw-gold min-[1180px]:w-44 min-[1180px]:justify-between min-[1180px]:border min-[1180px]:border-clw-white/15 min-[1180px]:bg-clw-white/[0.03] min-[1180px]:px-3 min-[1180px]:font-cond min-[1180px]:text-[0.72rem] min-[1180px]:uppercase min-[1180px]:tracking-[0.12em] xl:w-48"
                 aria-label="Open site search"
               >
-                <span>Search</span>
-                <Search className="h-3.5 w-3.5 min-[1180px]:h-4 min-[1180px]:w-4" />
+                <span className="sr-only min-[1180px]:not-sr-only">Search</span>
+                <Search className="h-[1.1rem] w-[1.1rem] min-[1180px]:h-4 min-[1180px]:w-4" />
               </button>
 
               {ORG.social.facebook && (
@@ -192,7 +192,7 @@ export function SiteHeader() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Wizards Wrestling on Facebook"
-                  className="flex h-6 w-6 items-center justify-center rounded-full border border-clw-white/25 text-clw-white/80 transition-colors hover:border-clw-gold hover:text-clw-gold min-[1180px]:h-8 min-[1180px]:w-8"
+                  className="flex h-7 w-7 items-center justify-center rounded-full border border-clw-white/20 text-clw-white/70 transition-colors hover:border-clw-gold hover:text-clw-gold min-[1180px]:h-8 min-[1180px]:w-8"
                 >
                   <svg viewBox="0 0 24 24" aria-hidden className="h-3.5 w-3.5 fill-current min-[1180px]:h-4 min-[1180px]:w-4">
                     <path d="M13.7 21v-8h2.7l.4-3h-3.1V8.1c0-.9.2-1.5 1.6-1.5H17V3.9c-.3 0-1.3-.1-2.4-.1-2.4 0-4 1.4-4 4.1V10H8v3h2.6v8h3.1Z" />
@@ -203,38 +203,38 @@ export function SiteHeader() {
           </div>
         </div>
 
-        <div className="bg-clw-black px-5 py-4 sm:px-8 sm:py-4 min-[1180px]:px-0 min-[1180px]:py-0">
-          <div className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-3 min-[1180px]:hidden">
+        <div className="border-b border-clw-gold/35 bg-clw-black px-5 min-[1180px]:border-b-0 min-[1180px]:px-0">
+          <div className="grid h-[78px] grid-cols-[4.25rem_minmax(0,1fr)_4.25rem] items-center min-[1180px]:hidden sm:h-[82px]">
             <button
               type="button"
-              className="flex flex-col justify-self-start gap-1.5 text-clw-white"
+              className="flex h-12 w-12 flex-col justify-center gap-1.5 justify-self-start text-clw-white"
               onClick={() => setOpen((value) => !value)}
               aria-label="Toggle menu"
             >
               {open ? (
-                <X className="h-6 w-6" />
+                <X className="h-7 w-7" />
               ) : (
                 <>
-                  <span className="block h-0.5 w-12 bg-clw-white" />
-                  <span className="block h-0.5 w-12 bg-clw-white" />
-                  <span className="block h-0.5 w-12 bg-clw-white" />
+                  <span className="block h-0.5 w-10 bg-clw-white" />
+                  <span className="block h-0.5 w-10 bg-clw-white" />
+                  <span className="block h-0.5 w-10 bg-clw-white" />
                 </>
               )}
             </button>
 
-            <Link
-              href="/"
-              className="justify-self-center whitespace-nowrap font-cond text-[1.25rem] font-semibold uppercase leading-none tracking-[0.02em] text-clw-gold sm:text-2xl"
-            >
-              Wizards Wrestling
+            <Link href="/" aria-label="Wizards Wrestling home" className="group justify-self-center bg-clw-black">
+              <span className="relative flex h-[60px] w-[60px] items-center justify-center rounded-full border-[3px] border-clw-gold text-clw-gold transition-transform duration-200 group-active:scale-95 sm:h-[64px] sm:w-[64px]">
+                <span className="absolute -top-[8px] bg-clw-black px-1.5 text-[0.62rem] leading-none">★</span>
+                <span className="pr-1 font-display text-[2.7rem] font-black leading-none tracking-[-0.13em] sm:text-[2.85rem]">W</span>
+              </span>
             </Link>
 
             <Link
-              href="/login"
-              className="flex items-center justify-self-end gap-1 whitespace-nowrap text-sm font-semibold uppercase tracking-wide text-clw-white"
+              href="/join"
+              className="group flex h-12 w-full flex-col items-end justify-center justify-self-end text-clw-white transition-colors hover:text-clw-gold"
             >
-              Login
-              <ArrowUpRight className="h-4 w-4 text-clw-gold" />
+              <ArrowUpRight className="h-5 w-5 text-clw-gold transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+              <span className="font-cond text-[0.78rem] font-bold uppercase tracking-[0.08em]">Join Now</span>
             </Link>
           </div>
 
