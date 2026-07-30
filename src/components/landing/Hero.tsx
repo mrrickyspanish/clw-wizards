@@ -1,5 +1,15 @@
 import { getSiteContent } from '@/lib/content/get'
 
+// The hero art is direction-switched with `lg:hidden` / `hidden lg:block`,
+// but CSS visibility does not stop a download: every viewport was fetching
+// both the mobile photo and the 1.7 MB desktop artwork. Pairing each layer
+// with a <source> that serves a 1x1 pixel to the viewport that never shows
+// it keeps the rendering identical while letting the browser skip the
+// image it cannot use.
+const BLANK_PIXEL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+const DESKTOP_ONLY = '(min-width: 1024px)'
+const MOBILE_ONLY = '(max-width: 1023.98px)'
+
 /**
  * Mission-control hero: full-bleed horizontally like a premium sports landing
  * page. The text stays on a safe internal grid while the media and panel chrome
@@ -29,37 +39,43 @@ export async function Hero() {
       <div id="mobile-cta-trigger" aria-hidden className="pointer-events-none absolute left-0 top-[65%] h-px w-px md:hidden" />
       <div className="relative flex min-h-[86svh] overflow-hidden bg-clw-black-2 sm:min-h-[620px] lg:h-[calc(100vh-104px)] lg:min-h-[616px] lg:max-h-[900px]">
         <div className="absolute inset-0">
-          {/* eslint-disable-next-line @next/next/no-img-element -- real club team photo */}
-          <img
-            src={mobilePhoto}
-            alt=""
-            aria-hidden
-            className="animate-kenburns absolute inset-0 h-full w-full object-cover object-[57%_26%] lg:hidden"
-          />
+          <picture>
+            <source media={DESKTOP_ONLY} srcSet={BLANK_PIXEL} />
+            <img
+              src={mobilePhoto}
+              alt=""
+              aria-hidden
+              className="animate-kenburns absolute inset-0 h-full w-full object-cover object-[57%_26%] lg:hidden"
+            />
+          </picture>
 
-          {/* eslint-disable-next-line @next/next/no-img-element -- supplied desktop hero artwork */}
-          <img
-            src="/images/real/clw_wizards_hero_landscape.png"
-            alt=""
-            aria-hidden
-            className="absolute inset-0 hidden h-full w-full object-cover object-center lg:block"
-            style={{ filter: 'saturate(0.22) contrast(1.06) brightness(0.74)' }}
-          />
+          <picture>
+            <source media={MOBILE_ONLY} srcSet={BLANK_PIXEL} />
+            <img
+              src="/images/real/clw_wizards_hero_landscape.png"
+              alt=""
+              aria-hidden
+              className="absolute inset-0 hidden h-full w-full object-cover object-center lg:block"
+              style={{ filter: 'saturate(0.22) contrast(1.06) brightness(0.74)' }}
+            />
+          </picture>
 
-          {/* eslint-disable-next-line @next/next/no-img-element -- registered cinematic focus pass */}
-          <img
-            src="/images/real/clw_wizards_hero_landscape.png"
-            alt=""
-            aria-hidden
-            className="absolute inset-0 hidden h-full w-full object-cover object-center lg:block"
-            style={{
-              filter: 'saturate(0.72) contrast(1.06) brightness(0.94)',
-              WebkitMaskImage:
-                'radial-gradient(ellipse 42% 72% at 59% 55%, black 0%, black 42%, rgba(0,0,0,.82) 58%, transparent 100%)',
-              maskImage:
-                'radial-gradient(ellipse 42% 72% at 59% 55%, black 0%, black 42%, rgba(0,0,0,.82) 58%, transparent 100%)',
-            }}
-          />
+          <picture>
+            <source media={MOBILE_ONLY} srcSet={BLANK_PIXEL} />
+            <img
+              src="/images/real/clw_wizards_hero_landscape.png"
+              alt=""
+              aria-hidden
+              className="absolute inset-0 hidden h-full w-full object-cover object-center lg:block"
+              style={{
+                filter: 'saturate(0.72) contrast(1.06) brightness(0.94)',
+                WebkitMaskImage:
+                  'radial-gradient(ellipse 42% 72% at 59% 55%, black 0%, black 42%, rgba(0,0,0,.82) 58%, transparent 100%)',
+                maskImage:
+                  'radial-gradient(ellipse 42% 72% at 59% 55%, black 0%, black 42%, rgba(0,0,0,.82) 58%, transparent 100%)',
+              }}
+            />
+          </picture>
 
           <div
             aria-hidden
@@ -115,7 +131,7 @@ export async function Hero() {
             <span className="block">{line2}</span>
             <span className="block text-clw-gold">{line3}</span>
           </h1>
-          <p className="mt-4 flex items-center gap-2 font-cond text-[0.78rem] font-semibold uppercase tracking-[0.24em] text-clw-gold sm:text-sm lg:hidden">
+          <p className="mt-4 flex items-center gap-2 font-cond text-sm font-semibold uppercase tracking-[0.24em] text-clw-gold lg:hidden">
             {eyebrow}
           </p>
         </div>
