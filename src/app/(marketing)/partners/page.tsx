@@ -70,7 +70,7 @@ export default async function PartnersPage() {
             <p className="font-cond text-sm font-semibold uppercase tracking-[0.28em] text-clw-gold-on-light">Partner Wall</p>
             <h2 className="mt-5 font-display text-5xl uppercase leading-none sm:text-6xl">Recognition starts here.</h2>
             <p className="mx-auto mt-6 max-w-2xl text-xl leading-relaxed text-clw-muted-dark">
-              Active sponsor logos and names will appear here automatically as businesses join the Wizards.
+              Active sponsor logos and names will appear here automatically as partners join the Wizards.
             </p>
           </div>
         </section>

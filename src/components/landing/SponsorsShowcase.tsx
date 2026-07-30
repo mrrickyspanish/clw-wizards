@@ -119,7 +119,7 @@ export function SponsorsShowcase({ sponsors }: { sponsors: Sponsor[] }) {
         <div>
           <h2 className="font-display text-5xl uppercase leading-none tracking-wide text-clw-white">Supported by our community</h2>
           <p className="mt-4 text-lg leading-relaxed text-clw-gray">
-            {hasSponsors ? 'Thank you to the businesses that back our wrestlers.' : 'Sponsor logos will live here as partners come on board.'}
+            {hasSponsors ? 'Thank you to the sponsors who back our wrestlers.' : 'Sponsor logos will live here as partners come on board.'}
           </p>
         </div>
         <a href="/sponsorship" className="hidden font-display text-lg uppercase tracking-wide text-clw-gold-ink underline-offset-4 hover:underline sm:block">

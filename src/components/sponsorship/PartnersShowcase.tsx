@@ -27,7 +27,7 @@ const TIER_DETAILS: Record<
   yellow: {
     eyebrow: 'Gold-Level Recognition',
     title: 'Yellow Sponsors',
-    description: 'Community businesses providing meaningful support across the Wizards season.',
+    description: 'Community partners providing meaningful support across the Wizards season.',
     dark: false,
     cardSize: 'standard',
     gridClass: 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
@@ -43,7 +43,7 @@ const TIER_DETAILS: Record<
   white: {
     eyebrow: 'Community Support',
     title: 'White Sponsors',
-    description: 'Businesses and supporters investing directly in opportunities for Wizards wrestlers.',
+    description: 'Partners and supporters investing directly in opportunities for Wizards wrestlers.',
     dark: false,
     cardSize: 'compact',
     gridClass: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5',
@@ -252,7 +252,7 @@ export function PartnersProof({ sponsors }: { sponsors: Sponsor[] }) {
           </div>
         ) : (
           <div className="flex min-h-[230px] items-center justify-center border border-dashed border-clw-gold/30 px-6 text-center text-[#B0B0B0]">
-            Additional partner recognition will appear here as new businesses join the Wizards.
+            Additional partner recognition will appear here as new sponsors join the Wizards.
           </div>
         )}
       </div>
