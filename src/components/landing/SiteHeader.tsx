@@ -170,8 +170,9 @@ export function SiteHeader() {
               className="flex min-w-0 items-center gap-1.5 whitespace-nowrap font-cond text-[0.68rem] uppercase tracking-[0.13em] text-clw-white/75 transition-colors hover:text-clw-gold sm:text-xs min-[1180px]:gap-2.5 min-[1180px]:text-[0.76rem] min-[1180px]:tracking-[0.15em]"
             >
               <MapPin className="h-3.5 w-3.5 shrink-0 text-clw-gold min-[1180px]:h-4 min-[1180px]:w-4" />
-              <span className="font-semibold text-clw-white/90">Wizards Facility</span>
-              <span className="hidden text-clw-white/55 sm:inline">975 Nimco Dr, Unit L, Crystal Lake, IL</span>
+              <span className="font-semibold text-clw-white/90 min-[1180px]:hidden">Crystal Lake, IL</span>
+              <span className="hidden font-semibold text-clw-white/90 min-[1180px]:inline">Wizards Facility</span>
+              <span className="hidden text-clw-white/55 min-[1180px]:inline">975 Nimco Dr, Unit L, Crystal Lake, IL</span>
             </Link>
 
             <div className="flex items-center gap-3 min-[1180px]:gap-2.5">
@@ -202,7 +203,7 @@ export function SiteHeader() {
           </div>
         </div>
 
-        <div className="bg-clw-black px-5 py-3 sm:px-8 sm:py-3.5 min-[1180px]:px-0 min-[1180px]:py-0">
+        <div className="bg-clw-black px-5 py-4 sm:px-8 sm:py-4 min-[1180px]:px-0 min-[1180px]:py-0">
           <div className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-3 min-[1180px]:hidden">
             <button
               type="button"
