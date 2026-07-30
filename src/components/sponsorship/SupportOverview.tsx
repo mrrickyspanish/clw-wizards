@@ -69,7 +69,7 @@ export function SupportOverview() {
         </div>
 
         <div className="bg-clw-white px-5 py-6 text-center text-clw-black sm:px-8 sm:py-10">
-          <p className="mx-auto max-w-4xl text-base leading-relaxed text-clw-black/70 sm:text-xl">
+          <p className="mx-auto max-w-4xl font-body text-lg font-medium leading-[1.65] text-clw-ink/85 sm:text-xl sm:leading-relaxed">
             Crystal Lake Wizards Wrestling Club exists because of families, alumni, local businesses, and community partners who believe in building young athletes. Your support helps provide elite coaching, tournament opportunities, equipment, and scholarships for every wrestler who walks into our room.
           </p>
         </div>
