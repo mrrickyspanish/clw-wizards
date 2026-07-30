@@ -140,7 +140,7 @@ export function SiteHeader() {
       <Link
         href={href}
         aria-current={active ? 'page' : undefined}
-        className={`group relative flex items-center whitespace-nowrap font-cond text-[0.9rem] font-bold uppercase tracking-[0.1em] transition-colors xl:text-[0.98rem] xl:tracking-[0.115em] 2xl:text-[1.02rem] ${
+        className={`group relative flex items-center whitespace-nowrap font-cond text-[1rem] font-bold uppercase tracking-[0.11em] transition-colors xl:text-[1.08rem] xl:tracking-[0.12em] 2xl:text-[1.12rem] ${
           active ? 'text-clw-gold' : 'text-clw-white/90 hover:text-clw-white'
         }`}
       >
@@ -239,7 +239,7 @@ export function SiteHeader() {
 
           <div className="relative mx-auto hidden h-[86px] max-w-[1600px] min-[1180px]:block xl:h-[88px]">
             <nav
-              className="absolute inset-y-0 right-[calc(50%+54px)] flex items-stretch gap-6 xl:right-[calc(50%+58px)] xl:gap-8 2xl:gap-10"
+              className="absolute inset-y-0 right-[calc(50%+54px)] flex items-stretch gap-7 xl:right-[calc(50%+58px)] xl:gap-9 2xl:gap-11"
               aria-label="Primary navigation left"
             >
               {DESKTOP_LEFT_LINKS.map((link) => (
@@ -259,7 +259,7 @@ export function SiteHeader() {
             </Link>
 
             <div className="absolute inset-y-0 left-[calc(50%+54px)] right-6 flex items-center xl:left-[calc(50%+58px)] xl:right-8 2xl:right-10">
-              <nav className="flex h-full items-stretch gap-6 xl:gap-8 2xl:gap-10" aria-label="Primary navigation right">
+              <nav className="flex h-full items-stretch gap-7 xl:gap-9 2xl:gap-11" aria-label="Primary navigation right">
                 {DESKTOP_RIGHT_LINKS.map((link) => (
                   <DesktopLink key={link.label} {...link} />
                 ))}
