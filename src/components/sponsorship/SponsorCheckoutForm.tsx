@@ -8,6 +8,21 @@ import type { SponsorTierRow } from '@/types/database'
 
 type SponsorLevel = { value: string; label: string; amount: number }
 
+function tierBandClass(value: string) {
+  switch (value) {
+    case 'white':
+      return 'bg-white ring-1 ring-inset ring-clw-ink/25'
+    case 'black':
+      return 'bg-[#111111]'
+    case 'yellow':
+      return 'bg-clw-gold'
+    case 'platinum':
+      return 'bg-[#BFC3C9]'
+    default:
+      return 'bg-clw-gold'
+  }
+}
+
 export function SponsorCheckoutForm({ tiers }: { tiers: SponsorTierRow[] }) {
   // Only tiers with a set price can be checked out online.
   const levels: SponsorLevel[] = tiers
@@ -69,25 +84,25 @@ export function SponsorCheckoutForm({ tiers }: { tiers: SponsorTierRow[] }) {
   }
 
   const inputClassName =
-    'h-14 rounded-none border-clw-ink/25 bg-white px-4 text-clw-ink placeholder:text-clw-muted-dark/65 focus-visible:ring-clw-gold focus-visible:ring-offset-[#F7F7F7]'
-  const labelClassName = 'font-cond text-sm font-semibold uppercase tracking-[0.16em] text-clw-ink/75'
+    'h-12 rounded-none border-clw-ink/25 bg-white px-4 text-base text-clw-ink placeholder:text-clw-muted-dark/65 focus-visible:ring-clw-gold focus-visible:ring-offset-[#F7F7F7] sm:h-14'
+  const labelClassName = 'font-cond text-xs font-semibold uppercase tracking-[0.15em] text-clw-ink/75 sm:text-sm sm:tracking-[0.16em]'
 
   return (
-    <form onSubmit={handleSubmit} className="mt-10 space-y-6 border border-clw-ink/15 bg-[#F7F7F7] p-6 text-clw-ink sm:p-8">
-      <div className="grid gap-5 sm:grid-cols-2">
-        <label className="space-y-2.5">
+    <form onSubmit={handleSubmit} className="mt-8 space-y-5 border border-clw-ink/15 bg-[#F7F7F7] p-4 text-clw-ink sm:mt-10 sm:space-y-6 sm:p-8">
+      <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
+        <label className="space-y-2">
           <span className={labelClassName}>Business name</span>
           <Input name="sponsorName" required className={inputClassName} />
         </label>
-        <label className="space-y-2.5">
+        <label className="space-y-2">
           <span className={labelClassName}>Contact name</span>
           <Input name="contactName" required className={inputClassName} />
         </label>
-        <label className="space-y-2.5">
+        <label className="space-y-2">
           <span className={labelClassName}>Email</span>
           <Input name="contactEmail" type="email" required className={inputClassName} />
         </label>
-        <label className="space-y-2.5">
+        <label className="space-y-2">
           <span className={labelClassName}>Website</span>
           <Input name="websiteUrl" type="url" placeholder="https://" className={inputClassName} />
         </label>
@@ -95,16 +110,17 @@ export function SponsorCheckoutForm({ tiers }: { tiers: SponsorTierRow[] }) {
 
       <fieldset>
         <legend className={labelClassName}>Sponsorship level</legend>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div className="mt-3 grid grid-cols-2 gap-3">
           {levels.map((level) => (
             <label
               key={level.value}
-              className={`cursor-pointer border p-5 transition ${
+              className={`relative cursor-pointer overflow-hidden border bg-white p-4 pt-6 transition sm:p-5 sm:pt-7 ${
                 tier === level.value
-                  ? 'border-clw-gold bg-clw-gold/15'
-                  : 'border-clw-ink/20 bg-white hover:border-clw-gold'
+                  ? 'border-clw-gold shadow-[0_0_0_1px_rgba(240,192,32,.35)]'
+                  : 'border-clw-ink/20 hover:border-clw-gold'
               }`}
             >
+              <span aria-hidden className={`absolute inset-x-0 top-0 h-2 ${tierBandClass(level.value)}`} />
               <input
                 type="radio"
                 name="tier"
@@ -113,8 +129,8 @@ export function SponsorCheckoutForm({ tiers }: { tiers: SponsorTierRow[] }) {
                 onChange={() => setTier(level.value)}
                 className="sr-only"
               />
-              <span className="block font-display text-xl uppercase text-clw-ink">{level.label}</span>
-              <span className="mt-1 block font-cond text-2xl tracking-wide text-clw-gold-on-light">${level.amount.toLocaleString('en-US')}</span>
+              <span className="block font-display text-base uppercase leading-tight text-clw-ink sm:text-xl">{level.label}</span>
+              <span className="mt-2 block font-cond text-xl tracking-wide text-clw-gold-on-light sm:text-2xl">${level.amount.toLocaleString('en-US')}</span>
             </label>
           ))}
         </div>
@@ -125,7 +141,7 @@ export function SponsorCheckoutForm({ tiers }: { tiers: SponsorTierRow[] }) {
       <Button
         type="submit"
         disabled={loading}
-        className="h-14 w-full rounded-none bg-[#0B0B0B] font-display text-xl uppercase tracking-wide text-clw-gold hover:bg-clw-gold hover:text-[#0B0B0B]"
+        className="h-13 w-full rounded-none bg-[#0B0B0B] font-display text-lg uppercase tracking-wide text-clw-gold hover:bg-clw-gold hover:text-[#0B0B0B] sm:h-14 sm:text-xl"
       >
         {loading ? 'Starting checkout...' : `Continue to Stripe for $${selected ? selected.amount.toLocaleString('en-US') : ''}`}
       </Button>
