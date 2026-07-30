@@ -8,7 +8,7 @@ export async function HomeTeamSection() {
   const tonyQuote = content.get('home.tony.quote')
   const tonyPhoto = content.get('home.tony.photo')
   return (
-    <section className="section-light relative isolate overflow-hidden border-b border-clw-gold/30 bg-[#E6E6E9] px-5 pt-6 pb-14 text-clw-ink sm:px-8 sm:pt-8 sm:pb-16 lg:px-12 lg:pt-10 lg:pb-20 xl:px-16 2xl:px-20">
+    <section className="section-light relative isolate overflow-hidden border-b border-clw-gold/30 bg-[#E6E6E9] px-5 pb-14 pt-6 text-clw-ink sm:px-8 sm:pb-16 sm:pt-8 lg:px-12 lg:py-14 xl:px-16 2xl:px-20 2xl:py-20">
       {/* faint gold wash for warmth on the gray band; grain comes from .section-light */}
       <div
         aria-hidden
@@ -19,35 +19,35 @@ export async function HomeTeamSection() {
         <header className="max-w-3xl">
           <p className="font-cond text-sm uppercase tracking-[0.32em] text-clw-gold-on-light">Why We Started</p>
           <h2 className="mt-4 whitespace-nowrap uppercase leading-[0.92] text-clw-ink">
-            <span className="mr-2 inline font-cond text-[clamp(2.2rem,9.5vw,5rem)] font-light tracking-[-0.04em] sm:mr-3">
+            <span className="mr-2 inline font-cond text-[clamp(2.2rem,9.5vw,5rem)] font-light tracking-[-0.04em] sm:mr-3 lg:text-[3.7rem] xl:text-[4.2rem] 2xl:text-[5rem]">
               Built on one
             </span>
-            <span className="inline font-display text-[clamp(2.45rem,10.5vw,5.6rem)] font-black tracking-[-0.035em] text-clw-gold-on-light">
+            <span className="inline font-display text-[clamp(2.45rem,10.5vw,5.6rem)] font-black tracking-[-0.035em] text-clw-gold-on-light lg:text-[4rem] xl:text-[4.6rem] 2xl:text-[5.6rem]">
               Belief.
             </span>
           </h2>
-          <p className="mt-5 max-w-2xl text-lg leading-relaxed text-clw-muted-dark sm:text-xl">
+          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-clw-muted-dark sm:text-xl lg:text-lg">
             The idea Wizards Wrestling was built on — and the standard behind every practice.
           </p>
         </header>
 
-        <div className="mt-10 grid items-center gap-10 lg:mt-14 lg:grid-cols-[0.92fr_1.08fr] lg:gap-14">
+        <div className="mt-8 grid items-center gap-8 lg:mt-10 lg:grid-cols-[0.92fr_1.08fr] lg:gap-10 2xl:mt-14 2xl:gap-14">
           {/* Coach Tony — branded, framed portrait */}
-          <figure className="relative mx-auto w-full max-w-md lg:mx-0">
+          <figure className="relative mx-auto w-full max-w-md lg:mx-0 lg:max-w-none">
             <div className="chamfer-md relative overflow-hidden border-2 border-clw-gold/60 bg-clw-black-2 shadow-2xl shadow-black/25">
-              <div className="relative aspect-[4/5] overflow-hidden">
+              <div className="relative aspect-[4/5] overflow-hidden lg:aspect-[5/4] 2xl:aspect-[4/5]">
                 {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
                 <img
                   src={tonyPhoto}
                   alt="Coach Tony Fontanetta with Wizards wrestlers at the club banquet"
-                  className="h-full w-full origin-[50%_30%] scale-[1.55] object-cover object-center contrast-105 saturate-[0.9]"
+                  className="h-full w-full origin-[50%_30%] scale-[1.55] object-cover object-center contrast-105 saturate-[0.9] lg:scale-[1.3] 2xl:scale-[1.55]"
                 />
                 {/* dark scrim on the image (literal black, not the palette token) so the
                     caption stays legible regardless of the section's light palette */}
                 <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-                <figcaption className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
+                <figcaption className="absolute inset-x-0 bottom-0 p-5 sm:p-6 lg:p-5 2xl:p-6">
                   <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold">Founder & Head Coach</p>
-                  <p className="mt-1.5 font-display text-3xl uppercase leading-none text-white sm:text-4xl">Tony Fontanetta</p>
+                  <p className="mt-1.5 font-display text-3xl uppercase leading-none text-white sm:text-4xl lg:text-3xl 2xl:text-4xl">Tony Fontanetta</p>
                 </figcaption>
               </div>
             </div>
@@ -57,23 +57,23 @@ export async function HomeTeamSection() {
               alt=""
               aria-hidden
               draggable={false}
-              className="absolute -left-4 -top-5 h-20 w-20 -rotate-[8deg] select-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] sm:-left-6 sm:-top-6 sm:h-24 sm:w-24"
+              className="absolute -left-4 -top-5 h-20 w-20 -rotate-[8deg] select-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] sm:-left-6 sm:-top-6 sm:h-24 sm:w-24 lg:h-20 lg:w-20 2xl:h-24 2xl:w-24"
             />
           </figure>
 
           {/* Philosophy + links */}
           <div>
             <figure className="border-l-2 border-clw-gold/70 pl-6">
-              <blockquote className="font-body text-2xl font-medium leading-snug text-clw-ink sm:text-3xl sm:leading-snug">
+              <blockquote className="font-body text-2xl font-medium leading-snug text-clw-ink sm:text-3xl sm:leading-snug lg:text-2xl 2xl:text-3xl">
                 <span aria-hidden className="mr-1 font-display text-clw-gold-on-light">&ldquo;</span>
                 {tonyQuote}
               </blockquote>
-              <figcaption className="mt-5 font-cond text-base uppercase tracking-[0.18em] text-clw-muted-dark">
+              <figcaption className="mt-4 font-cond text-base uppercase tracking-[0.18em] text-clw-muted-dark 2xl:mt-5">
                 Tony Fontanetta — President, Head Coach &amp; Club Coordinator
               </figcaption>
             </figure>
 
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 2xl:mt-9">
               <Link
                 href="/about"
                 className="chamfer-sm inline-flex min-h-12 items-center justify-center gap-2 bg-clw-gold px-6 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-ink transition hover:bg-clw-gold-l"
