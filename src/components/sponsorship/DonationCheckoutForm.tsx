@@ -69,8 +69,8 @@ export function DonationCheckoutForm({
     : 'border-clw-gold/25 text-clw-gray hover:border-clw-gold/60 hover:text-clw-gold'
 
   return (
-    <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+    <form onSubmit={handleSubmit} className="mt-6 space-y-3 sm:mt-8 sm:space-y-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         {presets.map((preset) => (
           <button
             key={preset}
@@ -79,7 +79,7 @@ export function DonationCheckoutForm({
               setAmount(preset)
               setShowCustom(false)
             }}
-            className={`min-h-12 border px-4 py-3 font-cond text-xl tracking-wide transition ${
+            className={`min-h-11 border px-2 py-2.5 font-cond text-lg tracking-wide transition sm:min-h-12 sm:px-4 sm:py-3 sm:text-xl ${
               !showCustom && amount === preset
                 ? 'border-clw-gold bg-clw-gold text-clw-black'
                 : inactiveClass
@@ -91,7 +91,7 @@ export function DonationCheckoutForm({
         <button
           type="button"
           onClick={() => setShowCustom(true)}
-          className={`min-h-12 border px-4 py-3 font-cond text-xl tracking-wide transition ${
+          className={`min-h-11 border px-2 py-2.5 font-cond text-lg tracking-wide transition sm:min-h-12 sm:px-4 sm:py-3 sm:text-xl ${
             showCustom ? 'border-clw-gold bg-clw-gold text-clw-black' : inactiveClass
           }`}
         >
@@ -118,7 +118,7 @@ export function DonationCheckoutForm({
       <Button
         type="submit"
         disabled={loading}
-        className={`h-14 w-full rounded-none font-display text-xl uppercase tracking-wide ${
+        className={`h-12 w-full rounded-none font-display text-lg uppercase tracking-wide sm:h-14 sm:text-xl ${
           light ? 'bg-clw-black text-clw-gold hover:bg-clw-gold hover:text-clw-black' : ''
         }`}
       >
