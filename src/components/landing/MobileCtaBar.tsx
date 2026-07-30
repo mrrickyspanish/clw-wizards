@@ -44,7 +44,7 @@ export function MobileCtaBar() {
     <div
       inert={!visible}
       aria-hidden={!visible}
-      className={`fixed inset-x-0 bottom-0 z-[100] border-t border-clw-gold/10 bg-clw-black/95 px-4 pb-3 pt-3 backdrop-blur-md transition-[transform,opacity] duration-300 ease-out [backface-visibility:hidden] [transform:translateZ(0)] motion-reduce:transition-none md:hidden ${
+      className={`fixed inset-x-0 bottom-0 z-[100] border-t border-clw-gold/10 bg-clw-black/95 px-4 pb-3 pt-3 backdrop-blur-md transition-[transform,opacity] duration-300 ease-out [backface-visibility:hidden] will-change-transform motion-reduce:transition-none md:hidden ${
         visible ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-full opacity-0'
       }`}
     >
