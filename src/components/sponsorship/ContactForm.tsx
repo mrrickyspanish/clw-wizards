@@ -6,7 +6,17 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 
-export function ContactForm() {
+type ContactFormProps = {
+  defaultTopic?: string
+  hideTopic?: boolean
+  submitLabel?: string
+}
+
+export function ContactForm({
+  defaultTopic = '',
+  hideTopic = false,
+  submitLabel = 'Submit Inquiry',
+}: ContactFormProps = {}) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -54,7 +64,7 @@ export function ContactForm() {
   const inputClassName = 'h-12 border-clw-black/25 bg-clw-white px-4 text-base text-clw-black sm:h-14 sm:px-6 sm:text-xl'
 
   return (
-    <form onSubmit={handleSubmit} className="mt-8 space-y-4 sm:mt-14 sm:space-y-6">
+    <form onSubmit={handleSubmit} className="mt-8 space-y-4 sm:mt-10 sm:space-y-6">
       <div className="hidden" aria-hidden>
         <label>
           Company
@@ -66,21 +76,32 @@ export function ContactForm() {
         <Input name="lastName" required placeholder="Last name" className={inputClassName} />
       </div>
       <Input name="email" type="email" required placeholder="Email" className={inputClassName} />
-      <select name="topic" required defaultValue="" className="h-12 w-full border border-clw-black/25 bg-clw-white px-4 text-base text-clw-black sm:h-14 sm:px-6 sm:text-lg">
-        <option value="" disabled>Select a topic</option>
-        <option value="Donation">Donation</option>
-        <option value="Booster Club">Booster Club</option>
-        <option value="Corporate Sponsorship">Corporate Sponsorship</option>
-        <option value="Volunteer">Volunteer</option>
-        <option value="General Question">General Question</option>
-      </select>
-      <Textarea name="message" required minLength={10} rows={4} placeholder="How can we help?" className="border-clw-black/25 bg-clw-white px-4 py-4 text-base text-clw-black sm:px-6 sm:py-5 sm:text-xl" />
+
+      {hideTopic ? (
+        <input type="hidden" name="topic" value={defaultTopic || 'General Question'} />
+      ) : (
+        <select
+          name="topic"
+          required
+          defaultValue={defaultTopic}
+          className="h-12 w-full border border-clw-black/25 bg-clw-white px-4 text-base text-clw-black sm:h-14 sm:px-6 sm:text-lg"
+        >
+          <option value="" disabled>Select a topic</option>
+          <option value="Donation">Donation</option>
+          <option value="Booster Club">Booster Club</option>
+          <option value="Corporate Sponsorship">Corporate Sponsorship</option>
+          <option value="Volunteer">Volunteer</option>
+          <option value="General Question">General Question</option>
+        </select>
+      )}
+
+      <Textarea name="message" required minLength={10} rows={4} placeholder="Tell us how you would like to help." className="border-clw-black/25 bg-clw-white px-4 py-4 text-base text-clw-black sm:px-6 sm:py-5 sm:text-xl" />
 
       {error && <p className="text-sm text-red-600">{error}</p>}
       {success && <p className="border border-emerald-600/30 bg-emerald-50 p-4 text-sm text-emerald-800">Your message was sent to the Wizards.</p>}
 
       <Button type="submit" disabled={loading} className="h-14 w-full rounded-none bg-clw-black font-display text-xl uppercase tracking-wide text-clw-gold hover:bg-clw-gold hover:text-clw-black sm:h-16 sm:text-2xl">
-        {loading ? 'Sending...' : 'Submit Inquiry'}
+        {loading ? 'Sending...' : submitLabel}
       </Button>
     </form>
   )
