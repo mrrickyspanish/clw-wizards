@@ -46,14 +46,14 @@ export function SupportOverview() {
     <>
       <section className="bg-clw-black text-clw-white">
         <div className="relative h-[360px] overflow-hidden sm:h-[420px] lg:h-[460px] xl:h-[500px]">
-          <SupportMedia
+          {/* eslint-disable-next-line @next/next/no-img-element -- repo-sourced club photography */}
+          <img
             src="/images/real/team_march2025.jpg"
             alt="Crystal Lake Wizards team photo"
-            className="absolute inset-0"
-            position="center"
-            dim="bg-clw-black/45"
+            className="absolute inset-0 h-full w-full object-cover object-center grayscale contrast-110 brightness-[0.62]"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-clw-black/70 via-transparent to-clw-black/25" />
+          <div className="absolute inset-0 bg-clw-black/20" />
+          <div className="absolute inset-0 bg-gradient-to-t from-clw-black/72 via-clw-black/10 to-clw-black/25" />
           <div className="absolute inset-0 flex items-center justify-center px-6 py-10 sm:px-10">
             <div className="w-full max-w-5xl text-center">
               <p className="font-cond text-sm font-semibold uppercase tracking-[0.32em] text-clw-gold sm:text-base">
