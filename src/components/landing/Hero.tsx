@@ -11,6 +11,19 @@ export async function Hero() {
   const line2 = content.get('home.hero.line2')
   const line3 = content.get('home.hero.line3')
   const mobilePhoto = content.get('home.hero.photo')
+
+  const eyebrow = (
+    <>
+      <svg viewBox="0 0 24 24" aria-hidden className="h-3.5 w-3.5 shrink-0 fill-clw-gold">
+        <path d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 7.1-1.01z" />
+      </svg>
+      Wizards Wrestling Club
+      <svg viewBox="0 0 24 24" aria-hidden className="h-3.5 w-3.5 shrink-0 fill-clw-gold">
+        <path d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 7.1-1.01z" />
+      </svg>
+    </>
+  )
+
   return (
     <section className="relative isolate overflow-hidden border-b border-clw-gold/10 bg-clw-black">
       <div className="relative flex min-h-[86svh] overflow-hidden bg-clw-black-2 sm:min-h-[620px] lg:h-[calc(100vh-104px)] lg:min-h-[616px] lg:max-h-[900px]">
@@ -93,20 +106,17 @@ export async function Hero() {
         </div>
 
         <div className="relative z-10 flex max-w-4xl flex-col justify-end px-5 pb-28 pt-16 sm:px-8 sm:pb-24 lg:min-h-[616px] lg:w-[42%] lg:max-w-none lg:items-start lg:justify-center lg:px-12 lg:py-0 lg:text-left xl:w-[44%] xl:px-16 2xl:w-[46%] 2xl:px-20">
-          <p className="mb-3 flex items-center gap-2.5 font-cond text-sm font-semibold uppercase tracking-[0.32em] text-clw-gold lg:mb-4 lg:text-base lg:tracking-[0.28em]">
-            <svg viewBox="0 0 24 24" aria-hidden className="h-3.5 w-3.5 shrink-0 fill-clw-gold">
-              <path d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 7.1-1.01z" />
-            </svg>
-            Wizards Wrestling Club
-            <svg viewBox="0 0 24 24" aria-hidden className="h-3.5 w-3.5 shrink-0 fill-clw-gold">
-              <path d="M12 2l2.9 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 7.1-1.01z" />
-            </svg>
+          <p className="mb-4 hidden items-center gap-2.5 font-cond text-base font-semibold uppercase tracking-[0.28em] text-clw-gold lg:flex">
+            {eyebrow}
           </p>
           <h1 className="font-impact text-[5rem] font-black uppercase leading-[0.83] tracking-[-0.02em] text-clw-white sm:text-[6.1rem] lg:max-w-none lg:text-[6.625rem] lg:tracking-normal xl:text-[8.125rem] 2xl:text-[9.5rem]">
             <span className="block">{line1}</span>
             <span className="block">{line2}</span>
             <span className="block text-clw-gold">{line3}</span>
           </h1>
+          <p className="mt-4 flex items-center gap-2 font-cond text-[0.78rem] font-semibold uppercase tracking-[0.24em] text-clw-gold sm:text-sm lg:hidden">
+            {eyebrow}
+          </p>
         </div>
       </div>
     </section>
