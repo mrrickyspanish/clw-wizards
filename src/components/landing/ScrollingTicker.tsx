@@ -3,13 +3,13 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 
-import { chicagoDateString } from '@/lib/chicago-time'
+import { chicagoDatePlusDays, chicagoDateString } from '@/lib/chicago-time'
 import { createOptionalBrowserSupabase } from '@/lib/supabase/browser'
 import styles from './ScrollingTicker.module.css'
 
 export type TickerItem = {
   text: string
-  kind?: 'info' | 'promo'
+  kind?: 'info' | 'promo' | 'event'
   href?: string
 }
 
@@ -31,7 +31,9 @@ type PlatinumSponsor = {
   website_url: string | null
 }
 
-const MAX_TICKER_EVENTS = 2
+// A busy month should not push the sponsor rotation out of reach. Most months
+// come in under this; the cap only bites on unusually full ones.
+const MAX_TICKER_EVENTS = 4
 
 // Phase lengths for one ticker item. A wide line travels its own full width at
 // a readable pace instead of a fixed duration, so a long event title does not
@@ -39,7 +41,6 @@ const MAX_TICKER_EVENTS = 2
 const ENTER_MS = 460
 const HOLD_MS = 900
 const MARQUEE_PIXELS_PER_SECOND = 78
-const EVENT_PREFIX = /^(Next Event|Then) /
 
 const CLW_HEADER_ARIA_LABEL = 'Wizards Wrestling sponsorship levels'
 
@@ -97,13 +98,34 @@ function formatEventTime(time: string | null) {
   }).format(value)
 }
 
-function eventTickerText(event: CalendarCandidate, position: number) {
+/**
+ * Everything still to come this calendar month. When the month is empty --
+ * either nothing was scheduled or the last one has already passed -- fall
+ * through to the single next event on the books, whenever it lands.
+ *
+ * `candidates` is already filtered to today onward and sorted, and dates are
+ * stored as YYYY-MM-DD, so the month test is a string prefix compare.
+ */
+function selectTickerEvents(candidates: CalendarCandidate[], today: string) {
+  const thisMonth = candidates.filter((event) => event.date.slice(0, 7) === today.slice(0, 7))
+  return thisMonth.length ? thisMonth.slice(0, MAX_TICKER_EVENTS) : candidates.slice(0, 1)
+}
+
+/**
+ * Deliberately avoids month-relative wording. "Next month" reads as far away
+ * on the 30th when the event is three days out, and the printed date already
+ * answers the question. Only same-day and next-day get a prefix, because those
+ * are the two the date alone does not make obvious at a glance.
+ */
+function eventTickerText(event: CalendarCandidate, today: string, tomorrow: string) {
   const date = formatEventDate(event.date)
   if (!date) return null
 
   const time = formatEventTime(event.startTime)
-  const label = position === 0 ? 'Next Event' : 'Then'
-  return `${label} • ${event.title} • ${date}${time ? ` • ${time}` : ''}`
+  const day = event.date.slice(0, 10)
+  const prefix = day === today ? 'Today • ' : day === tomorrow ? 'Tomorrow • ' : ''
+
+  return `${prefix}${event.title} • ${date}${time ? ` • ${time}` : ''}`
 }
 
 export default function ScrollingTicker({
@@ -178,7 +200,7 @@ export default function ScrollingTicker({
 
       if (cancelled) return
 
-      setUpcomingEvents(candidates.slice(0, MAX_TICKER_EVENTS))
+      setUpcomingEvents(selectTickerEvents(candidates, today))
       setPlatinumSponsors(
         (sponsors ?? [])
           .filter((sponsor): sponsor is PlatinumSponsor => Boolean(sponsor?.name))
@@ -209,13 +231,15 @@ export default function ScrollingTicker({
       ]
     : CLW_HEADER_ITEMS
 
+  const today = chicagoDateString()
+  const tomorrow = chicagoDatePlusDays(1)
   const resolvedEvents = upcomingEvents
-    .map((event, position) => eventTickerText(event, position))
+    .map((event) => eventTickerText(event, today, tomorrow))
     .filter((text): text is string => Boolean(text))
 
   const eventItems: TickerItem[] = resolvedEvents.length
-    ? resolvedEvents.map((text) => ({ text, href: '/events' }))
-    : [{ text: 'Next Event • View the club calendar.', href: '/events' }]
+    ? resolvedEvents.map((text) => ({ text, kind: 'event' as const, href: '/events' }))
+    : [{ text: 'View the club calendar.', kind: 'event' as const, href: '/events' }]
 
   const feedItems: TickerItem[] = isClwHeaderFeed ? [...sponsorItems, ...eventItems] : items
 
@@ -275,7 +299,7 @@ export default function ScrollingTicker({
 
   const item = safeItems[index] ?? safeItems[0]
   const isPromo = item.kind === 'promo'
-  const isEvent = EVENT_PREFIX.test(item.text)
+  const isEvent = item.kind === 'event'
   const resolvedAriaLabel = isClwHeaderFeed
     ? 'Wizards Wrestling sponsors and next calendar event'
     : ariaLabel
