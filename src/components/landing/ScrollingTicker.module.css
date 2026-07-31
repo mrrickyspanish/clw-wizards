@@ -17,6 +17,7 @@
   height: 42px;
   align-items: center;
   justify-content: center;
+  padding-inline: 0.85rem;
   overflow: hidden;
 }
 
@@ -26,9 +27,35 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-inline: 0.85rem;
-  animation: ticker-roll var(--ticker-duration, 4240ms) cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: ticker-enter var(--ticker-enter, 460ms) cubic-bezier(0.22, 1, 0.36, 1) both;
   will-change: transform;
+}
+
+/* A travelling line starts flush left so the opening words read first. */
+.rowScroll {
+  justify-content: flex-start;
+}
+
+/* The inner track owns the second half of the sequence, so the horizontal
+   travel does not fight the vertical entrance for the transform property. */
+.trackLift,
+.trackScroll {
+  display: flex;
+  align-items: center;
+  animation-delay: var(--ticker-hold, 900ms);
+  animation-duration: var(--ticker-exit, 3000ms);
+  animation-fill-mode: both;
+  will-change: transform;
+}
+
+.trackLift {
+  animation-name: ticker-lift;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.trackScroll {
+  animation-name: ticker-travel;
+  animation-timing-function: linear;
 }
 
 .text {
@@ -52,6 +79,17 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Overrides the fit-to-viewport clamping so the full line can be measured and
+   then scrolled instead of being cut off with an ellipsis. */
+.textScroll {
+  max-width: none;
+}
+
+.textScroll .message {
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .infoText {
@@ -112,18 +150,37 @@
   border: 0;
 }
 
-@keyframes ticker-roll {
-  0%,
-  86% {
+@keyframes ticker-enter {
+  from {
+    transform: translateY(105%);
+  }
+  to {
     transform: translateY(0);
   }
-  100% {
-    transform: translateY(-110%);
+}
+
+@keyframes ticker-lift {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-160%);
+  }
+}
+
+/* Travels one full text width, which carries the trailing character past the
+   left edge and leaves the viewport empty before the next item enters. */
+@keyframes ticker-travel {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-1 * var(--ticker-distance, 0px)));
   }
 }
 
 @media (min-width: 640px) {
-  .row {
+  .viewport {
     padding-inline: 1.25rem;
   }
 
@@ -141,7 +198,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .row {
+  .row,
+  .trackLift,
+  .trackScroll {
     animation: none;
     transform: none;
   }

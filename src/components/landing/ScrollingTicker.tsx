@@ -26,6 +26,21 @@ type CalendarCandidate = {
   startTime: string | null
 }
 
+type PlatinumSponsor = {
+  name: string
+  website_url: string | null
+}
+
+const MAX_TICKER_EVENTS = 2
+
+// Phase lengths for one ticker item. A wide line travels its own full width at
+// a readable pace instead of a fixed duration, so a long event title does not
+// whip past faster than a short sponsor name.
+const ENTER_MS = 460
+const HOLD_MS = 900
+const MARQUEE_PIXELS_PER_SECOND = 78
+const EVENT_PREFIX = /^(Next Event|Then) /
+
 const CLW_HEADER_ARIA_LABEL = 'Wizards Wrestling sponsorship levels'
 
 const CLW_HEADER_ITEMS: TickerItem[] = [
@@ -82,12 +97,13 @@ function formatEventTime(time: string | null) {
   }).format(value)
 }
 
-function eventTickerText(event: CalendarCandidate) {
+function eventTickerText(event: CalendarCandidate, position: number) {
   const date = formatEventDate(event.date)
   if (!date) return null
 
   const time = formatEventTime(event.startTime)
-  return `Next Event • ${event.title} • ${date}${time ? ` • ${time}` : ''}`
+  const label = position === 0 ? 'Next Event' : 'Then'
+  return `${label} • ${event.title} • ${date}${time ? ` • ${time}` : ''}`
 }
 
 export default function ScrollingTicker({
@@ -98,8 +114,12 @@ export default function ScrollingTicker({
 }: ScrollingTickerProps) {
   const isClwHeaderFeed = ariaLabel === CLW_HEADER_ARIA_LABEL
   const reducedMotionRef = useRef(false)
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const textRef = useRef<HTMLSpanElement>(null)
+  const [overflowWidth, setOverflowWidth] = useState(0)
   const [index, setIndex] = useState(0)
-  const [nextEvent, setNextEvent] = useState<CalendarCandidate | null>(null)
+  const [upcomingEvents, setUpcomingEvents] = useState<CalendarCandidate[]>([])
+  const [platinumSponsors, setPlatinumSponsors] = useState<PlatinumSponsor[]>([])
 
   useEffect(() => {
     if (!isClwHeaderFeed) return
@@ -112,9 +132,9 @@ export default function ScrollingTicker({
 
     let cancelled = false
 
-    async function loadNextEvent(client: NonNullable<typeof supabase>) {
+    async function loadFeed(client: NonNullable<typeof supabase>) {
       const today = chicagoDateString()
-      const [{ data: tournaments }, { data: clubEvents }] = await Promise.all([
+      const [{ data: tournaments }, { data: clubEvents }, { data: sponsors }] = await Promise.all([
         client
           .from('tournaments')
           .select('name,date,start_time')
@@ -129,6 +149,13 @@ export default function ScrollingTicker({
           .gte('date', today)
           .order('date', { ascending: true })
           .limit(8),
+        client
+          .from('sponsors')
+          .select('name,website_url')
+          .eq('tier', 'platinum')
+          .eq('active', true)
+          .order('name', { ascending: true })
+          .limit(12),
       ])
 
       const candidates: CalendarCandidate[] = [
@@ -149,10 +176,17 @@ export default function ScrollingTicker({
           return (a.startTime ?? '23:59:59').localeCompare(b.startTime ?? '23:59:59')
         })
 
-      if (!cancelled) setNextEvent(candidates[0] ?? null)
+      if (cancelled) return
+
+      setUpcomingEvents(candidates.slice(0, MAX_TICKER_EVENTS))
+      setPlatinumSponsors(
+        (sponsors ?? [])
+          .filter((sponsor): sponsor is PlatinumSponsor => Boolean(sponsor?.name))
+          .map((sponsor) => ({ name: sponsor.name, website_url: sponsor.website_url ?? null }))
+      )
     }
 
-    loadNextEvent(supabase).catch(() => {
+    loadFeed(supabase).catch(() => {
       // A failed calendar lookup just leaves the static feed in place.
     })
 
@@ -161,18 +195,64 @@ export default function ScrollingTicker({
     }
   }, [isClwHeaderFeed])
 
-  const feedItems: TickerItem[] = isClwHeaderFeed
+  // Platinum sponsors come from the database once it answers. Until then, and
+  // if the club has none recorded, the hardcoded roster keeps the credit that
+  // was already on the page rather than dropping to a bare lead-in.
+  const sponsorItems: TickerItem[] = platinumSponsors.length
     ? [
-        ...CLW_HEADER_ITEMS,
-        {
-          text:
-            (nextEvent && eventTickerText(nextEvent)) || 'Next Event • View the club calendar.',
-          href: '/events',
-        },
+        CLW_HEADER_ITEMS[0],
+        ...platinumSponsors.map((sponsor) => ({
+          text: sponsor.name,
+          kind: 'promo' as const,
+          href: '/partners#platinum',
+        })),
       ]
-    : items
+    : CLW_HEADER_ITEMS
+
+  const resolvedEvents = upcomingEvents
+    .map((event, position) => eventTickerText(event, position))
+    .filter((text): text is string => Boolean(text))
+
+  const eventItems: TickerItem[] = resolvedEvents.length
+    ? resolvedEvents.map((text) => ({ text, href: '/events' }))
+    : [{ text: 'Next Event • View the club calendar.', href: '/events' }]
+
+  const feedItems: TickerItem[] = isClwHeaderFeed ? [...sponsorItems, ...eventItems] : items
 
   const safeItems = feedItems.length ? feedItems : [{ text: 'Add ticker content' }]
+  const activeText = (safeItems[index] ?? safeItems[0]).text
+
+  // Decide per item whether it needs to travel. Measured rather than guessed
+  // from character count, because the ticker mixes three type treatments and
+  // the viewport is fluid.
+  useEffect(() => {
+    const viewport = viewportRef.current
+    const text = textRef.current
+    if (!viewport || !text) return
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setOverflowWidth(0)
+      return
+    }
+
+    const measure = () => {
+      const style = window.getComputedStyle(viewport)
+      const padLeft = parseFloat(style.paddingLeft) || 0
+      const available = viewport.clientWidth - padLeft - (parseFloat(style.paddingRight) || 0)
+      const needed = text.scrollWidth
+
+      // Travel far enough to carry the trailing character past the viewport's
+      // left edge, which is the text width plus the gap it starts inset by.
+      setOverflowWidth(needed > available + 2 ? needed + padLeft : 0)
+    }
+
+    measure()
+
+    const observer = new ResizeObserver(measure)
+    observer.observe(viewport)
+    observer.observe(text)
+    return () => observer.disconnect()
+  }, [activeText])
 
   useEffect(() => {
     reducedMotionRef.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -195,7 +275,7 @@ export default function ScrollingTicker({
 
   const item = safeItems[index] ?? safeItems[0]
   const isPromo = item.kind === 'promo'
-  const isEvent = item.text.startsWith('Next Event')
+  const isEvent = EVENT_PREFIX.test(item.text)
   const resolvedAriaLabel = isClwHeaderFeed
     ? 'Wizards Wrestling sponsors and next calendar event'
     : ariaLabel
@@ -205,25 +285,41 @@ export default function ScrollingTicker({
     isPromo ? styles.promoText : styles.infoText,
     isPromo ? styles.featuredText : '',
     isEvent ? styles.eventText : '',
+    overflowWidth > 0 ? styles.textScroll : '',
   ]
     .filter(Boolean)
     .join(' ')
 
+  // A line that fits keeps the original behaviour: rise in, hold, lift out.
+  // A line too wide to read at once rises in, holds, then travels its own full
+  // width to the left so it clears the viewport before the next item arrives.
+  const scrollMs = Math.round((overflowWidth / MARQUEE_PIXELS_PER_SECOND) * 1000)
+  const trackStyle = {
+    '--ticker-enter': `${ENTER_MS}ms`,
+    '--ticker-hold': `${HOLD_MS}ms`,
+    '--ticker-exit': overflowWidth > 0 ? `${scrollMs}ms` : `${Math.max(intervalMs - ENTER_MS - HOLD_MS, 600)}ms`,
+    '--ticker-distance': `${overflowWidth}px`,
+  } as CSSProperties
+
   return (
     <section aria-label={resolvedAriaLabel} className={`${styles.card} ${className}`.trim()}>
-      <div className={styles.viewport}>
+      <div ref={viewportRef} className={styles.viewport}>
         <div
           key={index}
           aria-hidden="true"
-          onAnimationEnd={advance}
-          className={styles.row}
-          style={{ '--ticker-duration': `${intervalMs}ms` } as CSSProperties}
+          className={`${styles.row} ${overflowWidth > 0 ? styles.rowScroll : ''}`.trim()}
+          style={trackStyle}
         >
-          <span className={textClassName}>
-            {isPromo ? <Star className={styles.star} /> : null}
-            <span className={styles.message}>{item.text}</span>
-            {isPromo ? <Star className={`${styles.star} ${styles.starEnd}`} /> : null}
-          </span>
+          <div
+            className={overflowWidth > 0 ? styles.trackScroll : styles.trackLift}
+            onAnimationEnd={advance}
+          >
+            <span ref={textRef} className={textClassName}>
+              {isPromo ? <Star className={styles.star} /> : null}
+              <span className={styles.message}>{item.text}</span>
+              {isPromo ? <Star className={`${styles.star} ${styles.starEnd}`} /> : null}
+            </span>
+          </div>
         </div>
 
         {item.href ? (
