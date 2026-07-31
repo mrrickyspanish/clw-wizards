@@ -40,7 +40,11 @@ const MAX_TICKER_EVENTS = 4
 // whip past faster than a short sponsor name.
 const ENTER_MS = 460
 const HOLD_MS = 900
+// An overflowing line travels at reading pace because the travel is doing
+// double duty: revealing the rest of the line and then clearing it. A line
+// that already fits has nothing left to read, so it leaves faster.
 const MARQUEE_PIXELS_PER_SECOND = 78
+const EXIT_PIXELS_PER_SECOND = 115
 
 const CLW_HEADER_ARIA_LABEL = 'Wizards Wrestling sponsorship levels'
 
@@ -138,7 +142,7 @@ export default function ScrollingTicker({
   const reducedMotionRef = useRef(false)
   const viewportRef = useRef<HTMLDivElement>(null)
   const textRef = useRef<HTMLSpanElement>(null)
-  const [overflowWidth, setOverflowWidth] = useState(0)
+  const [metrics, setMetrics] = useState({ overflowing: false, travel: 0 })
   const [index, setIndex] = useState(0)
   const [upcomingEvents, setUpcomingEvents] = useState<CalendarCandidate[]>([])
   const [platinumSponsors, setPlatinumSponsors] = useState<PlatinumSponsor[]>([])
@@ -255,7 +259,7 @@ export default function ScrollingTicker({
     if (!viewport || !text) return
 
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setOverflowWidth(0)
+      setMetrics({ overflowing: false, travel: 0 })
       return
     }
 
@@ -264,10 +268,15 @@ export default function ScrollingTicker({
       const padLeft = parseFloat(style.paddingLeft) || 0
       const available = viewport.clientWidth - padLeft - (parseFloat(style.paddingRight) || 0)
       const needed = text.scrollWidth
+      const overflowing = needed > available + 2
 
-      // Travel far enough to carry the trailing character past the viewport's
-      // left edge, which is the text width plus the gap it starts inset by.
-      setOverflowWidth(needed > available + 2 ? needed + padLeft : 0)
+      // Distance that carries the trailing edge past the viewport's left edge.
+      // An overflowing line starts flush left; a line that fits starts centred,
+      // so it has further to go. Derived from layout rather than live rects, so
+      // a resize mid-travel cannot measure the element's animated position.
+      const travel = overflowing ? padLeft + needed : padLeft + (available + needed) / 2
+
+      setMetrics({ overflowing, travel })
     }
 
     measure()
@@ -309,20 +318,21 @@ export default function ScrollingTicker({
     isPromo ? styles.promoText : styles.infoText,
     isPromo ? styles.featuredText : '',
     isEvent ? styles.eventText : '',
-    overflowWidth > 0 ? styles.textScroll : '',
+    metrics.overflowing ? styles.textScroll : '',
   ]
     .filter(Boolean)
     .join(' ')
 
-  // A line that fits keeps the original behaviour: rise in, hold, lift out.
-  // A line too wide to read at once rises in, holds, then travels its own full
-  // width to the left so it clears the viewport before the next item arrives.
-  const scrollMs = Math.round((overflowWidth / MARQUEE_PIXELS_PER_SECOND) * 1000)
+  // Every item rises in, holds, then leaves to the left. A lone item skips the
+  // exit -- there is nothing to hand off to, and it would clear the bar and
+  // leave it blank.
+  const shouldExit = safeItems.length > 1
+  const pace = metrics.overflowing ? MARQUEE_PIXELS_PER_SECOND : EXIT_PIXELS_PER_SECOND
   const trackStyle = {
     '--ticker-enter': `${ENTER_MS}ms`,
     '--ticker-hold': `${HOLD_MS}ms`,
-    '--ticker-exit': overflowWidth > 0 ? `${scrollMs}ms` : `${Math.max(intervalMs - ENTER_MS - HOLD_MS, 600)}ms`,
-    '--ticker-distance': `${overflowWidth}px`,
+    '--ticker-exit': `${Math.max(Math.round((metrics.travel / pace) * 1000), 600)}ms`,
+    '--ticker-distance': `${metrics.travel}px`,
   } as CSSProperties
 
   return (
@@ -331,11 +341,11 @@ export default function ScrollingTicker({
         <div
           key={index}
           aria-hidden="true"
-          className={`${styles.row} ${overflowWidth > 0 ? styles.rowScroll : ''}`.trim()}
+          className={`${styles.row} ${metrics.overflowing ? styles.rowScroll : ''}`.trim()}
           style={trackStyle}
         >
           <div
-            className={overflowWidth > 0 ? styles.trackScroll : styles.trackLift}
+            className={`${styles.track} ${shouldExit ? styles.trackExit : ''}`.trim()}
             onAnimationEnd={advance}
           >
             <span ref={textRef} className={textClassName}>

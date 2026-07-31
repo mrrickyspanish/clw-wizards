@@ -38,24 +38,21 @@
 
 /* The inner track owns the second half of the sequence, so the horizontal
    travel does not fight the vertical entrance for the transform property. */
-.trackLift,
-.trackScroll {
+.track {
   display: flex;
   align-items: center;
+}
+
+/* Every item leaves to the left. Omitted when the feed holds a single item,
+   which has nothing to hand off to and would otherwise slide away and leave
+   the bar empty. */
+.trackExit {
+  animation-name: ticker-travel;
+  animation-timing-function: linear;
   animation-delay: var(--ticker-hold, 900ms);
   animation-duration: var(--ticker-exit, 3000ms);
   animation-fill-mode: both;
   will-change: transform;
-}
-
-.trackLift {
-  animation-name: ticker-lift;
-  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.trackScroll {
-  animation-name: ticker-travel;
-  animation-timing-function: linear;
 }
 
 .text {
@@ -159,17 +156,8 @@
   }
 }
 
-@keyframes ticker-lift {
-  from {
-    transform: translateY(0);
-  }
-  to {
-    transform: translateY(-160%);
-  }
-}
-
-/* Travels one full text width, which carries the trailing character past the
-   left edge and leaves the viewport empty before the next item enters. */
+/* Travels far enough to carry the trailing edge past the viewport's left edge,
+   leaving the bar empty before the next item rises in. */
 @keyframes ticker-travel {
   from {
     transform: translateX(0);
@@ -199,8 +187,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .row,
-  .trackLift,
-  .trackScroll {
+  .track,
+  .trackExit {
     animation: none;
     transform: none;
   }
