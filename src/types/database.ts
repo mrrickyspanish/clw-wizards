@@ -117,8 +117,9 @@ export type Sponsor = {
   active: boolean
   golf_outing_hole: boolean
   // Some logos (a white or light wordmark on a transparent field) are only
-  // legible against a dark backdrop. True gives the logo its own dark stage
-  // inside the card instead of vanishing against the card's light background.
+  // legible against a dark backdrop. True renders the sponsor's whole card in
+  // black with white name text, instead of the logo vanishing against the
+  // standard cream card.
   logo_dark_backdrop: boolean
   notes: string | null
   created_at: string

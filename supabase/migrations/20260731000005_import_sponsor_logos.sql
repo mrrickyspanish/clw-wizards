@@ -16,7 +16,7 @@ ALTER TABLE public.sponsors
   ADD COLUMN logo_dark_backdrop BOOLEAN NOT NULL DEFAULT false;
 
 COMMENT ON COLUMN public.sponsors.logo_dark_backdrop IS
-  'True when the logo (white or light-colored ink on a transparent field) needs a dark backdrop to read against the card''s light background.';
+  'True when the logo (white or light-colored ink on a transparent field) needs a dark backdrop to be legible; the sponsor''s whole card renders black with white name text.';
 
 -- Every logo in this batch was visually checked composited against both the
 -- card's actual background color and a dark one -- not guessed from the

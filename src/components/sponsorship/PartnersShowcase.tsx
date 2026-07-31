@@ -59,14 +59,21 @@ const TIER_DETAILS: Record<
 }
 
 const CARD_HEIGHTS = {
-  platinum: 'min-h-[230px] sm:min-h-[270px] lg:min-h-[300px]',
-  standard: 'min-h-[160px] sm:min-h-[180px]',
-  compact: 'min-h-[140px] sm:min-h-[155px]',
-  legacy: 'min-h-[150px] sm:min-h-[170px]',
+  platinum: 'min-h-[250px] sm:min-h-[290px] lg:min-h-[320px]',
+  standard: 'min-h-[170px] sm:min-h-[190px]',
+  compact: 'min-h-[145px] sm:min-h-[165px]',
+  legacy: 'min-h-[160px] sm:min-h-[180px]',
 }
 
-const LOGO_HEIGHTS = {
-  platinum: 'max-h-28 sm:max-h-32 lg:max-h-36',
+// Both of the logo's dimensions are resolved from its container -- h-full
+// w-full with object-contain -- so its own aspect ratio never feeds back into
+// the layout. Sizing it off the intrinsic ratio instead lets one tall logo
+// stretch its card (AllianceCo pushed its card to twice the height of its
+// row-mates); this way every card in a tier matches and the artwork still
+// scales up to whichever edge it reaches first. The cap keeps a logo from
+// swallowing the card on tiers whose name text is short.
+const LOGO_CAPS = {
+  platinum: 'max-h-40 sm:max-h-48 lg:max-h-52',
   standard: 'max-h-20 sm:max-h-24',
   compact: 'max-h-16 sm:max-h-20',
   legacy: 'max-h-20 sm:max-h-24',
@@ -97,33 +104,34 @@ function PartnerCard({
   sponsor: Sponsor
   size: 'platinum' | 'standard' | 'compact' | 'legacy'
 }) {
+  // A white or light-colored logo vanishes on the standard cream card, so the
+  // whole card flips to black and its name text to white -- one solid dark
+  // card rather than a dark box floating inside a light one. Colors are
+  // literal hex on purpose: --clw-black is theme-dependent and resolves to
+  // off-white under the light theme, which would undo the whole point.
+  const dark = Boolean(sponsor.logo_url && sponsor.logo_dark_backdrop)
+
   const card = (
     <div
-      className={`group relative flex ${CARD_HEIGHTS[size]} h-full flex-col overflow-hidden border border-clw-gold/35 bg-[#FFFDF7] p-5 text-[#111111] shadow-[0_18px_45px_-28px_rgba(0,0,0,.8)] transition duration-300 hover:-translate-y-1 hover:border-clw-gold hover:shadow-[0_22px_52px_-26px_rgba(240,192,32,.42)] sm:p-6 ${
-        size === 'platinum' ? 'chamfer-lg' : 'chamfer-md'
-      }`}
+      className={`group relative flex ${CARD_HEIGHTS[size]} h-full flex-col overflow-hidden border border-clw-gold/35 p-5 shadow-[0_18px_45px_-28px_rgba(0,0,0,.8)] transition duration-300 hover:-translate-y-1 hover:border-clw-gold hover:shadow-[0_22px_52px_-26px_rgba(240,192,32,.42)] sm:p-6 ${
+        dark ? 'bg-[#0B0B0B] text-white' : 'bg-[#FFFDF7] text-[#111111]'
+      } ${size === 'platinum' ? 'chamfer-lg' : 'chamfer-md'}`}
     >
       {sponsor.website_url && (
-        <ArrowUpRight className="absolute right-4 top-4 h-4 w-4 text-clw-gold-on-light transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+        <ArrowUpRight
+          className={`absolute right-4 top-4 h-4 w-4 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 ${
+            dark ? 'text-clw-gold' : 'text-clw-gold-on-light'
+          }`}
+        />
       )}
 
-      <div
-        className={`flex min-h-0 flex-1 items-center justify-center px-2 py-3 sm:px-4 ${
-          sponsor.logo_url && sponsor.logo_dark_backdrop ? 'rounded-md bg-clw-black' : ''
-        }`}
-      >
+      <div className="flex min-h-0 flex-1 items-center justify-center px-1 py-2 sm:px-2">
         {sponsor.logo_url ? (
-          // A white or light-colored logo would vanish against the card's
-          // light background, so this zone recolors to dark instead of the
-          // whole card flipping -- the grid stays visually consistent rather
-          // than turning into a patchwork of light and dark cards, and the
-          // logo keeps the exact same size and padding every other card
-          // uses instead of shrinking into a smaller inset box.
           // eslint-disable-next-line @next/next/no-img-element -- sponsor logos can use arbitrary external hosts
           <img
             src={sponsor.logo_url}
             alt={`${sponsor.name} logo`}
-            className={`${LOGO_HEIGHTS[size]} max-w-full object-contain`}
+            className={`h-full w-full ${LOGO_CAPS[size]} object-contain`}
           />
         ) : (
           <span
@@ -136,7 +144,7 @@ function PartnerCard({
         )}
       </div>
 
-      <div className="border-t border-black/10 pt-4 text-center">
+      <div className={`border-t pt-4 text-center ${dark ? 'border-white/15' : 'border-black/10'}`}>
         <p
           className={`font-cond font-semibold uppercase leading-tight tracking-[0.08em] ${
             size === 'platinum' ? 'text-xl sm:text-2xl' : size === 'compact' ? 'text-sm sm:text-base' : 'text-base sm:text-lg'
