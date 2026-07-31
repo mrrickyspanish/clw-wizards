@@ -89,12 +89,19 @@
   text-overflow: clip;
 }
 
-.infoText {
-  color: var(--ticker-white);
+/* Every row's base color is white -- .text already sets it. Gold is spent
+   only on the label span below, so it still reads as "this is the special
+   fact" instead of "sponsor rows happen to be gold text." */
+
+.tierLabel {
+  color: var(--ticker-gold);
 }
 
-.promoText {
-  color: var(--ticker-gold-light);
+/* Muted rather than gold: the day word is orienting information, not the
+   premium fact the gold accent is reserved for. */
+.eventLabel {
+  color: var(--ticker-white);
+  opacity: 0.7;
 }
 
 .featuredText {

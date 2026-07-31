@@ -9,6 +9,11 @@ import styles from './ScrollingTicker.module.css'
 
 export type TickerItem = {
   text: string
+  // Optional short prefix rendered before `text` in a visually distinct
+  // color -- the tier name on a sponsor row, the day word on an event row.
+  // Kept separate from `text` so the two can be styled with different
+  // weight: the label is metadata, `text` is the actual content.
+  label?: string
   kind?: 'info' | 'promo' | 'event'
   href?: string
 }
@@ -53,11 +58,16 @@ const CLW_HEADER_ARIA_LABEL = 'Wizards Wrestling sponsorship levels'
 // no visible seam once real data replaces it.
 const CLW_HEADER_ITEMS: TickerItem[] = [
   {
-    text: 'Platinum Partner • Creative Eye Multimedia',
+    label: 'Platinum Partner',
+    text: 'Creative Eye Studios',
     kind: 'promo',
     href: '/partners#platinum',
   },
 ]
+
+function fullTickerText(item: TickerItem) {
+  return item.label ? `${item.label} • ${item.text}` : item.text
+}
 
 function Star({ className }: { className?: string }) {
   return (
@@ -122,6 +132,11 @@ function selectTickerEvents(candidates: CalendarCandidate[], today: string) {
  * "Upcoming". Deliberately no month-relative wording -- "next month" reads as
  * far away on the 30th when the event is three days out, and the printed
  * date already answers the question.
+ *
+ * Returned as a separate label/text pair rather than one string, so the day
+ * word can render muted while the event details render at full brightness --
+ * same label/content split as the sponsor rows, just without the gold accent,
+ * since a date isn't the "premium" fact being signaled here.
  */
 function eventTickerText(event: CalendarCandidate, today: string, tomorrow: string) {
   const date = formatEventDate(event.date)
@@ -129,9 +144,9 @@ function eventTickerText(event: CalendarCandidate, today: string, tomorrow: stri
 
   const time = formatEventTime(event.startTime)
   const day = event.date.slice(0, 10)
-  const prefix = day === today ? 'Today' : day === tomorrow ? 'Tomorrow' : 'Upcoming'
+  const label = day === today ? 'Today' : day === tomorrow ? 'Tomorrow' : 'Upcoming'
 
-  return `${prefix} • ${event.title} • ${date}${time ? ` • ${time}` : ''}`
+  return { label, text: `${event.title} • ${date}${time ? ` • ${time}` : ''}` }
 }
 
 export default function ScrollingTicker({
@@ -230,7 +245,8 @@ export default function ScrollingTicker({
   // group without needing a second exit direction to say so.
   const sponsorItems: TickerItem[] = platinumSponsors.length
     ? platinumSponsors.map((sponsor) => ({
-        text: `Platinum Partner • ${sponsor.name}`,
+        label: 'Platinum Partner',
+        text: sponsor.name,
         kind: 'promo' as const,
         href: '/partners#platinum',
       }))
@@ -240,16 +256,16 @@ export default function ScrollingTicker({
   const tomorrow = chicagoDatePlusDays(1)
   const resolvedEvents = upcomingEvents
     .map((event) => eventTickerText(event, today, tomorrow))
-    .filter((text): text is string => Boolean(text))
+    .filter((event): event is { label: string; text: string } => Boolean(event))
 
   const eventItems: TickerItem[] = resolvedEvents.length
-    ? resolvedEvents.map((text) => ({ text, kind: 'event' as const, href: '/events' }))
+    ? resolvedEvents.map(({ label, text }) => ({ label, text, kind: 'event' as const, href: '/events' }))
     : [{ text: 'View the club calendar.', kind: 'event' as const, href: '/events' }]
 
   const feedItems: TickerItem[] = isClwHeaderFeed ? [...sponsorItems, ...eventItems] : items
 
   const safeItems = feedItems.length ? feedItems : [{ text: 'Add ticker content' }]
-  const activeText = (safeItems[index] ?? safeItems[0]).text
+  const activeText = fullTickerText(safeItems[index] ?? safeItems[0])
 
   // Decide per item whether it needs to travel. Measured rather than guessed
   // from character count, because the ticker mixes three type treatments and
@@ -314,9 +330,12 @@ export default function ScrollingTicker({
     ? 'Wizards Wrestling sponsors and next calendar event'
     : ariaLabel
 
+  // Base color is white for every kind now -- gold is reserved for the tier
+  // label itself (see .tierLabel), not the whole line. A sponsor row in solid
+  // gold end to end reads as "gold text," not "premium tier"; the accent only
+  // means something if it isn't also what the ticker uses for everything.
   const textClassName = [
     styles.text,
-    isPromo ? styles.promoText : styles.infoText,
     isPromo ? styles.featuredText : '',
     isEvent ? styles.eventText : '',
     metrics.overflowing ? styles.textScroll : '',
@@ -351,7 +370,12 @@ export default function ScrollingTicker({
           >
             <span ref={textRef} className={textClassName}>
               {isPromo ? <Star className={styles.star} /> : null}
-              <span className={styles.message}>{item.text}</span>
+              <span className={styles.message}>
+                {item.label ? (
+                  <span className={isPromo ? styles.tierLabel : styles.eventLabel}>{item.label} • </span>
+                ) : null}
+                {item.text}
+              </span>
               {isPromo ? <Star className={`${styles.star} ${styles.starEnd}`} /> : null}
             </span>
           </div>
@@ -361,15 +385,19 @@ export default function ScrollingTicker({
           <Link
             href={item.href}
             className={styles.hitArea}
-            aria-label={`${item.text} Open related page.`}
+            aria-label={`${fullTickerText(item)} Open related page.`}
           />
         ) : null}
       </div>
 
       <ul className={styles.screenReaderOnly}>
         {safeItems.map((tickerItem, itemIndex) => (
-          <li key={`${tickerItem.text}-${itemIndex}`}>
-            {tickerItem.href ? <Link href={tickerItem.href}>{tickerItem.text}</Link> : tickerItem.text}
+          <li key={`${fullTickerText(tickerItem)}-${itemIndex}`}>
+            {tickerItem.href ? (
+              <Link href={tickerItem.href}>{fullTickerText(tickerItem)}</Link>
+            ) : (
+              fullTickerText(tickerItem)
+            )}
           </li>
         ))}
       </ul>
