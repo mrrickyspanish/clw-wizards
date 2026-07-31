@@ -48,13 +48,12 @@ const EXIT_PIXELS_PER_SECOND = 115
 
 const CLW_HEADER_ARIA_LABEL = 'Wizards Wrestling sponsorship levels'
 
+// Fallback shown before the database answers, or if the sponsors table has no
+// platinum tier yet. Same compound format as the live rows below, so there is
+// no visible seam once real data replaces it.
 const CLW_HEADER_ITEMS: TickerItem[] = [
   {
-    text: 'Thank you to our Platinum tier sponsors.',
-    href: '/partners#platinum',
-  },
-  {
-    text: 'Creative Eye Multimedia',
+    text: 'Platinum Partner • Creative Eye Multimedia',
     kind: 'promo',
     href: '/partners#platinum',
   },
@@ -116,10 +115,13 @@ function selectTickerEvents(candidates: CalendarCandidate[], today: string) {
 }
 
 /**
- * Deliberately avoids month-relative wording. "Next month" reads as far away
- * on the 30th when the event is three days out, and the printed date already
- * answers the question. Only same-day and next-day get a prefix, because those
- * are the two the date alone does not make obvious at a glance.
+ * Every row gets a leading label, matching the sponsor rows, so the section
+ * reads as one group without a separate title item. "Today" and "Tomorrow"
+ * take the slot when they apply since they're more useful than "Upcoming" on
+ * the two days a bare date doesn't make obvious at a glance; otherwise it's
+ * "Upcoming". Deliberately no month-relative wording -- "next month" reads as
+ * far away on the 30th when the event is three days out, and the printed
+ * date already answers the question.
  */
 function eventTickerText(event: CalendarCandidate, today: string, tomorrow: string) {
   const date = formatEventDate(event.date)
@@ -127,9 +129,9 @@ function eventTickerText(event: CalendarCandidate, today: string, tomorrow: stri
 
   const time = formatEventTime(event.startTime)
   const day = event.date.slice(0, 10)
-  const prefix = day === today ? 'Today • ' : day === tomorrow ? 'Tomorrow • ' : ''
+  const prefix = day === today ? 'Today' : day === tomorrow ? 'Tomorrow' : 'Upcoming'
 
-  return `${prefix}${event.title} • ${date}${time ? ` • ${time}` : ''}`
+  return `${prefix} • ${event.title} • ${date}${time ? ` • ${time}` : ''}`
 }
 
 export default function ScrollingTicker({
@@ -222,17 +224,16 @@ export default function ScrollingTicker({
   }, [isClwHeaderFeed])
 
   // Platinum sponsors come from the database once it answers. Until then, and
-  // if the club has none recorded, the hardcoded roster keeps the credit that
-  // was already on the page rather than dropping to a bare lead-in.
+  // if the club has none recorded, the hardcoded fallback keeps the credit
+  // that was already on the page. The tier name is folded into every row
+  // rather than announced once by a separate title item -- that reads as one
+  // group without needing a second exit direction to say so.
   const sponsorItems: TickerItem[] = platinumSponsors.length
-    ? [
-        CLW_HEADER_ITEMS[0],
-        ...platinumSponsors.map((sponsor) => ({
-          text: sponsor.name,
-          kind: 'promo' as const,
-          href: '/partners#platinum',
-        })),
-      ]
+    ? platinumSponsors.map((sponsor) => ({
+        text: `Platinum Partner • ${sponsor.name}`,
+        kind: 'promo' as const,
+        href: '/partners#platinum',
+      }))
     : CLW_HEADER_ITEMS
 
   const today = chicagoDateString()
