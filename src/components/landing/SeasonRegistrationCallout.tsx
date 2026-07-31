@@ -5,6 +5,7 @@ import { createPublicSupabase } from '@/lib/supabase/public'
 import { chicagoDateString } from '@/lib/chicago-time'
 import { resolveDuesPricing } from '@/lib/season-pricing'
 import type { ClubEvent, SeasonRegistration } from '@/types/database'
+import { CTA_LINK } from '@/lib/cta'
 
 function formatDate(value: string) {
   return new Date(`${value}T00:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
@@ -66,7 +67,7 @@ export async function SeasonRegistrationCallout() {
       </p>
       <Link
         href="/registration"
-        className="mt-6 inline-flex items-center gap-2 font-cond text-base uppercase tracking-[0.16em] text-clw-gold hover:text-clw-gold-l"
+        className={`${CTA_LINK} mt-6 text-clw-gold hover:text-clw-gold-l`}
       >
         Register for the Season <ArrowRight className="h-4 w-4" />
       </Link>

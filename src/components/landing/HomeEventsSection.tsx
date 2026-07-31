@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ArrowUpRight, MapPin } from 'lucide-react'
 
 import type { ClubEventType } from '@/types/database'
+import { CTA_LINK } from '@/lib/cta'
 
 export type HomeEventItem = {
   id: string
@@ -109,7 +110,7 @@ export function HomeEventsSection({ events }: { events: HomeEventItem[] }) {
             <span className="mr-2 inline font-cond text-[clamp(1.95rem,8.6vw,5rem)] font-light tracking-[-0.04em] sm:mr-3 sm:text-[3rem] lg:text-[3.7rem] xl:text-[4.2rem] 2xl:text-[5rem]">Upcoming</span>
             <span className="inline font-display text-[clamp(2.15rem,9.2vw,5.6rem)] font-black tracking-[-0.035em] sm:text-[3.35rem] lg:text-[4rem] xl:text-[4.6rem] 2xl:text-[5.6rem]">Events</span>
           </h2>
-          <Link href="/events" className="hidden shrink-0 pb-1 font-cond text-lg font-semibold uppercase tracking-[0.14em] text-[#8A620C] underline-offset-4 hover:text-[#111111] hover:underline lg:inline-block">
+          <Link href="/events" className={`${CTA_LINK} hidden shrink-0 pb-1 text-[#8A620C] hover:text-[#111111] lg:inline-flex`}>
             Full calendar →
           </Link>
         </div>
@@ -163,7 +164,7 @@ export function HomeEventsSection({ events }: { events: HomeEventItem[] }) {
                   </div>
                 </div>
 
-                <span className="inline-flex items-center gap-2 self-start font-cond text-sm font-semibold uppercase tracking-[0.12em] text-[#F5CE50] transition group-hover:text-white sm:text-base sm:tracking-[0.14em]">
+                <span className={`${CTA_LINK} self-start text-[#F5CE50] group-hover:text-white`}>
                   Event details <ArrowUpRight className="h-4 w-4" />
                 </span>
               </div>
@@ -205,7 +206,7 @@ export function HomeEventsSection({ events }: { events: HomeEventItem[] }) {
           </div>
         )}
 
-        <Link href="/events" className="mt-5 inline-block font-cond text-lg font-semibold uppercase tracking-[0.14em] text-[#8A620C] underline-offset-4 hover:text-[#111111] hover:underline sm:text-xl lg:hidden">
+        <Link href="/events" className={`${CTA_LINK} mt-5 text-[#8A620C] hover:text-[#111111] lg:hidden`}>
           View full calendar →
         </Link>
       </div>

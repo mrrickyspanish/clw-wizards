@@ -1,4 +1,5 @@
 import type { Sponsor } from '@/types/database'
+import { CTA_LINK } from '@/lib/cta'
 
 const SPONSOR_PLACEHOLDERS: Sponsor[] = [
   {
@@ -134,7 +135,7 @@ export function SponsorsShowcase({ sponsors }: { sponsors: Sponsor[] }) {
             {hasSponsors ? 'Thank you to the sponsors who back our wrestlers.' : 'Sponsor logos will live here as partners come on board.'}
           </p>
         </div>
-        <a href="/sponsorship" className="hidden font-display text-lg uppercase tracking-wide text-clw-gold-ink underline-offset-4 hover:underline sm:block">
+        <a href="/sponsorship" className={`${CTA_LINK} hidden text-clw-gold-ink hover:text-clw-gold sm:inline-flex`}>
           Sponsor CLW
         </a>
       </div>

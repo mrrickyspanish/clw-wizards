@@ -6,6 +6,7 @@ import { getSiteContent } from '@/lib/content/get'
 import { SupportImpactChart } from './SupportImpactChart'
 import { SupportPageHero } from './SupportPageHero'
 import { SupportPathCards } from './SupportPathCards'
+import { CTA_BUTTON } from '@/lib/cta'
 
 const FUNDING_PRIORITIES = [
   {
@@ -145,13 +146,13 @@ export async function SupportOverview() {
           <div className="flex flex-col justify-center gap-3 sm:flex-row lg:flex-col">
             <a
               href={`mailto:${ORG.contactEmail}`}
-              className="chamfer-sm inline-flex min-h-12 items-center justify-center gap-2 bg-clw-black px-6 font-cond text-sm font-semibold uppercase tracking-[0.14em] text-clw-gold transition hover:bg-clw-gold hover:text-clw-black"
+              className={`${CTA_BUTTON} bg-clw-black text-clw-gold hover:bg-clw-gold hover:text-clw-black`}
             >
               Email the club <ArrowUpRight className="h-4 w-4" />
             </a>
             <Link
               href="/partners"
-              className="inline-flex min-h-12 items-center justify-center gap-2 border-2 border-clw-black px-6 font-cond text-sm font-semibold uppercase tracking-[0.14em] text-clw-black transition hover:border-clw-gold hover:text-clw-gold-on-light"
+              className={`${CTA_BUTTON} border-2 border-clw-black text-clw-black hover:border-clw-gold hover:text-clw-gold-on-light`}
             >
               View our partners <ArrowUpRight className="h-4 w-4" />
             </Link>

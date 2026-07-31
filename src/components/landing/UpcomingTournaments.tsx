@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 
 import type { Tournament } from '@/types/database'
+import { CTA_LINK } from '@/lib/cta'
 
 function dayParts(value: string) {
   const d = new Date(`${value}T00:00:00`)
@@ -21,7 +22,7 @@ export function UpcomingTournaments({ tournaments }: { tournaments: Tournament[]
           <h2 className="font-display text-5xl uppercase leading-none tracking-wide text-clw-white">Upcoming events</h2>
           <p className="mt-4 text-lg leading-relaxed text-clw-gray">The next stops on the schedule.</p>
         </div>
-        <Link href="/login" className="hidden font-display text-lg uppercase tracking-wide text-clw-gold hover:text-clw-gold-l sm:block">
+        <Link href="/login" className={`${CTA_LINK} hidden text-clw-gold hover:text-clw-gold-l sm:inline-flex`}>
           View all
         </Link>
       </div>

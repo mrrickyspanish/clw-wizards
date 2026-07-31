@@ -1,4 +1,5 @@
 import { MapPin } from 'lucide-react'
+import { CTA_LINK } from '@/lib/cta'
 
 export function LocationCard() {
   return (
@@ -24,7 +25,7 @@ export function LocationCard() {
         href="https://www.google.com/maps/search/?api=1&query=975+Nimco+Dr+Unit+L+Crystal+Lake+IL+60014"
         target="_blank"
         rel="noopener noreferrer"
-        className="shrink-0 text-sm font-semibold uppercase tracking-[0.16em] text-clw-gold-ink hover:text-clw-gold"
+        className={`${CTA_LINK} shrink-0 text-clw-gold-ink hover:text-clw-gold`}
       >
         Get directions →
       </a>

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 
 import { getSiteContent } from '@/lib/content/get'
+import { CTA_BUTTON } from '@/lib/cta'
 
 export async function HomeTeamSection() {
   const content = await getSiteContent()
@@ -71,13 +72,13 @@ export async function HomeTeamSection() {
             <div className="mt-5 flex flex-col gap-2.5 sm:mt-7 sm:flex-row sm:items-center sm:gap-4 2xl:mt-9">
               <Link
                 href="/about"
-                className="chamfer-sm inline-flex min-h-11 items-center justify-center gap-2 bg-clw-gold px-5 py-2.5 font-cond text-base uppercase tracking-[0.14em] text-clw-ink transition hover:bg-clw-gold-l sm:min-h-12 sm:px-6 sm:py-3 sm:tracking-[0.16em]"
+                className={`${CTA_BUTTON} bg-clw-gold text-clw-ink hover:bg-clw-gold-l`}
               >
                 Read our mission <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 href="/coaches"
-                className="inline-flex min-h-11 items-center justify-center gap-2 border border-clw-gold-on-light/45 px-5 py-2.5 font-cond text-base uppercase tracking-[0.14em] text-clw-gold-on-light transition hover:border-clw-gold-on-light sm:min-h-12 sm:px-6 sm:py-3 sm:tracking-[0.16em]"
+                className={`${CTA_BUTTON} border border-clw-gold-on-light/45 text-clw-gold-on-light hover:border-clw-gold-on-light`}
               >
                 Meet the coaches
               </Link>

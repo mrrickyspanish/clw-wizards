@@ -5,6 +5,7 @@ import { useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { CTA_TYPE } from '@/lib/cta'
 
 type ContactFormProps = {
   defaultTopic?: string
@@ -100,7 +101,7 @@ export function ContactForm({
       {error && <p className="text-sm text-red-600">{error}</p>}
       {success && <p className="border border-emerald-600/30 bg-emerald-50 p-4 text-sm text-emerald-800">Your message was sent to the Wizards.</p>}
 
-      <Button type="submit" disabled={loading} className="h-14 w-full rounded-none bg-clw-black font-display text-xl uppercase tracking-wide text-clw-gold hover:bg-clw-gold hover:text-clw-black sm:h-16 sm:text-2xl">
+      <Button type="submit" disabled={loading} className={`h-14 w-full rounded-none bg-clw-black ${CTA_TYPE} text-clw-gold hover:bg-clw-gold hover:text-clw-black sm:h-16`}>
         {loading ? 'Sending...' : submitLabel}
       </Button>
     </form>

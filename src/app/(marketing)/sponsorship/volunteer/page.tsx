@@ -6,6 +6,7 @@ import { ArrowUpRight, Camera, ClipboardList, Megaphone, ShieldCheck, Trophy, Us
 
 import { ContactForm } from '@/components/sponsorship/ContactForm'
 import { SupportPageHero } from '@/components/sponsorship/SupportPageHero'
+import { CTA_LINK } from '@/lib/cta'
 
 const VOLUNTEER_PATHS = [
   {
@@ -94,7 +95,7 @@ export default function VolunteerPage() {
           <ContactForm defaultTopic="Volunteer" hideTopic submitLabel="Submit Volunteer Interest" />
 
           <div className="mt-8 text-center">
-            <Link href="/sponsorship" className="inline-flex items-center gap-2 font-cond text-sm font-semibold uppercase tracking-[0.14em] text-clw-gold-on-light hover:text-clw-ink">
+            <Link href="/sponsorship" className={`${CTA_LINK} text-clw-gold-on-light hover:text-clw-ink`}>
               View every way to support <ArrowUpRight className="h-4 w-4" />
             </Link>
           </div>

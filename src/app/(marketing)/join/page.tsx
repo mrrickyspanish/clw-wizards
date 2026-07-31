@@ -17,6 +17,7 @@ import {
 
 import { ORG } from '@/config/org.config'
 import { SeasonRegistrationCallout } from '@/components/landing/SeasonRegistrationCallout'
+import { CTA_BUTTON, CTA_LINK } from '@/lib/cta'
 
 const MAP_URL = 'https://www.google.com/maps/search/?api=1&query=975+Nimco+Dr+Unit+L+Crystal+Lake+IL+60014'
 const SECTION_HEADING_CLASS = 'mt-4 font-display text-4xl uppercase leading-[0.96] text-clw-white sm:text-5xl'
@@ -163,14 +164,14 @@ export default async function JoinPage() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <a
                 href={`mailto:${ORG.contactEmail}?subject=Interested%20in%20Wizards%20Wrestling`}
-                className="chamfer-sm inline-flex min-h-[52px] items-center justify-center gap-2 bg-clw-gold px-7 py-4 font-cond text-base uppercase tracking-[0.16em] text-clw-ink transition hover:bg-clw-gold-l"
+                className={`${CTA_BUTTON} bg-clw-gold text-clw-ink hover:bg-clw-gold-l`}
               >
                 Ask About Joining
                 <Mail className="h-4 w-4" />
               </a>
               <Link
                 href="/signup"
-                className="inline-flex min-h-[52px] items-center justify-center gap-2 border border-clw-white/35 px-7 py-4 font-cond text-base uppercase tracking-[0.16em] text-clw-white transition hover:border-clw-gold hover:text-clw-gold"
+                className={`${CTA_BUTTON} border border-clw-white/35 text-clw-white hover:border-clw-gold hover:text-clw-gold`}
               >
                 Create Parent Account
                 <ArrowRight className="h-4 w-4" />
@@ -318,7 +319,7 @@ export default async function JoinPage() {
                 </p>
                 <a
                   href={`mailto:${ORG.contactEmail}?subject=Interested%20in%20Wizards%20Wrestling`}
-                  className="mt-6 inline-flex items-center gap-2 font-cond text-base uppercase tracking-[0.16em] text-clw-gold hover:text-clw-gold-l"
+                  className={`${CTA_LINK} mt-6 text-clw-gold hover:text-clw-gold-l`}
                 >
                   Email the Club <ArrowRight className="h-4 w-4" />
                 </a>
@@ -332,7 +333,7 @@ export default async function JoinPage() {
                 </p>
                 <Link
                   href="/signup"
-                  className="mt-6 inline-flex items-center gap-2 font-cond text-base uppercase tracking-[0.16em] text-clw-gold hover:text-clw-gold-l"
+                  className={`${CTA_LINK} mt-6 text-clw-gold hover:text-clw-gold-l`}
                 >
                   Create Parent Account <ArrowRight className="h-4 w-4" />
                 </Link>
@@ -390,7 +391,7 @@ export default async function JoinPage() {
                 </li>
               ))}
             </ul>
-            <Link href="/faq" className="mt-7 inline-flex items-center gap-2 font-cond text-base uppercase tracking-[0.16em] text-clw-gold hover:text-clw-gold-l">
+            <Link href="/faq" className={`${CTA_LINK} mt-7 text-clw-gold hover:text-clw-gold-l`}>
               Review Current FAQ Details <ArrowRight className="h-4 w-4" />
             </Link>
           </article>
@@ -463,13 +464,13 @@ export default async function JoinPage() {
                 href={MAP_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="chamfer-sm inline-flex min-h-12 items-center justify-center gap-2 bg-clw-gold px-6 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-ink transition hover:bg-clw-gold-l"
+                className={`${CTA_BUTTON} bg-clw-gold text-clw-ink hover:bg-clw-gold-l`}
               >
                 Get Directions <Navigation className="h-4 w-4" />
               </a>
               <a
                 href={`mailto:${ORG.contactEmail}?subject=Interested%20in%20Wizards%20Wrestling`}
-                className="inline-flex min-h-12 items-center justify-center gap-2 border border-clw-ink/25 px-6 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-ink transition hover:border-clw-gold hover:text-clw-gold"
+                className={`${CTA_BUTTON} border border-clw-ink/25 text-clw-ink hover:border-clw-gold hover:text-clw-gold`}
               >
                 Ask a Question <ArrowRight className="h-4 w-4" />
               </a>
@@ -493,13 +494,13 @@ export default async function JoinPage() {
           <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
             <a
               href={`mailto:${ORG.contactEmail}?subject=Interested%20in%20Wizards%20Wrestling`}
-              className="chamfer-sm inline-flex min-h-[52px] items-center justify-center gap-2 bg-clw-gold px-7 py-4 font-cond text-base uppercase tracking-[0.16em] text-clw-ink transition hover:bg-clw-gold-l"
+              className={`${CTA_BUTTON} bg-clw-gold text-clw-ink hover:bg-clw-gold-l`}
             >
               Ask About Joining <Mail className="h-4 w-4" />
             </a>
             <Link
               href="/signup"
-              className="inline-flex min-h-[52px] items-center justify-center gap-2 border border-clw-white/35 px-7 py-4 font-cond text-base uppercase tracking-[0.16em] text-clw-white transition hover:border-clw-gold hover:text-clw-gold"
+              className={`${CTA_BUTTON} border border-clw-white/35 text-clw-white hover:border-clw-gold hover:text-clw-gold`}
             >
               Create Parent Account <ArrowRight className="h-4 w-4" />
             </Link>

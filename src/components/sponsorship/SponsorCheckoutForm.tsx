@@ -5,6 +5,7 @@ import { useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { SponsorTierRow } from '@/types/database'
+import { CTA_TYPE } from '@/lib/cta'
 
 type SponsorLevel = { value: string; label: string; amount: number }
 
@@ -146,7 +147,7 @@ export function SponsorCheckoutForm({
       <Button
         type="submit"
         disabled={loading}
-        className="h-[3.25rem] w-full rounded-none bg-[#0B0B0B] font-display text-lg uppercase tracking-wide text-clw-gold hover:bg-clw-gold hover:text-[#0B0B0B] sm:h-14 sm:text-xl"
+        className={`h-[3.25rem] w-full rounded-none bg-[#0B0B0B] ${CTA_TYPE} text-clw-gold hover:bg-clw-gold hover:text-[#0B0B0B] sm:h-14`}
       >
         {loading ? 'Starting checkout...' : `Continue to Stripe for $${selected ? selected.amount.toLocaleString('en-US') : ''}`}
       </Button>

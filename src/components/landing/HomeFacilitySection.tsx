@@ -1,6 +1,7 @@
 import { MapPin, Navigation } from 'lucide-react'
 
 import { getSiteContent } from '@/lib/content/get'
+import { CTA_BUTTON } from '@/lib/cta'
 
 export async function HomeFacilitySection() {
   const content = await getSiteContent()
@@ -61,7 +62,7 @@ export async function HomeFacilitySection() {
               href={mapUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="chamfer-sm inline-flex min-h-11 items-center justify-center gap-2 bg-clw-gold px-5 py-2.5 font-cond text-base uppercase tracking-[0.14em] text-clw-ink transition hover:bg-clw-gold-l sm:min-h-12 sm:min-w-44 sm:px-6 sm:py-3 sm:tracking-[0.16em]"
+              className={`${CTA_BUTTON} bg-clw-gold text-clw-ink hover:bg-clw-gold-l sm:min-w-44`}
             >
               <Navigation className="h-4 w-4" />
               Get directions

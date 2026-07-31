@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 
 import { pageMetadata } from '@/lib/page-metadata'
 import { ArrowRight, Check, Trophy } from 'lucide-react'
+import { CTA_BUTTON } from '@/lib/cta'
 
 // Public-facing group copy — presents the club's four practice groups as a
 // progression. (Backend group identifiers live in ORG.practiceGroups and are
@@ -120,7 +121,7 @@ export default function ProgramPage() {
             </p>
             <Link
               href="/join"
-              className="mt-7 inline-flex min-h-12 items-center justify-center gap-2 border border-clw-black/30 px-6 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-black hover:border-clw-black"
+              className={`${CTA_BUTTON} mt-7 border border-clw-black/30 text-clw-black hover:border-clw-black`}
             >
               Start Here <ArrowRight className="h-4 w-4" />
             </Link>

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ChevronRight, Shield } from 'lucide-react'
 
 import { ORG } from '@/config/org.config'
+import { CTA_LINK } from '@/lib/cta'
 
 // Keyed to the club's four numbered practice groups (see ORG.practiceGroups).
 const GROUP_BLURBS: Record<string, string> = {
@@ -38,7 +39,7 @@ export function PracticeGroups() {
         ))}
       </div>
 
-      <Link href="/join" className="mt-auto inline-flex items-center gap-2 pt-7 font-display text-xl uppercase tracking-wide text-clw-gold hover:text-clw-gold-l">
+      <Link href="/join" className={`${CTA_LINK} mt-auto pt-7 text-clw-gold hover:text-clw-gold-l`}>
         View all groups
         <ChevronRight className="h-5 w-5" />
       </Link>

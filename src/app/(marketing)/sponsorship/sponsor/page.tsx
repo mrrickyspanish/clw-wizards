@@ -11,6 +11,7 @@ import { SponsorCheckoutForm } from '@/components/sponsorship/SponsorCheckoutFor
 import { SupportPageHero } from '@/components/sponsorship/SupportPageHero'
 import { TaxStatusNote } from '@/components/sponsorship/TaxStatusNote'
 import { SupportStatusAlert } from '@/components/sponsorship/SupportStatusAlert'
+import { CTA_LINK } from '@/lib/cta'
 
 const SPONSORSHIP_IMPACT = [
   {
@@ -148,7 +149,7 @@ export default async function SponsorPage({
           </div>
 
           <div className="mt-8 text-center">
-            <Link href="/sponsorship" className="inline-flex items-center gap-2 font-cond text-sm font-semibold uppercase tracking-[0.14em] text-clw-gold-on-light hover:text-clw-ink">
+            <Link href="/sponsorship" className={`${CTA_LINK} text-clw-gold-on-light hover:text-clw-ink`}>
               View every way to support <ArrowUpRight className="h-4 w-4" />
             </Link>
           </div>

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { CTA_LINK } from '@/lib/cta'
 
 export function ProgramStructure() {
   return (
@@ -34,7 +35,7 @@ export function ProgramStructure() {
             </p>
           </div>
 
-          <Link href="/program" className="mt-5 inline-block font-cond text-lg uppercase tracking-[0.16em] text-clw-gold underline-offset-4 hover:text-clw-gold-l hover:underline sm:text-xl">
+          <Link href="/program" className={`${CTA_LINK} mt-5 text-clw-gold hover:text-clw-gold-l`}>
             Explore the program →
           </Link>
         </div>

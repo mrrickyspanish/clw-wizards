@@ -1,4 +1,5 @@
 import { SupportMedia } from './SupportMedia'
+import { CTA_BUTTON } from '@/lib/cta'
 
 const FAQS = [
   ['Where does my donation go?', 'Donations support equipment, tournament costs, coaching resources, scholarships, travel support, and the day-to-day expenses that keep the club strong for every wrestler.'],
@@ -20,7 +21,7 @@ export function SupportCommunityDetails() {
             <p className="mt-7 text-xl leading-relaxed text-clw-gray">
               The Wizards are powered by people who show up. Volunteers help with tournaments, fundraising, communications, setup, photography, team meals, and the small details that make a wrestling club feel like a real community.
             </p>
-            <a href="#contact" className="mt-8 inline-block bg-clw-gold px-10 py-5 font-display text-xl uppercase tracking-wide text-clw-black transition hover:bg-clw-white">Become a Volunteer</a>
+            <a href="#contact" className={`${CTA_BUTTON} mt-8 bg-clw-gold text-clw-ink hover:bg-clw-white`}>Become a Volunteer</a>
           </div>
         </div>
       </section>

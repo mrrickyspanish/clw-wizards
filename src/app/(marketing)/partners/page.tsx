@@ -6,6 +6,7 @@ import { createServerSupabase } from '@/lib/supabase/server'
 import type { Sponsor } from '@/types/database'
 import { PartnersWall } from '@/components/sponsorship/PartnersShowcase'
 import { ORG } from '@/config/org.config'
+import { CTA_BUTTON } from '@/lib/cta'
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? `https://${ORG.domain}`).replace(/\/$/, '')
 
@@ -78,11 +79,8 @@ export default async function PartnersPage() {
 
   return (
     <main className="overflow-x-clip bg-clw-black text-clw-white">
-      <script
-        type="application/ld+json"
-        // eslint-disable-next-line react/no-danger -- serialized from our own DB rows, not user input
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(partnerListJsonLd) }}
-      />
+      {/* Serialized from our own DB rows, not user input. */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(partnerListJsonLd) }} />
       <section className="relative isolate overflow-hidden border-b border-clw-gold/30 bg-clw-black px-5 py-20 sm:px-8 sm:py-24 lg:min-h-[620px] lg:px-12 lg:py-28 xl:px-16 2xl:px-20">
         <div aria-hidden className="absolute inset-0">
           {/* eslint-disable-next-line @next/next/no-img-element -- real club sponsor wall photography */}
@@ -113,7 +111,7 @@ export default async function PartnersPage() {
             </p>
             <Link
               href="/sponsorship/sponsor"
-              className="chamfer-sm mt-9 inline-flex h-14 items-center gap-3 bg-clw-gold px-7 font-cond text-base font-bold uppercase tracking-[0.14em] text-clw-black transition hover:bg-clw-gold-l"
+              className={`${CTA_BUTTON} mt-9 bg-clw-gold text-clw-black hover:bg-clw-gold-l`}
             >
               Become a partner <ArrowRight className="h-4 w-4" />
             </Link>
@@ -146,7 +144,7 @@ export default async function PartnersPage() {
           </div>
           <Link
             href="/sponsorship/sponsor"
-            className="chamfer-sm inline-flex h-16 items-center justify-center gap-3 border-2 border-clw-black bg-clw-black px-8 font-cond text-lg font-bold uppercase tracking-[0.14em] text-clw-gold transition hover:bg-transparent hover:text-clw-black"
+            className={`${CTA_BUTTON} border-2 border-clw-black bg-clw-black text-clw-gold hover:bg-transparent hover:text-clw-black`}
           >
             View sponsorship levels <ArrowRight className="h-5 w-5" />
           </Link>

@@ -5,6 +5,7 @@ import { pageMetadata } from '@/lib/page-metadata'
 import { ArrowRight, Award, Check, HeartHandshake, MapPin, ShieldCheck, Users } from 'lucide-react'
 
 import { getSiteContent } from '@/lib/content/get'
+import { CTA_BUTTON } from '@/lib/cta'
 
 const WHY_WRESTLING = [
   { number: '01', title: 'Discipline', body: 'The willingness to make the sacrifices required to improve as an athlete and a person.' },
@@ -176,7 +177,7 @@ export default async function AboutPage() {
             </div>
             <Link
               href="/coaches"
-              className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap border border-clw-gold/35 px-4 py-3 font-cond text-base uppercase tracking-[0.18em] text-clw-gold transition hover:border-clw-gold hover:text-clw-gold-l"
+              className={`${CTA_BUTTON} shrink-0 border border-clw-gold/35 text-clw-gold hover:border-clw-gold hover:text-clw-gold-l`}
             >
               Full Staff <ArrowRight className="h-4 w-4" />
             </Link>
@@ -244,18 +245,18 @@ export default async function AboutPage() {
             </p>
           </div>
 
-          <div className="mt-7 space-y-3">
+          <div className="mt-7 flex flex-col gap-3">
             <a
               href={mapUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="chamfer-sm flex min-h-12 items-center justify-center bg-clw-gold px-5 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-ink transition hover:bg-clw-gold-l"
+              className={`${CTA_BUTTON} w-full bg-clw-gold text-clw-ink hover:bg-clw-gold-l`}
             >
               Get Directions
             </a>
             <Link
               href="/sponsorship"
-              className="flex min-h-12 items-center justify-center gap-2 border border-clw-gold/35 px-5 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-gold transition hover:border-clw-gold hover:text-clw-gold-l"
+              className={`${CTA_BUTTON} w-full border border-clw-gold/35 text-clw-gold hover:border-clw-gold hover:text-clw-gold-l`}
             >
               <HeartHandshake className="h-4 w-4" />
               Support the Club

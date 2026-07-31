@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ArrowUpRight, Star } from 'lucide-react'
 
 import type { Sponsor, SponsorTier } from '@/types/database'
+import { CTA_LINK } from '@/lib/cta'
 
 const TIER_ORDER: SponsorTier[] = ['platinum', 'yellow', 'black', 'white', 'wizard_for_life']
 
@@ -264,7 +265,7 @@ export function PartnersProof({ sponsors }: { sponsors: Sponsor[] }) {
           <p className="font-cond text-sm font-semibold uppercase tracking-[0.28em] text-clw-gold">Current Partners</p>
           <h3 className="mt-3 font-display text-4xl uppercase leading-none text-white sm:text-5xl">Already in their corner.</h3>
         </div>
-        <Link href="/partners" className="inline-flex items-center gap-2 font-cond text-base font-semibold uppercase tracking-[0.16em] text-clw-gold hover:text-clw-gold-l">
+        <Link href="/partners" className={`${CTA_LINK} text-clw-gold hover:text-clw-gold-l`}>
           Meet all partners <ArrowUpRight className="h-4 w-4" />
         </Link>
       </div>

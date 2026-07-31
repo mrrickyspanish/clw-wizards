@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { CTA_TYPE } from '@/lib/cta'
 
 interface DonationCheckoutFormProps {
   recurring?: boolean
@@ -120,7 +121,7 @@ export function DonationCheckoutForm({
       <Button
         type="submit"
         disabled={loading}
-        className={`h-12 w-full rounded-none font-display text-lg uppercase tracking-wide sm:h-14 sm:text-xl ${
+        className={`h-12 w-full rounded-none ${CTA_TYPE} sm:h-14 ${
           light ? 'bg-clw-black text-clw-gold hover:bg-clw-gold hover:text-clw-black' : ''
         }`}
       >

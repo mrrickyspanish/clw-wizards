@@ -8,6 +8,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { ORG } from '@/config/org.config'
 import { createServerSupabase } from '@/lib/supabase/server'
 import type { FaqItem } from '@/types/database'
+import { CTA_BUTTON } from '@/lib/cta'
 
 // Fallback copy — used only if the faq_items table is empty/unavailable, so the
 // page always renders even before the content migration is applied.
@@ -107,10 +108,10 @@ export default async function FaqPage() {
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
-            <Link href="/join" className="chamfer-sm inline-flex min-h-12 items-center justify-center gap-2 bg-clw-gold px-6 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-ink hover:bg-clw-gold-l">
+            <Link href="/join" className={`${CTA_BUTTON} bg-clw-gold text-clw-ink hover:bg-clw-gold-l`}>
               New Families <ArrowRight className="h-4 w-4" />
             </Link>
-            <a href={`mailto:${ORG.contactEmail}`} className="inline-flex min-h-12 items-center justify-center gap-2 border border-clw-gold/35 px-6 py-3 font-cond text-base uppercase tracking-[0.16em] text-clw-gold hover:border-clw-gold">
+            <a href={`mailto:${ORG.contactEmail}`} className={`${CTA_BUTTON} border border-clw-gold/35 text-clw-gold hover:border-clw-gold`}>
               Ask the Club <Mail className="h-4 w-4" />
             </a>
           </div>

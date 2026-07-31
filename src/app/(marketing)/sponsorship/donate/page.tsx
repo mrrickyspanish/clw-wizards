@@ -9,6 +9,7 @@ import { SupportImpactChart } from '@/components/sponsorship/SupportImpactChart'
 import { SupportPageHero } from '@/components/sponsorship/SupportPageHero'
 import { TaxStatusNote } from '@/components/sponsorship/TaxStatusNote'
 import { SupportStatusAlert } from '@/components/sponsorship/SupportStatusAlert'
+import { CTA_LINK } from '@/lib/cta'
 
 export const metadata: Metadata = pageMetadata({
   title: 'One-Time Donation',
@@ -63,7 +64,7 @@ export default async function DonationPage({
           </div>
 
           <div className="mt-8 text-center">
-            <Link href="/sponsorship" className="inline-flex items-center gap-2 font-cond text-sm font-semibold uppercase tracking-[0.14em] text-clw-gold hover:text-clw-gold-l">
+            <Link href="/sponsorship" className={`${CTA_LINK} text-clw-gold hover:text-clw-gold-l`}>
               View every way to support <ArrowUpRight className="h-4 w-4" />
             </Link>
           </div>

@@ -1,4 +1,5 @@
 import { FacebookFeedWithFallback } from '@/components/landing/FacebookFeedWithFallback'
+import { CTA_LINK } from '@/lib/cta'
 
 const FACEBOOK_URL = 'https://www.facebook.com/pages/Wizards-Wrestling-Club/103467966667221'
 
@@ -92,7 +93,7 @@ export function HomeFacebookSection() {
             href={FACEBOOK_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-5 inline-block font-cond text-lg uppercase tracking-[0.16em] text-clw-gold underline-offset-4 hover:text-clw-gold-l hover:underline sm:text-xl sm:tracking-[0.18em] 2xl:mt-8"
+            className={`${CTA_LINK} mt-5 text-clw-gold hover:text-clw-gold-l 2xl:mt-8`}
           >
             Open Facebook page →
           </a>

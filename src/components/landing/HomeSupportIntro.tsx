@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { CircleDollarSign, HandHeart, HeartHandshake, Users } from 'lucide-react'
+import { CTA_LINK } from '@/lib/cta'
 
 const SUPPORT_PHOTOS = [
   '/images/real/clw-wizards-youth-win.jpg',
@@ -105,7 +106,7 @@ export function HomeSupportIntro() {
         </div>
 
         <div className="mt-5 flex justify-start border-t border-clw-gold/25 pt-5 sm:mt-6 sm:pt-6 lg:justify-center 2xl:mt-8 2xl:pt-7">
-          <Link href="/sponsorship" className="font-cond text-lg uppercase tracking-[0.16em] text-clw-gold underline-offset-4 hover:text-clw-gold-l hover:underline sm:text-xl sm:tracking-[0.18em]">
+          <Link href="/sponsorship" className={`${CTA_LINK} text-clw-gold hover:text-clw-gold-l`}>
             See where support goes →
           </Link>
         </div>
