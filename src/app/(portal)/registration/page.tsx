@@ -4,6 +4,7 @@ import { AlertCircle, CheckCircle2, Clock3, CreditCard, FileCheck2, Plus, Shield
 import { createServerSupabase } from '@/lib/supabase/server'
 import { resolveFamilyOwnerIds } from '@/lib/family'
 import { chicagoDateString } from '@/lib/chicago-time'
+import { resolveDuesPricing } from '@/lib/season-pricing'
 import type {
   Athlete,
   AthleteDocument,
@@ -123,6 +124,7 @@ export default async function RegistrationPage({
   }
 
   const { season, event } = selected
+  const pricing = resolveDuesPricing(season, today)
   const athletes = (athleteData ?? []) as Athlete[]
   const athleteIds = athletes.map((athlete) => athlete.id)
   const currentCardWindow = `${season.registration_open_date}T00:00:00.000Z`
@@ -193,7 +195,25 @@ export default async function RegistrationPage({
           </div>
           <div>
             <p className="text-clw-gray/70">Dues per wrestler</p>
-            <p className="mt-1 text-clw-white">{money(season.dues_amount_cents)}</p>
+            {pricing.isDiscounted ? (
+              <>
+                <p className="mt-1 text-clw-white">
+                  {money(pricing.amountCents)}{' '}
+                  <span className="text-clw-gray/70 line-through">{money(pricing.regularAmountCents)}</span>
+                </p>
+                <p className="mt-0.5 text-clw-gold-ink">
+                  Save {money(pricing.regularAmountCents - pricing.amountCents)} — register by{' '}
+                  {formatDate(pricing.discountDeadline!)}
+                </p>
+              </>
+            ) : pricing.discountAmountCents != null ? (
+              <>
+                <p className="mt-1 text-clw-white">{money(pricing.regularAmountCents)}</p>
+                <p className="mt-0.5 text-clw-gray/70">Early pricing ended {formatDate(pricing.discountDeadline!)}</p>
+              </>
+            ) : (
+              <p className="mt-1 text-clw-white">{money(pricing.regularAmountCents)}</p>
+            )}
           </div>
           <div>
             <p className="text-clw-gray/70">USA Wrestling card</p>
@@ -285,8 +305,8 @@ export default async function RegistrationPage({
               (!enrollment || enrollment.status === 'changes_requested' || enrollment.status === 'withdrawn')
             const dues = enrollment?.dues_payment_id ? duesById.get(enrollment.dues_payment_id) : undefined
             const paid =
-              season.dues_amount_cents === 0 || dues?.status === 'paid' || dues?.status === 'waived'
-            const remaining = dues ? Math.max(0, dues.amount_cents - dues.amount_paid_cents) : season.dues_amount_cents
+              pricing.amountCents === 0 || dues?.status === 'paid' || dues?.status === 'waived'
+            const remaining = dues ? Math.max(0, dues.amount_cents - dues.amount_paid_cents) : pricing.amountCents
             const canSubmit = isOpen && (!season.require_usa_card || Boolean(latestCard))
             const resubmitting = enrollment?.status === 'changes_requested' || enrollment?.status === 'withdrawn'
 
@@ -351,14 +371,26 @@ export default async function RegistrationPage({
                       <p className="flex items-center gap-2 text-sm font-medium text-clw-white">
                         <CreditCard className="h-4 w-4 text-clw-gold-ink" /> Season dues
                       </p>
-                      <p className="mt-1 text-xs text-clw-gray">
-                        {!enrollment
-                          ? `${money(season.dues_amount_cents)} due after submission`
-                          : paid
-                            ? 'Paid or waived'
-                            : dues
-                              ? `${money(remaining)} remaining`
-                              : 'Payment record is being prepared'}
+                      <p className="mt-1 text-sm text-clw-gray">
+                        {!enrollment ? (
+                          pricing.isDiscounted ? (
+                            <>
+                              {money(pricing.amountCents)} due after submission —{' '}
+                              <span className="text-clw-gold-ink">
+                                save {money(pricing.regularAmountCents - pricing.amountCents)} through{' '}
+                                {formatDate(pricing.discountDeadline!)}
+                              </span>
+                            </>
+                          ) : (
+                            `${money(pricing.amountCents)} due after submission`
+                          )
+                        ) : paid ? (
+                          'Paid or waived'
+                        ) : dues ? (
+                          `${money(remaining)} remaining`
+                        ) : (
+                          'Payment record is being prepared'
+                        )}
                       </p>
                       {enrollment && dues && !paid && remaining > 0 && (
                         <div className="mt-3">

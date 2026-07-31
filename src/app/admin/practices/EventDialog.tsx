@@ -62,6 +62,10 @@ export function EventDialog({ event, season }: { event?: ClubEvent; season?: Sea
   const [duesDueDate, setDuesDueDate] = useState(season?.dues_due_date ?? '')
   const [instructions, setInstructions] = useState(season?.instructions ?? '')
   const [requireUsaCard, setRequireUsaCard] = useState(season?.require_usa_card ?? true)
+  const [earlyBirdPrice, setEarlyBirdPrice] = useState(
+    season?.early_bird_price_cents != null ? (season.early_bird_price_cents / 100).toFixed(2) : ''
+  )
+  const [earlyBirdDeadline, setEarlyBirdDeadline] = useState(season?.early_bird_deadline ?? '')
 
   const isSeason = type === 'season_registration'
 
@@ -75,6 +79,31 @@ export function EventDialog({ event, season }: { event?: ClubEvent; season?: Sea
       setLoading(false)
       setError('Enter a valid dues amount.')
       return
+    }
+
+    const hasEarlyBirdPrice = earlyBirdPrice.trim() !== ''
+    const earlyBirdAmount = hasEarlyBirdPrice ? Number(earlyBirdPrice) : null
+    if (isSeason && hasEarlyBirdPrice !== Boolean(earlyBirdDeadline)) {
+      setLoading(false)
+      setError('Set both an early registration price and a deadline, or leave both blank.')
+      return
+    }
+    if (isSeason && hasEarlyBirdPrice) {
+      if (!Number.isFinite(earlyBirdAmount) || (earlyBirdAmount as number) < 0) {
+        setLoading(false)
+        setError('Enter a valid early registration price.')
+        return
+      }
+      if ((earlyBirdAmount as number) >= amount) {
+        setLoading(false)
+        setError('The early registration price must be less than the regular dues amount.')
+        return
+      }
+      if (earlyBirdDeadline < registrationOpen || earlyBirdDeadline > registrationClose) {
+        setLoading(false)
+        setError('The early registration deadline must fall within the registration window.')
+        return
+      }
     }
 
     const values: EventInput = {
@@ -94,6 +123,8 @@ export function EventDialog({ event, season }: { event?: ClubEvent; season?: Sea
       dues_due_date: isSeason ? duesDueDate : null,
       instructions: isSeason ? instructions : null,
       require_usa_card: isSeason ? requireUsaCard : false,
+      early_bird_price_cents: isSeason && hasEarlyBirdPrice ? Math.round((earlyBirdAmount as number) * 100) : null,
+      early_bird_deadline: isSeason && hasEarlyBirdPrice ? earlyBirdDeadline : null,
     }
 
     const result = editing ? await updateEvent(event!.id, values) : await createEvent(values)
@@ -279,6 +310,42 @@ export function EventDialog({ event, season }: { event?: ClubEvent; season?: Sea
                     value={duesDueDate}
                     onChange={(e) => setDuesDueDate(e.target.value)}
                   />
+                </div>
+              </div>
+
+              <div className="space-y-3 rounded-md border border-clw-gold/15 bg-clw-black-2 p-4">
+                <div>
+                  <p className="text-sm font-medium text-clw-white">Early registration discount (optional)</p>
+                  <p className="mt-1 text-sm text-clw-gray">
+                    Leave both blank to charge the full amount the whole window. If set, a wrestler registered on or
+                    before the deadline pays the discount price; after it, the regular dues amount applies.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="early_bird_price">Discount price</Label>
+                    <Input
+                      id="early_bird_price"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      inputMode="decimal"
+                      value={earlyBirdPrice}
+                      onChange={(e) => setEarlyBirdPrice(e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="early_bird_deadline">Discount ends</Label>
+                    <Input
+                      id="early_bird_deadline"
+                      type="date"
+                      min={registrationOpen || undefined}
+                      max={registrationClose || undefined}
+                      value={earlyBirdDeadline}
+                      onChange={(e) => setEarlyBirdDeadline(e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
 

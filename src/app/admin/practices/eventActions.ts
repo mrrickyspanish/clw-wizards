@@ -27,6 +27,8 @@ const eventSchema = z
     dues_due_date: z.string().optional().nullable(),
     instructions: z.string().trim().max(3000).optional().nullable(),
     require_usa_card: z.boolean().optional(),
+    early_bird_price_cents: z.coerce.number().int().min(0).max(1_000_000).optional().nullable(),
+    early_bird_deadline: z.string().optional().nullable(),
   })
   .superRefine((values, ctx) => {
     if (values.event_type !== 'season_registration') return
@@ -49,6 +51,35 @@ const eventSchema = z
     }
     if (values.dues_due_date && !/^\d{4}-\d{2}-\d{2}$/.test(values.dues_due_date)) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['dues_due_date'], message: 'Enter a valid dues due date.' })
+    }
+
+    const hasEarlyBirdPrice = values.early_bird_price_cents != null
+    const hasEarlyBirdDeadline = Boolean(values.early_bird_deadline)
+    if (hasEarlyBirdPrice !== hasEarlyBirdDeadline) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['early_bird_deadline'],
+        message: 'Set both an early registration price and a deadline, or leave both blank.',
+      })
+    }
+    if (hasEarlyBirdPrice && values.dues_amount_cents != null && values.early_bird_price_cents! >= values.dues_amount_cents) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['early_bird_price_cents'],
+        message: 'The early registration price must be less than the regular dues amount.',
+      })
+    }
+    if (
+      hasEarlyBirdDeadline &&
+      values.registration_open_date &&
+      values.registration_close_date &&
+      (values.early_bird_deadline! < values.registration_open_date || values.early_bird_deadline! > values.registration_close_date)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['early_bird_deadline'],
+        message: 'The early registration deadline must fall within the registration window.',
+      })
     }
   })
 
@@ -79,6 +110,8 @@ function normalizeSeason(values: z.output<typeof eventSchema>, eventId: string) 
     dues_due_date: values.dues_due_date || null,
     instructions: values.instructions || null,
     require_usa_card: values.require_usa_card ?? true,
+    early_bird_price_cents: values.early_bird_price_cents ?? null,
+    early_bird_deadline: values.early_bird_deadline || null,
   }
 }
 

@@ -3,6 +3,7 @@ import { AlertCircle, ArrowRight, CheckCircle2, Clock3, CreditCard, UserPlus } f
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { chicagoDateString } from '@/lib/chicago-time'
+import { resolveDuesPricing } from '@/lib/season-pricing'
 import type { Athlete, ClubEvent, DuesPayment, SeasonEnrollment, SeasonRegistration } from '@/types/database'
 
 function formatDate(value: string) {
@@ -11,6 +12,10 @@ function formatDate(value: string) {
     day: 'numeric',
     year: 'numeric',
   })
+}
+
+function money(cents: number) {
+  return `$${(cents / 100).toFixed(2)}`
 }
 
 function pickSeason(
@@ -114,9 +119,12 @@ export async function SeasonRegistrationCard({
     Icon = AlertCircle
     accent = 'border-amber-500/40'
   } else if (unregistered > 0 && isOpen) {
+    const pricing = resolveDuesPricing(season, today)
     eyebrow = 'Registration open'
     title = `Register for ${season.season_label}`
-    body = `${unregistered} active wrestler${unregistered === 1 ? ' is' : 's are'} not registered for the new season yet.`
+    body = pricing.isDiscounted
+      ? `${unregistered} active wrestler${unregistered === 1 ? ' is' : 's are'} not registered yet. Register by ${formatDate(pricing.discountDeadline!)} to save ${money(pricing.regularAmountCents - pricing.amountCents)} per wrestler.`
+      : `${unregistered} active wrestler${unregistered === 1 ? ' is' : 's are'} not registered for the new season yet.`
     action = 'Register now'
   } else if (outstanding > 0) {
     eyebrow = 'Payment required'

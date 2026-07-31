@@ -223,6 +223,10 @@ export type SeasonRegistration = {
   dues_due_date: string | null
   instructions: string | null
   require_usa_card: boolean
+  // Both null, or both set: on or before early_bird_deadline the price is
+  // early_bird_price_cents; after it, dues_amount_cents applies.
+  early_bird_price_cents: number | null
+  early_bird_deadline: string | null
   created_at: string
   updated_at: string
 }
