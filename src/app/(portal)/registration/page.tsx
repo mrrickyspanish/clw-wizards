@@ -80,7 +80,12 @@ export default async function RegistrationPage({
   const today = chicagoDateString()
   const familyOwnerIds = await resolveFamilyOwnerIds(supabase, userId)
 
-  const [{ data: seasonData, error: seasonError }, { data: eventData }, { data: athleteData }] = await Promise.all([
+  const [
+    { data: seasonData, error: seasonError },
+    { data: eventData },
+    { data: athleteData },
+    { data: profileData },
+  ] = await Promise.all([
     supabase.from('season_registrations').select('*').order('registration_open_date', { ascending: false }),
     supabase.from('club_events').select('*').eq('event_type', 'season_registration').eq('active', true),
     supabase
@@ -89,7 +94,10 @@ export default async function RegistrationPage({
       .in('parent_id', familyOwnerIds)
       .eq('active', true)
       .order('first_name', { ascending: true }),
+    supabase.from('profiles').select('full_name, email, phone').eq('id', userId).maybeSingle(),
   ])
+
+  const profile = profileData as { full_name: string | null; email: string | null; phone: string | null } | null
 
   const events = new Map(((eventData ?? []) as ClubEvent[]).map((event) => [event.id, event]))
   const selected = pickSeason((seasonData ?? []) as SeasonRegistration[], events, today)
@@ -189,7 +197,7 @@ export default async function RegistrationPage({
           </div>
           <div>
             <p className="text-clw-gray/70">USA Wrestling card</p>
-            <p className="mt-1 text-clw-white">{season.require_usa_card ? 'Current-season upload required' : 'Not required'}</p>
+            <p className="mt-1 text-clw-white">{season.require_usa_card ? 'Verified card on file required' : 'Not required'}</p>
           </div>
         </CardContent>
       </Card>
@@ -202,6 +210,47 @@ export default async function RegistrationPage({
           <CardContent className="space-y-3 text-sm leading-relaxed text-clw-gray">
             {event.notes && <p>{event.notes}</p>}
             {season.instructions && <p>{season.instructions}</p>}
+          </CardContent>
+        </Card>
+      )}
+
+      {athletes.length > 0 && (
+        <Card className="card-depth border-clw-gold/10 bg-clw-black-3">
+          <CardHeader>
+            <CardTitle className="text-base text-clw-white">Confirm your details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-base leading-relaxed text-clw-gray">
+              Your account and wrestler profiles carry over from last season. Check anything that may have changed,
+              then submit each wrestler below.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl bg-clw-black p-4">
+                <p className="text-sm font-medium text-clw-white">Contact</p>
+                <p className="mt-2 truncate text-sm text-clw-gray">{profile?.full_name ?? 'Name not set'}</p>
+                <p className="truncate text-sm text-clw-gray">{profile?.email ?? ''}</p>
+                <p className="text-sm text-clw-gray">{profile?.phone ?? 'No phone on file'}</p>
+                <Link href="/profile" className="mt-3 inline-block text-sm font-medium text-clw-gold-ink hover:underline">
+                  Update contact info
+                </Link>
+              </div>
+              <div className="rounded-xl bg-clw-black p-4">
+                <p className="text-sm font-medium text-clw-white">Documents</p>
+                <p className="mt-2 text-sm text-clw-gray">
+                  A card the club already verified carries over. Replace it here if it has changed or expired.
+                </p>
+                <Link href="/documents" className="mt-3 inline-block text-sm font-medium text-clw-gold-ink hover:underline">
+                  Review documents
+                </Link>
+              </div>
+              <div className="rounded-xl bg-clw-black p-4">
+                <p className="text-sm font-medium text-clw-white">Dues</p>
+                <p className="mt-2 text-sm text-clw-gray">
+                  Pay when you register or leave it pending and pay later. Wrestlers are cleared once dues are settled
+                  and documents are verified.
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -279,12 +328,12 @@ export default async function RegistrationPage({
                               : !isOpen && !card
                                 ? `Upload available ${formatDate(season.registration_open_date)}`
                                 : !card
-                                  ? 'Current-season upload required'
+                                  ? 'Upload the card to register'
                                   : card.verified
-                                    ? 'Verified by the club for this season'
+                                    ? 'Verified by the club, carries over to this season'
                                     : enrollment?.status === 'submitted'
                                       ? 'Submitted with this registration, awaiting review'
-                                      : 'Uploaded for this season, awaiting review'}
+                                      : 'Uploaded, awaiting club review'}
                           </p>
                         </div>
                         {season.require_usa_card && canEditCard && (

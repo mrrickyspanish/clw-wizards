@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 
 import { ORG } from '@/config/org.config'
+import { SeasonRegistrationCallout } from '@/components/landing/SeasonRegistrationCallout'
 
 const MAP_URL = 'https://www.google.com/maps/search/?api=1&query=975+Nimco+Dr+Unit+L+Crystal+Lake+IL+60014'
 const SECTION_HEADING_CLASS = 'mt-4 font-display text-4xl uppercase leading-[0.96] text-clw-white sm:text-5xl'
@@ -115,12 +116,16 @@ const FIRST_WEEKS = [
   },
 ]
 
+// Registration windows move by the day, so serve this from cache and refresh
+// it periodically rather than querying on every visit to a high-traffic page.
+export const revalidate = 300
+
 export const metadata: Metadata = {
   title: 'New Families',
   description: 'What new families can expect when exploring Wizards Wrestling Club, from training groups and first practices to equipment and next steps.',
 }
 
-export default function JoinPage() {
+export default async function JoinPage() {
   return (
     <main className="relative overflow-hidden bg-clw-black text-clw-white">
       <section className="relative isolate min-h-[690px] overflow-hidden border-b border-clw-gold/20 lg:min-h-[760px]">
@@ -300,7 +305,9 @@ export default function JoinPage() {
               Some parents want to visit the facility, meet a coach, or ask questions before taking the next step. Others have already spoken with the club and are ready to begin setting up their family account.
             </p>
 
-            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <SeasonRegistrationCallout />
+
               <div className="border border-clw-gold/20 bg-clw-black/45 p-6">
                 <p className="font-cond text-sm uppercase tracking-[0.22em] text-clw-gold">Not Sure Yet?</p>
                 <h3 className="mt-4 font-display text-3xl uppercase leading-none text-clw-white">Ask About Joining</h3>
