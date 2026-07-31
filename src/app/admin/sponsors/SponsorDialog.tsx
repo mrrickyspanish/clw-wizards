@@ -63,6 +63,7 @@ export function SponsorDialog({ sponsor, tiers }: { sponsor?: Sponsor; tiers: Sp
   const [recurring, setRecurring] = useState(sponsor?.recurring ?? false)
   const [active, setActive] = useState(sponsor?.active ?? true)
   const [golfHole, setGolfHole] = useState(sponsor?.golf_outing_hole ?? false)
+  const [logoDarkBackdrop, setLogoDarkBackdrop] = useState(sponsor?.logo_dark_backdrop ?? false)
   const [notes, setNotes] = useState(sponsor?.notes ?? '')
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -80,6 +81,7 @@ export function SponsorDialog({ sponsor, tiers }: { sponsor?: Sponsor; tiers: Sp
       setRecurring(sponsor?.recurring ?? false)
       setActive(sponsor?.active ?? true)
       setGolfHole(sponsor?.golf_outing_hole ?? false)
+      setLogoDarkBackdrop(sponsor?.logo_dark_backdrop ?? false)
       setNotes(sponsor?.notes ?? '')
     }
     setOpen(next)
@@ -126,6 +128,7 @@ export function SponsorDialog({ sponsor, tiers }: { sponsor?: Sponsor; tiers: Sp
       recurring,
       active,
       golf_outing_hole: golfHole,
+      logo_dark_backdrop: logoDarkBackdrop,
       notes,
     }
   }
@@ -261,6 +264,10 @@ export function SponsorDialog({ sponsor, tiers }: { sponsor?: Sponsor; tiers: Sp
               onChange={(e) => setLogoUrl(e.target.value)}
             />
             <p className="text-xs text-clw-gray">Shown in the sponsor marquee. Without a logo, the name is shown instead.</p>
+            <label className="flex items-center gap-2 text-sm text-clw-white">
+              <Checkbox checked={logoDarkBackdrop} onCheckedChange={(c) => setLogoDarkBackdrop(c === true)} />
+              Logo needs a dark background (white or light-colored logo)
+            </label>
           </div>
 
           <div className="space-y-2">

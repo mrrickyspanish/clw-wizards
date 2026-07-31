@@ -107,8 +107,18 @@ function PartnerCard({
         <ArrowUpRight className="absolute right-4 top-4 h-4 w-4 text-clw-gold-on-light transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
       )}
 
-      <div className="flex min-h-0 flex-1 items-center justify-center px-2 py-3 sm:px-4">
+      <div
+        className={`flex min-h-0 flex-1 items-center justify-center px-2 py-3 sm:px-4 ${
+          sponsor.logo_url && sponsor.logo_dark_backdrop ? 'rounded-md bg-clw-black' : ''
+        }`}
+      >
         {sponsor.logo_url ? (
+          // A white or light-colored logo would vanish against the card's
+          // light background, so this zone recolors to dark instead of the
+          // whole card flipping -- the grid stays visually consistent rather
+          // than turning into a patchwork of light and dark cards, and the
+          // logo keeps the exact same size and padding every other card
+          // uses instead of shrinking into a smaller inset box.
           // eslint-disable-next-line @next/next/no-img-element -- sponsor logos can use arbitrary external hosts
           <img
             src={sponsor.logo_url}

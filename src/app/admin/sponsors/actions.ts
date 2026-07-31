@@ -43,7 +43,20 @@ export async function updateSponsorTier(slug: string, values: SponsorTierInput):
 const sponsorSchema = z.object({
   name: z.string().trim().min(1, 'Business name is required').max(160),
   tier: z.enum(['platinum', 'yellow', 'black', 'white', 'wizard_for_life']),
-  logo_url: z.string().trim().url('Logo must be a valid URL').optional().nullable().or(z.literal('')),
+  // Accepts a full URL (Storage-hosted upload) or a site-relative path like
+  // /images/sponsors/foo.png (repo-committed assets, e.g. the initial batch
+  // imported ahead of Storage uploads) -- a relative path isn't a valid URL
+  // by strict URL parsing, and it shouldn't be forced into one by hardcoding
+  // a domain that isn't finalized yet.
+  logo_url: z
+    .string()
+    .trim()
+    .refine((value) => value === '' || /^https?:\/\//.test(value) || value.startsWith('/'), {
+      message: 'Logo must be a full URL or a site-relative path starting with /',
+    })
+    .optional()
+    .nullable()
+    .or(z.literal('')),
   website_url: z.string().trim().url('Website must be a valid URL').optional().nullable().or(z.literal('')),
   contact_name: z.string().trim().max(160).optional().nullable(),
   contact_email: z.string().trim().email('Enter a valid email').optional().nullable().or(z.literal('')),
@@ -51,6 +64,7 @@ const sponsorSchema = z.object({
   recurring: z.boolean(),
   active: z.boolean(),
   golf_outing_hole: z.boolean(),
+  logo_dark_backdrop: z.boolean(),
   notes: z.string().trim().max(2000).optional().nullable(),
 })
 
@@ -69,6 +83,7 @@ function normalizeSponsor(values: SponsorInput) {
     recurring: parsed.recurring,
     active: parsed.active,
     golf_outing_hole: parsed.golf_outing_hole,
+    logo_dark_backdrop: parsed.logo_dark_backdrop,
     notes: parsed.notes || null,
   }
 }

@@ -116,6 +116,10 @@ export type Sponsor = {
   stripe_subscription_id: string | null
   active: boolean
   golf_outing_hole: boolean
+  // Some logos (a white or light wordmark on a transparent field) are only
+  // legible against a dark backdrop. True gives the logo its own dark stage
+  // inside the card instead of vanishing against the card's light background.
+  logo_dark_backdrop: boolean
   notes: string | null
   created_at: string
   updated_at: string
