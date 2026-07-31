@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+
+import { pageMetadata } from '@/lib/page-metadata'
 import Link from 'next/link'
 import { ArrowUpRight, CalendarHeart, LockKeyhole } from 'lucide-react'
 
@@ -35,10 +37,10 @@ const BOOSTER_LEVELS = [
   },
 ]
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: 'Monthly Boosters',
   description: 'Join the Wizards booster club with dependable monthly support for athlete access, equipment, competition, and program growth.',
-}
+})
 
 export default async function BoostersPage({
   searchParams,

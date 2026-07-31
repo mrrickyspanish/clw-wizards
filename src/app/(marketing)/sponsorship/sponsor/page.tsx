@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+
+import { pageMetadata } from '@/lib/page-metadata'
 import Link from 'next/link'
 import { ArrowUpRight, Building2, Megaphone, ShieldCheck, Users } from 'lucide-react'
 
@@ -53,10 +55,10 @@ function tierBandClass(slug: string) {
   }
 }
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: 'Corporate Sponsorship',
   description: 'Review Wizards Wrestling Club corporate sponsorship levels and support local youth wrestlers while building community visibility.',
-}
+})
 
 export default async function SponsorPage({
   searchParams,

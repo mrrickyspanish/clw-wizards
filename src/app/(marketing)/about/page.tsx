@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
+
+import { pageMetadata } from '@/lib/page-metadata'
 import { ArrowRight, Award, Check, HeartHandshake, MapPin, ShieldCheck, Users } from 'lucide-react'
 
 import { getSiteContent } from '@/lib/content/get'
@@ -26,10 +28,10 @@ const PRACTICE_COACHES = [
 
 const SECTION_HEADING_CLASS = 'mt-4 font-display text-4xl uppercase leading-[0.96] text-clw-white sm:text-5xl'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: 'Mission',
   description: 'The mission, values, leadership, and community behind Wizards Wrestling Club in McHenry County.',
-}
+})
 
 export default async function AboutPage() {
   const content = await getSiteContent()

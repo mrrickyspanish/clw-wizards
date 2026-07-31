@@ -5,11 +5,27 @@ import { ArrowRight, Star } from 'lucide-react'
 import { createServerSupabase } from '@/lib/supabase/server'
 import type { Sponsor } from '@/types/database'
 import { PartnersWall } from '@/components/sponsorship/PartnersShowcase'
+import { ORG } from '@/config/org.config'
+
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? `https://${ORG.domain}`).replace(/\/$/, '')
+
+const PAGE_TITLE = 'Partners'
+const PAGE_DESCRIPTION =
+  'Meet the sponsors and community partners who support Wizards Wrestling Club — local contractors, trades, and businesses across Crystal Lake and McHenry County, IL.'
 
 export const metadata: Metadata = {
-  title: 'Partners',
-  description: 'Meet the sponsors and community partners who support Wizards Wrestling Club.',
+  title: PAGE_TITLE,
+  description: PAGE_DESCRIPTION,
   alternates: { canonical: '/partners' },
+  // Without these the root layout's site-wide values are used, so every page
+  // shared to the same preview title and blurb regardless of what it was.
+  openGraph: {
+    title: PAGE_TITLE,
+    description: PAGE_DESCRIPTION,
+    url: '/partners',
+    type: 'website',
+  },
+  twitter: { title: PAGE_TITLE, description: PAGE_DESCRIPTION },
 }
 
 export default async function PartnersPage() {
@@ -22,8 +38,51 @@ export default async function PartnersPage() {
 
   const sponsors = (data ?? []) as Sponsor[]
 
+  // An ItemList of Organizations, so the partners read as a list of real
+  // businesses rather than 26 anonymous images. Each entry carries whatever
+  // that sponsor actually has -- url, logo, trade, description -- and nothing
+  // is emitted for a field that is unset, since padding structured data with
+  // guesses about someone else's business is worse than omitting it.
+  const partnerOrganizations = sponsors.map((sponsor) => ({
+    '@type': 'Organization' as const,
+    name: sponsor.name,
+    ...(sponsor.website_url ? { url: sponsor.website_url } : {}),
+    ...(sponsor.logo_url ? { logo: new URL(sponsor.logo_url, SITE_URL).toString() } : {}),
+    ...(sponsor.description ? { description: sponsor.description } : {}),
+    ...(sponsor.industry ? { knowsAbout: sponsor.industry } : {}),
+  }))
+
+  const partnerListJsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'ItemList',
+        name: `${ORG.name} partners and sponsors`,
+        numberOfItems: partnerOrganizations.length,
+        itemListElement: partnerOrganizations.map((organization, index) => ({
+          '@type': 'ListItem',
+          position: index + 1,
+          item: organization,
+        })),
+      },
+      // Attaches to the SportsClub declared in the root layout by @id, so the
+      // sponsorship is stated on the club entity itself instead of only
+      // existing as a loose list on one page.
+      {
+        '@type': 'SportsClub',
+        '@id': `${SITE_URL}/#organization`,
+        sponsor: partnerOrganizations,
+      },
+    ],
+  }
+
   return (
     <main className="overflow-x-clip bg-clw-black text-clw-white">
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger -- serialized from our own DB rows, not user input
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(partnerListJsonLd) }}
+      />
       <section className="relative isolate overflow-hidden border-b border-clw-gold/30 bg-clw-black px-5 py-20 sm:px-8 sm:py-24 lg:min-h-[620px] lg:px-12 lg:py-28 xl:px-16 2xl:px-20">
         <div aria-hidden className="absolute inset-0">
           {/* eslint-disable-next-line @next/next/no-img-element -- real club sponsor wall photography */}

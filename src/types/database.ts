@@ -121,6 +121,10 @@ export type Sponsor = {
   // black with white name text, instead of the logo vanishing against the
   // standard cream card.
   logo_dark_backdrop: boolean
+  // Shown on the partner card and fed to the Organization structured data.
+  // Both optional -- a sponsor with neither renders as just logo and name.
+  industry: string | null
+  description: string | null
   notes: string | null
   created_at: string
   updated_at: string

@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+
+import { pageMetadata } from '@/lib/page-metadata'
 import Link from 'next/link'
 import { ArrowUpRight, Camera, ClipboardList, Megaphone, ShieldCheck, Trophy, Users } from 'lucide-react'
 
@@ -38,10 +40,10 @@ const VOLUNTEER_PATHS = [
   },
 ]
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: 'Volunteer With Us',
   description: 'Volunteer with Wizards Wrestling Club through tournaments, events, coaching, communications, fundraising, and club operations.',
-}
+})
 
 export default function VolunteerPage() {
   return (

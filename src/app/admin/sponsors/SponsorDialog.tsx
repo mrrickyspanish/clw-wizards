@@ -64,6 +64,8 @@ export function SponsorDialog({ sponsor, tiers }: { sponsor?: Sponsor; tiers: Sp
   const [active, setActive] = useState(sponsor?.active ?? true)
   const [golfHole, setGolfHole] = useState(sponsor?.golf_outing_hole ?? false)
   const [logoDarkBackdrop, setLogoDarkBackdrop] = useState(sponsor?.logo_dark_backdrop ?? false)
+  const [industry, setIndustry] = useState(sponsor?.industry ?? '')
+  const [description, setDescription] = useState(sponsor?.description ?? '')
   const [notes, setNotes] = useState(sponsor?.notes ?? '')
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -82,6 +84,8 @@ export function SponsorDialog({ sponsor, tiers }: { sponsor?: Sponsor; tiers: Sp
       setActive(sponsor?.active ?? true)
       setGolfHole(sponsor?.golf_outing_hole ?? false)
       setLogoDarkBackdrop(sponsor?.logo_dark_backdrop ?? false)
+      setIndustry(sponsor?.industry ?? '')
+      setDescription(sponsor?.description ?? '')
       setNotes(sponsor?.notes ?? '')
     }
     setOpen(next)
@@ -129,6 +133,8 @@ export function SponsorDialog({ sponsor, tiers }: { sponsor?: Sponsor; tiers: Sp
       active,
       golf_outing_hole: golfHole,
       logo_dark_backdrop: logoDarkBackdrop,
+      industry,
+      description,
       notes,
     }
   }
@@ -279,6 +285,36 @@ export function SponsorDialog({ sponsor, tiers }: { sponsor?: Sponsor; tiers: Sp
               value={websiteUrl}
               onChange={(e) => setWebsiteUrl(e.target.value)}
             />
+          </div>
+
+          {/* Both of these render publicly on /partners and feed the
+              Organization structured data, so they sit with Website rather
+              than down with the internal Notes field. */}
+          <div className="space-y-2">
+            <Label htmlFor="sponsor-industry">Industry / trade</Label>
+            <Input
+              id="sponsor-industry"
+              maxLength={60}
+              placeholder="Electrical Contractor"
+              value={industry}
+              onChange={(e) => setIndustry(e.target.value)}
+            />
+            <p className="text-sm text-clw-gray">Shown as a label on the partner card. A trade, not a sentence.</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="sponsor-description">One-line description</Label>
+            <Textarea
+              id="sponsor-description"
+              rows={2}
+              maxLength={200}
+              placeholder="Commercial electrical contracting across Chicagoland."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+            <p className="text-sm text-clw-gray">
+              Public, on the partner card and in search results. {200 - description.trim().length} characters left.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

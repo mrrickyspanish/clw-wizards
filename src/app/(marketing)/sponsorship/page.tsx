@@ -1,13 +1,15 @@
 import type { Metadata } from 'next'
 
+import { pageMetadata } from '@/lib/page-metadata'
+
 import { SupportOverview } from '@/components/sponsorship/SupportOverview'
 import { SupportStatusAlert } from '@/components/sponsorship/SupportStatusAlert'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: 'Support the Club',
   description:
     'See why community support matters, where donations go, and how to donate, join the boosters, sponsor, or volunteer with Wizards Wrestling Club.',
-}
+})
 
 export default async function SponsorshipPage({
   searchParams,

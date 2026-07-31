@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+
+import { pageMetadata } from '@/lib/page-metadata'
 import Link from 'next/link'
 
 import { ORG } from '@/config/org.config'
@@ -28,10 +30,10 @@ const GOLF_TIERS = [
   },
 ]
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: 'Golf Outing',
   description: "Join the Crystal Lake Wizards' annual golf outing, held every August.",
-}
+})
 
 export default function GolfOutingPage() {
   return (

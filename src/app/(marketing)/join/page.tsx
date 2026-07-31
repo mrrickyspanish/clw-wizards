@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
+
+import { pageMetadata } from '@/lib/page-metadata'
 import {
   ArrowRight,
   Award,
@@ -120,10 +122,10 @@ const FIRST_WEEKS = [
 // it periodically rather than querying on every visit to a high-traffic page.
 export const revalidate = 300
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: 'New Families',
   description: 'What new families can expect when exploring Wizards Wrestling Club, from training groups and first practices to equipment and next steps.',
-}
+})
 
 export default async function JoinPage() {
   return (

@@ -16,6 +16,10 @@ const SITE_DESCRIPTION =
 const STRUCTURED_DATA = {
   '@context': 'https://schema.org',
   '@type': 'SportsClub',
+  // Stable @id so other pages can attach to this same entity rather than
+  // describing a second, unrelated club -- /partners hangs its sponsor list
+  // off this node.
+  '@id': `${SITE_URL}/#organization`,
   name: ORG.name,
   alternateName: ORG.shortName,
   description: SITE_DESCRIPTION,

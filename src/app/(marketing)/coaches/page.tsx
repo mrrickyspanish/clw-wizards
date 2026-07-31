@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+
+import { pageMetadata } from '@/lib/page-metadata'
 import Link from 'next/link'
 import { ArrowRight, Users } from 'lucide-react'
 
@@ -23,10 +25,10 @@ const PRACTICE_FALLBACK = [
   { group: 'Group 4', coaches: 'Anthony Fontanetta, Steve Swierk' },
 ]
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: 'Coaches & Staff',
   description: 'Meet the volunteer coaches, board members, and team leaders behind Wizards Wrestling Club.',
-}
+})
 
 // Group practice-room coaches by their assigned practice_group, preserving the
 // roster's sort order, into the "Group 1 — Name, Name" shape the page renders.

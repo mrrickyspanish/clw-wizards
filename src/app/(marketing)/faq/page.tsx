@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
+
+import { pageMetadata } from '@/lib/page-metadata'
 import { ArrowRight, HelpCircle, Mail } from 'lucide-react'
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
@@ -48,10 +50,10 @@ const FAQS = [
   },
 ]
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: 'FAQ',
   description: 'Answers to common questions about joining Wizards Wrestling Club, practice, equipment, tournaments, and coaching.',
-}
+})
 
 export default async function FaqPage() {
   const supabase = await createServerSupabase()

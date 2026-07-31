@@ -65,18 +65,18 @@ const CARD_HEIGHTS = {
   legacy: 'min-h-[160px] sm:min-h-[180px]',
 }
 
-// Both of the logo's dimensions are resolved from its container -- h-full
-// w-full with object-contain -- so its own aspect ratio never feeds back into
-// the layout. Sizing it off the intrinsic ratio instead lets one tall logo
-// stretch its card (AllianceCo pushed its card to twice the height of its
-// row-mates); this way every card in a tier matches and the artwork still
-// scales up to whichever edge it reaches first. The cap keeps a logo from
-// swallowing the card on tiers whose name text is short.
-const LOGO_CAPS = {
-  platinum: 'max-h-40 sm:max-h-48 lg:max-h-52',
-  standard: 'max-h-20 sm:max-h-24',
-  compact: 'max-h-16 sm:max-h-20',
-  legacy: 'max-h-20 sm:max-h-24',
+// The logo zone is a fixed height and the logo fills it (h-full w-full +
+// object-contain), so neither the artwork's aspect ratio nor the length of
+// the text below it can change how big the logo renders. Both alternatives
+// misbehave: sizing off the intrinsic ratio lets a tall logo stretch its own
+// card (AllianceCo pushed its card to twice the height of its row-mates),
+// and letting the zone flex means a two-line description steals height from
+// the logo. Fixed here, a longer description just makes the card taller.
+const LOGO_ZONES = {
+  platinum: 'h-40 sm:h-48 lg:h-52',
+  standard: 'h-20 sm:h-24',
+  compact: 'h-16 sm:h-20',
+  legacy: 'h-20 sm:h-24',
 }
 
 const TIER_LABELS: Record<SponsorTier, string> = {
@@ -125,14 +125,10 @@ function PartnerCard({
         />
       )}
 
-      <div className="flex min-h-0 flex-1 items-center justify-center px-1 py-2 sm:px-2">
+      <div className={`flex ${LOGO_ZONES[size]} shrink-0 items-center justify-center px-1 py-2 sm:px-2`}>
         {sponsor.logo_url ? (
           // eslint-disable-next-line @next/next/no-img-element -- sponsor logos can use arbitrary external hosts
-          <img
-            src={sponsor.logo_url}
-            alt={`${sponsor.name} logo`}
-            className={`h-full w-full ${LOGO_CAPS[size]} object-contain`}
-          />
+          <img src={sponsor.logo_url} alt={`${sponsor.name} logo`} className="h-full w-full object-contain" />
         ) : (
           <span
             className={`flex items-center justify-center border-2 border-clw-gold bg-[#0B0B0B] font-display uppercase text-clw-gold ${
@@ -144,6 +140,11 @@ function PartnerCard({
         )}
       </div>
 
+      {/* Trade and description sit in the open rather than behind a hover or
+          flip: the point of publishing them is that a crawler can read them,
+          and content hidden by default carries less weight. It also keeps one
+          behaviour on touch, where the whole card is already a link out to
+          the partner and has no second tap to spare. */}
       <div className={`border-t pt-4 text-center ${dark ? 'border-white/15' : 'border-black/10'}`}>
         <p
           className={`font-cond font-semibold uppercase leading-tight tracking-[0.08em] ${
@@ -152,6 +153,20 @@ function PartnerCard({
         >
           {sponsor.name}
         </p>
+        {sponsor.industry && (
+          <p
+            className={`mt-2 font-cond text-sm font-semibold uppercase tracking-[0.18em] ${
+              dark ? 'text-clw-gold' : 'text-clw-gold-on-light'
+            }`}
+          >
+            {sponsor.industry}
+          </p>
+        )}
+        {sponsor.description && size !== 'compact' && (
+          <p className={`mt-2 text-base leading-snug ${dark ? 'text-white/75' : 'text-[#444444]'}`}>
+            {sponsor.description}
+          </p>
+        )}
       </div>
     </div>
   )

@@ -65,6 +65,15 @@ const sponsorSchema = z.object({
   active: z.boolean(),
   golf_outing_hole: z.boolean(),
   logo_dark_backdrop: z.boolean(),
+  // Caps match the CHECK constraints on the table so a too-long value fails
+  // in the form with a readable message instead of as a Postgres error.
+  industry: z.string().trim().max(60, 'Industry must be 60 characters or fewer').optional().nullable(),
+  description: z
+    .string()
+    .trim()
+    .max(200, 'Description must be 200 characters or fewer')
+    .optional()
+    .nullable(),
   notes: z.string().trim().max(2000).optional().nullable(),
 })
 
@@ -84,6 +93,8 @@ function normalizeSponsor(values: SponsorInput) {
     active: parsed.active,
     golf_outing_hole: parsed.golf_outing_hole,
     logo_dark_backdrop: parsed.logo_dark_backdrop,
+    industry: parsed.industry || null,
+    description: parsed.description || null,
     notes: parsed.notes || null,
   }
 }

@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
+
+import { pageMetadata } from '@/lib/page-metadata'
 import { ArrowRight, Check, Trophy } from 'lucide-react'
 
 // Public-facing group copy — presents the club's four practice groups as a
@@ -38,10 +40,10 @@ const SEASON_POINTS = [
   'Tournament weekends give wrestlers real competition experience and a clear next step.',
 ]
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: 'Training Groups',
   description: 'Practice groups, coaching structure, and season overview for Wizards Wrestling Club.',
-}
+})
 
 export default function ProgramPage() {
   return (

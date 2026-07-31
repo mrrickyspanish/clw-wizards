@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+
+import { pageMetadata } from '@/lib/page-metadata'
 import { CalendarDays } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
@@ -7,11 +9,11 @@ import type { ClubEvent, Tournament } from '@/types/database'
 import { EventsCalendar } from '@/components/events/EventsCalendar'
 import { EventsList, type CalendarItem } from '@/components/events/EventsList'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: 'Events',
   description:
     'The Wizards Wrestling Club calendar: upcoming tournaments, banquets, fundraisers, and club events with dates, times, and locations.',
-}
+})
 
 export default async function EventsPage() {
   const supabase = await createServerSupabase()

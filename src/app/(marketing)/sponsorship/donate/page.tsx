@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+
+import { pageMetadata } from '@/lib/page-metadata'
 import Link from 'next/link'
 import { ArrowUpRight, LockKeyhole } from 'lucide-react'
 
@@ -8,10 +10,10 @@ import { SupportPageHero } from '@/components/sponsorship/SupportPageHero'
 import { TaxStatusNote } from '@/components/sponsorship/TaxStatusNote'
 import { SupportStatusAlert } from '@/components/sponsorship/SupportStatusAlert'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: 'One-Time Donation',
   description: 'Make a one-time gift to support athlete access, equipment, competition, coaching, and the Wizards wrestling room.',
-}
+})
 
 export default async function DonationPage({
   searchParams,
