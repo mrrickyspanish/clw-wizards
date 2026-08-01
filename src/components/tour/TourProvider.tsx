@@ -1,9 +1,22 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { usePathname } from 'next/navigation'
 import { X } from 'lucide-react'
 
 import { markTourSeen, type TourSurface } from '@/lib/tour/actions'
+
+// Every step but "nav" only exists as a DOM target on the surface's home
+// page — off that page the overlay would fall back to an untargeted,
+// centered card for every step. Gating to the home route keeps the tour
+// from starting (or continuing) anywhere the sections it points at aren't
+// actually on screen; state (which step you're on) still survives
+// navigating away and back, since this provider stays mounted across
+// route changes within the same layout.
+const TOUR_HOME_PATH: Record<TourSurface, string> = {
+  parent: '/dashboard',
+  admin: '/admin',
+}
 
 export type TourStepConfig = {
   id: string
@@ -42,6 +55,8 @@ export function TourProvider({
 }) {
   const [index, setIndex] = useState(initiallySeen || steps.length === 0 ? -1 : 0)
   const [mounted, setMounted] = useState(false)
+  const pathname = usePathname()
+  const onHomePath = pathname === TOUR_HOME_PATH[surface]
   // A step id can have more than one candidate element registered at once —
   // e.g. the desktop sidebar nav and the mobile tab bar both claim "nav", and
   // only one is visible at a time depending on viewport width.
@@ -93,7 +108,7 @@ export function TourProvider({
   return (
     <TourContext.Provider value={{ activeStepId, registerTarget, unregisterTarget }}>
       {children}
-      {mounted && index >= 0 && (
+      {mounted && index >= 0 && onHomePath && (
         <TourOverlay stepIndex={index} steps={steps} getTarget={getTarget} onNext={next} onPrev={prev} onSkip={finish} />
       )}
     </TourContext.Provider>
@@ -182,19 +197,23 @@ function TourOverlay({
   return (
     <div className="fixed inset-0 z-[100]" role="dialog" aria-modal="true" aria-label="Guided tour">
       {spot ? (
-        // The spotlight's own box-shadow does ALL of the dimming: it spreads
-        // 9999px out from the target's edges, so only the true page content
-        // shows through the transparent hole in the middle — no separate
-        // full-screen backdrop layered on top of the target (that would just
-        // dim it again and defeat the cutout).
+        // A single inline boxShadow does double duty: the 9999px spread dims
+        // everything outside the target (the transparent hole in the middle
+        // shows the real page, not a re-dimmed copy of it), and the second,
+        // tighter shadow layers a gold glow on top. Both have to live in this
+        // one boxShadow value — an inline `style` completely overrides any
+        // box-shadow set by a Tailwind class like `ring-*`, so mixing the two
+        // silently drops whichever one loses, which is what made the ring
+        // invisible before. The crisp edge comes from a real `border`
+        // instead, since that's a separate CSS property with no conflict.
         <div
-          className="pointer-events-none absolute rounded-2xl ring-2 ring-clw-gold transition-all duration-200"
+          className="pointer-events-none absolute rounded-2xl border-2 border-clw-gold transition-all duration-200"
           style={{
             top: spot.top,
             left: spot.left,
             width: spot.width,
             height: spot.height,
-            boxShadow: '0 0 0 9999px rgba(0,0,0,0.75)',
+            boxShadow: '0 0 0 9999px rgba(0,0,0,0.75), 0 0 24px 4px rgba(240,192,32,0.45)',
           }}
         />
       ) : (
