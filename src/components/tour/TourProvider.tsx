@@ -9,6 +9,9 @@ export type TourStepConfig = {
   id: string
   title: string
   body: string
+  // A welcome/intro card: no target to spotlight, shown centered with a
+  // "Start tour" CTA instead of "Next", and excluded from the step count.
+  isIntro?: boolean
 }
 
 type TourContextValue = {
@@ -144,14 +147,22 @@ function TourOverlay({
   if (!step) return null
 
   const isLast = stepIndex === steps.length - 1
-  const spot = rect
-    ? {
-        top: rect.top - SPOTLIGHT_PADDING,
-        left: rect.left - SPOTLIGHT_PADDING,
-        width: rect.width + SPOTLIGHT_PADDING * 2,
-        height: rect.height + SPOTLIGHT_PADDING * 2,
-      }
-    : null
+  const spot =
+    rect && !step.isIntro
+      ? {
+          top: rect.top - SPOTLIGHT_PADDING,
+          left: rect.left - SPOTLIGHT_PADDING,
+          width: rect.width + SPOTLIGHT_PADDING * 2,
+          height: rect.height + SPOTLIGHT_PADDING * 2,
+        }
+      : null
+
+  // Steps are numbered against the real (non-intro) steps only, so the
+  // welcome card doesn't show as "Step 1".
+  const hasIntro = steps[0]?.isIntro ?? false
+  const stepNumber = hasIntro ? stepIndex : stepIndex + 1
+  const totalSteps = hasIntro ? steps.length - 1 : steps.length
+  const primaryLabel = step.isIntro ? 'Start tour' : isLast ? 'Done' : 'Next'
 
   const viewportW = window.innerWidth
   const viewportH = window.innerHeight
@@ -170,8 +181,12 @@ function TourOverlay({
 
   return (
     <div className="fixed inset-0 z-[100]" role="dialog" aria-modal="true" aria-label="Guided tour">
-      <div className="absolute inset-0 bg-black/70" />
-      {spot && (
+      {spot ? (
+        // The spotlight's own box-shadow does ALL of the dimming: it spreads
+        // 9999px out from the target's edges, so only the true page content
+        // shows through the transparent hole in the middle — no separate
+        // full-screen backdrop layered on top of the target (that would just
+        // dim it again and defeat the cutout).
         <div
           className="pointer-events-none absolute rounded-2xl ring-2 ring-clw-gold transition-all duration-200"
           style={{
@@ -179,9 +194,11 @@ function TourOverlay({
             left: spot.left,
             width: spot.width,
             height: spot.height,
-            boxShadow: '0 0 0 9999px rgba(0,0,0,0.7)',
+            boxShadow: '0 0 0 9999px rgba(0,0,0,0.75)',
           }}
         />
+      ) : (
+        <div className="absolute inset-0 bg-black/70" />
       )}
 
       <div
@@ -190,20 +207,22 @@ function TourOverlay({
       >
         <div className="mb-3 flex items-start justify-between gap-3">
           <p className="text-sm font-medium uppercase tracking-[0.14em] text-clw-gold-ink">
-            Step {stepIndex + 1} of {steps.length}
+            {step.isIntro ? 'Welcome' : `Step ${stepNumber} of ${totalSteps}`}
           </p>
           <button type="button" onClick={onSkip} aria-label="Close tour" className="text-clw-gray hover:text-clw-white">
             <X className="h-4 w-4" />
           </button>
         </div>
-        <h2 className="font-display text-xl text-clw-white">{step.title}</h2>
+        <h2 className={step.isIntro ? 'font-display text-2xl leading-tight text-clw-white' : 'font-display text-xl text-clw-white'}>
+          {step.title}
+        </h2>
         <p className="mt-2 text-base text-clw-gray">{step.body}</p>
         <div className="mt-5 flex items-center justify-between">
           <button type="button" onClick={onSkip} className="text-sm text-clw-gray hover:text-clw-white">
             Skip tour
           </button>
           <div className="flex items-center gap-2">
-            {stepIndex > 0 && (
+            {stepIndex > 0 && !step.isIntro && (
               <button
                 type="button"
                 onClick={onPrev}
@@ -217,7 +236,7 @@ function TourOverlay({
               onClick={onNext}
               className="rounded-lg bg-clw-gold px-4 py-2 text-base font-medium text-[#0D0D0D]"
             >
-              {isLast ? 'Done' : 'Next'}
+              {primaryLabel}
             </button>
           </div>
         </div>

@@ -2,6 +2,12 @@ import type { TourStepConfig } from './TourProvider'
 
 export const PARENT_TOUR_STEPS: TourStepConfig[] = [
   {
+    id: 'intro',
+    isIntro: true,
+    title: 'Take a Tour of the new Wizards Wrestling Parent Portal',
+    body: "We'll walk you through the key spots on your dashboard so you always know where to find what you need.",
+  },
+  {
     id: 'nav',
     title: 'Your navigation',
     body: 'Everything for your family lives here — athletes, tournaments, dues, and documents.',
@@ -35,6 +41,12 @@ export const PARENT_TOUR_STEPS: TourStepConfig[] = [
 
 export const PARENT_TOUR_STEPS_NO_ATHLETES: TourStepConfig[] = [
   {
+    id: 'intro',
+    isIntro: true,
+    title: 'Take a Tour of the new Wizards Wrestling Parent Portal',
+    body: "We'll walk you through the key spots on your dashboard so you always know where to find what you need.",
+  },
+  {
     id: 'nav',
     title: 'Your navigation',
     body: 'Everything for your family lives here — athletes, tournaments, dues, and documents.',
@@ -52,6 +64,12 @@ export const PARENT_TOUR_STEPS_NO_ATHLETES: TourStepConfig[] = [
 ]
 
 export const ADMIN_TOUR_STEPS: TourStepConfig[] = [
+  {
+    id: 'intro',
+    isIntro: true,
+    title: 'Take a Tour of the Wizards Wrestling Admin Dashboard',
+    body: "Here's a quick look at where to manage families, events, and club operations.",
+  },
   {
     id: 'nav',
     title: 'Admin navigation',
