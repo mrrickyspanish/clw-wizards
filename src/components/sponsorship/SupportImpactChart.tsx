@@ -1,33 +1,38 @@
+// Written in the active voice on purpose. Every row used to open with "Can
+// help provide", which reads as hedging to a donor who already understands
+// that a club spends its money on the club. The single line under the table
+// carries the honest caveat once, so the rows do not have to apologise six
+// times over.
 const IMPACT_ROWS = [
   {
     amount: '$25',
     category: 'Practice Essentials',
-    description: 'Can help provide tape, cleaning supplies, hydration, first-aid items, and other everyday room needs.',
+    description: 'Buys tape, cleaning supplies, hydration, first-aid, and the everyday things a working room runs through.',
   },
   {
     amount: '$50',
     category: 'Competition Access',
-    description: 'Can help cover a tournament registration fee or another competition-day expense for a wrestler.',
+    description: 'Covers a tournament registration fee, or another competition-day expense, for a wrestler.',
   },
   {
     amount: '$100',
     category: 'Athlete Gear',
-    description: 'Can help provide club gear, practice equipment, or several tournament entries throughout the season.',
+    description: 'Puts club gear and practice equipment in a wrestler’s hands, or covers several tournament entries.',
   },
   {
     amount: '$250',
     category: 'Family Support',
-    description: 'Can help offset travel, team-event costs, or access needs that benefit multiple Wizards wrestlers.',
+    description: 'Offsets travel, team-event costs, and access needs for multiple Wizards families.',
   },
   {
     amount: '$500',
     category: 'Development',
-    description: 'Can help fund athlete scholarships, coaching education, camps, or durable training equipment.',
+    description: 'Funds an athlete scholarship, coaching education, camp fees, or durable training equipment.',
   },
   {
     amount: '$1,000+',
     category: 'Room Investment',
-    description: 'Can help fund major equipment, facility improvements, or broader season-access support for the club.',
+    description: 'Funds major equipment, facility improvements, and season-long access for the club.',
   },
 ]
 
@@ -40,8 +45,8 @@ type SupportImpactChartProps = {
 
 export function SupportImpactChart({
   eyebrow = 'Donation Impact',
-  title = 'What your support can make possible',
-  intro = 'Every gift strengthens the room. These examples show the kinds of practical needs community support can help the Wizards meet throughout the season.',
+  title = 'What your support does',
+  intro = 'Every gift stays in the program. Here is where it goes across the season.',
   compact = false,
 }: SupportImpactChartProps) {
   return (
@@ -55,7 +60,7 @@ export function SupportImpactChart({
       <div className={`${compact ? 'mt-8' : 'mt-10 sm:mt-12'} overflow-hidden border border-clw-ink/20 bg-white shadow-xl shadow-black/5`}>
         <div className="hidden grid-cols-[10rem_minmax(0,1fr)_13rem] bg-clw-black px-6 py-4 font-cond text-sm font-semibold uppercase tracking-[0.18em] text-clw-white md:grid">
           <span>Contribution</span>
-          <span>What it can help support</span>
+          <span>Where it goes</span>
           <span>Primary impact</span>
         </div>
 
@@ -81,8 +86,11 @@ export function SupportImpactChart({
         </div>
       </div>
 
+      {/* The one caveat worth keeping: gifts fund the program, not a
+          specific line item reserved for that donor. Stated once, plainly,
+          instead of hedging every row above it. */}
       <p className="mt-4 text-center text-sm leading-relaxed text-clw-muted-dark/85">
-        Examples reflect typical program needs. Actual costs and priorities vary throughout the season.
+        Costs and priorities shift across the season. Every dollar stays in the program.
       </p>
     </div>
   )

@@ -14,7 +14,7 @@ const BOOSTER_LEVELS = [
   {
     name: 'Supporter',
     amount: '$10 / Month',
-    description: 'Helps with everyday room supplies and the small recurring needs that add up across a season.',
+    description: 'Covers everyday room supplies and the small recurring needs that add up across a season.',
   },
   {
     name: 'Bronze Wizard',
@@ -24,7 +24,7 @@ const BOOSTER_LEVELS = [
   {
     name: 'Silver Wizard',
     amount: '$50 / Month',
-    description: 'Can help fund competition costs, athlete assistance, and consistent program resources.',
+    description: 'Funds competition costs, athlete assistance, and consistent program resources.',
   },
   {
     name: 'Gold Wizard',
@@ -69,7 +69,7 @@ export default async function BoostersPage({
             <p className="font-cond text-sm font-semibold uppercase tracking-[0.3em] text-clw-gold-on-light">Booster Levels</p>
             <h2 className="mt-4 font-display text-[clamp(3rem,9vw,5.5rem)] uppercase leading-[0.88] text-clw-ink">Choose your level of monthly impact.</h2>
             <p className="mx-auto mt-5 max-w-3xl text-lg font-medium leading-relaxed text-clw-muted-dark sm:text-xl">
-              Every level matters. The examples below show how recurring gifts can strengthen the program over time.
+              Every level matters. Recurring gifts are what let the club plan a season instead of react to one.
             </p>
           </div>
 
@@ -91,7 +91,7 @@ export default async function BoostersPage({
           </div>
 
           <p className="mt-4 text-center text-sm leading-relaxed text-clw-muted-dark/85">
-            Examples reflect typical program needs. Actual costs and priorities vary throughout the season.
+            Costs and priorities shift across the season. Every dollar stays in the program.
           </p>
         </div>
       </section>

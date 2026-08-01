@@ -21,7 +21,7 @@ const SPONSORSHIP_IMPACT = [
   },
   {
     title: 'A Stronger Room',
-    description: 'Business support helps fund equipment, facility needs, safety supplies, and the day-to-day wrestling environment.',
+    description: 'Business support funds equipment, facility needs, safety supplies, and the day-to-day wrestling environment.',
     Icon: Building2,
   },
   {
