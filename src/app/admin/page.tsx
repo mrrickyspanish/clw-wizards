@@ -4,6 +4,7 @@ import { Users, UserSquare2, Trophy, Wallet } from 'lucide-react'
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { reportEnvironmentReadiness } from '@/lib/alerts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { TourStep } from '@/components/tour/TourStep'
 
 export default async function AdminOverviewPage() {
   reportEnvironmentReadiness()
@@ -34,7 +35,7 @@ export default async function AdminOverviewPage() {
   return (
     <div>
       <h1 className="mb-6 font-display text-3xl text-clw-gold">Overview</h1>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <TourStep id="stats" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => {
           const Icon = stat.icon
           return (
@@ -51,7 +52,7 @@ export default async function AdminOverviewPage() {
             </Link>
           )
         })}
-      </div>
+      </TourStep>
     </div>
   )
 }

@@ -29,6 +29,8 @@ export type Profile = {
   email_unsubscribe_token: string
   is_active: boolean
   onboarding_completed_at: string | null
+  parent_tour_seen_at: string | null
+  admin_tour_seen_at: string | null
   created_at: string
   updated_at: string
 }

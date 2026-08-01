@@ -8,6 +8,7 @@ import { LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createBrowserSupabase } from '@/lib/supabase/browser'
 import { ORG } from '@/config/org.config'
+import { TourStep } from '@/components/tour/TourStep'
 import { ThemeToggle } from './ThemeToggle'
 
 export interface NavItem {
@@ -40,25 +41,27 @@ export function DashboardNav({ title, items, userName, role }: DashboardNavProps
         <p className="text-xs text-clw-gray">{title}</p>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1">
-        {items.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
+      <TourStep id="nav" className="flex-1">
+        <nav className="p-4 space-y-1">
+          {items.map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                isActive ? 'bg-clw-gold/10 text-clw-gold-ink' : 'text-clw-white/70 hover:bg-clw-gold/5 hover:text-clw-white'
-              )}
-            >
-              {item.icon}
-              {item.label}
-            </Link>
-          )
-        })}
-      </nav>
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                  isActive ? 'bg-clw-gold/10 text-clw-gold-ink' : 'text-clw-white/70 hover:bg-clw-gold/5 hover:text-clw-white'
+                )}
+              >
+                {item.icon}
+                {item.label}
+              </Link>
+            )
+          })}
+        </nav>
+      </TourStep>
 
       <div className="p-4 border-t border-clw-gold/10">
         <div className="flex items-center justify-between px-2">
