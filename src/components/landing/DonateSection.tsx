@@ -5,6 +5,8 @@ import { HandCoins } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DONATIONS_ENABLED } from '@/config/donations'
+import { DonationsComingSoon } from '@/components/sponsorship/DonationsComingSoon'
 
 const PRESETS = [25, 50, 100, 250]
 
@@ -57,8 +59,13 @@ export function DonateSection() {
         <h2 className="font-display text-3xl uppercase tracking-wide text-clw-white sm:text-4xl">Support the Wizards</h2>
       </div>
       <p className="mt-1 text-base leading-relaxed text-clw-gray">Every gift goes straight back to the wrestlers.</p>
-      <p className="mt-1 text-sm text-clw-gray">One-time donations only for MVP 1.</p>
+      {DONATIONS_ENABLED && <p className="mt-1 text-sm text-clw-gray">One-time donations only for MVP 1.</p>}
 
+      {/* The live form below is untouched; while donations are off it is not
+          rendered, and flipping DONATIONS_ENABLED brings it back as it was. */}
+      {!DONATIONS_ENABLED ? (
+        <DonationsComingSoon />
+      ) : (
       <form onSubmit={handleSubmit} className="mt-5 flex flex-1 flex-col gap-4">
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
           {PRESETS.map((preset) => (
@@ -110,6 +117,7 @@ export function DonateSection() {
           {loading ? 'Starting checkout...' : `Donate $${effectiveDollars || 0}`}
         </Button>
       </form>
+      )}
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { sendAlert } from '@/lib/alerts'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { ORG } from '@/config/org.config'
+import { DONATIONS_ENABLED, DONATIONS_COMING_SOON_BODY } from '@/config/donations'
 import type { SponsorTier } from '@/types/database'
 
 interface DuesCheckoutBody {
@@ -86,6 +87,13 @@ export async function POST(request: Request) {
   const url = new URL(request.url)
   const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL ?? url.origin
   const stripe = getStripeClient()
+
+  // Hiding the buttons is not the same as closing the door: this endpoint is
+  // reachable directly, and a stale tab still holds a working form. Refuse the
+  // flow here too, so no card is charged before the club can be paid out.
+  if (body.flow === 'donation' && !DONATIONS_ENABLED) {
+    return NextResponse.json({ error: DONATIONS_COMING_SOON_BODY }, { status: 503 })
+  }
 
   try {
     if (body.flow === 'dues') return await checkoutDues(stripe, body, siteOrigin)

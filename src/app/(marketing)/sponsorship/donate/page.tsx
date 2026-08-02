@@ -10,6 +10,7 @@ import { SupportPageHero } from '@/components/sponsorship/SupportPageHero'
 import { TaxStatusNote } from '@/components/sponsorship/TaxStatusNote'
 import { SupportStatusAlert } from '@/components/sponsorship/SupportStatusAlert'
 import { CTA_LINK } from '@/lib/cta'
+import { DONATIONS_ENABLED } from '@/config/donations'
 
 export const metadata: Metadata = pageMetadata({
   title: 'One-Time Donation',
@@ -46,7 +47,9 @@ export default async function DonationPage({
             <p className="font-cond text-sm font-semibold uppercase tracking-[0.3em] text-clw-gold">Choose Your Gift</p>
             <h2 className="mt-4 font-display text-[clamp(3rem,9vw,5.5rem)] uppercase leading-[0.88] text-clw-white">Support the Wizards today.</h2>
             <p className="mx-auto mt-5 max-w-2xl text-lg font-medium leading-relaxed text-clw-gray sm:text-xl">
-              Select an amount or enter your own. You will continue to Stripe to complete the secure payment.
+              {DONATIONS_ENABLED
+                ? 'Select an amount or enter your own. You will continue to Stripe to complete the secure payment.'
+                : 'Online giving opens as soon as secure payment processing is in place. Here is what it will support.'}
             </p>
           </div>
 
@@ -57,9 +60,11 @@ export default async function DonationPage({
               buttonLabel="Donate"
               returnPath="/sponsorship/donate"
             />
-            <p className="mt-4 flex items-center justify-center gap-2 text-center text-sm text-clw-gray">
-              <LockKeyhole className="h-4 w-4 text-clw-gold" /> Secure checkout is processed by Stripe.
-            </p>
+            {DONATIONS_ENABLED && (
+              <p className="mt-4 flex items-center justify-center gap-2 text-center text-sm text-clw-gray">
+                <LockKeyhole className="h-4 w-4 text-clw-gold" /> Secure checkout is processed by Stripe.
+              </p>
+            )}
             <TaxStatusNote className="mt-4 text-center text-clw-gray/85" />
           </div>
 

@@ -1,11 +1,15 @@
 import Link from 'next/link'
-import { ArrowUpRight, CircleDollarSign, HandHeart, HeartHandshake, Users } from 'lucide-react'
+import { ArrowUpRight, CircleDollarSign, Clock3, HandHeart, HeartHandshake, Users } from 'lucide-react'
 
 import { SupportMedia } from './SupportMedia'
+import { DONATIONS_ENABLED, DONATIONS_COMING_SOON_LABEL } from '@/config/donations'
 
 const SUPPORT_PATHS = [
   {
     anchor: 'donate',
+    // Both giving paths run the `donation` checkout flow, so both wait on the
+    // same switch. Sponsorship and volunteering are unaffected.
+    needsDonations: true,
     title: 'One-Time Donation',
     description: 'Make a direct gift toward equipment, competition, athlete access, and the needs that keep the room moving.',
     cta: 'Explore one-time giving',
@@ -17,6 +21,7 @@ const SUPPORT_PATHS = [
   },
   {
     anchor: 'boosters',
+    needsDonations: true,
     title: 'Monthly Boosters',
     description: 'Create dependable month-to-month support for steady program growth, scholarships, and wrestler development.',
     cta: 'Join the boosters',
@@ -63,7 +68,9 @@ export function SupportPathCards() {
         </div>
 
         <div className="mt-9 grid grid-cols-2 gap-3 sm:mt-12 sm:gap-5 lg:grid-cols-4">
-          {SUPPORT_PATHS.map(({ anchor, title, description, cta, href, imageSrc, imageAlt, imagePosition, Icon }) => (
+          {SUPPORT_PATHS.map(({ anchor, needsDonations, title, description, cta, href, imageSrc, imageAlt, imagePosition, Icon }) => {
+            const pending = Boolean(needsDonations) && !DONATIONS_ENABLED
+            return (
             <Link
               id={anchor}
               key={title}
@@ -81,12 +88,25 @@ export function SupportPathCards() {
               <div className="flex flex-1 flex-col p-4 sm:p-5">
                 <h3 className="font-display text-[1.55rem] uppercase leading-[0.92] tracking-wide text-clw-white sm:text-3xl">{title}</h3>
                 <p className="mt-3 hidden text-base font-medium leading-relaxed text-clw-gray sm:block">{description}</p>
-                <span className="mt-auto flex items-center gap-2 pt-4 font-cond text-sm font-semibold uppercase tracking-[0.12em] text-clw-gold sm:tracking-[0.14em]">
-                  {cta} <ArrowUpRight className="h-4 w-4" />
+                <span
+                  className={`mt-auto flex items-center gap-2 pt-4 font-cond text-sm font-semibold uppercase tracking-[0.12em] sm:tracking-[0.14em] ${
+                    pending ? 'text-clw-gray' : 'text-clw-gold'
+                  }`}
+                >
+                  {pending ? (
+                    <>
+                      <Clock3 className="h-4 w-4" /> {DONATIONS_COMING_SOON_LABEL}
+                    </>
+                  ) : (
+                    <>
+                      {cta} <ArrowUpRight className="h-4 w-4" />
+                    </>
+                  )}
                 </span>
               </div>
             </Link>
-          ))}
+            )
+          })}
         </div>
       </div>
     </section>
