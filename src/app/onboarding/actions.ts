@@ -6,19 +6,9 @@ import { z } from 'zod'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { SMS_CONSENT_TEXT } from '@/lib/twilio/opt-in'
-import { ORG } from '@/config/org.config'
+import { athleteSchema } from '@/lib/registration-schema'
 
 export type ActionResult = { ok: true } | { ok: false; error: string }
-
-const athleteSchema = z.object({
-  first_name: z.string().trim().min(1, 'First name is required'),
-  last_name: z.string().trim().min(1, 'Last name is required'),
-  date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Valid date of birth is required'),
-  practice_group: z.enum(ORG.practiceGroups as unknown as [string, ...string[]]),
-  weight_class: z.string().trim().optional().nullable(),
-  usa_wrestling_card_number: z.string().trim().optional().nullable(),
-  shirt_size: z.string().trim().optional().nullable(),
-})
 
 const onboardingSchema = z.object({
   phone: z.string().trim().max(20).optional().nullable().or(z.literal('')),

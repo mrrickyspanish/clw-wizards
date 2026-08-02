@@ -26,6 +26,10 @@ export type Profile = {
   sms_opt_in: boolean
   sms_opt_in_at: string | null
   consent_text: string | null
+  street_address: string | null
+  city: string | null
+  state: string | null
+  postal_code: string | null
   email_unsubscribe_token: string
   is_active: boolean
   onboarding_completed_at: string | null
@@ -43,9 +47,27 @@ export type Athlete = {
   practice_group: string
   usa_wrestling_card_number: string | null
   shirt_size: string | null
+  // Asked once when the family joins, not re-asked each season.
+  referral_source: string | null
   birth_certificate_url: string | null
   usa_wrestling_card_url: string | null
   active: boolean
+  created_at: string
+  updated_at: string
+}
+
+// Contact records for a wrestler's guardians. Distinct from FamilyGuardian,
+// which is the portal-login relationship created by an invite code — a person
+// here may never hold an account at all.
+export type AthleteGuardian = {
+  id: string
+  athlete_id: string
+  ordinal: 1 | 2
+  name: string
+  relationship: string | null
+  phone: string | null
+  email: string | null
+  coach_interest: string | null
   created_at: string
   updated_at: string
 }
@@ -232,10 +254,20 @@ export type SeasonRegistration = {
   dues_due_date: string | null
   instructions: string | null
   require_usa_card: boolean
-  // Both null, or both set: on or before early_bird_deadline the price is
-  // early_bird_price_cents; after it, dues_amount_cents applies.
-  early_bird_price_cents: number | null
-  early_bird_deadline: string | null
+  created_at: string
+  updated_at: string
+}
+
+// One step of a season's price ladder. Windows never overlap (enforced by an
+// exclusion constraint), so a date resolves to exactly one tier. A season with
+// no tiers prices at its flat dues_amount_cents.
+export type SeasonPriceTier = {
+  id: string
+  season_registration_id: string
+  label: string
+  starts_on: string
+  ends_on: string
+  amount_cents: number
   created_at: string
   updated_at: string
 }
@@ -254,8 +286,46 @@ export type SeasonEnrollment = {
   reviewed_by: string | null
   reviewed_at: string | null
   admin_note: string | null
+  // Re-confirmed every season rather than carried over from the athlete record,
+  // because all of these change year to year.
+  grade: string | null
+  school: string | null
+  weight_lbs: number | null
+  shirt_size: string | null
+  years_experience: string | null
+  season_commitment: string | null
   created_at: string
   updated_at: string
+}
+
+// A legal agreement, versioned by insert. Superseding one means adding the next
+// version and clearing `active` on the old row, so signatures already collected
+// keep pointing at the text that was actually on screen.
+export type Disclosure = {
+  id: string
+  slug: string
+  title: string
+  body: string
+  agreement_label: string
+  version: number
+  required: boolean
+  requires_signature: boolean
+  active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type DisclosureAcceptance = {
+  id: string
+  disclosure_id: string
+  season_registration_id: string
+  athlete_id: string
+  accepted_by: string
+  accepted_at: string
+  typed_signature: string | null
+  ip_address: string | null
+  user_agent: string | null
+  created_at: string
 }
 
 export type PracticeCancellation = {
@@ -413,10 +483,34 @@ export type Database = {
         Update: Partial<SeasonRegistration>
         Relationships: []
       }
+      season_price_tiers: {
+        Row: SeasonPriceTier
+        Insert: Partial<SeasonPriceTier>
+        Update: Partial<SeasonPriceTier>
+        Relationships: []
+      }
       season_enrollments: {
         Row: SeasonEnrollment
         Insert: Partial<SeasonEnrollment>
         Update: Partial<SeasonEnrollment>
+        Relationships: []
+      }
+      disclosures: {
+        Row: Disclosure
+        Insert: Partial<Disclosure>
+        Update: Partial<Disclosure>
+        Relationships: []
+      }
+      disclosure_acceptances: {
+        Row: DisclosureAcceptance
+        Insert: Partial<DisclosureAcceptance>
+        Update: Partial<DisclosureAcceptance>
+        Relationships: []
+      }
+      athlete_guardians: {
+        Row: AthleteGuardian
+        Insert: Partial<AthleteGuardian>
+        Update: Partial<AthleteGuardian>
         Relationships: []
       }
       practice_cancellations: {
@@ -453,7 +547,18 @@ export type Database = {
     Views: { [_ in never]: never }
     Functions: {
       submit_season_enrollment: {
-        Args: { _season_registration_id: string; _athlete_id: string }
+        Args: {
+          _season_registration_id: string
+          _athlete_id: string
+          // The season's per-wrestler answers. Omitted values leave whatever is
+          // already stored on the enrollment alone.
+          _grade?: string | null
+          _school?: string | null
+          _weight_lbs?: number | null
+          _shirt_size?: string | null
+          _years_experience?: string | null
+          _season_commitment?: string | null
+        }
         Returns: string
       }
       withdraw_season_enrollment: {

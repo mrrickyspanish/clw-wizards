@@ -6,6 +6,8 @@ import type {
   Athlete,
   AthleteDocument,
   ClubEvent,
+  Disclosure,
+  DisclosureAcceptance,
   DuesPayment,
   Profile,
   SeasonEnrollment,
@@ -76,6 +78,26 @@ export default async function AdminRegistrationsPage() {
     ? await supabase.from('club_events').select('*').in('id', eventIds)
     : { data: [] as ClubEvent[] }
 
+  // Signatures for every enrollment on screen, plus the agreements currently
+  // required, so each card can say which are outstanding.
+  const [{ data: requiredDisclosureData }, { data: acceptanceData }] = await Promise.all([
+    supabase.from('disclosures').select('*').eq('active', true).eq('required', true),
+    seasonIds.length
+      ? supabase.from('disclosure_acceptances').select('*').in('season_registration_id', seasonIds)
+      : Promise.resolve({ data: [] as DisclosureAcceptance[] }),
+  ])
+
+  const requiredDisclosures = (requiredDisclosureData ?? []) as Disclosure[]
+  const acceptancesByEnrollment = new Map<string, DisclosureAcceptance[]>()
+  for (const acceptance of (acceptanceData ?? []) as DisclosureAcceptance[]) {
+    const key = `${acceptance.season_registration_id}:${acceptance.athlete_id}`
+    const list = acceptancesByEnrollment.get(key) ?? []
+    list.push(acceptance)
+    acceptancesByEnrollment.set(key, list)
+  }
+
+  const disclosureById = new Map(requiredDisclosures.map((disclosure) => [disclosure.id, disclosure]))
+
   const seasonById = new Map(seasons.map((season) => [season.id, season]))
   const eventById = new Map(((eventData ?? []) as ClubEvent[]).map((event) => [event.id, event]))
   const athleteById = new Map(((athleteData ?? []) as Athlete[]).map((athlete) => [athlete.id, athlete]))
@@ -107,7 +129,7 @@ export default async function AdminRegistrationsPage() {
             <Clock3 className="h-6 w-6 text-blue-400" />
             <div>
               <p className="text-2xl font-display text-clw-white">{submittedCount}</p>
-              <p className="text-xs text-clw-gray">Awaiting review</p>
+              <p className="text-sm text-clw-gray">Awaiting review</p>
             </div>
           </CardContent>
         </Card>
@@ -116,7 +138,7 @@ export default async function AdminRegistrationsPage() {
             <AlertTriangle className="h-6 w-6 text-amber-400" />
             <div>
               <p className="text-2xl font-display text-clw-white">{attentionCount}</p>
-              <p className="text-xs text-clw-gray">Parent update needed</p>
+              <p className="text-sm text-clw-gray">Parent update needed</p>
             </div>
           </CardContent>
         </Card>
@@ -125,7 +147,7 @@ export default async function AdminRegistrationsPage() {
             <CheckCircle2 className="h-6 w-6 text-emerald-400" />
             <div>
               <p className="text-2xl font-display text-clw-white">{approvedCount}</p>
-              <p className="text-xs text-clw-gray">Approved</p>
+              <p className="text-sm text-clw-gray">Approved</p>
             </div>
           </CardContent>
         </Card>
@@ -165,7 +187,14 @@ export default async function AdminRegistrationsPage() {
           const documentReady = !season?.require_usa_card || Boolean(card?.verified)
           const paymentReady =
             !season || season.dues_amount_cents === 0 || dues?.status === 'paid' || dues?.status === 'waived'
-          const approvalReady = documentReady && paymentReady
+
+          const acceptances =
+            acceptancesByEnrollment.get(`${enrollment.season_registration_id}:${enrollment.athlete_id}`) ?? []
+          const signedIds = new Set(acceptances.map((acceptance) => acceptance.disclosure_id))
+          const missingDisclosures = requiredDisclosures.filter((disclosure) => !signedIds.has(disclosure.id))
+          const disclosuresReady = missingDisclosures.length === 0
+
+          const approvalReady = documentReady && paymentReady && disclosuresReady
 
           return (
             <Card key={enrollment.id} className="border-clw-gold/10 bg-clw-black">
@@ -177,7 +206,7 @@ export default async function AdminRegistrationsPage() {
                   <p className="mt-1 text-sm text-clw-gray">
                     {parent?.full_name ?? 'Unknown parent'} · {parent?.email ?? 'No email'}
                   </p>
-                  <p className="mt-1 text-xs text-clw-gray/70">
+                  <p className="mt-1 text-sm text-clw-gray/70">
                     {event?.title ?? season?.season_label ?? 'Season registration'} · submitted {formatDate(enrollment.submitted_at)}
                   </p>
                 </div>
@@ -217,6 +246,30 @@ export default async function AdminRegistrationsPage() {
                   </div>
                 </div>
 
+                {requiredDisclosures.length > 0 && (
+                  <div className="rounded-md border border-clw-gold/10 bg-clw-black-2 p-3">
+                    <p className="text-sm font-medium text-clw-white">Agreements</p>
+                    <ul className="mt-2 space-y-1">
+                      {acceptances.map((acceptance) => {
+                        const disclosure = disclosureById.get(acceptance.disclosure_id)
+                        return (
+                          <li key={acceptance.id} className="text-sm text-clw-gray">
+                            <span className="text-emerald-400">Signed</span> · {disclosure?.title ?? 'Agreement'} v
+                            {disclosure?.version ?? '—'} · {acceptance.typed_signature ?? 'no signature captured'} ·{' '}
+                            {new Date(acceptance.accepted_at).toLocaleString('en-US', { timeZone: 'America/Chicago' })}
+                            {acceptance.ip_address ? ` · ${acceptance.ip_address}` : ''}
+                          </li>
+                        )
+                      })}
+                      {missingDisclosures.map((disclosure) => (
+                        <li key={disclosure.id} className="text-sm text-amber-300">
+                          Not signed · {disclosure.title}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 {enrollment.admin_note && (
                   <div className="rounded-md border border-amber-500/20 bg-amber-500/5 p-3 text-sm text-amber-200">
                     Club note: {enrollment.admin_note}
@@ -224,10 +277,16 @@ export default async function AdminRegistrationsPage() {
                 )}
 
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-clw-gold/10 pt-4">
-                  <p className="text-xs text-clw-gray">
+                  <p className="text-sm text-clw-gray">
                     {approvalReady
-                      ? 'Current-season documentation and payment are ready for approval.'
-                      : `${documentReady ? '' : 'Verify the submitted wrestling card. '}${paymentReady ? '' : 'Payment is still outstanding.'}`}
+                      ? 'Current-season documentation, agreements, and payment are ready for approval.'
+                      : [
+                          documentReady ? null : 'Verify the submitted wrestling card.',
+                          disclosuresReady ? null : 'Required agreements are unsigned.',
+                          paymentReady ? null : 'Payment is still outstanding.',
+                        ]
+                          .filter(Boolean)
+                          .join(' ')}
                   </p>
                   <ReviewControls
                     enrollmentId={enrollment.id}

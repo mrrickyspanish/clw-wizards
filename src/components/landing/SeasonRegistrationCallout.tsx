@@ -4,7 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import { createPublicSupabase } from '@/lib/supabase/public'
 import { chicagoDateString } from '@/lib/chicago-time'
 import { resolveDuesPricing } from '@/lib/season-pricing'
-import type { ClubEvent, SeasonRegistration } from '@/types/database'
+import type { ClubEvent, SeasonPriceTier, SeasonRegistration } from '@/types/database'
 import { CTA_LINK } from '@/lib/cta'
 
 function formatDate(value: string) {
@@ -46,7 +46,12 @@ export async function SeasonRegistrationCallout() {
 
   if (!open) return null
 
-  const pricing = resolveDuesPricing(open, today)
+  const { data: tierData } = await supabase
+    .from('season_price_tiers')
+    .select('*')
+    .eq('season_registration_id', open.id)
+
+  const pricing = resolveDuesPricing(open, (tierData ?? []) as SeasonPriceTier[], today)
 
   return (
     <div className="border border-clw-gold bg-clw-gold/10 p-6">
@@ -57,11 +62,11 @@ export async function SeasonRegistrationCallout() {
       <p className="mt-4 text-base leading-relaxed text-clw-gray">
         Returning families sign in and confirm what changed. New families create an account along the way. Dues can be
         paid now or left pending. Registration closes {formatDate(open.registration_close_date)}.
-        {pricing.isDiscounted && (
+        {pricing.currentTier && pricing.nextTier && (
           <>
             {' '}
-            Register by {formatDate(pricing.discountDeadline!)} for {money(pricing.amountCents)} per wrestler instead
-            of {money(pricing.regularAmountCents)}.
+            Register by {formatDate(pricing.currentTier.ends_on)} for {money(pricing.amountCents)} per wrestler — the
+            price rises to {money(pricing.nextTier.amount_cents)} after that.
           </>
         )}
       </p>
