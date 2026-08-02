@@ -27,8 +27,18 @@ const eventSchema = z
     dues_due_date: z.string().optional().nullable(),
     instructions: z.string().trim().max(3000).optional().nullable(),
     require_usa_card: z.boolean().optional(),
-    early_bird_price_cents: z.coerce.number().int().min(0).max(1_000_000).optional().nullable(),
-    early_bird_deadline: z.string().optional().nullable(),
+    // The season's price ladder, earliest window first. Empty means a single
+    // flat price at dues_amount_cents.
+    price_tiers: z
+      .array(
+        z.object({
+          label: z.string().trim().min(1, 'Each price step needs a name.').max(60),
+          starts_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Enter a valid start date.'),
+          ends_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Enter a valid end date.'),
+          amount_cents: z.coerce.number().int().min(0).max(1_000_000),
+        })
+      )
+      .optional(),
   })
   .superRefine((values, ctx) => {
     if (values.event_type !== 'season_registration') return
@@ -53,34 +63,37 @@ const eventSchema = z
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['dues_due_date'], message: 'Enter a valid dues due date.' })
     }
 
-    const hasEarlyBirdPrice = values.early_bird_price_cents != null
-    const hasEarlyBirdDeadline = Boolean(values.early_bird_deadline)
-    if (hasEarlyBirdPrice !== hasEarlyBirdDeadline) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['early_bird_deadline'],
-        message: 'Set both an early registration price and a deadline, or leave both blank.',
-      })
-    }
-    if (hasEarlyBirdPrice && values.dues_amount_cents != null && values.early_bird_price_cents! >= values.dues_amount_cents) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['early_bird_price_cents'],
-        message: 'The early registration price must be less than the regular dues amount.',
-      })
-    }
-    if (
-      hasEarlyBirdDeadline &&
-      values.registration_open_date &&
-      values.registration_close_date &&
-      (values.early_bird_deadline! < values.registration_open_date || values.early_bird_deadline! > values.registration_close_date)
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['early_bird_deadline'],
-        message: 'The early registration deadline must fall within the registration window.',
-      })
-    }
+    // Mirrors the table's own CHECK and exclusion constraints, so a bad ladder
+    // is reported as a readable message instead of a Postgres constraint error.
+    const tiers = [...(values.price_tiers ?? [])].sort((a, b) => a.starts_on.localeCompare(b.starts_on))
+    tiers.forEach((tier, index) => {
+      if (tier.ends_on < tier.starts_on) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['price_tiers', index, 'ends_on'],
+          message: `"${tier.label}" ends before it starts.`,
+        })
+      }
+      if (
+        values.registration_open_date &&
+        values.registration_close_date &&
+        (tier.starts_on < values.registration_open_date || tier.ends_on > values.registration_close_date)
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['price_tiers', index, 'starts_on'],
+          message: `"${tier.label}" falls outside the registration window.`,
+        })
+      }
+      const previous = tiers[index - 1]
+      if (previous && tier.starts_on <= previous.ends_on) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['price_tiers', index, 'starts_on'],
+          message: `"${tier.label}" overlaps "${previous.label}". Price windows cannot share a date.`,
+        })
+      }
+    })
   })
 
 export type EventInput = z.input<typeof eventSchema>
@@ -110,9 +123,37 @@ function normalizeSeason(values: z.output<typeof eventSchema>, eventId: string) 
     dues_due_date: values.dues_due_date || null,
     instructions: values.instructions || null,
     require_usa_card: values.require_usa_card ?? true,
-    early_bird_price_cents: values.early_bird_price_cents ?? null,
-    early_bird_deadline: values.early_bird_deadline || null,
   }
+}
+
+/**
+ * Replaces a season's price ladder wholesale. Safe to re-run: the price a
+ * family pays is copied into their dues_payments row at submission time, so
+ * editing tiers later never re-prices an enrollment that already exists.
+ */
+async function replacePriceTiers(
+  supabase: Awaited<ReturnType<typeof createServerSupabase>>,
+  seasonId: string,
+  tiers: z.output<typeof eventSchema>['price_tiers']
+): Promise<string | null> {
+  const { error: clearError } = await supabase
+    .from('season_price_tiers')
+    .delete()
+    .eq('season_registration_id', seasonId)
+  if (clearError) return clearError.message
+
+  if (!tiers?.length) return null
+
+  const { error } = await supabase.from('season_price_tiers').insert(
+    tiers.map((tier) => ({
+      season_registration_id: seasonId,
+      label: tier.label,
+      starts_on: tier.starts_on,
+      ends_on: tier.ends_on,
+      amount_cents: tier.amount_cents,
+    }))
+  )
+  return error?.message ?? null
 }
 
 function parse(values: EventInput): z.output<typeof eventSchema> | ActionResult {
@@ -144,10 +185,21 @@ export async function createEvent(values: EventInput): Promise<ActionResult> {
   if (error || !event) return { ok: false, error: error?.message ?? 'Unable to create event.' }
 
   if (parsed.event_type === 'season_registration') {
-    const { error: seasonError } = await supabase.from('season_registrations').insert(normalizeSeason(parsed, event.id))
-    if (seasonError) {
+    const { data: season, error: seasonError } = await supabase
+      .from('season_registrations')
+      .insert(normalizeSeason(parsed, event.id))
+      .select('id')
+      .single()
+    if (seasonError || !season) {
       await supabase.from('club_events').delete().eq('id', event.id)
-      return { ok: false, error: seasonError.message }
+      return { ok: false, error: seasonError?.message ?? 'Unable to create the season.' }
+    }
+
+    const tierError = await replacePriceTiers(supabase, season.id, parsed.price_tiers)
+    if (tierError) {
+      await supabase.from('season_registrations').delete().eq('id', season.id)
+      await supabase.from('club_events').delete().eq('id', event.id)
+      return { ok: false, error: tierError }
     }
   }
 
@@ -182,10 +234,15 @@ export async function updateEvent(id: string, values: EventInput): Promise<Actio
   if (error) return { ok: false, error: error.message }
 
   if (parsed.event_type === 'season_registration') {
-    const { error: seasonError } = await supabase
+    const { data: season, error: seasonError } = await supabase
       .from('season_registrations')
       .upsert(normalizeSeason(parsed, id), { onConflict: 'event_id' })
-    if (seasonError) return { ok: false, error: seasonError.message }
+      .select('id')
+      .single()
+    if (seasonError || !season) return { ok: false, error: seasonError?.message ?? 'Unable to save the season.' }
+
+    const tierError = await replacePriceTiers(supabase, season.id, parsed.price_tiers)
+    if (tierError) return { ok: false, error: tierError }
   } else if (existingSeason) {
     const { error: deleteError } = await supabase.from('season_registrations').delete().eq('id', existingSeason.id)
     if (deleteError) return { ok: false, error: deleteError.message }

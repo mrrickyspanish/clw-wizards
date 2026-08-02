@@ -151,6 +151,28 @@ export async function reviewSeasonEnrollment(values: z.input<typeof reviewSchema
     if (season.dues_amount_cents > 0 && dues?.status !== 'paid' && dues?.status !== 'waived') {
       return { ok: false, error: 'Season dues must be paid or waived before approval.' }
     }
+
+    // The submit RPC already refuses unsigned enrollments, so this should never
+    // fire in normal use. It catches the cases the RPC cannot: a disclosure the
+    // club made required after this family submitted, or a signature removed by
+    // an admin correction.
+    const [{ data: required }, { data: signed }] = await Promise.all([
+      admin.from('disclosures').select('id, title').eq('active', true).eq('required', true),
+      admin
+        .from('disclosure_acceptances')
+        .select('disclosure_id')
+        .eq('season_registration_id', enrollment.season_registration_id)
+        .eq('athlete_id', enrollment.athlete_id),
+    ])
+
+    const signedIds = new Set((signed ?? []).map((row) => row.disclosure_id))
+    const missing = (required ?? []).filter((row) => !signedIds.has(row.id))
+    if (missing.length) {
+      return {
+        ok: false,
+        error: `This family has not signed the ${missing.map((row) => row.title).join(', ')} for this season.`,
+      }
+    }
   }
 
   const { error: updateError } = await admin

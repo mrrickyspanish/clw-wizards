@@ -1,5 +1,11 @@
 import { createAdminSupabase } from '@/lib/supabase/admin'
-import type { Practice, ClubEvent, PracticeCancellation, SeasonRegistration } from '@/types/database'
+import type {
+  Practice,
+  ClubEvent,
+  PracticeCancellation,
+  SeasonPriceTier,
+  SeasonRegistration,
+} from '@/types/database'
 import { WEEKDAYS, formatTime } from '@/lib/practice'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -53,9 +59,21 @@ export default async function AdminPracticesPage() {
     supabase.from('season_registrations').select('*').order('registration_open_date', { ascending: false }),
   ])
 
+  const { data: priceTiers } = await supabase
+    .from('season_price_tiers')
+    .select('*')
+    .order('starts_on', { ascending: true })
+
   const rows = (practices ?? []) as Practice[]
   const eventRows = (events ?? []) as ClubEvent[]
   const seasonByEvent = new Map(((seasons ?? []) as SeasonRegistration[]).map((season) => [season.event_id, season]))
+
+  const tiersBySeason = new Map<string, SeasonPriceTier[]>()
+  for (const tier of (priceTiers ?? []) as SeasonPriceTier[]) {
+    const list = tiersBySeason.get(tier.season_registration_id) ?? []
+    list.push(tier)
+    tiersBySeason.set(tier.season_registration_id, list)
+  }
 
   const cancelsByPractice = new Map<string, PracticeCancellation[]>()
   for (const cancellation of (cancellations ?? []) as PracticeCancellation[]) {
@@ -206,7 +224,11 @@ export default async function AdminPracticesPage() {
                       <TableCell className="text-clw-gray">{event.practice_group ?? 'All'}</TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-1">
-                          <EventDialog event={event} season={season} />
+                          <EventDialog
+                            event={event}
+                            season={season}
+                            priceTiers={season ? tiersBySeason.get(season.id) ?? [] : []}
+                          />
                           <DeleteEventButton id={event.id} label={event.title} />
                         </div>
                       </TableCell>

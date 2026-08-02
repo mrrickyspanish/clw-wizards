@@ -103,7 +103,12 @@ export function SiteFooter() {
         <div className="mt-12 flex flex-col gap-4 border-t border-clw-white/10 pt-7 font-body text-sm sm:mt-14 sm:flex-row sm:items-center sm:justify-between">
           <p className="font-body text-sm text-clw-gray/70">
             © {new Date().getFullYear()} Wizards Wrestling Club. All rights reserved.
-            <span className="mt-1 block">501(c)(3) nonprofit · EIN {ORG.ein}</span>
+            <span className="mt-1 block">
+              501(c)(3) nonprofit · EIN {ORG.ein} ·{' '}
+              <Link href="/terms" className="transition hover:text-clw-gold">
+                Terms &amp; Agreements
+              </Link>
+            </span>
           </p>
           <a
             href="https://creativeeyestudios.com"

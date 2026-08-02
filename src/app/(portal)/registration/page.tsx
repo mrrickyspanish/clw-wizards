@@ -9,8 +9,10 @@ import type {
   Athlete,
   AthleteDocument,
   ClubEvent,
+  DisclosureAcceptance,
   DuesPayment,
   SeasonEnrollment,
+  SeasonPriceTier,
   SeasonRegistration,
 } from '@/types/database'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -124,7 +126,13 @@ export default async function RegistrationPage({
   }
 
   const { season, event } = selected
-  const pricing = resolveDuesPricing(season, today)
+
+  const { data: tierData } = await supabase
+    .from('season_price_tiers')
+    .select('*')
+    .eq('season_registration_id', season.id)
+
+  const pricing = resolveDuesPricing(season, (tierData ?? []) as SeasonPriceTier[], today)
   const athletes = (athleteData ?? []) as Athlete[]
   const athleteIds = athletes.map((athlete) => athlete.id)
   const currentCardWindow = `${season.registration_open_date}T00:00:00.000Z`
@@ -157,13 +165,29 @@ export default async function RegistrationPage({
     : { data: [] as DuesPayment[] }
   const duesById = new Map(((duesData ?? []) as DuesPayment[]).map((dues) => [dues.id, dues]))
 
+  const [{ count: requiredDisclosureCount }, { data: acceptanceData }] = await Promise.all([
+    supabase.from('disclosures').select('id', { count: 'exact', head: true }).eq('active', true).eq('required', true),
+    athleteIds.length
+      ? supabase
+          .from('disclosure_acceptances')
+          .select('*')
+          .eq('season_registration_id', season.id)
+          .in('athlete_id', athleteIds)
+      : Promise.resolve({ data: [] as DisclosureAcceptance[] }),
+  ])
+
+  const signedCountByAthlete = new Map<string, number>()
+  for (const acceptance of (acceptanceData ?? []) as DisclosureAcceptance[]) {
+    signedCountByAthlete.set(acceptance.athlete_id, (signedCountByAthlete.get(acceptance.athlete_id) ?? 0) + 1)
+  }
+
   const isOpen = season.registration_open_date <= today && season.registration_close_date >= today
   const isUpcoming = today < season.registration_open_date
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <p className="text-xs font-medium uppercase tracking-[0.18em] text-clw-gold-ink">{season.season_label}</p>
+        <p className="text-sm font-medium uppercase tracking-[0.18em] text-clw-gold-ink">{season.season_label}</p>
         <h1 className="mt-2 text-3xl font-display text-clw-white">{event.title}</h1>
         <p className="mt-2 text-sm text-clw-gray">
           {isOpen
@@ -195,24 +219,12 @@ export default async function RegistrationPage({
           </div>
           <div>
             <p className="text-clw-gray/70">Dues per wrestler</p>
-            {pricing.isDiscounted ? (
-              <>
-                <p className="mt-1 text-clw-white">
-                  {money(pricing.amountCents)}{' '}
-                  <span className="text-clw-gray/70 line-through">{money(pricing.regularAmountCents)}</span>
-                </p>
-                <p className="mt-0.5 text-clw-gold-ink">
-                  Save {money(pricing.regularAmountCents - pricing.amountCents)} — register by{' '}
-                  {formatDate(pricing.discountDeadline!)}
-                </p>
-              </>
-            ) : pricing.discountAmountCents != null ? (
-              <>
-                <p className="mt-1 text-clw-white">{money(pricing.regularAmountCents)}</p>
-                <p className="mt-0.5 text-clw-gray/70">Early pricing ended {formatDate(pricing.discountDeadline!)}</p>
-              </>
-            ) : (
-              <p className="mt-1 text-clw-white">{money(pricing.regularAmountCents)}</p>
+            <p className="mt-1 text-clw-white">{money(pricing.amountCents)}</p>
+            {pricing.currentTier && pricing.nextTier && (
+              <p className="mt-0.5 text-clw-gold-ink">
+                Through {formatDate(pricing.currentTier.ends_on)} — rises to {money(pricing.nextTier.amount_cents)}{' '}
+                after that
+              </p>
             )}
           </div>
           <div>
@@ -221,6 +233,38 @@ export default async function RegistrationPage({
           </div>
         </CardContent>
       </Card>
+
+      {pricing.tiers.length > 1 && (
+        <Card className="border-clw-gold/10 bg-clw-black-3">
+          <CardHeader>
+            <CardTitle className="text-base text-clw-white">Registration price steps</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {pricing.tiers.map((tier) => {
+              const current = tier.id === pricing.currentTier?.id
+              return (
+                <div
+                  key={tier.id}
+                  className={`flex flex-wrap items-baseline justify-between gap-2 rounded-lg px-3 py-2 text-base ${
+                    current ? 'bg-clw-gold/10 text-clw-white' : 'text-clw-gray'
+                  }`}
+                >
+                  <span>
+                    {tier.label}
+                    <span className="ml-2 text-sm text-clw-gray/70">
+                      {formatDate(tier.starts_on)} – {formatDate(tier.ends_on)}
+                    </span>
+                  </span>
+                  <span className={current ? 'text-clw-gold-ink' : ''}>{money(tier.amount_cents)}</span>
+                </div>
+              )
+            })}
+            <p className="pt-1 text-sm text-clw-gray/70">
+              The price is set when you submit, not when you pay — registering early locks it in.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {(season.instructions || event.notes) && (
         <Card className="border-clw-gold/10 bg-clw-black-3">
@@ -309,6 +353,7 @@ export default async function RegistrationPage({
             const remaining = dues ? Math.max(0, dues.amount_cents - dues.amount_paid_cents) : pricing.amountCents
             const canSubmit = isOpen && (!season.require_usa_card || Boolean(latestCard))
             const resubmitting = enrollment?.status === 'changes_requested' || enrollment?.status === 'withdrawn'
+            const signedAll = (signedCountByAthlete.get(athlete.id) ?? 0) >= (requiredDisclosureCount ?? 0)
 
             return (
               <Card key={athlete.id} className="card-depth border-clw-gold/10 bg-clw-black-3">
@@ -342,7 +387,7 @@ export default async function RegistrationPage({
                           <p className="flex items-center gap-2 text-sm font-medium text-clw-white">
                             <FileCheck2 className="h-4 w-4 text-clw-gold-ink" /> USA Wrestling card
                           </p>
-                          <p className="mt-1 text-xs text-clw-gray">
+                          <p className="mt-1 text-sm text-clw-gray">
                             {!season.require_usa_card
                               ? 'Not required for this season'
                               : !isOpen && !card
@@ -373,12 +418,12 @@ export default async function RegistrationPage({
                       </p>
                       <p className="mt-1 text-sm text-clw-gray">
                         {!enrollment ? (
-                          pricing.isDiscounted ? (
+                          pricing.currentTier && pricing.nextTier ? (
                             <>
                               {money(pricing.amountCents)} due after submission —{' '}
                               <span className="text-clw-gold-ink">
-                                save {money(pricing.regularAmountCents - pricing.amountCents)} through{' '}
-                                {formatDate(pricing.discountDeadline!)}
+                                rises to {money(pricing.nextTier.amount_cents)} after{' '}
+                                {formatDate(pricing.currentTier.ends_on)}
                               </span>
                             </>
                           ) : (
@@ -399,6 +444,19 @@ export default async function RegistrationPage({
                       )}
                     </div>
                   </div>
+
+                  {(requiredDisclosureCount ?? 0) > 0 && (
+                    <div className="rounded-xl bg-clw-black p-4">
+                      <p className="flex items-center gap-2 text-sm font-medium text-clw-white">
+                        <ShieldCheck className="h-4 w-4 text-clw-gold-ink" /> Program waiver
+                      </p>
+                      <p className="mt-1 text-sm text-clw-gray">
+                        {signedAll
+                          ? `Signed for ${season.season_label}.`
+                          : `Not signed yet — the waiver is part of the registration form and must be signed each season.`}
+                      </p>
+                    </div>
+                  )}
 
                   {enrollment?.status === 'approved' ? (
                     <div className="flex items-start gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
@@ -427,15 +485,18 @@ export default async function RegistrationPage({
                             : 'Registration is closed.'
                           : season.require_usa_card && !latestCard
                             ? 'Upload the current-season wrestling card before submitting.'
-                            : 'Submit this wrestler for the current season. You will pay dues after the registration is created.'}
+                            : signedAll
+                              ? 'Review the details and agreements, then submit for the season.'
+                              : 'The form takes a few minutes: wrestler details, parent contacts, and the program waiver.'}
                       </p>
-                      <EnrollmentControls
-                        seasonRegistrationId={season.id}
-                        athleteId={athlete.id}
-                        enrollmentId={enrollment?.id}
-                        canSubmit={canSubmit}
-                        resubmitting={resubmitting}
-                      />
+                      <div className="flex items-center gap-2">
+                        {enrollment && <EnrollmentControls enrollmentId={enrollment.id} />}
+                        <Button asChild size="sm" disabled={!canSubmit}>
+                          <Link href={`/registration/${athlete.id}`}>
+                            {resubmitting ? 'Update and resubmit' : `Register ${athlete.first_name}`}
+                          </Link>
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -445,7 +506,7 @@ export default async function RegistrationPage({
         </div>
       )}
 
-      <p className="text-xs leading-relaxed text-clw-gray/70">
+      <p className="text-sm leading-relaxed text-clw-gray/70">
         Parent accounts and wrestler profiles remain in the system. Only the season enrollment, current card review, and dues are renewed each year.
       </p>
     </div>

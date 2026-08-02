@@ -4,7 +4,14 @@ import { AlertCircle, ArrowRight, CheckCircle2, Clock3, CreditCard, UserPlus } f
 import { createServerSupabase } from '@/lib/supabase/server'
 import { chicagoDateString } from '@/lib/chicago-time'
 import { resolveDuesPricing } from '@/lib/season-pricing'
-import type { Athlete, ClubEvent, DuesPayment, SeasonEnrollment, SeasonRegistration } from '@/types/database'
+import type {
+  Athlete,
+  ClubEvent,
+  DuesPayment,
+  SeasonEnrollment,
+  SeasonPriceTier,
+  SeasonRegistration,
+} from '@/types/database'
 
 function formatDate(value: string) {
   return new Date(`${value}T00:00:00`).toLocaleDateString('en-US', {
@@ -68,15 +75,19 @@ export async function SeasonRegistrationCard({
   const athletes = (athleteData ?? []) as Pick<Athlete, 'id' | 'first_name' | 'last_name' | 'active'>[]
   const athleteIds = athletes.map((athlete) => athlete.id)
 
-  const { data: enrollmentData } = athleteIds.length
-    ? await supabase
-        .from('season_enrollments')
-        .select('*')
-        .eq('season_registration_id', season.id)
-        .in('athlete_id', athleteIds)
-    : { data: [] as SeasonEnrollment[] }
+  const [{ data: enrollmentData }, { data: tierData }] = await Promise.all([
+    athleteIds.length
+      ? supabase
+          .from('season_enrollments')
+          .select('*')
+          .eq('season_registration_id', season.id)
+          .in('athlete_id', athleteIds)
+      : Promise.resolve({ data: [] as SeasonEnrollment[] }),
+    supabase.from('season_price_tiers').select('*').eq('season_registration_id', season.id),
+  ])
 
   const enrollments = (enrollmentData ?? []) as SeasonEnrollment[]
+  const tiers = (tierData ?? []) as SeasonPriceTier[]
   const duesIds = enrollments.map((enrollment) => enrollment.dues_payment_id).filter(Boolean) as string[]
   const { data: duesData } = duesIds.length
     ? await supabase.from('dues_payments').select('*').in('id', duesIds)
@@ -119,12 +130,14 @@ export async function SeasonRegistrationCard({
     Icon = AlertCircle
     accent = 'border-amber-500/40'
   } else if (unregistered > 0 && isOpen) {
-    const pricing = resolveDuesPricing(season, today)
+    const pricing = resolveDuesPricing(season, tiers, today)
+    const countPhrase = `${unregistered} active wrestler${unregistered === 1 ? ' is' : 's are'}`
     eyebrow = 'Registration open'
     title = `Register for ${season.season_label}`
-    body = pricing.isDiscounted
-      ? `${unregistered} active wrestler${unregistered === 1 ? ' is' : 's are'} not registered yet. Register by ${formatDate(pricing.discountDeadline!)} to save ${money(pricing.regularAmountCents - pricing.amountCents)} per wrestler.`
-      : `${unregistered} active wrestler${unregistered === 1 ? ' is' : 's are'} not registered for the new season yet.`
+    body =
+      pricing.currentTier && pricing.nextTier
+        ? `${countPhrase} not registered yet. Register by ${formatDate(pricing.currentTier.ends_on)} to lock in ${money(pricing.amountCents)} per wrestler before it rises to ${money(pricing.nextTier.amount_cents)}.`
+        : `${countPhrase} not registered for the new season yet.`
     action = 'Register now'
   } else if (outstanding > 0) {
     eyebrow = 'Payment required'
@@ -166,7 +179,7 @@ export async function SeasonRegistrationCard({
           <Icon className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-clw-gold-ink">{eyebrow}</p>
+          <p className="text-sm font-medium uppercase tracking-[0.18em] text-clw-gold-ink">{eyebrow}</p>
           <h2 className="mt-2 font-display text-2xl leading-tight text-clw-white">{title}</h2>
           <p className="mt-2 text-sm leading-relaxed text-clw-gray">{body}</p>
           <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-clw-gold-ink">

@@ -2,9 +2,9 @@
 
 import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { CalendarPlus, Pencil } from 'lucide-react'
+import { CalendarPlus, Pencil, Plus, Trash2 } from 'lucide-react'
 
-import type { ClubEvent, SeasonRegistration } from '@/types/database'
+import type { ClubEvent, SeasonPriceTier, SeasonRegistration } from '@/types/database'
 import { ORG } from '@/config/org.config'
 import { createEvent, updateEvent, type EventInput } from './eventActions'
 import { Button } from '@/components/ui/button'
@@ -36,7 +36,36 @@ const EVENT_TYPES: { value: ClubEvent['event_type']; label: string }[] = [
 
 const GROUP_ALL = 'all'
 
-export function EventDialog({ event, season }: { event?: ClubEvent; season?: SeasonRegistration }) {
+// One editable row of the season's price ladder. Amounts stay strings while
+// being typed so a half-entered "3." doesn't get rounded out from under the
+// admin; they become cents only on submit.
+type TierDraft = {
+  key: string
+  label: string
+  starts_on: string
+  ends_on: string
+  amount: string
+}
+
+function toDraft(tier: SeasonPriceTier): TierDraft {
+  return {
+    key: tier.id,
+    label: tier.label,
+    starts_on: tier.starts_on,
+    ends_on: tier.ends_on,
+    amount: (tier.amount_cents / 100).toFixed(2),
+  }
+}
+
+export function EventDialog({
+  event,
+  season,
+  priceTiers = [],
+}: {
+  event?: ClubEvent
+  season?: SeasonRegistration
+  priceTiers?: SeasonPriceTier[]
+}) {
   const router = useRouter()
   const editing = Boolean(event)
   const [open, setOpen] = useState(false)
@@ -62,12 +91,30 @@ export function EventDialog({ event, season }: { event?: ClubEvent; season?: Sea
   const [duesDueDate, setDuesDueDate] = useState(season?.dues_due_date ?? '')
   const [instructions, setInstructions] = useState(season?.instructions ?? '')
   const [requireUsaCard, setRequireUsaCard] = useState(season?.require_usa_card ?? true)
-  const [earlyBirdPrice, setEarlyBirdPrice] = useState(
-    season?.early_bird_price_cents != null ? (season.early_bird_price_cents / 100).toFixed(2) : ''
+  const [tiers, setTiers] = useState<TierDraft[]>(() =>
+    [...priceTiers].sort((a, b) => a.starts_on.localeCompare(b.starts_on)).map(toDraft)
   )
-  const [earlyBirdDeadline, setEarlyBirdDeadline] = useState(season?.early_bird_deadline ?? '')
 
   const isSeason = type === 'season_registration'
+
+  function updateTier(key: string, patch: Partial<TierDraft>) {
+    setTiers((current) => current.map((tier) => (tier.key === key ? { ...tier, ...patch } : tier)))
+  }
+
+  function addTier() {
+    setTiers((current) => [
+      ...current,
+      {
+        key: crypto.randomUUID(),
+        label: '',
+        // Pick up where the last step left off so a ladder can be built by
+        // filling in end dates rather than re-entering every boundary.
+        starts_on: current.at(-1)?.ends_on ?? registrationOpen,
+        ends_on: '',
+        amount: '',
+      },
+    ])
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -81,29 +128,15 @@ export function EventDialog({ event, season }: { event?: ClubEvent; season?: Sea
       return
     }
 
-    const hasEarlyBirdPrice = earlyBirdPrice.trim() !== ''
-    const earlyBirdAmount = hasEarlyBirdPrice ? Number(earlyBirdPrice) : null
-    if (isSeason && hasEarlyBirdPrice !== Boolean(earlyBirdDeadline)) {
+    if (isSeason && tiers.some((tier) => !tier.label.trim() || !tier.starts_on || !tier.ends_on)) {
       setLoading(false)
-      setError('Set both an early registration price and a deadline, or leave both blank.')
+      setError('Give every price step a name, a start date, and an end date.')
       return
     }
-    if (isSeason && hasEarlyBirdPrice) {
-      if (!Number.isFinite(earlyBirdAmount) || (earlyBirdAmount as number) < 0) {
-        setLoading(false)
-        setError('Enter a valid early registration price.')
-        return
-      }
-      if ((earlyBirdAmount as number) >= amount) {
-        setLoading(false)
-        setError('The early registration price must be less than the regular dues amount.')
-        return
-      }
-      if (earlyBirdDeadline < registrationOpen || earlyBirdDeadline > registrationClose) {
-        setLoading(false)
-        setError('The early registration deadline must fall within the registration window.')
-        return
-      }
+    if (isSeason && tiers.some((tier) => !Number.isFinite(Number(tier.amount)) || Number(tier.amount) < 0)) {
+      setLoading(false)
+      setError('Enter a valid price for every step.')
+      return
     }
 
     const values: EventInput = {
@@ -123,8 +156,14 @@ export function EventDialog({ event, season }: { event?: ClubEvent; season?: Sea
       dues_due_date: isSeason ? duesDueDate : null,
       instructions: isSeason ? instructions : null,
       require_usa_card: isSeason ? requireUsaCard : false,
-      early_bird_price_cents: isSeason && hasEarlyBirdPrice ? Math.round((earlyBirdAmount as number) * 100) : null,
-      early_bird_deadline: isSeason && hasEarlyBirdPrice ? earlyBirdDeadline : null,
+      price_tiers: isSeason
+        ? tiers.map((tier) => ({
+            label: tier.label.trim(),
+            starts_on: tier.starts_on,
+            ends_on: tier.ends_on,
+            amount_cents: Math.round(Number(tier.amount || 0) * 100),
+          }))
+        : [],
     }
 
     const result = editing ? await updateEvent(event!.id, values) : await createEvent(values)
@@ -315,38 +354,81 @@ export function EventDialog({ event, season }: { event?: ClubEvent; season?: Sea
 
               <div className="space-y-3 rounded-md border border-clw-gold/15 bg-clw-black-2 p-4">
                 <div>
-                  <p className="text-sm font-medium text-clw-white">Early registration discount (optional)</p>
+                  <p className="text-base font-medium text-clw-white">Price steps (optional)</p>
                   <p className="mt-1 text-sm text-clw-gray">
-                    Leave both blank to charge the full amount the whole window. If set, a wrestler registered on or
-                    before the deadline pays the discount price; after it, the regular dues amount applies.
+                    Add a step for each price window, like the registration flier&apos;s ladder. A wrestler pays the
+                    step their submission date falls in, and that price is locked in even if they pay later. Leave this
+                    empty to charge the season dues amount for the whole window. Steps cannot overlap.
                   </p>
                 </div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="early_bird_price">Discount price</Label>
-                    <Input
-                      id="early_bird_price"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      inputMode="decimal"
-                      value={earlyBirdPrice}
-                      onChange={(e) => setEarlyBirdPrice(e.target.value)}
-                      placeholder="0.00"
-                    />
+
+                {tiers.map((tier) => (
+                  <div key={tier.key} className="space-y-3 rounded-md border border-clw-gold/10 bg-clw-black p-3">
+                    <div className="flex items-end gap-2">
+                      <div className="flex-1 space-y-2">
+                        <Label htmlFor={`tier_label_${tier.key}`}>Step name</Label>
+                        <Input
+                          id={`tier_label_${tier.key}`}
+                          maxLength={60}
+                          value={tier.label}
+                          onChange={(e) => updateTier(tier.key, { label: e.target.value })}
+                          placeholder="Early registration"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-clw-gray hover:text-red-400"
+                        onClick={() => setTiers((current) => current.filter((row) => row.key !== tier.key))}
+                        aria-label={`Remove ${tier.label || 'price step'}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <div className="space-y-2">
+                        <Label htmlFor={`tier_starts_${tier.key}`}>Starts</Label>
+                        <Input
+                          id={`tier_starts_${tier.key}`}
+                          type="date"
+                          min={registrationOpen || undefined}
+                          max={registrationClose || undefined}
+                          value={tier.starts_on}
+                          onChange={(e) => updateTier(tier.key, { starts_on: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor={`tier_ends_${tier.key}`}>Ends</Label>
+                        <Input
+                          id={`tier_ends_${tier.key}`}
+                          type="date"
+                          min={tier.starts_on || registrationOpen || undefined}
+                          max={registrationClose || undefined}
+                          value={tier.ends_on}
+                          onChange={(e) => updateTier(tier.key, { ends_on: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor={`tier_amount_${tier.key}`}>Price</Label>
+                        <Input
+                          id={`tier_amount_${tier.key}`}
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          inputMode="decimal"
+                          value={tier.amount}
+                          onChange={(e) => updateTier(tier.key, { amount: e.target.value })}
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="early_bird_deadline">Discount ends</Label>
-                    <Input
-                      id="early_bird_deadline"
-                      type="date"
-                      min={registrationOpen || undefined}
-                      max={registrationClose || undefined}
-                      value={earlyBirdDeadline}
-                      onChange={(e) => setEarlyBirdDeadline(e.target.value)}
-                    />
-                  </div>
-                </div>
+                ))}
+
+                <Button type="button" variant="outline" size="sm" onClick={addTier}>
+                  <Plus className="mr-1.5 h-4 w-4" /> Add price step
+                </Button>
               </div>
 
               <div className="space-y-2">
