@@ -47,7 +47,7 @@ export async function submitRegistration(values: unknown): Promise<ActionResult>
     weight_lbs,
     shirt_size,
     years_experience,
-    season_commitments,
+    season_commitment,
     guardians,
     acceptances,
   } = parsed.data
@@ -131,7 +131,7 @@ export async function submitRegistration(values: unknown): Promise<ActionResult>
     _weight_lbs: weight_lbs,
     _shirt_size: shirt_size,
     _years_experience: years_experience,
-    _season_commitments: season_commitments,
+    _season_commitment: season_commitment,
   })
   if (error) return { ok: false, error: error.message }
 

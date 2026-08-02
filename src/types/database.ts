@@ -293,7 +293,7 @@ export type SeasonEnrollment = {
   weight_lbs: number | null
   shirt_size: string | null
   years_experience: string | null
-  season_commitments: string[]
+  season_commitment: string | null
   created_at: string
   updated_at: string
 }
@@ -557,7 +557,7 @@ export type Database = {
           _weight_lbs?: number | null
           _shirt_size?: string | null
           _years_experience?: string | null
-          _season_commitments?: string[] | null
+          _season_commitment?: string | null
         }
         Returns: string
       }

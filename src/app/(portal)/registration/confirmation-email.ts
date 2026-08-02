@@ -95,7 +95,7 @@ export async function sendRegistrationConfirmation(params: {
     line('Current weight', enrollment?.weight_lbs != null ? `${enrollment.weight_lbs} lbs` : null),
     line('Shirt size', enrollment?.shirt_size),
     line('Years of experience', enrollment?.years_experience),
-    line('Season commitments', enrollment?.season_commitments?.join(', ')),
+    line('Season commitment', enrollment?.season_commitment),
   ].filter(Boolean)
 
   const contactLines = [

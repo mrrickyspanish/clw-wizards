@@ -114,7 +114,7 @@ export function RegistrationForm({
   const [weight, setWeight] = useState(enrollment?.weight_lbs != null ? String(enrollment.weight_lbs) : '')
   const [shirtSize, setShirtSize] = useState(enrollment?.shirt_size ?? athlete.shirt_size ?? '')
   const [yearsExperience, setYearsExperience] = useState(enrollment?.years_experience ?? '')
-  const [commitments, setCommitments] = useState<string[]>(enrollment?.season_commitments ?? [])
+  const [commitment, setCommitment] = useState(enrollment?.season_commitment ?? '')
 
   const [guardians, setGuardians] = useState<GuardianDraft[]>(() => {
     const first = existingGuardians.find((guardian) => guardian.ordinal === 1)
@@ -145,15 +145,9 @@ export function RegistrationForm({
     setGuardians((current) => current.map((row) => (row.ordinal === ordinal ? { ...row, ...patch } : row)))
   }
 
-  function toggleCommitment(option: string) {
-    setCommitments((current) =>
-      current.includes(option) ? current.filter((value) => value !== option) : [...current, option]
-    )
-  }
-
   const wrestlerValid = Boolean(
     phone.trim() && streetAddress.trim() && city.trim() && grade.trim() && school.trim() && weight.trim() &&
-      Number(weight) > 0 && shirtSize && yearsExperience
+      Number(weight) > 0 && shirtSize && yearsExperience && commitment
   )
   const guardiansValid = Boolean(guardians[0]?.name.trim())
   const requiredDisclosures = disclosures.filter((disclosure) => disclosure.required)
@@ -182,7 +176,7 @@ export function RegistrationForm({
       weight_lbs: weight,
       shirt_size: shirtSize,
       years_experience: yearsExperience,
-      season_commitments: commitments,
+      season_commitment: commitment,
       guardians: guardians
         .filter((guardian) => guardian.name.trim())
         .map((guardian) => ({
@@ -292,19 +286,26 @@ export function RegistrationForm({
             </Field>
           </div>
 
-          <fieldset className="space-y-3 rounded-xl border border-clw-gold/10 bg-clw-black p-4">
-            <legend className="px-1 text-base font-medium text-clw-white">Season &amp; state series commitments</legend>
-            {SEASON_COMMITMENT_OPTIONS.map((option) => (
-              <label key={option} className="flex items-start gap-3 text-base text-clw-gray">
-                <Checkbox
-                  className="mt-0.5"
-                  checked={commitments.includes(option)}
-                  onCheckedChange={() => toggleCommitment(option)}
-                />
-                <span>{option}</span>
-              </label>
-            ))}
-          </fieldset>
+          <div className="space-y-3 rounded-xl border border-clw-gold/10 bg-clw-black p-4">
+            <Label htmlFor="season_commitment" className="text-base font-medium text-clw-white">
+              Season &amp; state series commitment
+            </Label>
+            <p className="text-sm text-clw-gray">
+              Choose the one that describes where {athlete.first_name} will wrestle this year.
+            </p>
+            <Select value={commitment} onValueChange={setCommitment}>
+              <SelectTrigger id="season_commitment" className="h-auto min-h-11 text-left">
+                <SelectValue placeholder="Choose" />
+              </SelectTrigger>
+              <SelectContent>
+                {SEASON_COMMITMENT_OPTIONS.map((option) => (
+                  <SelectItem key={option} value={option} className="whitespace-normal">
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Phone number" htmlFor="phone">
@@ -491,7 +492,7 @@ export function RegistrationForm({
               ['Current weight', weight ? `${weight} lbs` : '—'],
               ['Shirt size', shirtSize],
               ['Experience', yearsExperience],
-              ['Commitments', commitments.length ? commitments.join(', ') : 'None selected'],
+              ['Commitment', commitment],
               ['Phone', phone],
               ['Address', [streetAddress, city, state, postalCode].filter(Boolean).join(', ')],
             ].map(([label, value]) => (

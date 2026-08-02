@@ -28,9 +28,10 @@ ALTER TABLE public.season_enrollments
   ADD COLUMN IF NOT EXISTS weight_lbs NUMERIC(5,1) CHECK (weight_lbs IS NULL OR weight_lbs > 0),
   ADD COLUMN IF NOT EXISTS shirt_size TEXT,
   ADD COLUMN IF NOT EXISTS years_experience TEXT,
-  -- Multi-select on the form. Stored as an array rather than a delimited string
-  -- so the club can report on a single commitment without parsing.
-  ADD COLUMN IF NOT EXISTS season_commitments TEXT[] NOT NULL DEFAULT '{}';
+  -- Which competition path the wrestler is committing to this year. A
+  -- single-select on the form: the four choices are mutually exclusive, so this
+  -- is one value rather than a set.
+  ADD COLUMN IF NOT EXISTS season_commitment TEXT;
 
 -- Guardian contact records. Deliberately NOT family_guardians, which is the
 -- portal-login relationship created by invite codes: a guardian on this table

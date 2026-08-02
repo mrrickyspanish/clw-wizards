@@ -30,8 +30,23 @@ All required.
 | Wrestlers Current Weight | short text |
 | Shirt Size | choice — **option list not yet captured** |
 | Years of Wrestling Experience | choice — **option list not yet captured** |
-| Season & State Series Wrestling Commitments | choice — **option list not yet captured** |
+| Season & State Series Wrestling Commitments | single-select — see below |
 | How were you referred to our club | choice — **option list not yet captured** |
+
+### Season & State Series Wrestling Commitments
+
+A single-select dropdown ("Choose"), not a multi-select. The four choices are
+mutually exclusive:
+
+1. Will wrestle Wizards IKWF during the season and IKWF state series
+2. Will wrestle Wizards IKWF/Middle School during the season & IKWF state series
+3. Will wrestle Wizards IKWF/Middle School during the season and Middle School
+   state series
+4. N/A - this wrestler is not in Middle School
+
+> Option 3 ran past the right edge of the screenshot these were transcribed
+> from. "Middle School state series" is the only reading consistent with the
+> other three, but confirm it against the live form before the season opens.
 
 ## Parent / Guardian Information
 

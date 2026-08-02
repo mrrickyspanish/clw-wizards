@@ -55,12 +55,18 @@ export const GUARDIAN_RELATIONSHIPS = [
 
 export const COACH_INTEREST_OPTIONS = ['Yes', 'No', 'Maybe — tell me more'] as const
 
-// The one question whose intent could not be inferred from the form text alone.
-// These are placeholders; the club's real commitment options should replace
-// them before this ships to families.
+/**
+ * The club's real commitment options, transcribed from the live form. This is a
+ * single-select: a wrestler declares one path for the year, and the four
+ * choices are mutually exclusive by construction.
+ *
+ * The third option was cut off at the right edge of the screenshot these came
+ * from; "Middle School state series" is the reading the other three make
+ * inevitable, but confirm it against the form before the season opens.
+ */
 export const SEASON_COMMITMENT_OPTIONS = [
-  'Regular season tournaments',
-  'IKWF State Series',
-  'Dual team competition',
-  'Practice only — no competition',
+  'Will wrestle Wizards IKWF during the season and IKWF state series',
+  'Will wrestle Wizards IKWF/Middle School during the season & IKWF state series',
+  'Will wrestle Wizards IKWF/Middle School during the season and Middle School state series',
+  'N/A - this wrestler is not in Middle School',
 ] as const

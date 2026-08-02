@@ -52,7 +52,7 @@ export const registrationSchema = z.object({
   weight_lbs: z.coerce.number().positive('Enter the wrestler’s current weight').max(600),
   shirt_size: z.string().trim().min(1, 'Shirt size is required').max(40),
   years_experience: z.string().trim().min(1, 'Years of experience is required').max(40),
-  season_commitments: z.array(z.string().trim().max(80)).default([]),
+  season_commitment: z.string().trim().min(1, 'Choose a season commitment').max(160),
 
   guardians: z.array(guardianSchema).min(1, 'At least one parent or guardian is required'),
 

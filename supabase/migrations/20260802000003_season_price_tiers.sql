@@ -125,7 +125,7 @@ CREATE FUNCTION public.submit_season_enrollment(
   _weight_lbs NUMERIC DEFAULT NULL,
   _shirt_size TEXT DEFAULT NULL,
   _years_experience TEXT DEFAULT NULL,
-  _season_commitments TEXT[] DEFAULT '{}'
+  _season_commitment TEXT DEFAULT NULL
 )
 RETURNS UUID
 LANGUAGE plpgsql
@@ -243,7 +243,7 @@ BEGIN
       weight_lbs,
       shirt_size,
       years_experience,
-      season_commitments
+      season_commitment
     )
     VALUES (
       _season_registration_id,
@@ -261,7 +261,7 @@ BEGIN
       _weight_lbs,
       _shirt_size,
       _years_experience,
-      COALESCE(_season_commitments, '{}')
+      _season_commitment
     )
     RETURNING id, dues_payment_id INTO _enrollment_id, _dues_id;
   ELSE
@@ -281,7 +281,7 @@ BEGIN
       weight_lbs = COALESCE(_weight_lbs, weight_lbs),
       shirt_size = COALESCE(_shirt_size, shirt_size),
       years_experience = COALESCE(_years_experience, years_experience),
-      season_commitments = COALESCE(_season_commitments, season_commitments)
+      season_commitment = COALESCE(_season_commitment, season_commitment)
     WHERE id = _enrollment_id;
   END IF;
 
@@ -330,5 +330,5 @@ $$;
 
 -- Re-granted because DROP FUNCTION took the old grant with it.
 GRANT EXECUTE ON FUNCTION public.submit_season_enrollment(
-  UUID, UUID, TEXT, TEXT, NUMERIC, TEXT, TEXT, TEXT[]
+  UUID, UUID, TEXT, TEXT, NUMERIC, TEXT, TEXT, TEXT
 ) TO authenticated;
