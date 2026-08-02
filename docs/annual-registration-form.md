@@ -44,10 +44,6 @@ mutually exclusive:
    state series
 4. N/A - this wrestler is not in Middle School
 
-> Option 3 ran past the right edge of the screenshot these were transcribed
-> from. "Middle School state series" is the only reading consistent with the
-> other three, but confirm it against the live form before the season opens.
-
 ## Parent / Guardian Information
 
 Two identical blocks. Both are marked required on the Google Form.
