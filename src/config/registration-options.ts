@@ -1,15 +1,14 @@
 /**
  * Answer choices for the registration form's dropdowns.
  *
- * The club's Google Form (docs/annual-registration-form.md) drives these, but
- * its option lists were not captured when the questions were transcribed. The
- * values below are reasonable stand-ins so the flow is usable end to end --
- * replace them with the club's real lists and the rest of the form keeps
- * working, since nothing branches on specific values.
+ * The club's Google Form (docs/annual-registration-form.md) drives these. The
+ * season commitment list is transcribed from the live form; the rest are the
+ * club's chosen defaults, confirmed rather than copied, because the underlying
+ * questions have obvious answer sets.
  *
- * Stored as free text in the database rather than enums for exactly that
- * reason: the club can revise a list without a migration, and a past
- * enrollment keeps the answer it was actually given.
+ * Stored as free text in the database rather than enums: the club can revise a
+ * list without a migration, and a past enrollment keeps the answer it was
+ * actually given even after the list changes underneath it.
  */
 
 export const SHIRT_SIZES = [
@@ -25,14 +24,9 @@ export const SHIRT_SIZES = [
   'Adult 2XL',
 ] as const
 
-export const YEARS_EXPERIENCE = [
-  'First year',
-  '1 year',
-  '2 years',
-  '3 years',
-  '4 years',
-  '5 or more years',
-] as const
+// A plain count, 0 through 10. Stored as the digit so the club can sort and
+// filter on it without parsing prose.
+export const YEARS_EXPERIENCE = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'] as const
 
 export const REFERRAL_SOURCES = [
   'Current Wizards family',
@@ -53,7 +47,7 @@ export const GUARDIAN_RELATIONSHIPS = [
   'Other',
 ] as const
 
-export const COACH_INTEREST_OPTIONS = ['Yes', 'No', 'Maybe — tell me more'] as const
+export const COACH_INTEREST_OPTIONS = ['Yes', 'No'] as const
 
 /**
  * The club's real commitment options, transcribed from the live form. This is a

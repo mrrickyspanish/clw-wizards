@@ -28,10 +28,10 @@ All required.
 | Grade for 2026–27' | short text |
 | Name of School attending 2026–27' | short text |
 | Wrestlers Current Weight | short text |
-| Shirt Size | choice — **option list not yet captured** |
-| Years of Wrestling Experience | choice — **option list not yet captured** |
+| Shirt Size | choice — youth XS–XL, adult S–2XL |
+| Years of Wrestling Experience | choice — 0 through 10 |
 | Season & State Series Wrestling Commitments | single-select — see below |
-| How were you referred to our club | choice — **option list not yet captured** |
+| How were you referred to our club | choice — club defaults, see `src/config/registration-options.ts` |
 
 ### Season & State Series Wrestling Commitments
 
@@ -55,10 +55,10 @@ Two identical blocks. Both are marked required on the Google Form.
 | Question | Type |
 |---|---|
 | Parent/Guardian Name | short text |
-| Relationship to Wrestler | choice — **option list not yet captured** |
+| Relationship to Wrestler | choice — club defaults, see `src/config/registration-options.ts` |
 | Phone Number | short text |
 | Email | short text |
-| Interested in being a coach | choice — **option list not yet captured** |
+| Interested in being a coach | choice — Yes / No |
 
 ---
 

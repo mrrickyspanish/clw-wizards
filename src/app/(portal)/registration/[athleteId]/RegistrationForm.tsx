@@ -491,7 +491,7 @@ export function RegistrationForm({
               ['School', school],
               ['Current weight', weight ? `${weight} lbs` : '—'],
               ['Shirt size', shirtSize],
-              ['Experience', yearsExperience],
+              ['Experience', yearsExperience ? `${yearsExperience} year${yearsExperience === '1' ? '' : 's'}` : ''],
               ['Commitment', commitment],
               ['Phone', phone],
               ['Address', [streetAddress, city, state, postalCode].filter(Boolean).join(', ')],
