@@ -9,6 +9,7 @@ import { SupportPageHero } from '@/components/sponsorship/SupportPageHero'
 import { TaxStatusNote } from '@/components/sponsorship/TaxStatusNote'
 import { SupportStatusAlert } from '@/components/sponsorship/SupportStatusAlert'
 import { CTA_LINK } from '@/lib/cta'
+import { DONATIONS_ENABLED } from '@/config/donations'
 
 const BOOSTER_LEVELS = [
   {
@@ -102,7 +103,9 @@ export default async function BoostersPage({
             <p className="font-cond text-sm font-semibold uppercase tracking-[0.3em] text-clw-gold">Join the Booster Club</p>
             <h2 className="mt-4 font-display text-[clamp(3rem,9vw,5.5rem)] uppercase leading-[0.88] text-clw-white">Build the room every month.</h2>
             <p className="mx-auto mt-5 max-w-2xl text-lg font-medium leading-relaxed text-clw-gray sm:text-xl">
-              Select a monthly level or enter your own amount. Stripe will process the gift as a recurring monthly contribution.
+              {DONATIONS_ENABLED
+                ? 'Select a monthly level or enter your own amount. Stripe will process the gift as a recurring monthly contribution.'
+                : 'Monthly giving opens as soon as secure payment processing is in place. Here is what it will support.'}
             </p>
           </div>
 
@@ -114,9 +117,11 @@ export default async function BoostersPage({
               buttonLabel="Give Monthly"
               returnPath="/sponsorship/boosters"
             />
-            <p className="mt-4 flex items-center justify-center gap-2 text-center text-sm text-clw-gray">
-              <LockKeyhole className="h-4 w-4 text-clw-gold" /> Secure recurring checkout is processed by Stripe.
-            </p>
+            {DONATIONS_ENABLED && (
+              <p className="mt-4 flex items-center justify-center gap-2 text-center text-sm text-clw-gray">
+                <LockKeyhole className="h-4 w-4 text-clw-gold" /> Secure recurring checkout is processed by Stripe.
+              </p>
+            )}
             <TaxStatusNote className="mt-4 text-center text-clw-gray/85" />
           </div>
 

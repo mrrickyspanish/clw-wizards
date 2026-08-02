@@ -5,6 +5,8 @@ import { useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CTA_TYPE } from '@/lib/cta'
+import { DONATIONS_ENABLED } from '@/config/donations'
+import { DonationsComingSoon } from './DonationsComingSoon'
 
 interface DonationCheckoutFormProps {
   recurring?: boolean
@@ -66,6 +68,10 @@ export function DonationCheckoutForm({
       setLoading(false)
     }
   }
+
+  // Everything below this line is the live donation form, untouched. While
+  // donations are switched off it simply is not reached.
+  if (!DONATIONS_ENABLED) return <DonationsComingSoon light={light} />
 
   const inactiveClass = light
     ? 'border-clw-black/20 text-clw-black/70 hover:border-clw-black/50 hover:text-clw-black'
