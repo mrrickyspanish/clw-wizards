@@ -131,7 +131,7 @@ export const metadata: Metadata = pageMetadata({
 export default async function JoinPage() {
   return (
     <main className="relative overflow-hidden bg-clw-black text-clw-white">
-      <section className="relative isolate min-h-[690px] overflow-hidden border-b border-clw-gold/20 lg:min-h-[760px]">
+      <section className="relative isolate min-h-[460px] overflow-hidden border-b border-clw-gold/20 lg:min-h-[560px]">
         <div className="absolute inset-0">
           {/* eslint-disable-next-line @next/next/no-img-element -- real club team photography */}
           <img
@@ -144,22 +144,19 @@ export default async function JoinPage() {
           <div className="absolute inset-0 bg-gradient-to-t from-clw-black via-transparent to-clw-black/20" />
         </div>
 
-        <div className="mission-frame relative flex min-h-[690px] items-end pb-14 pt-20 sm:pb-16 lg:min-h-[760px] lg:items-center lg:pb-20 lg:pt-24">
-          <div className="max-w-3xl">
+        <div className="mission-frame relative flex min-h-[460px] items-end pb-12 pt-16 sm:pb-14 lg:min-h-[560px] lg:items-center lg:pb-16 lg:pt-20">
+          <div className="max-w-2xl">
             <p className="font-cond text-sm uppercase tracking-[0.34em] text-clw-gold">New Families</p>
-            <h1 className="mt-5 uppercase leading-[0.88]">
-              <span className="block font-cond text-[clamp(3.25rem,10vw,6.5rem)] font-light tracking-[-0.045em] text-clw-white">
+            <h1 className="mt-5 uppercase leading-[0.92]">
+              <span className="block font-cond text-[clamp(2.9rem,7.5vw,5.5rem)] font-light tracking-[-0.045em] text-clw-white">
                 Interested in
               </span>
-              <span className="block font-display text-[clamp(4rem,12vw,8rem)] font-black tracking-[-0.04em] text-clw-gold">
+              <span className="block font-display text-[clamp(3.4rem,8.5vw,6.5rem)] font-black tracking-[-0.04em] text-clw-gold">
                 Wizards Wrestling?
               </span>
-              <span className="mt-2 block font-cond text-[clamp(2.75rem,8vw,5.3rem)] font-light tracking-[-0.04em] text-clw-white">
-                Start here.
-              </span>
             </h1>
-            <p className="mt-7 max-w-2xl text-xl leading-relaxed text-clw-gray sm:text-2xl sm:leading-relaxed">
-              Whether your child is stepping onto a mat for the first time or looking for a more serious place to compete, this page will help your family understand the room, the expectations, and the next conversation to have.
+            <p className="mt-6 max-w-2xl text-xl leading-relaxed text-clw-gray sm:text-2xl sm:leading-relaxed">
+              This page will help your family understand the room, the expectations, and the next conversation to have. Start here.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <a
@@ -184,13 +181,13 @@ export default async function JoinPage() {
         </div>
       </section>
 
-      <section className="section-light relative isolate overflow-hidden border-b border-clw-gold/25 bg-[#F7F7F7] py-14 text-clw-ink sm:py-16 lg:py-20">
+      <section className="section-light relative isolate overflow-hidden border-b border-clw-gold/25 bg-[#F7F7F7] py-12 text-clw-ink sm:py-16 lg:py-20">
         <div className="mission-frame relative grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:items-center lg:gap-16">
           <div>
             <p className="font-cond text-sm uppercase tracking-[0.3em] text-clw-gold-on-light">Is This the Right Fit?</p>
-            <h2 className="mt-5 uppercase leading-[0.92]">
-              <span className="block font-cond text-[clamp(2.8rem,8vw,5rem)] font-light tracking-[-0.04em]">A place to learn.</span>
-              <span className="block font-display text-[clamp(3.2rem,9vw,5.7rem)] font-black tracking-[-0.04em] text-clw-gold-on-light">A room to grow.</span>
+            <h2 className="mt-4 uppercase leading-[0.96]">
+              <span className="block font-cond text-4xl font-light tracking-[-0.02em] sm:text-5xl">A place to learn.</span>
+              <span className="block font-display text-4xl font-black tracking-[-0.02em] text-clw-gold-on-light sm:text-5xl">A room to grow.</span>
             </h2>
             <p className="mt-6 text-xl leading-relaxed text-clw-muted-dark sm:text-2xl sm:leading-relaxed lg:text-xl">
               Wizards Wrestling helps young athletes take the next step, whether they are learning the basics, building confidence, or chasing bigger competitive goals.
@@ -222,7 +219,7 @@ export default async function JoinPage() {
         </div>
       </section>
 
-      <section className="mission-frame relative py-14 sm:py-16 lg:py-20">
+      <section className="mission-frame relative py-12 sm:py-16 lg:py-20">
         <div className="grid gap-8 lg:grid-cols-[0.92fr_1.08fr] lg:items-center lg:gap-6">
           <div className="order-2 h-64 overflow-hidden border border-clw-gold/20 bg-clw-black-2 sm:h-72 lg:order-1 lg:h-[30rem]">
             {/* eslint-disable-next-line @next/next/no-img-element -- real coach and team photography */}
@@ -256,7 +253,7 @@ export default async function JoinPage() {
         </div>
       </section>
 
-      <section className="section-light relative isolate overflow-hidden border-y border-clw-gold/25 bg-[#F7F7F7] py-14 text-clw-ink sm:py-16 lg:py-20">
+      <section className="section-light relative isolate overflow-hidden border-y border-clw-gold/25 bg-[#F7F7F7] py-12 text-clw-ink sm:py-16 lg:py-20">
         <div className="mission-frame relative">
           <div className="max-w-4xl">
             <p className="font-cond text-sm uppercase tracking-[0.3em] text-clw-gold-on-light">Finding the Right Training Group</p>
@@ -293,7 +290,7 @@ export default async function JoinPage() {
         </div>
       </section>
 
-      <section className="mission-frame relative py-14 sm:py-16 lg:py-20">
+      <section className="mission-frame relative py-12 sm:py-16 lg:py-20">
         <div className="grid gap-6 lg:grid-cols-12">
           <div className="chamfer-md card-depth border border-clw-gold/15 bg-clw-black-2 p-7 sm:p-8 lg:col-span-7 lg:p-10">
             <div className="flex items-center gap-3">
@@ -350,13 +347,13 @@ export default async function JoinPage() {
             <img
               src="/images/real/clw-wizards-youth-outing.jpg"
               alt="Wizards wrestlers enjoying time together away from the mat"
-              className="h-full min-h-[440px] w-full object-cover object-center contrast-105 saturate-[0.85] lg:min-h-[650px]"
+              className="h-full min-h-[280px] w-full object-cover object-center contrast-105 saturate-[0.85] lg:min-h-[440px]"
             />
           </div>
         </div>
       </section>
 
-      <section className="relative isolate overflow-hidden border-y border-clw-gold/25 bg-clw-black-2 py-14 sm:py-16 lg:py-20">
+      <section className="relative isolate overflow-hidden border-y border-clw-gold/25 bg-clw-black-2 py-12 sm:py-16 lg:py-20">
         <div className="mission-frame relative grid gap-6 lg:grid-cols-12">
           <article className="chamfer-md card-depth border border-clw-gold/15 bg-clw-black p-7 sm:p-8 lg:col-span-6 lg:p-10">
             <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold">What to Bring</p>
@@ -398,7 +395,7 @@ export default async function JoinPage() {
         </div>
       </section>
 
-      <section className="mission-frame relative py-14 sm:py-16 lg:py-20">
+      <section className="mission-frame relative py-12 sm:py-16 lg:py-20">
         <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-end lg:gap-16">
           <div>
             <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold">The First Few Weeks</p>
@@ -437,7 +434,7 @@ export default async function JoinPage() {
         </div>
       </section>
 
-      <section className="section-light relative isolate overflow-hidden border-t border-clw-gold/25 bg-[#F7F7F7] py-14 text-clw-ink sm:py-16 lg:py-20">
+      <section className="section-light relative isolate overflow-hidden border-t border-clw-gold/25 bg-[#F7F7F7] py-12 text-clw-ink sm:py-16 lg:py-20">
         <div className="mission-frame relative grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-14">
           <div>
             <p className="font-cond text-sm uppercase tracking-[0.28em] text-clw-gold-on-light">Visit the Facility</p>
