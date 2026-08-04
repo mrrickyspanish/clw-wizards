@@ -305,7 +305,7 @@ export default async function JoinPage() {
               Some parents want to visit the facility, meet a coach, or ask questions before taking the next step. Others have already spoken with the club and are ready to begin setting up their family account.
             </p>
 
-            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
               <SeasonRegistrationCallout />
 
               <div className="border border-clw-gold/20 bg-clw-black/45 p-6">
@@ -322,15 +322,17 @@ export default async function JoinPage() {
                 </a>
               </div>
 
-              <div className="border border-clw-gold/20 bg-clw-black/45 p-6">
-                <p className="font-cond text-sm uppercase tracking-[0.22em] text-clw-gold">Ready to Begin?</p>
-                <h3 className="mt-4 font-display text-3xl uppercase leading-none text-clw-white">Create Your Account</h3>
-                <p className="mt-4 text-base leading-relaxed text-clw-gray">
-                  Create the parent account used for wrestler information, club communication, documents, dues, schedules, and tournaments.
-                </p>
+              <div className="flex flex-col justify-between gap-4 border border-clw-gold/20 bg-clw-black/45 p-6 sm:col-span-2 sm:flex-row sm:items-center">
+                <div>
+                  <p className="font-cond text-sm uppercase tracking-[0.22em] text-clw-gold">Ready to Begin?</p>
+                  <h3 className="mt-4 font-display text-3xl uppercase leading-none text-clw-white">Create Your Account</h3>
+                  <p className="mt-4 max-w-md text-base leading-relaxed text-clw-gray">
+                    Create the parent account used for wrestler information, club communication, documents, dues, schedules, and tournaments.
+                  </p>
+                </div>
                 <Link
                   href="/signup"
-                  className={`${CTA_LINK} mt-6 text-clw-gold hover:text-clw-gold-l`}
+                  className={`${CTA_LINK} shrink-0 text-clw-gold hover:text-clw-gold-l`}
                 >
                   Create Parent Account <ArrowRight className="h-4 w-4" />
                 </Link>
