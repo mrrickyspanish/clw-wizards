@@ -15,13 +15,17 @@ to Vercel. Do the steps in order — each one produces values the next step need
 4. Open `supabase/schema.sql` from this repo, copy the **entire** file, paste it
    into the editor, and click **Run**.
    - You should see "Success. No rows returned."
-   - This creates all 9 tables, the row-level-security policies, the signup
-     trigger, and the private `athlete-documents` storage bucket — in one shot.
+   - This creates all 25 tables, the row-level-security policies, the signup
+     trigger, and all four storage buckets (`athlete-documents`,
+     `tournament-flyers`, `sponsor-logos`, `site-content`) — in one shot.
    - ⚠️ Use `supabase/schema.sql`, **not** the files in `supabase/migrations/`.
      The migration files are for the command-line tool and must run one at a
      time; the single `schema.sql` is the one made for the dashboard.
+   - `supabase/schema.sql` is generated from the migrations, not hand-edited —
+     see the regeneration note at the end of that file if it ever needs to be
+     rebuilt.
 5. Verify: **Table Editor** should now list `profiles`, `athletes`,
-   `tournaments`, etc. **Storage** should show an `athlete-documents` bucket.
+   `tournaments`, etc. **Storage** should show all four buckets above.
 
 ## Step 2 — Confirm Auth settings
 
