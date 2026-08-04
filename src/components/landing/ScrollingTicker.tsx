@@ -40,6 +40,28 @@ type PlatinumSponsor = {
 // come in under this; the cap only bites on unusually full ones.
 const MAX_TICKER_EVENTS = 4
 
+// A club with several platinum sponsors would otherwise run an unbroken
+// string of sponsor credits before a visitor ever sees the club's own name --
+// worse the more sponsors are added, which runs backwards from what a header
+// ticker is for. Reinserting the welcome item every few items keeps the club
+// itself in the rotation no matter how long the sponsor list grows.
+const WELCOME_EVERY = 4
+
+const WELCOME_ITEM: TickerItem = {
+  text: 'Welcome to Wizards Wrestling Club',
+  kind: 'info',
+}
+
+/**
+ * Leads with `insert`, then reinserts it before every `every`-th item after
+ * that, so it is always the first thing a visitor sees and keeps recurring
+ * rather than being buried once at the top of a long feed.
+ */
+function interleave<T>(items: T[], insert: T, every: number): T[] {
+  if (!items.length) return [insert]
+  return items.flatMap((item, i) => (i % every === 0 ? [insert, item] : [item]))
+}
+
 // Phase lengths for one ticker item. A wide line travels its own full width at
 // a readable pace instead of a fixed duration, so a long event title does not
 // whip past faster than a short sponsor name.
@@ -262,7 +284,9 @@ export default function ScrollingTicker({
     ? resolvedEvents.map(({ label, text }) => ({ label, text, kind: 'event' as const, href: '/events' }))
     : [{ text: 'View the club calendar.', kind: 'event' as const, href: '/events' }]
 
-  const feedItems: TickerItem[] = isClwHeaderFeed ? [...sponsorItems, ...eventItems] : items
+  const feedItems: TickerItem[] = isClwHeaderFeed
+    ? interleave([...sponsorItems, ...eventItems], WELCOME_ITEM, WELCOME_EVERY)
+    : items
 
   const safeItems = feedItems.length ? feedItems : [{ text: 'Add ticker content' }]
   const activeText = fullTickerText(safeItems[index] ?? safeItems[0])
