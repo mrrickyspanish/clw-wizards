@@ -17,6 +17,8 @@ import { createServerSupabase } from '@/lib/supabase/server'
 export const metadata: Metadata = { robots: { index: false, follow: false } }
 import { DashboardNav, type NavItem } from '@/components/layout/DashboardNav'
 import { AdminMobileNav } from '@/components/layout/AdminMobileNav'
+import { TourProvider } from '@/components/tour/TourProvider'
+import { ADMIN_TOUR_STEPS } from '@/components/tour/steps'
 
 // `fullOnly` items are shown only to full admins; limited admins never see the
 // website-content editor or the team manager (and middleware blocks the routes).
@@ -39,7 +41,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const supabase = await createServerSupabase()
   const { data: auth } = await supabase.auth.getUser()
   const { data: profile } = auth.user
-    ? await supabase.from('profiles').select('full_name, role, admin_scope').eq('id', auth.user.id).single()
+    ? await supabase
+        .from('profiles')
+        .select('full_name, role, admin_scope, admin_tour_seen_at')
+        .eq('id', auth.user.id)
+        .single()
     : { data: null }
 
   const isFullAdmin = profile?.role === 'admin' && profile?.admin_scope === 'full'
@@ -50,12 +56,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }))
 
   return (
-    <div className="flex min-h-[100dvh] bg-clw-black-2">
-      <DashboardNav title="Admin" items={navItems} userName={profile?.full_name ?? null} role={profile?.role ?? null} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <AdminMobileNav userName={profile?.full_name ?? null} role={profile?.role ?? null} isFullAdmin={isFullAdmin} />
-        <main className="min-w-0 flex-1 p-4 md:p-8">{children}</main>
+    <TourProvider surface="admin" steps={ADMIN_TOUR_STEPS} initiallySeen={profile?.admin_tour_seen_at != null}>
+      <div className="flex min-h-[100dvh] bg-clw-black-2">
+        <DashboardNav title="Admin" items={navItems} userName={profile?.full_name ?? null} role={profile?.role ?? null} />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <AdminMobileNav userName={profile?.full_name ?? null} role={profile?.role ?? null} isFullAdmin={isFullAdmin} />
+          <main className="min-w-0 flex-1 p-4 md:p-8">{children}</main>
+        </div>
       </div>
-    </div>
+    </TourProvider>
   )
 }
