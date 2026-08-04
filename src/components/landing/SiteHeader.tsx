@@ -224,8 +224,8 @@ export function SiteHeader() {
             </button>
 
             <Link href="/" aria-label="Wizards Wrestling home" className="group justify-self-center bg-clw-black">
-              <span className="relative flex h-[60px] w-[60px] items-center justify-center rounded-full border-[3px] border-clw-gold text-clw-gold transition-transform duration-200 group-active:scale-95 sm:h-[64px] sm:w-[64px]">
-                <span className="absolute -top-[8px] bg-clw-black px-1.5 text-[0.62rem] leading-none">★</span>
+              <span className="relative flex h-[60px] w-[60px] items-center justify-center rounded-full border-[5px] border-clw-gold text-clw-gold transition-transform duration-200 group-active:scale-95 sm:h-[64px] sm:w-[64px]">
+                <span className="absolute -top-[10px] bg-clw-black px-1.5 text-[0.72rem] leading-none">★</span>
                 <span className="pr-1 font-display text-[2.7rem] font-black leading-none tracking-[-0.13em] sm:text-[2.85rem]">W</span>
               </span>
             </Link>
@@ -254,8 +254,8 @@ export function SiteHeader() {
               aria-label="Wizards Wrestling home"
               className="group absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center bg-clw-black"
             >
-              <span className="relative flex h-[66px] w-[66px] items-center justify-center rounded-full border-[3px] border-clw-gold text-clw-gold transition-transform duration-200 group-hover:scale-105 xl:h-[70px] xl:w-[70px]">
-                <span className="absolute -top-[9px] bg-clw-black px-1.5 text-[0.68rem] leading-none">★</span>
+              <span className="relative flex h-[66px] w-[66px] items-center justify-center rounded-full border-[5px] border-clw-gold text-clw-gold transition-transform duration-200 group-hover:scale-105 xl:h-[70px] xl:w-[70px]">
+                <span className="absolute -top-[11px] bg-clw-black px-1.5 text-[0.78rem] leading-none">★</span>
                 <span className="pr-1 font-display text-[2.95rem] font-black leading-none tracking-[-0.13em] xl:text-[3.15rem]">W</span>
               </span>
             </Link>
