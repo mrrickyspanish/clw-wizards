@@ -10,8 +10,10 @@ import {
   ShieldCheck,
   Trophy,
   Users,
+  UsersRound,
 } from 'lucide-react'
 
+import { getSessionRole } from '@/lib/auth/session'
 import { createServerSupabase } from '@/lib/supabase/server'
 
 export const metadata: Metadata = { robots: { index: false, follow: false } }
@@ -37,23 +39,29 @@ const ADMIN_NAV: AdminNavItem[] = [
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createServerSupabase()
-  const { data: auth } = await supabase.auth.getUser()
-  const { data: profile } = auth.user
-    ? await supabase.from('profiles').select('full_name, role, admin_scope').eq('id', auth.user.id).single()
-    : { data: null }
+  const { role, adminScope, fullName, canAccessParentPortal } = await getSessionRole(supabase)
 
-  const isFullAdmin = profile?.role === 'admin' && profile?.admin_scope === 'full'
+  const isFullAdmin = role === 'admin' && adminScope === 'full'
   const navItems: NavItem[] = ADMIN_NAV.filter((item) => isFullAdmin || !item.fullOnly).map((item) => ({
     href: item.href,
     label: item.label,
     icon: item.icon,
   }))
 
+  if (canAccessParentPortal) {
+    navItems.push({ href: '/dashboard', label: 'Parent Portal', icon: <UsersRound className="w-4 h-4" /> })
+  }
+
   return (
     <div className="flex min-h-[100dvh] bg-clw-black-2">
-      <DashboardNav title="Admin" items={navItems} userName={profile?.full_name ?? null} role={profile?.role ?? null} />
+      <DashboardNav title="Admin" items={navItems} userName={fullName} role={role} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <AdminMobileNav userName={profile?.full_name ?? null} role={profile?.role ?? null} isFullAdmin={isFullAdmin} />
+        <AdminMobileNav
+          userName={fullName}
+          role={role}
+          isFullAdmin={isFullAdmin}
+          canAccessParentPortal={canAccessParentPortal}
+        />
         <main className="min-w-0 flex-1 p-4 md:p-8">{children}</main>
       </div>
     </div>

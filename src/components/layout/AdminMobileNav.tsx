@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   Trophy,
   Users,
+  UsersRound,
 } from 'lucide-react'
 
 import { ORG } from '@/config/org.config'
@@ -48,14 +49,20 @@ export function AdminMobileNav({
   userName,
   role,
   isFullAdmin,
+  canAccessParentPortal,
 }: {
   userName: string | null
   role: string | null
   isFullAdmin: boolean
+  canAccessParentPortal: boolean
 }) {
   const pathname = usePathname()
   const router = useRouter()
   const items = ADMIN_ITEMS.filter((item) => isFullAdmin || !item.fullOnly)
+
+  if (canAccessParentPortal) {
+    items.push({ href: '/dashboard', label: 'Parent Portal', icon: UsersRound })
+  }
 
   async function handleSignOut() {
     const supabase = createBrowserSupabase()

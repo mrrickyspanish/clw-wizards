@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
-import { LayoutDashboard, Users, FolderOpen, HandCoins, Trophy, User, UsersRound } from 'lucide-react'
+import { FolderOpen, HandCoins, LayoutDashboard, ShieldCheck, Trophy, User, Users, UsersRound } from 'lucide-react'
 
+import { getSessionRole } from '@/lib/auth/session'
 import { createServerSupabase } from '@/lib/supabase/server'
 
 export const metadata: Metadata = { robots: { index: false, follow: false } }
@@ -21,21 +22,17 @@ const PORTAL_NAV: NavItem[] = [
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createServerSupabase()
-  const { data: auth } = await supabase.auth.getUser()
-  const { data: profile } = auth.user
-    ? await supabase.from('profiles').select('full_name, role').eq('id', auth.user.id).single()
-    : { data: null }
+  const { role, fullName } = await getSessionRole(supabase)
+  const isAdmin = role === 'admin'
+  const navItems: NavItem[] = isAdmin
+    ? [...PORTAL_NAV, { href: '/admin', label: 'Admin Dashboard', icon: <ShieldCheck className="w-4 h-4" /> }]
+    : PORTAL_NAV
 
   return (
     <ThemeScope className="flex min-h-[100dvh] bg-clw-black-2">
-      <DashboardNav
-        title="Parent Portal"
-        items={PORTAL_NAV}
-        userName={profile?.full_name ?? null}
-        role={profile?.role ?? null}
-      />
+      <DashboardNav title="Parent Portal" items={navItems} userName={fullName} role={role} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <MobileTopBar name={profile?.full_name ?? null} />
+        <MobileTopBar name={fullName} showAdminLink={isAdmin} />
         <main className="flex-1 p-4 pb-28 md:p-8 md:pb-8">{children}</main>
       </div>
       <MobileTabBar />
