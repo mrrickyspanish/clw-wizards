@@ -10,6 +10,7 @@ const PORTAL_PATHS = [
   '/athletes',
   '/documents',
   '/dues',
+  '/family',
   '/tournaments',
   '/registration',
   '/profile',
@@ -47,7 +48,7 @@ export async function middleware(req: NextRequest) {
   }
 
   const { supabase, response } = await getSupabaseAndResponse(req)
-  const { user, role, adminScope, onboardingCompleted } = await getSessionRole(supabase)
+  const { user, role, adminScope, onboardingCompleted, canAccessParentPortal } = await getSessionRole(supabase)
 
   if (!user) {
     const loginUrl = req.nextUrl.clone()
@@ -94,7 +95,7 @@ export async function middleware(req: NextRequest) {
   const allowed =
     (isAdminPath && role === 'admin') ||
     (isStaffPath && (role === 'admin' || role === 'staff')) ||
-    (isPortalPath && role === 'parent') ||
+    (isPortalPath && canAccessParentPortal) ||
     (isOnboardingPath && role === 'parent')
 
   if (!allowed) {
@@ -122,6 +123,7 @@ export const config = {
     '/athletes/:path*',
     '/documents/:path*',
     '/dues/:path*',
+    '/family/:path*',
     '/tournaments/:path*',
     '/registration/:path*',
     '/profile/:path*',

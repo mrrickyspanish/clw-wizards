@@ -75,17 +75,17 @@ export default async function ParentDashboardPage() {
     supabase
       .from('dues_payments')
       .select('amount_cents, amount_paid_cents')
-      .eq('parent_id', userId)
+      .in('parent_id', familyOwnerIds)
       .in('status', ['pending', 'partial', 'overdue']),
     supabase
       .from('tournament_registrations')
       .select('tournament_id, status, registered_at')
-      .eq('parent_id', userId)
+      .in('parent_id', familyOwnerIds)
       .in('status', ['registered', 'confirmed']),
-    supabase.from('athlete_documents').select('id', { count: 'exact', head: true }).eq('parent_id', userId),
+    supabase.from('athlete_documents').select('id', { count: 'exact', head: true }).in('parent_id', familyOwnerIds),
     supabase.from('practices').select('*').eq('active', true),
-    supabase.from('athlete_documents').select('uploaded_at, doc_type').eq('parent_id', userId),
-    supabase.from('dues_payments').select('updated_at, season').eq('parent_id', userId).eq('status', 'paid'),
+    supabase.from('athlete_documents').select('uploaded_at, doc_type').in('parent_id', familyOwnerIds),
+    supabase.from('dues_payments').select('updated_at, season').in('parent_id', familyOwnerIds).eq('status', 'paid'),
     supabase.from('practice_cancellations').select('practice_id, date').gte('date', today),
     supabase.from('club_events').select('*').eq('active', true).gte('date', today).order('date', { ascending: true }).limit(6),
   ])
