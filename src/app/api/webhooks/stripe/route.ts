@@ -33,29 +33,49 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 400 })
   }
 
-  if (event.type !== 'checkout.session.completed') {
-    return NextResponse.json({ received: true, ignored: true })
-  }
-
-  const session = event.data.object as Stripe.Checkout.Session
-  const flow = session.metadata?.flow
-
   try {
-    if (flow === 'dues') {
-      await handleDuesFlow(session)
-    } else if (flow === 'donation') {
-      await handleDonationFlow(session)
-    } else if (flow === 'sponsor') {
-      await handleSponsorFlow(session)
-    } else {
-      console.warn('Stripe checkout.session.completed with unrecognized flow:', flow, session.id)
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session
+        const flow = session.metadata?.flow
+        if (flow === 'dues') await handleDuesFlow(session)
+        else if (flow === 'donation') await handleDonationFlow(session)
+        else if (flow === 'sponsor') await handleSponsorFlow(session)
+        else console.warn('Stripe checkout.session.completed with unrecognized flow:', flow, session.id)
+        break
+      }
+      // Recurring donations and sponsorships only get recorded once, at signup,
+      // by the checkout.session.completed handlers above. Every renewal after
+      // that is a fresh invoice with billing_reason 'subscription_cycle' -- this
+      // is the only signal that a recurring gift or sponsorship kept paying.
+      case 'invoice.paid': {
+        await handleInvoicePaid(event.data.object as Stripe.Invoice)
+        break
+      }
+      // A recurring sponsorship whose card fails or gets cancelled must stop
+      // showing on /partners and the header ticker -- nothing else clears it.
+      case 'customer.subscription.deleted': {
+        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription)
+        break
+      }
+      // Keeps dues records honest if a refund happens straight from the Stripe
+      // dashboard instead of through the app.
+      case 'charge.refunded': {
+        await handleChargeRefunded(event.data.object as Stripe.Charge)
+        break
+      }
+      case 'charge.dispute.created': {
+        await handleDisputeCreated(event.data.object as Stripe.Dispute)
+        break
+      }
+      default:
+        return NextResponse.json({ received: true, ignored: true })
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    console.error(`Stripe webhook handler failed for flow "${flow}":`, err)
-    await sendAlert(`Stripe webhook handler failed (flow: ${flow ?? 'unknown'})`, {
+    console.error(`Stripe webhook handler failed for event "${event.type}":`, err)
+    await sendAlert(`Stripe webhook handler failed (event: ${event.type})`, {
       eventId: event.id,
-      sessionId: session.id,
       error: message,
     })
 
@@ -198,6 +218,139 @@ async function handleSponsorFlow(session: Stripe.Checkout.Session) {
     contactEmail: sponsor.contact_email,
     contactName: sponsor.contact_name,
     sponsorId,
+  })
+}
+
+async function handleInvoicePaid(invoice: Stripe.Invoice) {
+  // 'subscription_create' is the first invoice on a new subscription -- that
+  // payment is already recorded by handleDonationFlow/handleSponsorFlow off the
+  // matching checkout.session.completed event. Only renewals land here.
+  if (invoice.billing_reason !== 'subscription_cycle') return
+
+  const subscriptionId =
+    typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id ?? null
+  if (!subscriptionId) return
+
+  const paymentIntentId =
+    typeof invoice.payment_intent === 'string' ? invoice.payment_intent : invoice.payment_intent?.id ?? null
+  const amountCents = invoice.amount_paid
+
+  const supabase = createAdminSupabase()
+
+  const { data: donation } = await supabase
+    .from('donations')
+    .select('id')
+    .eq('stripe_subscription_id', subscriptionId)
+    .limit(1)
+    .maybeSingle()
+
+  if (donation) {
+    // Stripe retries webhook deliveries; skip if this renewal was already logged.
+    if (paymentIntentId) {
+      const { data: existing } = await supabase
+        .from('donations')
+        .select('id')
+        .eq('stripe_payment_intent_id', paymentIntentId)
+        .maybeSingle()
+      if (existing) return
+    }
+
+    const { error } = await supabase.from('donations').insert({
+      donor_name: invoice.customer_name ?? null,
+      donor_email: invoice.customer_email ?? null,
+      amount_cents: amountCents,
+      recurring: true,
+      stripe_payment_intent_id: paymentIntentId,
+      stripe_customer_id: typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id ?? null,
+      stripe_subscription_id: subscriptionId,
+    })
+    if (error) throw error
+    return
+  }
+
+  const { data: sponsor } = await supabase
+    .from('sponsors')
+    .select('name')
+    .eq('stripe_subscription_id', subscriptionId)
+    .maybeSingle()
+
+  if (sponsor) {
+    // Sponsors have no payment ledger table -- surface renewals as an alert
+    // rather than inventing a schema change for it.
+    await sendAlert('Recurring sponsorship payment received', {
+      sponsor: sponsor.name,
+      amount: `$${(amountCents / 100).toFixed(2)}`,
+      invoiceId: invoice.id,
+    })
+  }
+}
+
+async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+  const supabase = createAdminSupabase()
+
+  const { data: sponsor, error } = await supabase
+    .from('sponsors')
+    .update({ active: false })
+    .eq('stripe_subscription_id', subscription.id)
+    .select('name, contact_email')
+    .maybeSingle()
+
+  if (error) throw error
+  if (!sponsor) return
+
+  await sendAlert('Recurring sponsorship ended', {
+    sponsor: sponsor.name,
+    contactEmail: sponsor.contact_email,
+    subscriptionId: subscription.id,
+  })
+}
+
+async function handleChargeRefunded(charge: Stripe.Charge) {
+  const paymentIntentId =
+    typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent?.id ?? null
+  if (!paymentIntentId) return
+
+  const supabase = createAdminSupabase()
+  // charge.amount_refunded is the cumulative total refunded on this charge, so
+  // charge.amount - charge.amount_refunded is the amount still actually paid --
+  // recomputing it this way (rather than decrementing) stays correct even if
+  // Stripe redelivers this event.
+  const stillPaidCents = Math.max(0, charge.amount - charge.amount_refunded)
+
+  const { data: dues } = await supabase
+    .from('dues_payments')
+    .select('id, amount_cents')
+    .eq('stripe_payment_intent_id', paymentIntentId)
+    .maybeSingle()
+
+  if (dues) {
+    const status = stillPaidCents <= 0 ? 'pending' : stillPaidCents < dues.amount_cents ? 'partial' : 'paid'
+    const { error } = await supabase
+      .from('dues_payments')
+      .update({ amount_paid_cents: stillPaidCents, status })
+      .eq('id', dues.id)
+    if (error) throw error
+    return
+  }
+
+  // Donations are an append-only gift log (tax receipts may already reference
+  // them) and sponsors have no stored payment_intent -- flag both for a human
+  // to reconcile rather than silently rewriting the record.
+  await sendAlert('Stripe charge refunded (no matching dues record)', {
+    paymentIntentId,
+    amountRefunded: `$${(charge.amount_refunded / 100).toFixed(2)}`,
+    receiptEmail: charge.receipt_email,
+  })
+}
+
+async function handleDisputeCreated(dispute: Stripe.Dispute) {
+  const paymentIntentId =
+    typeof dispute.payment_intent === 'string' ? dispute.payment_intent : dispute.payment_intent?.id ?? null
+
+  await sendAlert('Stripe payment disputed', {
+    paymentIntentId,
+    amount: `$${(dispute.amount / 100).toFixed(2)}`,
+    reason: dispute.reason,
   })
 }
 
