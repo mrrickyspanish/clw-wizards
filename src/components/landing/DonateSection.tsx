@@ -59,7 +59,6 @@ export function DonateSection() {
         <h2 className="font-display text-3xl uppercase tracking-wide text-clw-white sm:text-4xl">Support the Wizards</h2>
       </div>
       <p className="mt-1 text-base leading-relaxed text-clw-gray">Every gift goes straight back to the wrestlers.</p>
-      {DONATIONS_ENABLED && <p className="mt-1 text-sm text-clw-gray">One-time donations only for MVP 1.</p>}
 
       {/* The live form below is untouched; while donations are off it is not
           rendered, and flipping DONATIONS_ENABLED brings it back as it was. */}
