@@ -10,7 +10,11 @@ import { ORG } from '@/config/org.config'
 const ADMIN_EMAIL = process.env.ALERT_EMAIL ?? ORG.contactEmail
 
 export async function POST(request: Request) {
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+  // Trimmed for the same reason as the secret key in lib/stripe.ts: a signing
+  // secret pasted into a hosting dashboard often carries a trailing newline,
+  // and the resulting failure reads as a signature mismatch, which sends you
+  // looking at the payload instead of at the env var.
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim()
   if (!webhookSecret) {
     return NextResponse.json({ error: 'Stripe webhook is not configured.' }, { status: 500 })
   }
