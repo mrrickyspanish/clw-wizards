@@ -60,6 +60,19 @@ function returnUrl(siteOrigin: string, path: string, key: string, value: string)
   return url.toString()
 }
 
+/**
+ * Where a completed public checkout lands. Stripe substitutes the real session
+ * id into {CHECKOUT_SESSION_ID} before redirecting, which is what lets the
+ * thank-you page state the actual amount.
+ *
+ * Built by concatenation rather than through URLSearchParams on purpose: that
+ * would percent-encode the braces, Stripe would not recognise the placeholder,
+ * and the visitor would arrive with the literal text in the query string.
+ */
+function thankYouUrl(siteOrigin: string) {
+  return `${new URL('/sponsorship/thank-you', siteOrigin).toString()}?session_id={CHECKOUT_SESSION_ID}`
+}
+
 function safeWebsiteUrl(value: string | undefined) {
   const cleaned = clean(value, 300)
   if (!cleaned) return null
@@ -179,7 +192,7 @@ async function checkoutDonation(stripe: Stripe, body: DonationCheckoutBody, site
   const session = await stripe.checkout.sessions.create({
     mode: body.recurring ? 'subscription' : 'payment',
     customer_email: clean(body.donorEmail, 180) || undefined,
-    success_url: returnUrl(siteOrigin, returnPath, 'donation', 'success'),
+    success_url: thankYouUrl(siteOrigin),
     cancel_url: returnUrl(siteOrigin, returnPath, 'donation', 'cancelled'),
     line_items: [
       {
@@ -226,7 +239,7 @@ async function checkoutSponsor(stripe: Stripe, body: SponsorCheckoutBody, siteOr
     const session = await stripe.checkout.sessions.create({
       mode: sponsor.recurring ? 'subscription' : 'payment',
       customer_email: sponsor.contact_email ?? undefined,
-      success_url: returnUrl(siteOrigin, returnPath, 'sponsor', 'success'),
+      success_url: thankYouUrl(siteOrigin),
       cancel_url: returnUrl(siteOrigin, returnPath, 'sponsor', 'cancelled'),
       line_items: [
         {
@@ -296,7 +309,7 @@ async function checkoutSponsor(stripe: Stripe, body: SponsorCheckoutBody, siteOr
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       customer_email: contactEmail,
-      success_url: returnUrl(siteOrigin, returnPath, 'sponsor', 'success'),
+      success_url: thankYouUrl(siteOrigin),
       cancel_url: returnUrl(siteOrigin, returnPath, 'sponsor', 'cancelled'),
       line_items: [
         {

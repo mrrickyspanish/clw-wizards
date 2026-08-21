@@ -269,6 +269,17 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
       stripe_subscription_id: subscriptionId,
     })
     if (error) throw error
+
+    // The first receipt tells a monthly giver they will get one of these each
+    // month, so every renewal has to actually send it.
+    if (invoice.customer_email) {
+      await sendDonationThankYouEmail({
+        to: invoice.customer_email,
+        name: invoice.customer_name ?? null,
+        amountCents,
+        recurring: true,
+      })
+    }
     return
   }
 
@@ -404,19 +415,29 @@ async function sendDonationThankYouEmail(params: {
   if (!resend) return
 
   const amount = `$${(params.amountCents / 100).toFixed(2)}`
+  const taxYear = new Date().getFullYear()
   const recurringLine = params.recurring
-    ? ' This is a recurring monthly gift. Thank you for the ongoing support.'
+    ? '<p>This is a recurring monthly gift. You will receive a receipt like this one each month, and you can stop it at any time by replying to this email.</p>'
     : ''
 
+  // The donate page tells a giver "you will receive an emailed receipt after
+  // checkout", so this has to carry what a receipt actually needs: the amount,
+  // the tax year, the EIN, and the no-goods-or-services statement a donor
+  // relies on to substantiate a deduction. Matches the sponsor letter below.
   await resend.emails
     .send({
       from: FROM_ADDRESS,
       to: [params.to],
       bcc: [ADMIN_EMAIL],
-      subject: `Thank you for supporting ${ORG.name}`,
-      html: `<p>Dear ${params.name ?? 'Friend of the Wizards'},</p><p>Thank you for your generous donation of <strong>${amount}</strong> to ${ORG.name}.${recurringLine}</p><p>Your support helps our wrestlers compete and grow.</p>`,
+      subject: `Your donation receipt from ${ORG.name}`,
+      html: `<p>Dear ${params.name ?? 'Friend of the Wizards'},</p>
+<p>Thank you for your generous donation of <strong>${amount}</strong> to ${ORG.name}. Your support goes toward mat time, tournament access, equipment, and keeping the cost of wrestling within reach for families who need it.</p>
+${recurringLine}
+<p>${ORG.name} is a registered 501(c)(3) nonprofit organization, EIN ${ORG.ein}. No goods or services were provided in exchange for this contribution; it is tax-deductible to the full extent allowed by law. Please retain this receipt for your tax records.</p>
+<p>Date: ${new Date().toLocaleDateString('en-US', { timeZone: 'America/Chicago', month: 'long', day: 'numeric', year: 'numeric' })}<br/>Amount: ${amount}<br/>Tax Year: ${taxYear}</p>
+<p>With gratitude,<br/>${ORG.name}</p>`,
     })
-    .catch((err) => sendAlert('Donation thank-you email failed', { to: params.to, error: String(err) }))
+    .catch((err) => sendAlert('Donation receipt email failed', { to: params.to, error: String(err) }))
 }
 
 async function sendSponsorThankYouLetter(params: {
