@@ -107,9 +107,15 @@ export default async function StaffAthletesPage({
                     {a.first_name} {a.last_name}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="border-clw-gold/40 bg-clw-gold/10 text-clw-gold">
-                      {a.practice_group}
-                    </Badge>
+                    {a.practice_group ? (
+                      <Badge variant="outline" className="border-clw-gold/40 bg-clw-gold/10 text-clw-gold">
+                        {a.practice_group}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-clw-gray/30 bg-clw-gray/10 text-clw-gray">
+                        Not assigned
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-clw-gray">{ageFromDob(a.date_of_birth)}</TableCell>
                   <TableCell className="text-clw-gray">{a.weight_class || '—'}</TableCell>

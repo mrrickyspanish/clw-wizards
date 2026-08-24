@@ -38,7 +38,10 @@ export function AthleteDialog({ athlete }: { athlete: Athlete }) {
   const [firstName, setFirstName] = useState(athlete.first_name)
   const [lastName, setLastName] = useState(athlete.last_name)
   const [dob, setDob] = useState(athlete.date_of_birth)
-  const [group, setGroup] = useState(athlete.practice_group)
+  // 'none' stands in for an unassigned wrestler, matching ParentDialog: a
+  // Radix Select cannot hold null, and an imported athlete has no group until
+  // staff place them.
+  const [group, setGroup] = useState(athlete.practice_group ?? 'none')
   const [weightClass, setWeightClass] = useState(athlete.weight_class ?? '')
   const [cardNumber, setCardNumber] = useState(athlete.usa_wrestling_card_number ?? '')
   const [shirtSize, setShirtSize] = useState(athlete.shirt_size ?? '')
@@ -53,7 +56,7 @@ export function AthleteDialog({ athlete }: { athlete: Athlete }) {
       first_name: firstName,
       last_name: lastName,
       date_of_birth: dob,
-      practice_group: group,
+      practice_group: group === 'none' ? '' : group,
       weight_class: weightClass,
       usa_wrestling_card_number: cardNumber,
       shirt_size: shirtSize,
@@ -117,6 +120,7 @@ export function AthleteDialog({ athlete }: { athlete: Athlete }) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="none">Not assigned</SelectItem>
                 {ORG.practiceGroups.map((g) => (
                   <SelectItem key={g} value={g}>
                     {g}

@@ -127,7 +127,13 @@ const athleteSchema = z.object({
   first_name: z.string().trim().min(1, 'First name is required'),
   last_name: z.string().trim().min(1, 'Last name is required'),
   date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Valid date of birth is required'),
-  practice_group: z.enum(ORG.practiceGroups as unknown as [string, ...string[]]),
+  // Empty means unassigned, which is how an imported wrestler starts: the
+  // registration form never asks for a group, staff place them afterwards.
+  practice_group: z
+    .enum(ORG.practiceGroups as unknown as [string, ...string[]])
+    .or(z.literal(''))
+    .optional()
+    .nullable(),
   weight_class: z.string().trim().optional().nullable(),
   usa_wrestling_card_number: z.string().trim().optional().nullable(),
   shirt_size: z.string().trim().optional().nullable(),
@@ -156,7 +162,7 @@ export async function updateAthlete(id: string, values: AthleteInput): Promise<A
       first_name: parsed.first_name,
       last_name: parsed.last_name,
       date_of_birth: parsed.date_of_birth,
-      practice_group: parsed.practice_group,
+      practice_group: parsed.practice_group || null,
       weight_class: parsed.weight_class || null,
       usa_wrestling_card_number: parsed.usa_wrestling_card_number || null,
       shirt_size: parsed.shirt_size || null,

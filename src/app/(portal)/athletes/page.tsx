@@ -108,7 +108,7 @@ export default async function AthletesPage() {
             </CardHeader>
             <CardContent>
               <dl className="grid grid-cols-2 gap-4">
-                <Detail label="Practice group" value={a.practice_group} />
+                <Detail label="Practice group" value={a.practice_group ?? 'Assigned by coaches'} />
                 <Detail
                   label="Date of birth"
                   value={`${formatDate(a.date_of_birth)} (age ${ageFromDob(a.date_of_birth)})`}

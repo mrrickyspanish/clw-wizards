@@ -199,7 +199,7 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <p className="text-clw-gray/70">Practice group</p>
-                    <p className="text-clw-white">{athlete.practice_group}</p>
+                    <p className="text-clw-white">{athlete.practice_group ?? 'Not assigned'}</p>
                   </div>
                   <div>
                     <p className="text-clw-gray/70">Weight class</p>

@@ -44,7 +44,8 @@ export type Athlete = {
   last_name: string
   date_of_birth: string
   weight_class: string | null
-  practice_group: string
+  // Null until staff assign a group; the registration form never asks for one.
+  practice_group: string | null
   usa_wrestling_card_number: string | null
   shirt_size: string | null
   // Asked once when the family joins, not re-asked each season.
