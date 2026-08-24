@@ -9,7 +9,7 @@ import { ageOnDecember31 } from '@/lib/registration-schema'
 import {
   COACH_INTEREST_OPTIONS,
   GUARDIAN_RELATIONSHIPS,
-  REFERRAL_SOURCES,
+  REFERRAL_SUGGESTIONS,
   SEASON_COMMITMENT_OPTIONS,
   SHIRT_SIZES,
   YEARS_EXPERIENCE,
@@ -271,18 +271,21 @@ export function RegistrationForm({
               </Select>
             </Field>
             <Field label="How did you hear about the club?" htmlFor="referral_source">
-              <Select value={referralSource} onValueChange={setReferralSource}>
-                <SelectTrigger id="referral_source">
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  {REFERRAL_SOURCES.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Free text, not a dropdown: the club's real answers never fit a
+                  fixed list. The suggestions are offered, not enforced. */}
+              <Input
+                id="referral_source"
+                list="referral_suggestions"
+                maxLength={80}
+                placeholder="However you found us"
+                value={referralSource}
+                onChange={(e) => setReferralSource(e.target.value)}
+              />
+              <datalist id="referral_suggestions">
+                {REFERRAL_SUGGESTIONS.map((option) => (
+                  <option key={option} value={option} />
+                ))}
+              </datalist>
             </Field>
           </div>
 

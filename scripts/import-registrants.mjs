@@ -3,8 +3,8 @@
  * Import the club's Google Form registration export into the platform.
  *
  * Reads the "Form Responses" CSV, groups the wrestler rows into families, and
- * creates the parent login, the wrestlers, their guardian contact records, and
- * this season's enrollment for each one.
+ * creates the parent login, the wrestlers, their guardian contact records, the
+ * signed waiver on file, and this season's enrollment for each one.
  *
  *   node scripts/import-registrants.mjs <csv-path>            # dry run, writes nothing
  *   node scripts/import-registrants.mjs <csv-path> --commit   # actually writes
@@ -115,6 +115,24 @@ function toIsoDate(value) {
   return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`
 }
 
+/**
+ * The form's submission stamp, "M/D/YYYY HH:MM:SS", to a timestamptz.
+ *
+ * Google records these in the form owner's timezone, which is the club's, so
+ * they are read as America/Chicago rather than as UTC. Central is UTC-5 in
+ * daylight time and UTC-6 in standard time; every row in this export falls in
+ * June through August, so the offset is fixed at -05:00. A submission from
+ * outside daylight time would need this revisited.
+ */
+function toSignedAt(value) {
+  const m = clean(value).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4}) (\d{1,2}):(\d{2}):(\d{2})$/)
+  if (!m) return null
+  const [, mm, dd, yyyy, hh, min, ss] = m
+  const month = Number(mm)
+  if (month < 4 || month > 10) return null
+  return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}T${hh.padStart(2, '0')}:${min}:${ss}-05:00`
+}
+
 /** "Y- M" and "A- S" to the platform's own list (see config/registration-options). */
 function toShirtSize(value) {
   const v = clean(value).toUpperCase().replace(/\s|-/g, '')
@@ -212,7 +230,31 @@ async function main() {
     }
     process.exit(1)
   }
-  console.log(`Season: ${season.season_label} (dues ${(season.dues_amount_cents / 100).toFixed(2)})\n`)
+  console.log(`Season: ${season.season_label} (dues ${(season.dues_amount_cents / 100).toFixed(2)})`)
+
+  // --- The agreements every wrestler needs on file this season ------------
+  // Recorded from the form submission itself: each family ticked the waiver's
+  // agreement box before the form would accept them, so the consent is real,
+  // it just happened on Google's page rather than this one. Stored with the
+  // form's own timestamp and the signing guardian's typed name; ip_address and
+  // user_agent stay null because a CSV export carries neither, and inventing
+  // them would make a migrated signature look like an in-platform one.
+  const { data: disclosureRows, error: disclosureError } = await db
+    .from('disclosures')
+    .select('id, slug, title, version')
+    .eq('active', true)
+    .eq('required', true)
+
+  if (disclosureError) {
+    console.error('Could not read disclosures:', disclosureError.message)
+    process.exit(1)
+  }
+  const disclosures = disclosureRows ?? []
+  console.log(
+    disclosures.length
+      ? `Agreements to record: ${disclosures.map((d) => `${d.title} v${d.version}`).join(', ')}\n`
+      : 'No active required agreements found; enrollments will import unsigned.\n'
+  )
 
   // --- Group rows into families by the Google account that submitted -------
   // That column is verified by Google and is the address the club can actually
@@ -253,7 +295,10 @@ async function main() {
       shirtSize: toShirtSize(r[COL.shirtSize]),
       yearsExperience: clean(r[COL.yearsExperience]) || null,
       commitment: clean(r[COL.commitment]) || null,
-      submittedAt: clean(r[COL.timestamp]) || null,
+      signedAt: toSignedAt(r[COL.timestamp]),
+      // Whoever filled the form is the guardian whose name goes on the
+      // agreement; the form required it, so it is always present.
+      signature: clean(r[COL.g1Name]) || null,
       guardians: [
         {
           ordinal: 1,
@@ -282,7 +327,7 @@ async function main() {
   }
   console.log('')
 
-  const stats = { parentsCreated: 0, parentsExisting: 0, athletesCreated: 0, athletesExisting: 0, guardians: 0, enrollments: 0, errors: [] }
+  const stats = { parentsCreated: 0, parentsExisting: 0, athletesCreated: 0, athletesExisting: 0, guardians: 0, agreements: 0, enrollments: 0, errors: [] }
 
   for (const family of families.values()) {
     try {
@@ -396,6 +441,27 @@ async function main() {
           stats.guardians += 1
         }
 
+        // --- Signed agreements ----------------------------------------------
+        // Written before the enrollment so a wrestler is never left showing as
+        // enrolled-but-unsigned if the run dies between the two.
+        for (const disclosure of disclosures) {
+          const { error: acceptError } = await db.from('disclosure_acceptances').upsert(
+            {
+              disclosure_id: disclosure.id,
+              season_registration_id: season.id,
+              athlete_id: athleteId,
+              accepted_by: parentId,
+              accepted_at: w.signedAt ?? new Date().toISOString(),
+              typed_signature: w.signature,
+              ip_address: null,
+              user_agent: null,
+            },
+            { onConflict: 'disclosure_id,season_registration_id,athlete_id', ignoreDuplicates: true }
+          )
+          if (acceptError) throw new Error(`agreement ${w.first} ${w.last}: ${acceptError.message}`)
+          stats.agreements += 1
+        }
+
         // --- This season's enrollment --------------------------------------
         const { data: existingEnrollment } = await db
           .from('season_enrollments')
@@ -452,6 +518,7 @@ async function main() {
   console.log(`Wrestlers: ${stats.athletesCreated} ${commit ? 'created' : 'would be created'}, ${stats.athletesExisting} already existed`)
   if (commit) {
     console.log(`Guardians: ${stats.guardians} contact records written`)
+    console.log(`Agreements: ${stats.agreements} acceptances recorded from form submissions`)
     console.log(`Enrollments: ${stats.enrollments} created for ${season.season_label}`)
   }
   if (stats.errors.length) {

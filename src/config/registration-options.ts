@@ -17,6 +17,8 @@ export const SHIRT_SIZES = [
   'Youth M',
   'Youth L',
   'Youth XL',
+  // The club's form offers this and families pick it; it was missing here.
+  'Adult XS',
   'Adult S',
   'Adult M',
   'Adult L',
@@ -28,13 +30,18 @@ export const SHIRT_SIZES = [
 // filter on it without parsing prose.
 export const YEARS_EXPERIENCE = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'] as const
 
-export const REFERRAL_SOURCES = [
-  'Current Wizards family',
-  'Coach or school',
-  'Facebook',
-  'Website or search',
-  'Flier or event',
-  'Other',
+/**
+ * Referral is a free-text field, not a dropdown.
+ *
+ * The list that used to live here was invented rather than transcribed, and the
+ * club's real answers ("Returning Wrestler", "Friend", "School Flyer") matched
+ * none of it. Rather than replace one guessed list with another, families type
+ * their own answer. These remain only as non-binding placeholder suggestions.
+ */
+export const REFERRAL_SUGGESTIONS = [
+  'Returning Wrestler',
+  'Friend',
+  'School Flyer',
 ] as const
 
 export const GUARDIAN_RELATIONSHIPS = [
