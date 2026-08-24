@@ -67,7 +67,6 @@ export function DeleteFamilyButton({ parentId }: { parentId: string }) {
   }
 
   const nameMatches = Boolean(preview) && typed.trim() === preview?.parentName.trim()
-  const blocked = Boolean(preview?.blockedReason)
 
   const lines = preview
     ? [
@@ -126,25 +125,29 @@ export function DeleteFamilyButton({ parentId }: { parentId: string }) {
                 </p>
               )}
 
-              {blocked ? (
+              {preview.duesWithPayments > 0 && (
                 <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-4">
-                  <p className="text-base leading-relaxed text-amber-200">{preview.blockedReason}</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <label htmlFor="confirm-family-name" className="block text-base text-clw-gray">
-                    Type <span className="font-semibold text-clw-white">{preview.parentName}</span> to confirm.
-                  </label>
-                  <Input
-                    id="confirm-family-name"
-                    value={typed}
-                    onChange={(e) => setTyped(e.target.value)}
-                    placeholder={preview.parentName}
-                    autoComplete="off"
-                    className="text-base"
-                  />
+                  <p className="text-base leading-relaxed text-amber-200">
+                    {preview.duesWithPayments} dues record{preview.duesWithPayments === 1 ? '' : 's'} here
+                    {preview.duesWithPayments === 1 ? ' has' : ' have'} a recorded payment. Deleting removes that
+                    payment history from the club&apos;s records. Stripe keeps its own copy.
+                  </p>
                 </div>
               )}
+
+              <div className="space-y-2">
+                <label htmlFor="confirm-family-name" className="block text-base text-clw-gray">
+                  Type <span className="font-semibold text-clw-white">{preview.parentName}</span> to confirm.
+                </label>
+                <Input
+                  id="confirm-family-name"
+                  value={typed}
+                  onChange={(e) => setTyped(e.target.value)}
+                  placeholder={preview.parentName}
+                  autoComplete="off"
+                  className="text-base"
+                />
+              </div>
             </div>
           )}
 
@@ -156,7 +159,7 @@ export function DeleteFamilyButton({ parentId }: { parentId: string }) {
             </Button>
             <Button
               onClick={handleDelete}
-              disabled={!nameMatches || blocked || deleting}
+              disabled={!nameMatches || deleting}
               className="bg-red-600 text-white hover:bg-red-500"
             >
               {deleting ? 'Deleting…' : 'Delete permanently'}

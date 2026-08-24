@@ -206,11 +206,10 @@ export type FamilyDeletionPreview = {
   documents: number
   coGuardianLinks: number
   /**
-   * Set when the family has money attached. Deletion is refused rather than
-   * confirmed, because dues_payments cascades off the profile and would take
-   * the record of a real payment with it.
+   * Dues rows that carry an actual payment. Surfaced so the admin knows the
+   * payment history goes with the account, not to stop them.
    */
-  blockedReason: string | null
+  duesWithPayments: number
 }
 
 /**
@@ -252,7 +251,8 @@ export async function getFamilyDeletionPreview(
 
   const duesRows = dues.data ?? []
   // A waived or pending record carries no money. A payment that actually
-  // settled does, and deleting the profile would cascade it away.
+  // settled does, and it cascades away with the profile -- worth naming in the
+  // dialog so the choice is made with that on screen.
   const paidRows = duesRows.filter(
     (row) => (row.amount_paid_cents ?? 0) > 0 || Boolean(row.stripe_payment_intent_id)
   )
@@ -268,9 +268,7 @@ export async function getFamilyDeletionPreview(
       signedAgreements: agreements.count ?? 0,
       documents: documents.count ?? 0,
       coGuardianLinks: guardianLinks.count ?? 0,
-      blockedReason: paidRows.length
-        ? `This family has ${paidRows.length} dues record${paidRows.length === 1 ? '' : 's'} with a recorded payment. Deleting the account would erase that payment history. Deactivate the account instead.`
-        : null,
+      duesWithPayments: paidRows.length,
     },
   }
 }
@@ -279,9 +277,9 @@ export async function getFamilyDeletionPreview(
  * Permanently removes a family: the login, the profile, and everything that
  * cascades off it (athletes, enrollments, dues, documents, guardian links).
  *
- * Built for clearing test accounts. The blocked-payment check above is what
- * keeps it from becoming a way to erase a real family's financial history from
- * a dashboard button.
+ * Built for clearing test accounts, but not restricted to them: what the
+ * dialog shows before confirming is the safeguard, not a rule about which
+ * families qualify.
  */
 export async function deleteFamilyPermanently(
   parentId: string,
@@ -294,10 +292,6 @@ export async function deleteFamilyPermanently(
   const previewResult = await getFamilyDeletionPreview(parentId)
   if (!previewResult.ok) return previewResult
   const { preview } = previewResult
-
-  // Re-checked here rather than trusted from the dialog: the preview the admin
-  // read could be minutes old, and a payment may have landed since.
-  if (preview.blockedReason) return { ok: false, error: preview.blockedReason }
 
   if (typedConfirmation.trim() !== preview.parentName.trim()) {
     return { ok: false, error: 'The name you typed does not match this family.' }
