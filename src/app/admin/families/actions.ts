@@ -171,6 +171,190 @@ export async function updateAthlete(id: string, values: AthleteInput): Promise<A
   return { ok: true }
 }
 
+/**
+ * Permanent deletion is reserved for full admins, a step above the admin check
+ * every other action here uses. Deactivating a family is reversible and any
+ * admin can do it; this is not, so it sits with the tier that already owns the
+ * irreversible surfaces (site content, admin invites).
+ */
+async function assertFullAdmin(): Promise<ActionResult> {
+  const supabase = await createServerSupabase()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false, error: 'Not authenticated' }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, admin_scope')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.role !== 'admin' || profile?.admin_scope !== 'full') {
+    return { ok: false, error: 'Full admin access is required to delete a family.' }
+  }
+  return { ok: true }
+}
+
+export type FamilyDeletionPreview = {
+  parentName: string
+  email: string | null
+  athletes: number
+  enrollments: number
+  duesRecords: number
+  signedAgreements: number
+  documents: number
+  coGuardianLinks: number
+  /**
+   * Set when the family has money attached. Deletion is refused rather than
+   * confirmed, because dues_payments cascades off the profile and would take
+   * the record of a real payment with it.
+   */
+  blockedReason: string | null
+}
+
+/**
+ * What deleting this family would destroy. The dialog shows this before asking
+ * for confirmation, so nobody types a name to approve a list they never saw.
+ */
+export async function getFamilyDeletionPreview(
+  parentId: string
+): Promise<{ ok: true; preview: FamilyDeletionPreview } | { ok: false; error: string }> {
+  const auth = await assertFullAdmin()
+  if (!auth.ok) return auth
+  if (!parentId) return { ok: false, error: 'Missing parent id' }
+
+  const admin = createAdminSupabase()
+
+  const { data: parent, error: parentError } = await admin
+    .from('profiles')
+    .select('id, full_name, email')
+    .eq('id', parentId)
+    .eq('role', 'parent')
+    .maybeSingle()
+
+  if (parentError) return { ok: false, error: parentError.message }
+  if (!parent) return { ok: false, error: 'Parent account not found.' }
+
+  const { data: athleteRows } = await admin.from('athletes').select('id').eq('parent_id', parentId)
+  const athleteIds = (athleteRows ?? []).map((row) => row.id as string)
+
+  const [dues, enrollments, agreements, documents, guardianLinks] = await Promise.all([
+    admin
+      .from('dues_payments')
+      .select('id, amount_paid_cents, status, stripe_payment_intent_id')
+      .eq('parent_id', parentId),
+    admin.from('season_enrollments').select('id', { count: 'exact', head: true }).eq('parent_id', parentId),
+    admin.from('disclosure_acceptances').select('id', { count: 'exact', head: true }).eq('accepted_by', parentId),
+    admin.from('athlete_documents').select('id', { count: 'exact', head: true }).eq('parent_id', parentId),
+    admin.from('family_guardians').select('id', { count: 'exact', head: true }).eq('owner_id', parentId),
+  ])
+
+  const duesRows = dues.data ?? []
+  // A waived or pending record carries no money. A payment that actually
+  // settled does, and deleting the profile would cascade it away.
+  const paidRows = duesRows.filter(
+    (row) => (row.amount_paid_cents ?? 0) > 0 || Boolean(row.stripe_payment_intent_id)
+  )
+
+  return {
+    ok: true,
+    preview: {
+      parentName: parent.full_name ?? 'Unnamed parent',
+      email: parent.email ?? null,
+      athletes: athleteIds.length,
+      enrollments: enrollments.count ?? 0,
+      duesRecords: duesRows.length,
+      signedAgreements: agreements.count ?? 0,
+      documents: documents.count ?? 0,
+      coGuardianLinks: guardianLinks.count ?? 0,
+      blockedReason: paidRows.length
+        ? `This family has ${paidRows.length} dues record${paidRows.length === 1 ? '' : 's'} with a recorded payment. Deleting the account would erase that payment history. Deactivate the account instead.`
+        : null,
+    },
+  }
+}
+
+/**
+ * Permanently removes a family: the login, the profile, and everything that
+ * cascades off it (athletes, enrollments, dues, documents, guardian links).
+ *
+ * Built for clearing test accounts. The blocked-payment check above is what
+ * keeps it from becoming a way to erase a real family's financial history from
+ * a dashboard button.
+ */
+export async function deleteFamilyPermanently(
+  parentId: string,
+  typedConfirmation: string
+): Promise<ActionResult> {
+  const auth = await assertFullAdmin()
+  if (!auth.ok) return auth
+  if (!parentId) return { ok: false, error: 'Missing parent id' }
+
+  const previewResult = await getFamilyDeletionPreview(parentId)
+  if (!previewResult.ok) return previewResult
+  const { preview } = previewResult
+
+  // Re-checked here rather than trusted from the dialog: the preview the admin
+  // read could be minutes old, and a payment may have landed since.
+  if (preview.blockedReason) return { ok: false, error: preview.blockedReason }
+
+  if (typedConfirmation.trim() !== preview.parentName.trim()) {
+    return { ok: false, error: 'The name you typed does not match this family.' }
+  }
+
+  const admin = createAdminSupabase()
+
+  const { data: athleteRows } = await admin.from('athletes').select('id').eq('parent_id', parentId)
+  const athleteIds = (athleteRows ?? []).map((row) => row.id as string)
+
+  // Stored files are not covered by any cascade, so they would outlive the rows
+  // that point at them and sit in the bucket unreferenced.
+  const { data: documents } = await admin
+    .from('athlete_documents')
+    .select('file_url')
+    .eq('parent_id', parentId)
+
+  const paths = (documents ?? []).map((row) => row.file_url as string).filter(Boolean)
+  if (paths.length) {
+    const { error: storageError } = await admin.storage.from('athlete-documents').remove(paths)
+    // A missing object should not strand the whole deletion; the rows still go.
+    if (storageError) console.warn('Could not remove athlete documents from storage:', storageError.message)
+  }
+
+  // disclosure_acceptances.accepted_by is ON DELETE RESTRICT, so signed
+  // agreements block the profile delete until they are cleared explicitly.
+  // Acceptances tied to this family's athletes cascade on their own; these are
+  // the ones this parent signed, which may include another family's athlete if
+  // they were ever a co-guardian.
+  const { error: acceptanceError } = await admin
+    .from('disclosure_acceptances')
+    .delete()
+    .eq('accepted_by', parentId)
+
+  if (acceptanceError) return { ok: false, error: `Could not clear signed agreements: ${acceptanceError.message}` }
+
+  if (athleteIds.length) {
+    const { error: athleteAcceptanceError } = await admin
+      .from('disclosure_acceptances')
+      .delete()
+      .in('athlete_id', athleteIds)
+    if (athleteAcceptanceError) {
+      return { ok: false, error: `Could not clear signed agreements: ${athleteAcceptanceError.message}` }
+    }
+  }
+
+  // profiles.id references auth.users ON DELETE CASCADE, so removing the login
+  // takes the profile and everything hanging off it in one step.
+  const { error: deleteError } = await admin.auth.admin.deleteUser(parentId)
+  if (deleteError) return { ok: false, error: deleteError.message }
+
+  revalidatePath('/admin/families')
+  revalidatePath('/admin/registrations')
+  revalidatePath('/admin/dues')
+  return { ok: true }
+}
+
 export async function setFamilyActive(
   parentId: string,
   isActive: boolean,

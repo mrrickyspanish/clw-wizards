@@ -3,10 +3,13 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 
 import { createAdminSupabase } from '@/lib/supabase/admin'
+import { createServerSupabase } from '@/lib/supabase/server'
+import { isFullAdmin } from '@/lib/auth/admin'
 import type { Athlete, Profile } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AthleteDialog } from '../AthleteDialog'
+import { DeleteFamilyButton } from '../DeleteFamilyButton'
 import { FamilyActiveToggle } from '../FamilyActiveToggle'
 import { ParentDialog } from '../ParentDialog'
 
@@ -26,6 +29,10 @@ type GuardianRow = Pick<
 export default async function FamilyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = createAdminSupabase()
+
+  // The service-role client above answers for the whole dashboard, so the
+  // viewer's own tier has to be read through their session client instead.
+  const viewerIsFullAdmin = await isFullAdmin(await createServerSupabase())
 
   const { data: family } = await supabase
     .from('profiles')
@@ -71,7 +78,10 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
           <h1 className="text-2xl font-display text-clw-gold">{parent.full_name ?? 'Unnamed parent'}</h1>
           <p className="text-sm text-clw-gray">{parent.email ?? '—'}</p>
         </div>
-        <FamilyActiveToggle parentId={parent.id} isActive={parent.is_active} familyId={parent.id} />
+        <div className="flex flex-col items-end gap-2">
+          <FamilyActiveToggle parentId={parent.id} isActive={parent.is_active} familyId={parent.id} />
+          {viewerIsFullAdmin && <DeleteFamilyButton parentId={parent.id} />}
+        </div>
       </div>
 
       <Card className="mb-6 border-clw-gold/10 bg-clw-black">
