@@ -20,6 +20,7 @@ import {
 import { ORG } from '@/config/org.config'
 import { cn } from '@/lib/utils'
 import { createBrowserSupabase } from '@/lib/supabase/browser'
+import { TourStep } from '@/components/tour/TourStep'
 import {
   Sheet,
   SheetClose,
@@ -64,7 +65,8 @@ export function AdminMobileNav({
   }
 
   return (
-    <header
+    <TourStep
+      id="nav"
       className="sticky top-0 z-40 flex items-center justify-between border-b border-clw-gold/10 bg-clw-black/95 px-4 pb-3 backdrop-blur-md md:hidden"
       style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}
     >
@@ -134,6 +136,6 @@ export function AdminMobileNav({
       </Link>
 
       <div className="h-10 w-10" aria-hidden />
-    </header>
+    </TourStep>
   )
 }
