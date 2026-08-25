@@ -166,6 +166,16 @@ function SignupForm() {
               </Link>
             </div>
           </form>
+
+          <div className="mt-6 border-t border-clw-gold/15 pt-5">
+            <p className="text-center text-base text-muted-foreground">
+              Coaching or helping run the club? This page creates a family account — admin tools live behind a
+              separate signup.
+            </p>
+            <Button asChild variant="outline" className="mt-3 w-full">
+              <Link href="/admin-signup">Create an admin account instead</Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
