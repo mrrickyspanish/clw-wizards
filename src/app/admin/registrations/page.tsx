@@ -15,6 +15,9 @@ import type {
 } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { AthleteDialog } from '../families/AthleteDialog'
+import { ParentDialog } from '../families/ParentDialog'
+import { DuesEditDialog } from '../dues/DuesEditDialog'
 import { ReviewControls } from './ReviewControls'
 
 function money(cents: number) {
@@ -114,8 +117,9 @@ export default async function AdminRegistrationsPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-display text-clw-gold">Season Registrations</h1>
-          <p className="text-sm text-clw-gray">
-            Verify the card submitted for this season, confirm payment, and clear wrestlers to participate.
+          <p className="max-w-2xl text-sm text-clw-gray">
+            Verify documentation and payment, then clear wrestlers to participate. Family and wrestler details are live
+            from Families, so edits in either place use the same record.
           </p>
         </div>
         <Link href="/admin/communications" className="text-sm text-clw-gold hover:text-clw-gold-l">
@@ -215,6 +219,23 @@ export default async function AdminRegistrationsPage() {
                 </Badge>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-clw-gold/10 bg-clw-black-2 p-3">
+                  <div>
+                    <p className="text-sm font-medium text-clw-white">Family record</p>
+                    <p className="text-xs text-clw-gray">These are the same parent and wrestler records used in Families.</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1">
+                    {parent && <ParentDialog parent={parent} familyId={parent.id} />}
+                    {athlete && <AthleteDialog athlete={athlete} />}
+                    <Link
+                      href={`/admin/families/${enrollment.parent_id}`}
+                      className="px-2 text-sm text-clw-gold hover:text-clw-gold-l"
+                    >
+                      Open family
+                    </Link>
+                  </div>
+                </div>
+
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="rounded-md border border-clw-gold/10 bg-clw-black-2 p-4">
                     <p className="flex items-center gap-2 text-sm font-medium text-clw-white">
@@ -231,9 +252,12 @@ export default async function AdminRegistrationsPage() {
                     </p>
                   </div>
                   <div className="rounded-md border border-clw-gold/10 bg-clw-black-2 p-4">
-                    <p className="flex items-center gap-2 text-sm font-medium text-clw-white">
-                      <CreditCard className="h-4 w-4 text-clw-gold" /> Season dues
-                    </p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="flex items-center gap-2 text-sm font-medium text-clw-white">
+                        <CreditCard className="h-4 w-4 text-clw-gold" /> Season dues
+                      </p>
+                      {dues && <DuesEditDialog dues={dues} triggerLabel="Edit" />}
+                    </div>
                     <p className="mt-2 text-sm text-clw-gray">
                       {!season
                         ? 'Season record unavailable'

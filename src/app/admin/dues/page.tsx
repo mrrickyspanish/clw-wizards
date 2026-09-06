@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import type { DuesPayment, Profile, Athlete } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
@@ -10,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { DuesEditDialog } from './DuesEditDialog'
 
 const STATUS_STYLES: Record<DuesPayment['status'], string> = {
   paid: 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold',
@@ -64,7 +67,9 @@ export default async function AdminDuesPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-display text-clw-gold">Dues</h1>
-        <p className="text-sm text-clw-gray">Every dues record across the club. Waivers and payment plans are a follow-up build.</p>
+        <p className="text-sm text-clw-gray">
+          Review and update billed amounts, recorded payments, due dates, waivers, and payment plans.
+        </p>
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -107,7 +112,7 @@ export default async function AdminDuesPage() {
       )}
 
       {rows.length > 0 && (
-        <div className="rounded-md border border-clw-gold/10 bg-clw-black">
+        <div className="overflow-x-auto rounded-md border border-clw-gold/10 bg-clw-black">
           <Table>
             <TableHeader>
               <TableRow className="border-clw-gold/10 hover:bg-transparent">
@@ -118,6 +123,7 @@ export default async function AdminDuesPage() {
                 <TableHead className="text-clw-gray">Paid</TableHead>
                 <TableHead className="text-clw-gray">Due</TableHead>
                 <TableHead className="text-clw-gray">Status</TableHead>
+                <TableHead className="text-right text-clw-gray">Manage</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -127,7 +133,12 @@ export default async function AdminDuesPage() {
                 return (
                   <TableRow key={d.id} className="border-clw-gold/10">
                     <TableCell>
-                      <span className="font-medium text-clw-white">{parent?.full_name ?? 'Unknown parent'}</span>
+                      <Link
+                        href={`/admin/families/${d.parent_id}`}
+                        className="font-medium text-clw-white hover:text-clw-gold"
+                      >
+                        {parent?.full_name ?? 'Unknown parent'}
+                      </Link>
                       <span className="block text-xs text-clw-gray/70">{parent?.email ?? '—'}</span>
                     </TableCell>
                     <TableCell className="text-clw-gray">
@@ -138,9 +149,19 @@ export default async function AdminDuesPage() {
                     <TableCell className="text-clw-gray">{money(d.amount_paid_cents)}</TableCell>
                     <TableCell className="text-clw-gray">{formatDate(d.due_date)}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={STATUS_STYLES[d.status]}>
-                        {d.status}
-                      </Badge>
+                      <div className="flex flex-wrap gap-1.5">
+                        <Badge variant="outline" className={STATUS_STYLES[d.status]}>
+                          {d.status}
+                        </Badge>
+                        {d.payment_plan && (
+                          <Badge variant="outline" className="border-blue-500/30 bg-blue-500/5 text-blue-300">
+                            payment plan
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DuesEditDialog dues={d} triggerLabel="Edit" />
                     </TableCell>
                   </TableRow>
                 )
