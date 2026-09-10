@@ -1,5 +1,6 @@
 import { createServerSupabase } from '@/lib/supabase/server'
 import { resolveFamilyOwnerIds } from '@/lib/family'
+import { formatCents } from '@/lib/format/money'
 import type { DuesPayment, Athlete } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,7 +18,7 @@ const STATUS_STYLES: Record<DuesPayment['status'], string> = {
 const PAYABLE: DuesPayment['status'][] = ['pending', 'partial', 'overdue']
 
 function money(cents: number) {
-  return `$${(cents / 100).toFixed(2)}`
+  return formatCents(cents)
 }
 
 function formatDate(value: string | null) {

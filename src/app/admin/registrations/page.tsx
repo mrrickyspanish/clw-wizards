@@ -1,7 +1,8 @@
 import Link from 'next/link'
-import { AlertTriangle, CheckCircle2, Clock3, CreditCard, FileCheck2, Users } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ChevronDown, Clock3, CreditCard, FileCheck2, Users } from 'lucide-react'
 
 import { createAdminSupabase } from '@/lib/supabase/admin'
+import { formatCents } from '@/lib/format/money'
 import type {
   Athlete,
   AthleteDocument,
@@ -14,14 +15,14 @@ import type {
   SeasonRegistration,
 } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { AthleteDialog } from '../families/AthleteDialog'
 import { ParentDialog } from '../families/ParentDialog'
 import { DuesEditDialog } from '../dues/DuesEditDialog'
 import { ReviewControls } from './ReviewControls'
 
 function money(cents: number) {
-  return `$${(cents / 100).toFixed(2)}`
+  return formatCents(cents)
 }
 
 function formatDate(value: string) {
@@ -221,24 +222,37 @@ export default async function AdminRegistrationsPage() {
           const approvalReady = documentReady && paymentReady && disclosuresReady
 
           return (
-            <Card key={enrollment.id} className="border-clw-gold/10 bg-clw-black">
-              <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
-                <div>
-                  <CardTitle className="text-lg text-clw-white">
-                    {athlete ? `${athlete.first_name} ${athlete.last_name}` : 'Unknown wrestler'}
-                  </CardTitle>
-                  <p className="mt-1 text-sm text-clw-gray">
-                    {parent?.full_name ?? 'Unknown parent'} · {parent?.email ?? 'No email'}
-                  </p>
-                  <p className="mt-1 text-sm text-clw-gray/70">
-                    {event?.title ?? season?.season_label ?? 'Season registration'} · submitted {formatDate(enrollment.submitted_at)}
-                  </p>
+            <details
+              key={enrollment.id}
+              className="group rounded-lg border border-clw-gold/10 bg-clw-black text-card-foreground shadow-sm"
+            >
+              <summary className="flex cursor-pointer list-none flex-row flex-wrap items-start justify-between gap-4 p-6 [&::-webkit-details-marker]:hidden">
+                <div className="flex items-start gap-3">
+                  <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-clw-gold transition-transform duration-200 group-open:rotate-180" />
+                  <div>
+                    <p className="text-lg font-semibold leading-none tracking-tight text-clw-white">
+                      {athlete ? `${athlete.first_name} ${athlete.last_name}` : 'Unknown wrestler'}
+                    </p>
+                    <p className="mt-1 text-sm text-clw-gray">
+                      {parent?.full_name ?? 'Unknown parent'} · {parent?.email ?? 'No email'}
+                    </p>
+                    <p className="mt-1 text-sm text-clw-gray/70">
+                      {event?.title ?? season?.season_label ?? 'Season registration'} · submitted {formatDate(enrollment.submitted_at)}
+                    </p>
+                  </div>
                 </div>
-                <Badge variant="outline" className={STATUS_STYLES[enrollment.status]}>
-                  {STATUS_LABELS[enrollment.status]}
-                </Badge>
-              </CardHeader>
-              <CardContent className="space-y-4">
+                <div className="flex items-center gap-2">
+                  {approvalReady ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400" aria-label="Ready for approval" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4 text-amber-400" aria-label="Needs attention" />
+                  )}
+                  <Badge variant="outline" className={STATUS_STYLES[enrollment.status]}>
+                    {STATUS_LABELS[enrollment.status]}
+                  </Badge>
+                </div>
+              </summary>
+              <CardContent className="space-y-4 border-t border-clw-gold/10 pt-4">
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-clw-gold/10 bg-clw-black-2 p-3">
                   <div>
                     <p className="text-sm font-medium text-clw-white">Family record</p>
@@ -341,7 +355,7 @@ export default async function AdminRegistrationsPage() {
                   />
                 </div>
               </CardContent>
-            </Card>
+            </details>
           )
         })}
       </div>

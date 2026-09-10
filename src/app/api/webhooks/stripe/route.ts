@@ -5,6 +5,7 @@ import { Resend } from 'resend'
 import { getStripeClient } from '@/lib/stripe'
 import { sendAlert } from '@/lib/alerts'
 import { createAdminSupabase } from '@/lib/supabase/admin'
+import { formatCents } from '@/lib/format/money'
 import { ORG } from '@/config/org.config'
 
 const ADMIN_EMAIL = process.env.ALERT_EMAIL ?? ORG.contactEmail
@@ -294,7 +295,7 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
     // rather than inventing a schema change for it.
     await sendAlert('Recurring sponsorship payment received', {
       sponsor: sponsor.name,
-      amount: `$${(amountCents / 100).toFixed(2)}`,
+      amount: formatCents(amountCents),
       invoiceId: invoice.id,
     })
   }
@@ -353,7 +354,7 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
   // to reconcile rather than silently rewriting the record.
   await sendAlert('Stripe charge refunded (no matching dues record)', {
     paymentIntentId,
-    amountRefunded: `$${(charge.amount_refunded / 100).toFixed(2)}`,
+    amountRefunded: formatCents(charge.amount_refunded),
     receiptEmail: charge.receipt_email,
   })
 }
@@ -364,7 +365,7 @@ async function handleDisputeCreated(dispute: Stripe.Dispute) {
 
   await sendAlert('Stripe payment disputed', {
     paymentIntentId,
-    amount: `$${(dispute.amount / 100).toFixed(2)}`,
+    amount: formatCents(dispute.amount),
     reason: dispute.reason,
   })
 }
@@ -389,7 +390,7 @@ async function sendDuesConfirmationEmail(params: {
   const resend = getResend()
   if (!resend) return
 
-  const amount = `$${(params.amountPaidCents / 100).toFixed(2)}`
+  const amount = formatCents(params.amountPaidCents)
   const statusLine =
     params.status === 'paid' ? 'Your dues are now fully paid.' : 'This payment has been applied to your balance.'
 
@@ -414,7 +415,7 @@ async function sendDonationThankYouEmail(params: {
   const resend = getResend()
   if (!resend) return
 
-  const amount = `$${(params.amountCents / 100).toFixed(2)}`
+  const amount = formatCents(params.amountCents)
   const taxYear = new Date().getFullYear()
   const recurringLine = params.recurring
     ? '<p>This is a recurring monthly gift. You will receive a receipt like this one each month, and you can stop it at any time by replying to this email.</p>'
@@ -451,7 +452,7 @@ async function sendSponsorThankYouLetter(params: {
   const resend = getResend()
   if (!resend) return
 
-  const amount = `$${(params.amountCents / 100).toFixed(2)}`
+  const amount = formatCents(params.amountCents)
   const taxYear = new Date().getFullYear()
   const recipients = [params.contactEmail, ADMIN_EMAIL].filter((e): e is string => Boolean(e))
 

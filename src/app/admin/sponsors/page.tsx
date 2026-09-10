@@ -1,6 +1,7 @@
 import { ExternalLink } from 'lucide-react'
 
 import { createAdminSupabase } from '@/lib/supabase/admin'
+import { formatCents } from '@/lib/format/money'
 import type { Sponsor, SponsorTier, SponsorTierRow } from '@/types/database'
 import { SponsorTierDialog } from './SponsorTierDialog'
 import { SponsorDialog } from './SponsorDialog'
@@ -25,7 +26,7 @@ const TIER_LABELS: Record<SponsorTier, string> = {
 
 function money(cents: number | null) {
   if (cents == null) return '—'
-  return `$${(cents / 100).toFixed(2)}`
+  return formatCents(cents)
 }
 
 export default async function AdminSponsorsPage() {

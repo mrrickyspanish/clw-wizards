@@ -3,6 +3,7 @@ import { Users, UserSquare2, Trophy, Wallet } from 'lucide-react'
 
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { reportEnvironmentReadiness } from '@/lib/alerts'
+import { formatCents } from '@/lib/format/money'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default async function AdminOverviewPage() {
@@ -25,7 +26,7 @@ export default async function AdminOverviewPage() {
     { label: 'Open tournaments', value: String(openTournaments ?? 0), href: '/admin/tournaments', icon: Trophy },
     {
       label: 'Outstanding dues',
-      value: `$${(outstandingCents / 100).toFixed(2)}`,
+      value: formatCents(outstandingCents),
       href: '/admin/dues',
       icon: Wallet,
     },

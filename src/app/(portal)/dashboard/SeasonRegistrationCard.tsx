@@ -4,6 +4,7 @@ import { AlertCircle, ArrowRight, CheckCircle2, Clock3, CreditCard, UserPlus } f
 import { createServerSupabase } from '@/lib/supabase/server'
 import { chicagoDateString } from '@/lib/chicago-time'
 import { resolveDuesPricing } from '@/lib/season-pricing'
+import { formatCents } from '@/lib/format/money'
 import type {
   Athlete,
   ClubEvent,
@@ -22,7 +23,7 @@ function formatDate(value: string) {
 }
 
 function money(cents: number) {
-  return `$${(cents / 100).toFixed(2)}`
+  return formatCents(cents)
 }
 
 function pickSeason(

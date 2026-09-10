@@ -5,6 +5,7 @@ import { createServerSupabase } from '@/lib/supabase/server'
 import { resolveFamilyOwnerIds } from '@/lib/family'
 import { chicagoDateString } from '@/lib/chicago-time'
 import { resolveDuesPricing } from '@/lib/season-pricing'
+import { formatCents } from '@/lib/format/money'
 import type {
   Athlete,
   AthleteDocument,
@@ -24,7 +25,7 @@ import { PayButton } from '../dues/PayButton'
 import { EnrollmentControls } from './EnrollmentControls'
 
 function money(cents: number) {
-  return `$${(cents / 100).toFixed(2)}`
+  return formatCents(cents)
 }
 
 function formatDate(value: string) {

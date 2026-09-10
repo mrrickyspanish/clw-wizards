@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import { createPublicSupabase } from '@/lib/supabase/public'
 import { chicagoDateString } from '@/lib/chicago-time'
 import { resolveDuesPricing } from '@/lib/season-pricing'
+import { formatCents } from '@/lib/format/money'
 import type { ClubEvent, SeasonPriceTier, SeasonRegistration } from '@/types/database'
 import { CTA_LINK } from '@/lib/cta'
 
@@ -12,7 +13,7 @@ function formatDate(value: string) {
 }
 
 function money(cents: number) {
-  return `$${(cents / 100).toFixed(2)}`
+  return formatCents(cents)
 }
 
 /**
