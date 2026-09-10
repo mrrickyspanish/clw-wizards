@@ -44,10 +44,7 @@ const STATUS_LABELS: Record<SeasonEnrollment['status'], string> = {
 
 export default async function AdminRegistrationsPage() {
   const supabase = createAdminSupabase()
-  const { data: enrollmentData, error } = await supabase
-    .from('season_enrollments')
-    .select('*')
-    .order('submitted_at', { ascending: false })
+  const { data: enrollmentData, error } = await supabase.from('season_enrollments').select('*')
 
   const enrollments = (enrollmentData ?? []) as SeasonEnrollment[]
   const seasonIds = [...new Set(enrollments.map((row) => row.season_registration_id))]
@@ -111,6 +108,29 @@ export default async function AdminRegistrationsPage() {
   const submittedCount = enrollments.filter((row) => row.status === 'submitted').length
   const attentionCount = enrollments.filter((row) => row.status === 'changes_requested').length
   const approvedCount = enrollments.filter((row) => row.status === 'approved').length
+
+  // Alphabetical by wrestler last name so staff can find a specific family in a
+  // long list, not just see what's newest. Ties break on first name so
+  // siblings/same-surname wrestlers land in a stable, predictable order;
+  // enrollments whose athlete record is missing sort to the end instead of
+  // collating with real names.
+  const sortedEnrollments = [...enrollments].sort((a, b) => {
+    const athleteA = athleteById.get(a.athlete_id)
+    const athleteB = athleteById.get(b.athlete_id)
+    const lastA = athleteA?.last_name?.trim() ?? ''
+    const lastB = athleteB?.last_name?.trim() ?? ''
+
+    if (!lastA && !lastB) return 0
+    if (!lastA) return 1
+    if (!lastB) return -1
+
+    const lastNameOrder = lastA.localeCompare(lastB, 'en', { sensitivity: 'base' })
+    if (lastNameOrder !== 0) return lastNameOrder
+
+    const firstA = athleteA?.first_name?.trim() ?? ''
+    const firstB = athleteB?.first_name?.trim() ?? ''
+    return firstA.localeCompare(firstB, 'en', { sensitivity: 'base' })
+  })
 
   return (
     <div className="space-y-6">
@@ -179,7 +199,7 @@ export default async function AdminRegistrationsPage() {
       )}
 
       <div className="space-y-4">
-        {enrollments.map((enrollment) => {
+        {sortedEnrollments.map((enrollment) => {
           const season = seasonById.get(enrollment.season_registration_id)
           const event = season ? eventById.get(season.event_id) : undefined
           const athlete = athleteById.get(enrollment.athlete_id)
