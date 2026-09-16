@@ -101,6 +101,13 @@ function LoginForm() {
                 </AlertDescription>
               </Alert>
             )}
+            {searchParams.get('reset') === 'success' && !error && (
+              <Alert className="border-clw-gold/40 bg-clw-gold/10">
+                <AlertDescription className="text-clw-gold-ink">
+                  Password updated. Sign in with your new password.
+                </AlertDescription>
+              </Alert>
+            )}
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>

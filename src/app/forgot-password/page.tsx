@@ -32,9 +32,14 @@ export default function ForgotPasswordPage() {
     setLoading(true)
 
     const supabase = createBrowserSupabase()
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin
+    // Use the origin the member is actually visiting. This prevents an older
+    // deployment URL from being baked into recovery emails and keeps the PKCE
+    // verifier on the same origin that initiated the reset.
+    const siteUrl = window.location.origin
+    const callbackUrl = new URL('/auth/callback', siteUrl)
+    callbackUrl.searchParams.set('next', '/update-password')
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${siteUrl}/update-password`,
+      redirectTo: callbackUrl.toString(),
       ...(turnstile.token ? { captchaToken: turnstile.token } : {}),
     })
 
