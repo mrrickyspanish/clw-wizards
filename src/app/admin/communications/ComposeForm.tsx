@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
   Select,
   SelectContent,
@@ -45,6 +45,21 @@ function textToHtml(text: string): string {
   return escaped.replace(/\n/g, '<br>')
 }
 
+/**
+ * A route handler that throws returns an HTML error page, not JSON. Parsing
+ * that blind is what used to make every server-side failure surface as
+ * "Network error — please try again" — the one thing it definitively was not.
+ */
+async function readJsonBody(res: Response): Promise<{ error?: string } | null> {
+  const raw = await res.text()
+  if (!raw) return null
+  try {
+    return JSON.parse(raw) as { error?: string }
+  } catch {
+    return null
+  }
+}
+
 function buildTarget(
   audience: AudienceKind,
   practiceGroups: string[],
@@ -72,9 +87,13 @@ function toggle<T>(list: T[], value: T): T[] {
 export function ComposeForm({
   practiceGroups,
   tournaments,
+  queueReady,
+  queueMissing,
 }: {
   practiceGroups: readonly string[]
   tournaments: TournamentOption[]
+  queueReady: boolean
+  queueMissing: string[]
 }) {
   const [audience, setAudience] = useState<AudienceKind>('all')
   const [selectedGroups, setSelectedGroups] = useState<string[]>([])
@@ -120,6 +139,11 @@ export function ComposeForm({
     e.preventDefault()
     resetFeedback()
 
+    if (!queueReady) {
+      setError('Email sending is not configured on this environment yet — see the notice above.')
+      return
+    }
+
     const target = buildTarget(audience, selectedGroups, tournamentId, documents)
     if (!target) {
       setError('Choose at least one option for this audience first.')
@@ -147,17 +171,24 @@ export function ComposeForm({
           message: textToHtml(message),
         }),
       })
-      const data = await res.json()
+
+      const data = await readJsonBody(res)
+
       if (!res.ok) {
-        setError(data.error ?? 'Failed to queue the send.')
+        setError(
+          data?.error ??
+            `The server rejected this send (HTTP ${res.status}) and nothing went out. Try again, and if it keeps happening send this code to your developer.`
+        )
         return
       }
+
       setSent('Your email is queued and sending now.')
       setSubject('')
       setMessage('')
       setPreview(null)
     } catch {
-      setError('Network error — please try again.')
+      // Genuinely never reached the server — fetch itself rejected.
+      setError('Could not reach the server. Check your connection and try again — nothing was sent.')
     } finally {
       setSending(false)
     }
@@ -165,14 +196,26 @@ export function ComposeForm({
 
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
+      {!queueReady && (
+        <Alert variant="destructive">
+          <AlertTitle className="text-base">Email sending is not configured</AlertTitle>
+          <AlertDescription className="text-base">
+            Sending is turned off because this environment is missing{' '}
+            <span className="font-mono">{queueMissing.join(', ')}</span>. Add{' '}
+            {queueMissing.length === 1 ? 'it' : 'them'} to the project&rsquo;s environment variables
+            and redeploy. Choosing an audience and previewing recipients still works in the meantime.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {error && (
         <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription className="text-base">{error}</AlertDescription>
         </Alert>
       )}
       {sent && (
         <Alert className="border-clw-gold/40 bg-clw-gold/10">
-          <AlertDescription className="text-clw-gold">{sent}</AlertDescription>
+          <AlertDescription className="text-base text-clw-gold">{sent}</AlertDescription>
         </Alert>
       )}
 
@@ -214,11 +257,11 @@ export function ComposeForm({
                     setPreview(null)
                   }}
                 />
-                <span className="text-sm">{g}</span>
+                <span className="text-base">{g}</span>
               </label>
             ))}
           </div>
-          <p className="text-xs text-clw-gray">Reaches parents of any active wrestler in the checked groups.</p>
+          <p className="text-sm text-clw-gray">Reaches parents of any active wrestler in the checked groups.</p>
         </div>
       )}
 
@@ -238,11 +281,11 @@ export function ComposeForm({
                     setPreview(null)
                   }}
                 />
-                <span className="text-sm">{doc.label}</span>
+                <span className="text-base">{doc.label}</span>
               </label>
             ))}
           </div>
-          <p className="text-xs text-clw-gray">
+          <p className="text-sm text-clw-gray">
             Reaches parents of active wrestlers still missing any checked document.
           </p>
         </div>
@@ -271,7 +314,7 @@ export function ComposeForm({
               </SelectContent>
             </Select>
           ) : (
-            <p className="text-sm text-clw-gray">No tournaments yet — create one first.</p>
+            <p className="text-base text-clw-gray">No tournaments yet — create one first.</p>
           )}
         </div>
       )}
@@ -304,12 +347,12 @@ export function ComposeForm({
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Write your message to parents…"
         />
-        <p className="text-xs text-clw-gray">
+        <p className="text-sm text-clw-gray">
           Sends by email. SMS is a planned fast-follow. Only parents with a valid email receive it.
         </p>
       </div>
 
-      <Button type="submit" disabled={sending}>
+      <Button type="submit" disabled={sending || !queueReady}>
         {sending ? 'Sending…' : 'Send email'}
       </Button>
     </form>

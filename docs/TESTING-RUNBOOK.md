@@ -63,10 +63,15 @@ session, plus what's expected to stub out.
   banners via manual `?checkout=` URLs) is testable. The charge waits on Stripe
   keys. *(With Stripe **test** keys set, test card `4242 4242 4242 4242` goes
   all the way.)*
-- **Comms "Send" button** → no QStash queue configured, so it errors at the
-  queue step — likely surfacing as a generic *"Network error — please try
-  again"* rather than a tidy message. Validate the feature via **Preview
-  recipients** for now.
+- **Comms "Send" button** → with no QStash queue configured, the Communications
+  page now shows a red **"Email sending is not configured"** banner naming the
+  exact missing environment variables, and the Send button is disabled. This is
+  the expected state until those vars are set — not a bug. Validate the feature
+  via **Preview recipients**, which works regardless.
+
+  *(Previously this surfaced as a misleading generic "Network error — please
+  try again". The queue step is now checked before send and reported honestly;
+  see `src/lib/qstash.ts` → `commsQueueStatus()`.)*
 
 ---
 
