@@ -6,7 +6,37 @@ import { sendCommEmail } from '@/lib/comms/send-email'
 import { sendSms } from '@/lib/twilio/send-sms'
 import type { BlastRequestBody } from '@/app/api/comms/blast/route'
 
-const BATCH_SIZE = 25
+/**
+ * Resend rejects anything past 10 requests/second with a 429.
+ *
+ * This previously sent in batches of 25 fired concurrently, looping straight
+ * into the next batch: production logs measured 25, 68 and 33 requests in
+ * consecutive seconds against a 10/second ceiling, and 106 of 126 sends came
+ * back 429. Every one was logged as a failed row nobody was shown.
+ *
+ * Batching is the wrong shape for a rate limit. Even a batch small enough to
+ * fit under the ceiling straddles it at the boundary, because one batch's
+ * requests land late in its window while the next batch's land early in the
+ * following one. Spacing individual requests is what the limit actually
+ * measures, so each send starts a fixed interval after the previous one.
+ *
+ * Eight per second rather than ten leaves room for clock jitter and for the
+ * retries QStash may deliver.
+ */
+const SENDS_PER_SECOND = 8
+const MIN_SEND_INTERVAL_MS = Math.ceil(1000 / SENDS_PER_SECOND)
+
+/**
+ * Paced sending is bounded by the function timeout: SENDS_PER_SECOND for
+ * maxDuration seconds, so roughly 480 recipients. That clears the current
+ * roster comfortably. A list beyond it needs the job split across several
+ * QStash messages rather than a longer timeout.
+ */
+export const maxDuration = 60
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
 
 export async function POST(request: Request) {
   const rawBody = await request.text()
@@ -25,12 +55,22 @@ export async function POST(request: Request) {
   let smsSent = 0
   let smsFailed = 0
 
-  for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
-    const batch = recipients.slice(i, i + BATCH_SIZE)
+  const wantsEmail = payload.channel === 'email' || payload.channel === 'both'
+  const wantsSms = payload.channel === 'sms' || payload.channel === 'both'
 
-    await Promise.all(
-      batch.map(async (profile) => {
-        if ((payload.channel === 'email' || payload.channel === 'both') && profile.email) {
+  // Requests are started on a fixed cadence but not awaited in sequence: a
+  // slow response delays that recipient, never the ones behind it.
+  const inFlight: Promise<void>[] = []
+  let nextSlotAt = Date.now()
+
+  for (const profile of recipients) {
+    const waitMs = nextSlotAt - Date.now()
+    if (waitMs > 0) await sleep(waitMs)
+    nextSlotAt = Date.now() + MIN_SEND_INTERVAL_MS
+
+    inFlight.push(
+      (async () => {
+        if (wantsEmail && profile.email) {
           const result = await sendCommEmail({
             profileId: profile.id,
             to: profile.email,
@@ -43,7 +83,7 @@ export async function POST(request: Request) {
           else emailsFailed += 1
         }
 
-        if ((payload.channel === 'sms' || payload.channel === 'both') && profile.sms_opt_in && profile.phone) {
+        if (wantsSms && profile.sms_opt_in && profile.phone) {
           const result = await sendSms({
             profileId: profile.id,
             to: profile.phone,
@@ -54,9 +94,11 @@ export async function POST(request: Request) {
           if (result.ok) smsSent += 1
           else smsFailed += 1
         }
-      })
+      })()
     )
   }
+
+  await Promise.all(inFlight)
 
   return NextResponse.json({
     ok: true,
