@@ -57,6 +57,15 @@ export async function POST(request: Request) {
         await handleInvoicePaid(event.data.object as Stripe.Invoice)
         break
       }
+      // A recurring donor or sponsor's card declined on renewal. Distinct from
+      // customer.subscription.deleted, which only fires once Stripe's own
+      // retry schedule (Smart Retries, over the following weeks) finally gives
+      // up -- this is the first signal anything went wrong, and the only one a
+      // donor sees before then.
+      case 'invoice.payment_failed': {
+        await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice)
+        break
+      }
       // A recurring sponsorship whose card fails or gets cancelled must stop
       // showing on /partners and the header ticker -- nothing else clears it.
       case 'customer.subscription.deleted': {
@@ -301,6 +310,68 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   }
 }
 
+/**
+ * Stripe retries a failed subscription charge automatically over roughly the
+ * following few weeks (Smart Retries) before finally giving up and firing
+ * customer.subscription.deleted. This event fires on every attempt in that
+ * cycle, not just the first -- acting on all of them would mean re-emailing
+ * the same donor for the same failure every few days. attempt_count is
+ * Stripe's own count of authorization attempts on this invoice; > 1 means
+ * this is a retry of a failure already handled.
+ */
+async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
+  if (invoice.billing_reason !== 'subscription_cycle') return
+  if ((invoice.attempt_count ?? 0) > 1) return
+
+  const subscriptionId =
+    typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id ?? null
+  if (!subscriptionId) return
+
+  const supabase = createAdminSupabase()
+  const amountCents = invoice.amount_due
+
+  const { data: donation } = await supabase
+    .from('donations')
+    .select('id, donor_name')
+    .eq('stripe_subscription_id', subscriptionId)
+    .limit(1)
+    .maybeSingle()
+
+  if (donation) {
+    if (invoice.customer_email) {
+      await sendDonationPaymentFailedEmail({
+        to: invoice.customer_email,
+        name: invoice.customer_name ?? donation.donor_name,
+        amountCents,
+      })
+    }
+    await sendAlert('Recurring donation payment failed', {
+      donor: invoice.customer_email ?? donation.donor_name ?? 'unknown',
+      amount: formatCents(amountCents),
+      invoiceId: invoice.id,
+    })
+    return
+  }
+
+  const { data: sponsor } = await supabase
+    .from('sponsors')
+    .select('name, contact_email')
+    .eq('stripe_subscription_id', subscriptionId)
+    .maybeSingle()
+
+  if (sponsor) {
+    // Sponsor relationships are handled personally, same as a cancellation in
+    // handleSubscriptionDeleted -- alert admin to follow up directly rather
+    // than send an automated dunning email to a paying sponsor.
+    await sendAlert('Recurring sponsorship payment failed', {
+      sponsor: sponsor.name,
+      contactEmail: sponsor.contact_email,
+      amount: formatCents(amountCents),
+      invoiceId: invoice.id,
+    })
+  }
+}
+
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const supabase = createAdminSupabase()
 
@@ -381,6 +452,30 @@ function getResend() {
 
 const FROM_ADDRESS = process.env.RESEND_FROM_EMAIL ?? `${ORG.shortName} <onboarding@resend.dev>`
 
+/**
+ * A receipt or thank-you email failing to send after a payment already
+ * succeeded is worse than the payment itself failing: Stripe's own checkout
+ * page already tells a family directly when a card is declined, but nothing
+ * tells them their successful payment went unacknowledged. One retry after a
+ * short delay covers the common cause -- a transient Resend or network blip,
+ * the same class of failure this app spent tonight chasing on the comms side
+ * -- without meaningfully delaying the webhook response Stripe is waiting on.
+ * onFinalFailure is the existing sendAlert-to-admin fallback; it still fires,
+ * now only after both attempts are actually exhausted.
+ */
+async function sendReceiptEmail(
+  attempt: () => Promise<{ error: { message: string } | null }>,
+  onFinalFailure: (message: string) => Promise<void>
+) {
+  const first = await attempt()
+  if (!first.error) return
+
+  await new Promise((resolve) => setTimeout(resolve, 2000))
+
+  const second = await attempt()
+  if (second.error) await onFinalFailure(second.error.message)
+}
+
 async function sendDuesConfirmationEmail(params: {
   to: string
   amountPaidCents: number
@@ -394,16 +489,16 @@ async function sendDuesConfirmationEmail(params: {
   const statusLine =
     params.status === 'paid' ? 'Your dues are now fully paid.' : 'This payment has been applied to your balance.'
 
-  await resend.emails
-    .send({
-      from: FROM_ADDRESS,
-      to: [params.to],
-      subject: `${ORG.shortName} - Dues payment received`,
-      html: `<p>Thank you! We received your payment of <strong>${amount}</strong>.</p><p>${statusLine}</p><p style="color:#999;font-size:12px;">Reference: ${params.sessionId.slice(-12).toUpperCase()}</p>`,
-    })
-    .catch((err) =>
-      sendAlert('Dues confirmation email failed', { sessionId: params.sessionId, error: String(err) })
-    )
+  await sendReceiptEmail(
+    () =>
+      resend.emails.send({
+        from: FROM_ADDRESS,
+        to: [params.to],
+        subject: `${ORG.shortName} - Dues payment received`,
+        html: `<p>Thank you! We received your payment of <strong>${amount}</strong>.</p><p>${statusLine}</p><p style="color:#999;font-size:12px;">Reference: ${params.sessionId.slice(-12).toUpperCase()}</p>`,
+      }),
+    (message) => sendAlert('Dues confirmation email failed', { sessionId: params.sessionId, error: message })
+  )
 }
 
 async function sendDonationThankYouEmail(params: {
@@ -425,20 +520,45 @@ async function sendDonationThankYouEmail(params: {
   // checkout", so this has to carry what a receipt actually needs: the amount,
   // the tax year, the EIN, and the no-goods-or-services statement a donor
   // relies on to substantiate a deduction. Matches the sponsor letter below.
-  await resend.emails
-    .send({
-      from: FROM_ADDRESS,
-      to: [params.to],
-      bcc: [ADMIN_EMAIL],
-      subject: `Your donation receipt from ${ORG.name}`,
-      html: `<p>Dear ${params.name ?? 'Friend of the Wizards'},</p>
+  await sendReceiptEmail(
+    () =>
+      resend.emails.send({
+        from: FROM_ADDRESS,
+        to: [params.to],
+        bcc: [ADMIN_EMAIL],
+        subject: `Your donation receipt from ${ORG.name}`,
+        html: `<p>Dear ${params.name ?? 'Friend of the Wizards'},</p>
 <p>Thank you for your generous donation of <strong>${amount}</strong> to ${ORG.name}. Your support goes toward mat time, tournament access, equipment, and keeping the cost of wrestling within reach for families who need it.</p>
 ${recurringLine}
 <p>${ORG.name} is a registered 501(c)(3) nonprofit organization, EIN ${ORG.ein}. No goods or services were provided in exchange for this contribution; it is tax-deductible to the full extent allowed by law. Please retain this receipt for your tax records.</p>
 <p>Date: ${new Date().toLocaleDateString('en-US', { timeZone: 'America/Chicago', month: 'long', day: 'numeric', year: 'numeric' })}<br/>Amount: ${amount}<br/>Tax Year: ${taxYear}</p>
 <p>With gratitude,<br/>${ORG.name}</p>`,
-    })
-    .catch((err) => sendAlert('Donation receipt email failed', { to: params.to, error: String(err) }))
+      }),
+    (message) => sendAlert('Donation receipt email failed', { to: params.to, error: message })
+  )
+}
+
+async function sendDonationPaymentFailedEmail(params: { to: string; name: string | null; amountCents: number }) {
+  const resend = getResend()
+  if (!resend) return
+
+  const amount = formatCents(params.amountCents)
+
+  await sendReceiptEmail(
+    () =>
+      resend.emails.send({
+        from: FROM_ADDRESS,
+        to: [params.to],
+        bcc: [ADMIN_EMAIL],
+        subject: `We couldn't process your recurring donation to ${ORG.name}`,
+        html: `<p>Dear ${params.name ?? 'Friend of the Wizards'},</p>
+<p>We tried to process your recurring monthly donation of <strong>${amount}</strong> to ${ORG.name} and the payment did not go through. This can happen for a number of reasons -- an expired card, insufficient funds, or a bank decline.</p>
+<p>We will automatically try again over the next few weeks. If you would like to update your payment method sooner, or have any questions, please reply to this email or reach us at ${ORG.contactEmail}.</p>
+<p>Thank you for your continued support.</p>
+<p>With gratitude,<br/>${ORG.name}</p>`,
+      }),
+    (message) => sendAlert('Donation payment-failed email failed to send', { to: params.to, error: message })
+  )
 }
 
 async function sendSponsorThankYouLetter(params: {
@@ -458,16 +578,18 @@ async function sendSponsorThankYouLetter(params: {
 
   if (!recipients.length) return
 
-  await resend.emails
-    .send({
-      from: FROM_ADDRESS,
-      to: recipients,
-      subject: `Thank you for sponsoring ${ORG.name} - ${params.tier} tier`,
-      html: `<p>Dear ${params.contactName ?? params.sponsorName},</p>
+  await sendReceiptEmail(
+    () =>
+      resend.emails.send({
+        from: FROM_ADDRESS,
+        to: recipients,
+        subject: `Thank you for sponsoring ${ORG.name} - ${params.tier} tier`,
+        html: `<p>Dear ${params.contactName ?? params.sponsorName},</p>
 <p>On behalf of ${ORG.name}, thank you for your sponsorship of <strong>${amount}</strong> at the <strong>${params.tier}</strong> level for the ${taxYear} season.</p>
 <p>${ORG.name} is a 501(c)(3) nonprofit organization. No goods or services were provided in exchange for this contribution; it is tax-deductible to the full extent allowed by law. Please retain this letter for your tax records.</p>
 <p>Tax Year: ${taxYear}<br/>Sponsor: ${params.sponsorName}</p>
 <p>With gratitude,<br/>${ORG.name}</p>`,
-    })
-    .catch((err) => sendAlert('Sponsor thank-you letter failed', { sponsorId: params.sponsorId, error: String(err) }))
+      }),
+    (message) => sendAlert('Sponsor thank-you letter failed', { sponsorId: params.sponsorId, error: message })
+  )
 }
