@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, type FormEvent } from 'react'
+import { Check, ChevronsUpDown, X } from 'lucide-react'
 
 import { previewRecipients } from './actions'
 import type { CommTarget, MissingDocument } from '@/lib/comms/recipients'
@@ -10,7 +11,17 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
 import {
   Select,
   SelectContent,
@@ -18,16 +29,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { cn } from '@/lib/utils'
 
 type TournamentOption = { id: string; name: string }
-type AudienceKind = 'all' | 'practice_groups' | 'tournament_registrants' | 'outstanding_dues' | 'custom'
+type ParentOption = { id: string; full_name: string | null; email: string | null }
+
+type AudienceKind =
+  | 'all'
+  | 'practice_groups'
+  | 'tournament_registrants'
+  | 'outstanding_dues'
+  | 'missing_documents'
+  | 'specific_parents'
 
 const AUDIENCE_LABELS: Record<AudienceKind, string> = {
   all: 'All active parents',
   practice_groups: 'Practice groups',
   tournament_registrants: "A tournament's registrants",
   outstanding_dues: 'Parents with outstanding dues',
-  custom: 'Custom group (missing documents)',
+  missing_documents: 'Missing documents',
+  specific_parents: 'Specific parent(s)',
 }
 
 const DOCUMENT_FILTERS: { value: MissingDocument; label: string }[] = [
@@ -64,7 +85,8 @@ function buildTarget(
   audience: AudienceKind,
   practiceGroups: string[],
   tournamentId: string,
-  documents: MissingDocument[]
+  documents: MissingDocument[],
+  parentIds: string[]
 ): CommTarget | null {
   if (audience === 'all') return { type: 'all' }
   if (audience === 'outstanding_dues') return { type: 'outstanding_dues' }
@@ -74,8 +96,11 @@ function buildTarget(
   if (audience === 'tournament_registrants') {
     return tournamentId ? { type: 'tournament_registrants', tournamentId } : null
   }
-  if (audience === 'custom') {
+  if (audience === 'missing_documents') {
     return documents.length ? { type: 'missing_document', documents } : null
+  }
+  if (audience === 'specific_parents') {
+    return parentIds.length ? { type: 'custom', profileIds: parentIds } : null
   }
   return null
 }
@@ -84,14 +109,20 @@ function toggle<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value]
 }
 
+function parentDisplayName(p: ParentOption): string {
+  return p.full_name || p.email || 'Unnamed parent'
+}
+
 export function ComposeForm({
   practiceGroups,
   tournaments,
+  parents,
   queueReady,
   queueMissing,
 }: {
   practiceGroups: readonly string[]
   tournaments: TournamentOption[]
+  parents: ParentOption[]
   queueReady: boolean
   queueMissing: string[]
 }) {
@@ -99,6 +130,8 @@ export function ComposeForm({
   const [selectedGroups, setSelectedGroups] = useState<string[]>([])
   const [documents, setDocuments] = useState<MissingDocument[]>([])
   const [tournamentId, setTournamentId] = useState(tournaments[0]?.id ?? '')
+  const [selectedParentIds, setSelectedParentIds] = useState<string[]>([])
+  const [parentPickerOpen, setParentPickerOpen] = useState(false)
   const [subject, setSubject] = useState('')
   const [message, setMessage] = useState('')
 
@@ -113,14 +146,20 @@ export function ComposeForm({
   // something worth putting in front of the user.
   const commType: CommType = audience === 'outstanding_dues' ? 'dues_reminder' : 'general_blast'
 
+  const selectedParents = parents.filter((p) => selectedParentIds.includes(p.id))
+
   function resetFeedback() {
     setError(null)
     setSent(null)
   }
 
+  function currentTarget(): CommTarget | null {
+    return buildTarget(audience, selectedGroups, tournamentId, documents, selectedParentIds)
+  }
+
   async function handlePreview() {
     resetFeedback()
-    const target = buildTarget(audience, selectedGroups, tournamentId, documents)
+    const target = currentTarget()
     if (!target) {
       setError('Choose at least one option for this audience first.')
       return
@@ -144,7 +183,7 @@ export function ComposeForm({
       return
     }
 
-    const target = buildTarget(audience, selectedGroups, tournamentId, documents)
+    const target = currentTarget()
     if (!target) {
       setError('Choose at least one option for this audience first.')
       return
@@ -265,7 +304,7 @@ export function ComposeForm({
         </div>
       )}
 
-      {audience === 'custom' && (
+      {audience === 'missing_documents' && (
         <div className="space-y-2">
           <Label>Missing documents</Label>
           <div className="grid gap-2">
@@ -316,6 +355,84 @@ export function ComposeForm({
           ) : (
             <p className="text-base text-clw-gray">No tournaments yet — create one first.</p>
           )}
+        </div>
+      )}
+
+      {audience === 'specific_parents' && (
+        <div className="space-y-2">
+          <Label>Parents</Label>
+          <Popover open={parentPickerOpen} onOpenChange={setParentPickerOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                role="combobox"
+                aria-expanded={parentPickerOpen}
+                className="w-full justify-between text-base font-normal"
+              >
+                {selectedParentIds.length
+                  ? `${selectedParentIds.length} parent${selectedParentIds.length === 1 ? '' : 's'} selected`
+                  : 'Search by name or email…'}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Search by name or email…" />
+                <CommandList>
+                  <CommandEmpty>No parent matches.</CommandEmpty>
+                  <CommandGroup>
+                    {parents.map((p) => {
+                      const isSelected = selectedParentIds.includes(p.id)
+                      return (
+                        <CommandItem
+                          key={p.id}
+                          value={`${p.full_name ?? ''} ${p.email ?? ''}`}
+                          onSelect={() => {
+                            setSelectedParentIds((prev) => toggle(prev, p.id))
+                            setPreview(null)
+                          }}
+                        >
+                          <Check className={cn('mr-2 h-4 w-4', isSelected ? 'opacity-100' : 'opacity-0')} />
+                          <div className="flex flex-col">
+                            <span className="text-base">{parentDisplayName(p)}</span>
+                            {p.full_name && p.email && (
+                              <span className="text-sm text-clw-gray">{p.email}</span>
+                            )}
+                          </div>
+                        </CommandItem>
+                      )
+                    })}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+
+          {selectedParents.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {selectedParents.map((p) => (
+                <Badge key={p.id} variant="secondary" className="gap-1 py-1 pl-2.5 pr-1">
+                  {parentDisplayName(p)}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedParentIds((prev) => prev.filter((id) => id !== p.id))
+                      setPreview(null)
+                    }}
+                    className="rounded-full p-0.5 hover:bg-clw-black/20"
+                    aria-label={`Remove ${parentDisplayName(p)}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          )}
+
+          <p className="text-sm text-clw-gray">
+            Reaches only the parents you pick — useful for a one-off message to a single family.
+          </p>
         </div>
       )}
 

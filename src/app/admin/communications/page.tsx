@@ -5,10 +5,15 @@ import { ComposeForm } from './ComposeForm'
 
 export default async function AdminCommunicationsPage() {
   const supabase = await createServerSupabase()
-  const { data: tournaments } = await supabase
-    .from('tournaments')
-    .select('id, name')
-    .order('date', { ascending: false })
+  const [{ data: tournaments }, { data: parents }] = await Promise.all([
+    supabase.from('tournaments').select('id, name').order('date', { ascending: false }),
+    supabase
+      .from('profiles')
+      .select('id, full_name, email')
+      .eq('role', 'parent')
+      .eq('is_active', true)
+      .order('full_name', { ascending: true }),
+  ])
 
   const queue = commsQueueStatus()
 
@@ -22,6 +27,7 @@ export default async function AdminCommunicationsPage() {
       <ComposeForm
         practiceGroups={ORG.practiceGroups}
         tournaments={tournaments ?? []}
+        parents={parents ?? []}
         queueReady={queue.ready}
         queueMissing={queue.missing}
       />
