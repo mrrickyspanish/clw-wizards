@@ -32,7 +32,15 @@ export function getQstashClient() {
     throw new QstashNotConfiguredError()
   }
 
-  client = new Client({ token })
+  // QStash is multi-region and the SDK defaults to eu-central-1. An account in
+  // another region authenticates fine and then fails with "user not found in
+  // this region", so the endpoint is as much a credential as the token is.
+  //
+  // Passing baseUrl explicitly (rather than letting the SDK read QSTASH_URL
+  // itself) is what puts it through readCredential: the SDK reads process.env
+  // raw, so a pasted trailing newline would corrupt the endpoint with no trim
+  // in the path. undefined here leaves the SDK's own default in place.
+  client = new Client({ token, baseUrl: readCredential('QSTASH_URL') })
   return client
 }
 
