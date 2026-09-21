@@ -1,6 +1,7 @@
 import { Resend } from 'resend'
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { ORG } from '@/config/org.config'
+import { readCredential } from '@/lib/env'
 import type { CommType } from '@/types/database'
 
 interface SendCommEmailParams {
@@ -18,7 +19,7 @@ interface SendCommEmailResult {
   errorMessage?: string
 }
 
-const FROM_ADDRESS = process.env.RESEND_FROM_EMAIL ?? `${ORG.shortName} <onboarding@resend.dev>`
+const FROM_ADDRESS = readCredential('RESEND_FROM_EMAIL') ?? `${ORG.shortName} <onboarding@resend.dev>`
 
 /**
  * Sends a single comms email and logs the outcome to communication_log, same
@@ -34,7 +35,7 @@ export async function sendCommEmail({
   tournamentId,
 }: SendCommEmailParams): Promise<SendCommEmailResult> {
   const supabase = createAdminSupabase()
-  const resendKey = process.env.RESEND_API_KEY
+  const resendKey = readCredential('RESEND_API_KEY')
 
   if (!resendKey) {
     await supabase.from('communication_log').insert({

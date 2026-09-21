@@ -8,6 +8,7 @@ import {
   isPubliclyReachableSiteUrl,
   QstashNotConfiguredError,
 } from '@/lib/qstash'
+import { readCredential } from '@/lib/env'
 import type { CommTarget } from '@/lib/comms/recipients'
 import type { CommType } from '@/types/database'
 
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
       { status: 503 }
     )
   }
-  if (!process.env.QSTASH_CURRENT_SIGNING_KEY || !process.env.QSTASH_NEXT_SIGNING_KEY) {
+  if (!readCredential('QSTASH_CURRENT_SIGNING_KEY') || !readCredential('QSTASH_NEXT_SIGNING_KEY')) {
     return NextResponse.json(
       {
         error:

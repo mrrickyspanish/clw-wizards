@@ -1,5 +1,7 @@
 import { Client, Receiver } from '@upstash/qstash'
 
+import { readCredential } from '@/lib/env'
+
 let client: Client | null = null
 
 /**
@@ -19,13 +21,13 @@ export class QstashNotConfiguredError extends Error {
  * want to warn before a send is attempted rather than blow up mid-request.
  */
 export function isQstashConfigured(): boolean {
-  return Boolean(process.env.QSTASH_TOKEN)
+  return Boolean(readCredential('QSTASH_TOKEN'))
 }
 
 export function getQstashClient() {
   if (client) return client
 
-  const token = process.env.QSTASH_TOKEN
+  const token = readCredential('QSTASH_TOKEN')
   if (!token) {
     throw new QstashNotConfiguredError()
   }
@@ -35,7 +37,7 @@ export function getQstashClient() {
 }
 
 export function siteUrl() {
-  return (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(/\/$/, '')
+  return (readCredential('NEXT_PUBLIC_SITE_URL') ?? 'http://localhost:3000').replace(/\/$/, '')
 }
 
 /**
@@ -63,10 +65,10 @@ export function commsQueueStatus(): { ready: boolean; missing: string[] } {
   const missing: string[] = []
 
   if (!isQstashConfigured()) missing.push('QSTASH_TOKEN')
-  if (!process.env.QSTASH_CURRENT_SIGNING_KEY) missing.push('QSTASH_CURRENT_SIGNING_KEY')
-  if (!process.env.QSTASH_NEXT_SIGNING_KEY) missing.push('QSTASH_NEXT_SIGNING_KEY')
+  if (!readCredential('QSTASH_CURRENT_SIGNING_KEY')) missing.push('QSTASH_CURRENT_SIGNING_KEY')
+  if (!readCredential('QSTASH_NEXT_SIGNING_KEY')) missing.push('QSTASH_NEXT_SIGNING_KEY')
   if (!isPubliclyReachableSiteUrl()) missing.push('NEXT_PUBLIC_SITE_URL')
-  if (!process.env.RESEND_API_KEY) missing.push('RESEND_API_KEY')
+  if (!readCredential('RESEND_API_KEY')) missing.push('RESEND_API_KEY')
 
   return { ready: missing.length === 0, missing }
 }
@@ -81,8 +83,8 @@ export async function verifyQstashSignature(request: Request, body: string): Pro
   const signature = request.headers.get('Upstash-Signature')
   if (!signature) return false
 
-  const currentSigningKey = process.env.QSTASH_CURRENT_SIGNING_KEY
-  const nextSigningKey = process.env.QSTASH_NEXT_SIGNING_KEY
+  const currentSigningKey = readCredential('QSTASH_CURRENT_SIGNING_KEY')
+  const nextSigningKey = readCredential('QSTASH_NEXT_SIGNING_KEY')
   if (!currentSigningKey || !nextSigningKey) return false
 
   const receiver = new Receiver({ currentSigningKey, nextSigningKey })
