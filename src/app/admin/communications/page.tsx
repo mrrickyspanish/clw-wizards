@@ -14,7 +14,8 @@ export default async function AdminCommunicationsPage() {
       .select('id, full_name, email')
       .eq('role', 'parent')
       .eq('is_active', true)
-      .order('full_name', { ascending: true }),
+      .order('last_name', { ascending: true })
+      .order('first_name', { ascending: true }),
   ])
 
   const queue = commsQueueStatus()

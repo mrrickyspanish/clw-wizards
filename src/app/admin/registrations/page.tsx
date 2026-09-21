@@ -150,29 +150,38 @@ export default async function AdminRegistrationsPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card className="border-clw-gold/10 bg-clw-black">
-          <CardContent className="flex items-center gap-4 py-5">
-            <Clock3 className="h-6 w-6 text-blue-400" />
+          <CardContent className="flex items-start gap-4 py-5">
+            <Clock3 className="mt-0.5 h-6 w-6 shrink-0 text-blue-400" />
             <div>
               <p className="text-2xl font-display text-clw-white">{submittedCount}</p>
               <p className="text-sm text-clw-gray">Awaiting review</p>
+              <p className="mt-1 text-sm text-clw-gray/70">
+                Missing payment, birth certificate, or USA Wrestling card.
+              </p>
             </div>
           </CardContent>
         </Card>
         <Card className="border-clw-gold/10 bg-clw-black">
-          <CardContent className="flex items-center gap-4 py-5">
-            <AlertTriangle className="h-6 w-6 text-amber-400" />
+          <CardContent className="flex items-start gap-4 py-5">
+            <AlertTriangle className="mt-0.5 h-6 w-6 shrink-0 text-amber-400" />
             <div>
               <p className="text-2xl font-display text-clw-white">{attentionCount}</p>
               <p className="text-sm text-clw-gray">Parent update needed</p>
+              <p className="mt-1 text-sm text-clw-gray/70">
+                You requested a correction (e.g. a re-upload) and it&rsquo;s waiting on the parent.
+              </p>
             </div>
           </CardContent>
         </Card>
         <Card className="border-clw-gold/10 bg-clw-black">
-          <CardContent className="flex items-center gap-4 py-5">
-            <CheckCircle2 className="h-6 w-6 text-emerald-400" />
+          <CardContent className="flex items-start gap-4 py-5">
+            <CheckCircle2 className="mt-0.5 h-6 w-6 shrink-0 text-emerald-400" />
             <div>
               <p className="text-2xl font-display text-clw-white">{approvedCount}</p>
               <p className="text-sm text-clw-gray">Approved</p>
+              <p className="mt-1 text-sm text-clw-gray/70">
+                Paid, birth certificate verified, USA Wrestling card verified.
+              </p>
             </div>
           </CardContent>
         </Card>

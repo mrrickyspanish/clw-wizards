@@ -76,7 +76,8 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
       .from('profiles')
       .select('id, full_name, email, phone, practice_group, sms_opt_in, is_active')
       .in('id', guardianIds)
-      .order('full_name', { ascending: true })
+      .order('last_name', { ascending: true })
+      .order('first_name', { ascending: true })
     guardians = (data ?? []) as GuardianRow[]
   }
 

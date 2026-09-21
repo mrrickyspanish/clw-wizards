@@ -28,7 +28,8 @@ export default async function AdminFamiliesPage({
     .from('profiles')
     .select('id, full_name, email, phone, is_active, sms_opt_in')
     .eq('role', 'parent')
-    .order('full_name', { ascending: true })
+    .order('last_name', { ascending: true })
+    .order('first_name', { ascending: true })
 
   // Strip characters that have meaning in the PostgREST `or()` filter grammar
   // (comma separates conditions; parens group them) before interpolating.

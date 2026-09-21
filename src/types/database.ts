@@ -16,6 +16,13 @@ export type CommType =
 export type Profile = {
   id: string
   full_name: string | null
+  // Derived from full_name by a DB trigger (trg_split_profile_full_name) --
+  // never write these directly, they're overwritten on the next full_name
+  // update. Exists for sorting/display where a last name alone is needed
+  // (e.g. the admin Families list); full_name stays the field every form
+  // collects and displays.
+  first_name: string | null
+  last_name: string | null
   email: string | null
   role: AppRole
   // Only set for admins: 'full' can also edit public website content; 'limited'

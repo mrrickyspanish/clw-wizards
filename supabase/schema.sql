@@ -88,8 +88,12 @@ CREATE TABLE public.profiles (
     city text,
     state text,
     postal_code text,
+    first_name text,
+    last_name text,
     CONSTRAINT profiles_admin_scope_check CHECK ((admin_scope = ANY (ARRAY['full'::text, 'limited'::text])))
 );
+COMMENT ON COLUMN public.profiles.first_name IS 'Derived from full_name by trg_split_profile_full_name -- do not write directly, it will be overwritten on the next full_name update.';
+COMMENT ON COLUMN public.profiles.last_name IS 'Derived from full_name by trg_split_profile_full_name -- do not write directly, it will be overwritten on the next full_name update.';
 
 -- Athletes & family ---------------------------------------------------------
 CREATE TABLE public.athletes (
@@ -480,6 +484,29 @@ CREATE FUNCTION public.guards_athlete(_athlete uuid) RETURNS boolean
     WHERE a.id = _athlete AND public.guards_owner(a.parent_id)
   );
 $$;
+CREATE FUNCTION public.split_profile_full_name() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+  trimmed TEXT := btrim(NEW.full_name);
+BEGIN
+  IF trimmed IS NULL OR trimmed = '' THEN
+    NEW.first_name := NULL;
+    NEW.last_name := NULL;
+    RETURN NEW;
+  END IF;
+
+  IF position(' ' IN trimmed) = 0 THEN
+    NEW.first_name := NULL;
+    NEW.last_name := trimmed;
+  ELSE
+    NEW.last_name := regexp_replace(trimmed, '^.*\s', '');
+    NEW.first_name := btrim(left(trimmed, length(trimmed) - length(NEW.last_name)));
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
 CREATE FUNCTION public.handle_new_user() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
@@ -701,6 +728,8 @@ $$;
 ALTER TABLE ONLY public.profiles
     ADD CONSTRAINT profiles_pkey PRIMARY KEY (id);
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+CREATE TRIGGER trg_split_profile_full_name BEFORE INSERT OR UPDATE OF full_name ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.split_profile_full_name();
+CREATE INDEX idx_profiles_last_first_name ON public.profiles USING btree (lower(last_name), lower(first_name));
 
 -- Athletes & family ---------------------------------------------------------
 ALTER TABLE ONLY public.athletes
