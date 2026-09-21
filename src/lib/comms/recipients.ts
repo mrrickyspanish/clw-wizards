@@ -5,7 +5,6 @@ export type MissingDocument = 'birth_certificate' | 'usa_wrestling_card'
 
 export type CommTarget =
   | { type: 'all' }
-  | { type: 'practice_group'; practiceGroup: string }
   | { type: 'practice_groups'; practiceGroups: string[] }
   | { type: 'tournament_registrants'; tournamentId: string }
   | { type: 'outstanding_dues' }
@@ -26,19 +25,12 @@ export async function resolveRecipients(target: CommTarget): Promise<Profile[]> 
     return data ?? []
   }
 
-  if (target.type === 'practice_group') {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('role', 'parent')
-      .eq('is_active', true)
-      .eq('practice_group', target.practiceGroup)
-    return data ?? []
-  }
-
   // Parents of any active athlete in the selected practice groups. Resolved
-  // through athletes (not profiles.practice_group) so a parent with kids in
-  // more than one group is reached for every group their wrestlers train in.
+  // through athletes, not a parent-level practice group -- profiles never had
+  // a reliable one. A parent-level field existed at one point but nothing
+  // ever set it at signup and it couldn't represent a family with kids in
+  // more than one group, so it was removed rather than kept as a second,
+  // unused way to answer the same question.
   if (target.type === 'practice_groups') {
     if (!target.practiceGroups.length) return []
     const { data: athletes } = await supabase

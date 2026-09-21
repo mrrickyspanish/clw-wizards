@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { Pencil } from 'lucide-react'
 
 import type { Profile } from '@/types/database'
-import { ORG } from '@/config/org.config'
 import { updateParent, type ParentInput } from './actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,18 +20,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 
-type EditableParent = Pick<
-  Profile,
-  'id' | 'full_name' | 'email' | 'phone' | 'practice_group' | 'sms_opt_in'
->
+type EditableParent = Pick<Profile, 'id' | 'full_name' | 'email' | 'phone' | 'sms_opt_in'>
 
 type ParentRelationship = 'primary' | 'co-guardian'
 
@@ -53,7 +42,6 @@ export function ParentDialog({
   const [fullName, setFullName] = useState(parent.full_name ?? '')
   const [email, setEmail] = useState(parent.email ?? '')
   const [phone, setPhone] = useState(parent.phone ?? '')
-  const [practiceGroup, setPracticeGroup] = useState(parent.practice_group ?? 'none')
   const [smsOptIn, setSmsOptIn] = useState(parent.sms_opt_in)
 
   const isCoGuardian = relationship === 'co-guardian'
@@ -67,7 +55,6 @@ export function ParentDialog({
       full_name: fullName,
       email,
       phone,
-      practice_group: practiceGroup === 'none' ? '' : practiceGroup,
       sms_opt_in: smsOptIn,
     }
 
@@ -145,23 +132,6 @@ export function ParentDialog({
               onChange={(e) => setPhone(e.target.value)}
               autoComplete="tel"
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Primary practice group</Label>
-            <Select value={practiceGroup} onValueChange={setPracticeGroup}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Not set</SelectItem>
-                {ORG.practiceGroups.map((group) => (
-                  <SelectItem key={group} value={group}>
-                    {group}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="rounded-md border border-clw-gold/15 bg-clw-gold/5 p-4">

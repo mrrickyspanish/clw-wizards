@@ -29,11 +29,6 @@ const parentSchema = z.object({
   full_name: z.string().trim().min(1, 'Full name is required').max(120),
   email: z.string().trim().email('Enter a valid email').max(254),
   phone: z.string().trim().max(20, 'Phone must be 20 characters or fewer').optional().nullable(),
-  practice_group: z
-    .enum(ORG.practiceGroups as unknown as [string, ...string[]])
-    .or(z.literal(''))
-    .optional()
-    .nullable(),
   sms_opt_in: z.boolean(),
 })
 
@@ -97,7 +92,6 @@ export async function updateParent(
       full_name: parsed.full_name,
       email,
       phone: parsed.phone || null,
-      practice_group: parsed.practice_group || null,
       sms_opt_in: parsed.sms_opt_in,
       sms_opt_in_at: enablingSms ? new Date().toISOString() : current.sms_opt_in_at,
       consent_text: enablingSms ? SMS_CONSENT_TEXT : current.consent_text,

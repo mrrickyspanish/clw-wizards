@@ -37,10 +37,7 @@ function formatDate(value: string) {
   })
 }
 
-type GuardianRow = Pick<
-  Profile,
-  'id' | 'full_name' | 'email' | 'phone' | 'practice_group' | 'sms_opt_in' | 'is_active'
->
+type GuardianRow = Pick<Profile, 'id' | 'full_name' | 'email' | 'phone' | 'sms_opt_in' | 'is_active'>
 
 export default async function FamilyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -74,7 +71,7 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
   if (guardianIds.length) {
     const { data } = await supabase
       .from('profiles')
-      .select('id, full_name, email, phone, practice_group, sms_opt_in, is_active')
+      .select('id, full_name, email, phone, sms_opt_in, is_active')
       .in('id', guardianIds)
       .order('last_name', { ascending: true })
       .order('first_name', { ascending: true })
@@ -123,14 +120,10 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
           <CardTitle className="text-sm font-medium text-clw-gray">Primary parent contact &amp; preferences</CardTitle>
           <ParentDialog parent={parent} familyId={parent.id} />
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+        <CardContent className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
           <div>
             <p className="text-clw-gray/70">Phone</p>
             <p className="text-clw-white">{parent.phone ?? '—'}</p>
-          </div>
-          <div>
-            <p className="text-clw-gray/70">Practice group</p>
-            <p className="text-clw-white">{parent.practice_group ?? '—'}</p>
           </div>
           <div>
             <p className="text-clw-gray/70">SMS opt-in</p>
@@ -170,14 +163,10 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
                   </Badge>
                 </div>
 
-                <div className="mt-4 grid grid-cols-1 gap-3 border-t border-clw-gold/10 pt-4 text-sm sm:grid-cols-3">
+                <div className="mt-4 grid grid-cols-1 gap-3 border-t border-clw-gold/10 pt-4 text-sm sm:grid-cols-2">
                   <div>
                     <p className="text-clw-gray/70">Phone</p>
                     <p className="text-clw-white">{guardian.phone ?? '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-clw-gray/70">Practice group</p>
-                    <p className="text-clw-white">{guardian.practice_group ?? '—'}</p>
                   </div>
                   <div>
                     <p className="text-clw-gray/70">SMS opt-in</p>
