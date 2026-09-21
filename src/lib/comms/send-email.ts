@@ -11,6 +11,10 @@ interface SendCommEmailParams {
   html: string
   commType: CommType
   tournamentId?: string
+  // Groups this row with the rest of the same compose-form send or cron
+  // firing, for the admin blast-history view. Optional so this function
+  // still works for a one-off call with nothing to group it under.
+  blastId?: string | null
 }
 
 interface SendCommEmailResult {
@@ -33,6 +37,7 @@ export async function sendCommEmail({
   html,
   commType,
   tournamentId,
+  blastId,
 }: SendCommEmailParams): Promise<SendCommEmailResult> {
   const supabase = createAdminSupabase()
   const resendKey = readCredential('RESEND_API_KEY')
@@ -47,6 +52,7 @@ export async function sendCommEmail({
       subject,
       body_preview: html.slice(0, 160),
       status: 'failed',
+      blast_id: blastId ?? null,
     })
     return { ok: false, errorMessage: 'RESEND_API_KEY is not configured.' }
   }
@@ -67,6 +73,7 @@ export async function sendCommEmail({
       body_preview: html.slice(0, 160),
       status: 'sent',
       external_id: data?.id ?? null,
+      blast_id: blastId ?? null,
     })
 
     return { ok: true, id: data?.id }
@@ -82,6 +89,7 @@ export async function sendCommEmail({
       subject,
       body_preview: html.slice(0, 160),
       status: 'failed',
+      blast_id: blastId ?? null,
     })
 
     return { ok: false, errorMessage: message }

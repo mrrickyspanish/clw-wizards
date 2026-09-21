@@ -193,6 +193,7 @@ export type CommunicationLogRow = {
   status: 'sent' | 'failed' | 'bounced'
   sent_at: string
   external_id: string | null
+  blast_id: string | null
 }
 
 export type AthleteDocument = {

@@ -5,13 +5,29 @@ import { ArrowLeft } from 'lucide-react'
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { isFullAdmin } from '@/lib/auth/admin'
-import type { Athlete, Profile } from '@/types/database'
+import type { Athlete, CommunicationLogRow, Profile } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { AthleteDialog } from '../AthleteDialog'
 import { DeleteFamilyButton } from '../DeleteFamilyButton'
 import { FamilyActiveToggle } from '../FamilyActiveToggle'
 import { ParentDialog } from '../ParentDialog'
+import { COMM_TYPE_LABELS } from '@/lib/comms/labels'
+
+// How many past messages to show on a family's profile. Older history is
+// still in communication_log if it's ever needed — this is a recent-activity
+// glance, not a full export.
+const MESSAGE_HISTORY_LIMIT = 25
+
+function formatDateTime(value: string) {
+  return new Date(value).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
 
 function formatDate(value: string) {
   return new Date(`${value}T00:00:00`).toLocaleDateString('en-US', {
@@ -63,6 +79,23 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
       .order('full_name', { ascending: true })
     guardians = (data ?? []) as GuardianRow[]
   }
+
+  // Every profile in this family (the owner plus any co-guardians), so a
+  // message sent to a co-guardian specifically still shows up here instead
+  // of only on their own separate admin record.
+  const familyProfileIds = [id, ...guardianIds]
+  const nameById = new Map<string, string>([
+    [id, parent.full_name || parent.email || 'Primary parent'],
+    ...guardians.map((g): [string, string] => [g.id, g.full_name || g.email || 'Co-guardian']),
+  ])
+
+  const { data: messageRows } = await supabase
+    .from('communication_log')
+    .select('*')
+    .in('recipient_id', familyProfileIds)
+    .order('sent_at', { ascending: false })
+    .limit(MESSAGE_HISTORY_LIMIT)
+  const messages = (messageRows ?? []) as CommunicationLogRow[]
 
   return (
     <div>
@@ -220,6 +253,58 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      <h2 className="mb-3 mt-8 text-lg font-display text-clw-white">
+        Message history <span className="text-sm text-clw-gray">({messages.length})</span>
+      </h2>
+
+      {messages.length === 0 ? (
+        <div className="rounded-md border border-clw-gold/10 bg-clw-black p-8 text-center">
+          <p className="text-base text-clw-gray">
+            No emails or texts have been sent to this family yet.
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-md border border-clw-gold/10 bg-clw-black">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-clw-gold/10 hover:bg-transparent">
+                <TableHead className="text-clw-gray">Sent</TableHead>
+                <TableHead className="text-clw-gray">To</TableHead>
+                <TableHead className="text-clw-gray">Type</TableHead>
+                <TableHead className="text-clw-gray">Channel</TableHead>
+                <TableHead className="text-clw-gray">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {messages.map((m) => (
+                <TableRow key={m.id} className="border-clw-gold/10">
+                  <TableCell className="text-clw-gray">{formatDateTime(m.sent_at)}</TableCell>
+                  <TableCell className="text-clw-white">
+                    {(m.recipient_id && nameById.get(m.recipient_id)) || m.recipient_email || m.recipient_phone || '—'}
+                  </TableCell>
+                  <TableCell className="text-clw-white">
+                    {m.subject || COMM_TYPE_LABELS[m.comm_type]}
+                  </TableCell>
+                  <TableCell className="text-clw-gray">{m.channel}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={
+                        m.status === 'sent'
+                          ? 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold'
+                          : 'border-destructive/40 bg-destructive/10 text-destructive'
+                      }
+                    >
+                      {m.status}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>

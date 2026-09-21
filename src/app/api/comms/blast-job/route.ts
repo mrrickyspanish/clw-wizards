@@ -48,6 +48,11 @@ export async function POST(request: Request) {
   const payload = JSON.parse(rawBody) as BlastRequestBody
   const recipients = await resolveRecipients(payload.target)
 
+  // Ties every row this run writes to communication_log together, so the
+  // admin history view can show "this send: 97 sent, 2 failed" instead of a
+  // flat list of individual rows with no way to tell one send from another.
+  const blastId = crypto.randomUUID()
+
   const tournamentId = payload.target.type === 'tournament_registrants' ? payload.target.tournamentId : undefined
 
   let emailsSent = 0
@@ -78,6 +83,7 @@ export async function POST(request: Request) {
             html: payload.message,
             commType: payload.commType,
             tournamentId,
+            blastId,
           })
           if (result.ok) emailsSent += 1
           else emailsFailed += 1
@@ -90,6 +96,7 @@ export async function POST(request: Request) {
             body: payload.message,
             commType: payload.commType,
             tournamentId,
+            blastId,
           })
           if (result.ok) smsSent += 1
           else smsFailed += 1
@@ -102,6 +109,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     ok: true,
+    blastId,
     totalRecipients: recipients.length,
     emailsSent,
     emailsFailed,

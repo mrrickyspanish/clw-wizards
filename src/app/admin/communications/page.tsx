@@ -2,6 +2,8 @@ import { createServerSupabase } from '@/lib/supabase/server'
 import { ORG } from '@/config/org.config'
 import { commsQueueStatus } from '@/lib/qstash'
 import { ComposeForm } from './ComposeForm'
+import { CommsHistory } from './CommsHistory'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default async function AdminCommunicationsPage() {
   const supabase = await createServerSupabase()
@@ -24,13 +26,26 @@ export default async function AdminCommunicationsPage() {
         <p className="text-base text-clw-gray">Compose and send an email to parents.</p>
       </div>
 
-      <ComposeForm
-        practiceGroups={ORG.practiceGroups}
-        tournaments={tournaments ?? []}
-        parents={parents ?? []}
-        queueReady={queue.ready}
-        queueMissing={queue.missing}
-      />
+      <Tabs defaultValue="compose">
+        <TabsList>
+          <TabsTrigger value="compose">Compose</TabsTrigger>
+          <TabsTrigger value="history">History</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="compose" className="mt-6">
+          <ComposeForm
+            practiceGroups={ORG.practiceGroups}
+            tournaments={tournaments ?? []}
+            parents={parents ?? []}
+            queueReady={queue.ready}
+            queueMissing={queue.missing}
+          />
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-6 max-w-3xl">
+          <CommsHistory />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

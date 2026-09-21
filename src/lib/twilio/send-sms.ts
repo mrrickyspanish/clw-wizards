@@ -8,6 +8,9 @@ interface SendSmsParams {
   body: string
   commType: CommType
   tournamentId?: string
+  // Groups this row with the rest of the same compose-form send or cron
+  // firing, for the admin blast-history view.
+  blastId?: string | null
 }
 
 interface SendSmsResult {
@@ -22,7 +25,14 @@ interface SendSmsResult {
  * have already filtered recipients by profiles.sms_opt_in = true — this
  * function does not re-check it, since bulk callers already query for it.
  */
-export async function sendSms({ profileId, to, body, commType, tournamentId }: SendSmsParams): Promise<SendSmsResult> {
+export async function sendSms({
+  profileId,
+  to,
+  body,
+  commType,
+  tournamentId,
+  blastId,
+}: SendSmsParams): Promise<SendSmsResult> {
   const supabase = createAdminSupabase()
   const fromNumber = process.env.TWILIO_PHONE_NUMBER
 
@@ -35,6 +45,7 @@ export async function sendSms({ profileId, to, body, commType, tournamentId }: S
       tournament_id: tournamentId ?? null,
       body_preview: body.slice(0, 160),
       status: 'failed',
+      blast_id: blastId ?? null,
     })
     return { ok: false, errorMessage: 'TWILIO_PHONE_NUMBER is not configured.' }
   }
@@ -51,6 +62,7 @@ export async function sendSms({ profileId, to, body, commType, tournamentId }: S
       body_preview: body.slice(0, 160),
       status: 'sent',
       external_id: message.sid,
+      blast_id: blastId ?? null,
     })
 
     return { ok: true, sid: message.sid }
@@ -69,6 +81,7 @@ export async function sendSms({ profileId, to, body, commType, tournamentId }: S
       body_preview: body.slice(0, 160),
       status: 'failed',
       external_id: code ? String(code) : null,
+      blast_id: blastId ?? null,
     })
 
     return { ok: false, errorCode: code ? String(code) : undefined, errorMessage: message }

@@ -280,8 +280,11 @@ CREATE TABLE public.communication_log (
     status text DEFAULT 'sent'::text NOT NULL,
     sent_at timestamp with time zone DEFAULT now() NOT NULL,
     external_id text,
+    blast_id uuid,
     CONSTRAINT communication_log_status_check CHECK ((status = ANY (ARRAY['sent'::text, 'failed'::text, 'bounced'::text])))
 );
+CREATE INDEX idx_communication_log_blast_id ON public.communication_log (blast_id, sent_at DESC) WHERE blast_id IS NOT NULL;
+CREATE INDEX idx_communication_log_recipient ON public.communication_log (recipient_id, sent_at DESC) WHERE recipient_id IS NOT NULL;
 
 -- Public content & marketing ------------------------------------------------
 CREATE TABLE public.page_content (
