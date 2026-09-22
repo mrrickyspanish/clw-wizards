@@ -3,7 +3,6 @@
 import { useState, type FormEvent } from 'react'
 import Link from 'next/link'
 
-import { createBrowserSupabase } from '@/lib/supabase/browser'
 import { useTurnstile } from '@/components/auth/useTurnstile'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,25 +30,30 @@ export default function ForgotPasswordPage() {
 
     setLoading(true)
 
-    const supabase = createBrowserSupabase()
-    // Use the origin the member is actually visiting. This prevents an older
-    // deployment URL from being baked into recovery emails and keeps the PKCE
-    // verifier on the same origin that initiated the reset.
-    const siteUrl = window.location.origin
-    const callbackUrl = new URL('/auth/callback', siteUrl)
-    callbackUrl.searchParams.set('next', '/update-password')
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: callbackUrl.toString(),
-      ...(turnstile.token ? { captchaToken: turnstile.token } : {}),
-    })
+    try {
+      // Sent through our own API route, not supabase.auth.resetPasswordForEmail:
+      // see api/auth/request-password-reset/route.ts for why.
+      const res = await fetch('/api/auth/request-password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, turnstileToken: turnstile.token }),
+      })
 
-    setLoading(false)
-    if (resetError) {
-      setError(resetError.message)
+      setLoading(false)
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        setError(data?.error ?? 'Something went wrong. Please try again.')
+        turnstile.reset()
+        return
+      }
+
+      setSent(true)
+    } catch {
+      setLoading(false)
+      setError('Could not reach the server. Check your connection and try again.')
       turnstile.reset()
-      return
     }
-    setSent(true)
   }
 
   return (
