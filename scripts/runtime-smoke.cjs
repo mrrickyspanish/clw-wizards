@@ -20,17 +20,48 @@ const routes = process.env.SMOKE_ROUTES
       .filter(Boolean)
   : DEFAULT_ROUTES
 
+// A rendered page draws far more than this. A blank body, a bare error string
+// or a stalled shell draws far less.
+const MIN_BODY_TEXT_LENGTH = 200
+
 const IGNORED_PAGE_ERROR_PATTERNS = [
   /ResizeObserver loop completed with undelivered notifications/i,
   /due to access control checks/i,
+  // Cloudflare Turnstile runs in its own cross-origin iframe and throws from
+  // inside its own bundle when it cannot reach challenges.cloudflare.com --
+  // which is the normal state on a CI runner. The stack is entirely
+  // Cloudflare's, never ours, and the same pages load fine for real visitors.
+  // Failing on it would mean every auth page reports broken forever.
+  /Blocked a frame with origin "https:\/\/challenges\.cloudflare\.com"/i,
 ]
+
+// An error is only ours if something in the stack came from our own origin.
+// Third-party widgets (Turnstile, analytics) throwing inside their own
+// scripts is not this site being broken.
+function isThirdPartyPageError(message) {
+  return /https:\/\/(challenges\.cloudflare\.com|static\.cloudflareinsights\.com)/.test(message)
+}
 
 function routeSlug(route) {
   return route === '/' ? 'home' : route.replace(/^\//, '').replaceAll('/', '-')
 }
 
 function isIgnoredPageError(message) {
-  return IGNORED_PAGE_ERROR_PATTERNS.some((pattern) => pattern.test(message))
+  return IGNORED_PAGE_ERROR_PATTERNS.some((pattern) => pattern.test(message)) || isThirdPartyPageError(message)
+}
+
+/**
+ * Screenshots are evidence, not an assertion. WebKit refuses a full-page
+ * capture taller than 32767px, which the longer marketing pages exceed -- and
+ * a failed capture was being caught as a navigation error, reporting a
+ * perfectly healthy page as down. Never let this fail a route.
+ */
+async function captureScreenshot(page, path) {
+  try {
+    await page.screenshot({ path, fullPage: true })
+  } catch {
+    await page.screenshot({ path }).catch(() => undefined)
+  }
 }
 
 async function main() {
@@ -73,6 +104,8 @@ async function main() {
       status: null,
       hasApplicationError: false,
       hasMain: false,
+      hasContent: false,
+      textLength: 0,
       isVercelLogin: false,
       pageErrors,
       fatalPageErrors: [],
@@ -99,16 +132,18 @@ async function main() {
       result.isVercelLogin = bodyText.includes('Log in to Vercel') && bodyText.includes('Continue with GitHub')
       result.fatalPageErrors = pageErrors.filter((message) => !isIgnoredPageError(message))
 
-      await page.screenshot({
-        path: `${reportDir}/${routeSlug(route)}.png`,
-        fullPage: true,
-      })
+      // The auth pages (/login, /signup, /forgot-password, /update-password)
+      // and /terms render a centered card rather than a <main> landmark, so
+      // requiring <main> reported them broken when they were fine. What
+      // actually distinguishes a rendered page from a blank or crashed one is
+      // whether it drew any real text.
+      result.textLength = bodyText.length
+      result.hasContent = result.hasMain || bodyText.length >= MIN_BODY_TEXT_LENGTH
+
+      await captureScreenshot(page, `${reportDir}/${routeSlug(route)}.png`)
     } catch (error) {
       result.navigationError = error.stack || error.message
-      await page.screenshot({
-        path: `${reportDir}/${routeSlug(route)}-failure.png`,
-        fullPage: true,
-      }).catch(() => undefined)
+      await captureScreenshot(page, `${reportDir}/${routeSlug(route)}-failure.png`)
     } finally {
       await page.close()
     }
@@ -121,7 +156,7 @@ async function main() {
       result.status >= 400 ||
       result.hasApplicationError ||
       result.isVercelLogin ||
-      !result.hasMain ||
+      !result.hasContent ||
       result.fatalPageErrors.length > 0
 
     if (failed) {
