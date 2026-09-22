@@ -53,10 +53,26 @@ export async function POST(request: Request) {
   // has to enforce it itself, or the form's Turnstile widget would be
   // decorative.
   if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) {
-    const verified = body.turnstileToken ? await verifyTurnstileToken(body.turnstileToken) : false
-    if (!verified) {
+    if (!body.turnstileToken) {
       return NextResponse.json(
         { error: 'Complete the security check before requesting a reset link.' },
+        { status: 400 }
+      )
+    }
+
+    const result = await verifyTurnstileToken(body.turnstileToken)
+    if (!result.ok) {
+      // A misconfigured secret on our side is not the visitor failing a
+      // check, and telling them to "complete the security check" they just
+      // completed sends them in circles. Name it for what it is, and keep
+      // the specifics in the server log.
+      const isOurFault = result.reason === 'not-configured' || result.errorCodes.includes('invalid-input-secret')
+      return NextResponse.json(
+        {
+          error: isOurFault
+            ? 'The security check is misconfigured on our end. Please contact the club so we can fix it.'
+            : 'The security check expired. Tick the box again and resend.',
+        },
         { status: 400 }
       )
     }
