@@ -1,0 +1,81 @@
+# Scheduled synthetic check of the LIVE site.
+#
+# Deliberately separate from runtime-smoke.yml, which gates deploys. That one
+# only runs when something is pushed -- and almost nothing that has actually
+# taken this site down was a code change. Expired credentials, an exhausted
+# quota, an unverified sending domain, a stale env var: none of those produce
+# a commit, so a deploy-triggered test can never notice them. This runs on a
+# clock against the real domain instead.
+#
+# Scope, honestly: this proves pages load and do not throw. It cannot prove an
+# email was delivered or a payment settled -- those need integration health
+# checks against Resend, QStash and Stripe, which are a separate piece of work.
+name: Production monitor
+
+on:
+  schedule:
+    # Every two hours. Tighten if needed -- each run is a couple of minutes of
+    # Actions time, so hourly roughly doubles the monthly spend.
+    - cron: '0 */2 * * *'
+  workflow_dispatch:
+
+jobs:
+  public-site:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # The domain parents actually type. runtime-smoke.yml points at the
+      # clw-wizards.vercel.app deployment URL, which can be healthy while the
+      # real domain is not (DNS, redirects, certificates).
+      BASE_URL: https://www.clwizards.com
+      REPORT_DIR: artifacts/production-monitor
+      SMOKE_ROUTES: >-
+        /,
+        /about,
+        /program,
+        /coaches,
+        /events,
+        /faq,
+        /join,
+        /partners,
+        /golf-outing,
+        /terms,
+        /sponsorship,
+        /sponsorship/donate,
+        /sponsorship/sponsor,
+        /sponsorship/boosters,
+        /sponsorship/volunteer,
+        /login,
+        /signup,
+        /forgot-password,
+        /update-password,
+        /dashboard
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # No npm ci and no build: this tests the deployed site, so the only
+      # dependency is the browser driver. Keeps each run to a couple of minutes.
+      - name: Install WebKit
+        run: |
+          npm install --no-save --no-package-lock playwright@1.54.2
+          npx playwright install --with-deps webkit
+
+      - name: Sweep the live site in mobile WebKit
+        run: node scripts/runtime-smoke.cjs
+
+      # Only on failure -- a green run every two hours would otherwise pile up
+      # screenshots nobody looks at.
+      - name: Upload browser evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-monitor-${{ github.run_number }}
+          path: artifacts
+          if-no-files-found: warn
+          retention-days: 7

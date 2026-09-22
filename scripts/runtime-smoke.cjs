@@ -1,4 +1,7 @@
-const routes = [
+// The set this script was originally written for: the Support rebuild that
+// shipped a client-side exception to production. Left as the default so the
+// deploy-gating workflow behaves exactly as before.
+const DEFAULT_ROUTES = [
   '/',
   '/sponsorship',
   '/sponsorship/donate',
@@ -6,6 +9,16 @@ const routes = [
   '/sponsorship/sponsor',
   '/sponsorship/volunteer',
 ]
+
+// SMOKE_ROUTES lets a caller check a different set without touching this file
+// -- production-monitor.yml uses it to sweep the public site plus every auth
+// entry point on a schedule, which is a much wider net than a deploy gate
+// needs.
+const routes = process.env.SMOKE_ROUTES
+  ? process.env.SMOKE_ROUTES.split(',')
+      .map((route) => route.trim())
+      .filter(Boolean)
+  : DEFAULT_ROUTES
 
 const IGNORED_PAGE_ERROR_PATTERNS = [
   /ResizeObserver loop completed with undelivered notifications/i,
