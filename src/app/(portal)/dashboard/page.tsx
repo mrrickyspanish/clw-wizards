@@ -19,6 +19,7 @@ import { WEEKDAYS, formatTime, nextPractice } from '@/lib/practice'
 import { resolveFamilyOwnerIds } from '@/lib/family'
 import { ORG } from '@/config/org.config'
 import type { Tournament, TournamentRegistration, Practice, Athlete, ClubEvent } from '@/types/database'
+import { TourStep } from '@/components/tour/TourStep'
 import { SeasonRegistrationCard } from './SeasonRegistrationCard'
 
 function greeting(): string {
@@ -159,27 +160,31 @@ export default async function ParentDashboardPage() {
     return (
       <div className="mx-auto max-w-3xl">
         {greetingBlock}
-        <SeasonRegistrationCard familyOwnerIds={familyOwnerIds} />
-        <section className="card-depth relative overflow-hidden rounded-2xl border border-clw-gold/15 bg-clw-black-3 p-7">
-          <HeroMark />
-          <div className="relative">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-clw-gold-ink">Welcome to {ORG.shortName}</p>
-            <h2 className="mt-3 font-display text-3xl leading-tight text-clw-white">Ready for the season?</h2>
-            <p className="mt-3 max-w-md text-clw-gray">
-              Add your wrestler and this becomes your family&apos;s hub: practices, tournament sign-ups, dues, and
-              documents, all in one place.
-            </p>
-            <Link
-              href="/athletes/new"
-              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-clw-gold px-5 py-2.5 font-medium text-[#0D0D0D]"
-            >
-              <Plus className="h-4 w-4" /> Add your wrestler
-            </Link>
-            <Link href="/tournaments" className="ml-4 text-sm text-clw-gold-ink">
-              Browse programs
-            </Link>
-          </div>
-        </section>
+        <TourStep id="seasonRegistration">
+          <SeasonRegistrationCard familyOwnerIds={familyOwnerIds} />
+        </TourStep>
+        <TourStep id="welcome">
+          <section className="card-depth relative overflow-hidden rounded-2xl border border-clw-gold/15 bg-clw-black-3 p-7">
+            <HeroMark />
+            <div className="relative">
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-clw-gold-ink">Welcome to {ORG.shortName}</p>
+              <h2 className="mt-3 font-display text-3xl leading-tight text-clw-white">Ready for the season?</h2>
+              <p className="mt-3 max-w-md text-clw-gray">
+                Add your wrestler and this becomes your family&apos;s hub: practices, tournament sign-ups, dues, and
+                documents, all in one place.
+              </p>
+              <Link
+                href="/athletes/new"
+                className="mt-6 inline-flex items-center gap-2 rounded-lg bg-clw-gold px-5 py-2.5 font-medium text-[#0D0D0D]"
+              >
+                <Plus className="h-4 w-4" /> Add your wrestler
+              </Link>
+              <Link href="/tournaments" className="ml-4 text-sm text-clw-gold-ink">
+                Browse programs
+              </Link>
+            </div>
+          </section>
+        </TourStep>
       </div>
     )
   }
@@ -201,6 +206,7 @@ export default async function ParentDashboardPage() {
       {greetingBlock}
 
       {/* HERO: the one section that dominates. Next practice -> next event. */}
+      <TourStep id="hero">
       <section className="card-depth relative mb-8 overflow-hidden rounded-2xl border border-clw-gold/15 bg-clw-black-3 p-7">
         <HeroMark />
         <div className="relative">
@@ -241,8 +247,11 @@ export default async function ParentDashboardPage() {
           )}
         </div>
       </section>
+      </TourStep>
 
-      <SeasonRegistrationCard familyOwnerIds={familyOwnerIds} />
+      <TourStep id="seasonRegistration">
+        <SeasonRegistrationCard familyOwnerIds={familyOwnerIds} />
+      </TourStep>
 
       {/* BALANCE: focal only when owed */}
       {outstandingCents > 0 && (
@@ -259,7 +268,7 @@ export default async function ParentDashboardPage() {
       )}
 
       {/* STATS */}
-      <div className="mb-8 grid grid-cols-3 gap-3">
+      <TourStep id="stats" className="mb-8 grid grid-cols-3 gap-3">
         {stats.map((s) => {
           const Icon = s.icon
           return (
@@ -278,9 +287,10 @@ export default async function ParentDashboardPage() {
             </Link>
           )
         })}
-      </div>
+      </TourStep>
 
       {/* MY WRESTLERS */}
+      <TourStep id="wrestlers">
       <section className="card-depth mb-6 rounded-2xl border border-clw-gold/10 bg-clw-black-3 p-5">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-medium text-clw-white">My wrestlers</h2>
@@ -318,6 +328,7 @@ export default async function ParentDashboardPage() {
           </li>
         </ul>
       </section>
+      </TourStep>
 
       {/* THIS WEEK */}
       {myPractices.length > 0 && (
@@ -368,7 +379,7 @@ export default async function ParentDashboardPage() {
       )}
 
       {/* QUICK ACTIONS */}
-      <div className="mb-6 space-y-3">
+      <TourStep id="quickActions" className="mb-6 space-y-3">
         {quickActions.map((a) => {
           const Icon = a.icon
           return (
@@ -388,7 +399,7 @@ export default async function ParentDashboardPage() {
             </Link>
           )
         })}
-      </div>
+      </TourStep>
 
       {/* RECENT ACTIVITY */}
       {activity.length > 0 && (
