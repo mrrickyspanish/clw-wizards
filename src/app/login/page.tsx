@@ -94,6 +94,14 @@ function LoginForm() {
                 </AlertDescription>
               </Alert>
             )}
+            {searchParams.get('created') === 'admin-upgrade' && !error && (
+              <Alert className="border-clw-gold/40 bg-clw-gold/10">
+                <AlertDescription className="text-clw-gold-ink">
+                  Your account is now an admin account. Sign in with the same email and password to open your
+                  dashboard.
+                </AlertDescription>
+              </Alert>
+            )}
             {redirectTo === '/registration' && !error && (
               <Alert className="border-clw-gold/30 bg-clw-gold/5">
                 <AlertDescription className="text-clw-gray">
