@@ -138,7 +138,18 @@ async function main() {
       // actually distinguishes a rendered page from a blank or crashed one is
       // whether it drew any real text.
       result.textLength = bodyText.length
-      result.hasContent = result.hasMain || bodyText.length >= MIN_BODY_TEXT_LENGTH
+      const finalPath = new URL(page.url()).pathname
+      if (['/login', '/signup', '/forgot-password'].includes(finalPath)) {
+        // Auth cards are intentionally short. Assert real controls instead of
+        // falsely treating a healthy 135-character login form as a blank page.
+        result.hasContent = await page.locator('input[type="email"]').isVisible() &&
+          await page.locator('form button[type="submit"]').isVisible()
+        if (finalPath !== '/forgot-password') {
+          result.hasContent = result.hasContent && await page.locator('input[type="password"]').first().isVisible()
+        }
+      } else {
+        result.hasContent = result.hasMain || bodyText.length >= MIN_BODY_TEXT_LENGTH
+      }
 
       await captureScreenshot(page, `${reportDir}/${routeSlug(route)}.png`)
     } catch (error) {

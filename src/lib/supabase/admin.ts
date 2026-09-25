@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+import { readCredential } from '@/lib/env'
 
 /**
  * Service-role client — bypasses RLS. Only for server-only contexts that have
@@ -7,10 +8,10 @@ import type { Database } from '@/types/database'
  * handlers, and the auth trigger. Never import this into anything reachable
  * from a client component.
  */
-export function createAdminSupabase() {
+export function createAdminSupabase(fetcher?: typeof fetch) {
   return createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
+    readCredential('NEXT_PUBLIC_SUPABASE_URL')!,
+    readCredential('SUPABASE_SERVICE_ROLE_KEY')!,
+    { auth: { autoRefreshToken: false, persistSession: false }, ...(fetcher ? { global: { fetch: fetcher } } : {}) }
   )
 }

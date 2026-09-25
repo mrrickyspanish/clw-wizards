@@ -1,0 +1,203 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- Node CommonJS test harness loads transpiled routes with mocked dependencies. */
+const { test } = require('node:test')
+const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
+const vm = require('node:vm')
+const ts = require('typescript')
+
+// Execute the real route and error policy with provider boundaries mocked.
+// No network, credentials, test users or actual emails are involved.
+function load(relative, mocks, env = {}, logs = []) {
+  const filename = path.join(__dirname, '..', relative)
+  const code = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText
+  const compiledModule = { exports: {} }
+  vm.runInNewContext(code, {
+    module: compiledModule, exports: compiledModule.exports,
+    require: (id) => id in mocks ? mocks[id] : require(id),
+    process: { env }, URL, Response, Request, AbortSignal, fetch,
+    console: { info: (...args) => logs.push(args), error: (...args) => logs.push(args) },
+    setTimeout: (fn) => { fn(); return 0 },
+  }, { filename })
+  return compiledModule.exports
+}
+const policy = load('src/lib/auth/recovery-errors.ts', {})
+const transient = { name: 'AuthRetryableFetchError', status: 503, message: '{}' }
+const generated = { data: { properties: { hashed_token: 'SECRET_RECOVERY_TOKEN' } }, error: null }
+function harness(options = {}) {
+  const logs = [], sends = [], generates = []
+  const env = {
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY: 'captcha-enabled',
+    RESEND_API_KEY: 'test-key', RESEND_FROM_EMAIL: 'CLW <auth@example.com>',
+    NEXT_PUBLIC_SITE_URL: 'https://www.clwizards.com', ...options.env,
+  }
+  const route = load('src/app/api/auth/request-password-reset/route.ts', {
+    'next/server': { NextResponse: Response },
+    '@/lib/env': { readCredential: (key) => env[key]?.trim() || undefined },
+    '@/lib/auth/recovery-errors': policy,
+    '@/config/org.config': { ORG: { name: 'CLW' } },
+    '@/lib/turnstile': { verifyTurnstileToken: async () => options.captcha ?? { ok: true } },
+    '@/lib/supabase/admin': { createAdminSupabase: () => {
+      if (options.clientError) throw options.clientError
+      return { auth: { admin: { generateLink: async (input) => {
+        generates.push(input)
+        return options.generate ? options.generate(generates.length) : generated
+      } } } }
+    } },
+    resend: { Resend: class { emails = { send: async (payload, opts) => {
+      sends.push({ payload, opts })
+      return options.send ? options.send(sends.length) : { data: { id: 'provider-message-id' }, error: null }
+    } } } },
+  }, env, logs)
+  return { logs, sends, generates, post: (body = { email: ' Parent@Example.com ', turnstileToken: 'captcha' }) =>
+    route.POST(new Request('https://www.clwizards.com/api/auth/request-password-reset', {
+      method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' },
+    })) }
+}
+
+test('successful send preserves callback, normalizes email and logs provider receipt without secrets', async () => {
+  const h = harness()
+  const res = await h.post()
+  assert.equal(res.status, 200)
+  assert.equal((await res.json()).ok, true)
+  assert.equal(h.generates[0].email, 'parent@example.com')
+  assert.match(h.sends[0].payload.html, /https:\/\/www.clwizards.com\/auth\/callback\?token_hash=SECRET_RECOVERY_TOKEN&type=recovery&next=%2Fupdate-password/)
+  assert.match(JSON.stringify(h.logs), /provider-message-id/)
+  assert.doesNotMatch(JSON.stringify(h.logs), /SECRET_RECOVERY_TOKEN|parent@example.com|test-key/)
+})
+test('a Supabase transient {} failure is retried before sending', async () => {
+  const h = harness({ generate: (n) => n < 3 ? { error: transient } : generated })
+  assert.equal((await h.post()).status, 200)
+  assert.equal(h.generates.length, 3)
+  assert.equal(h.sends.length, 1)
+})
+test('persistent upstream failure is 503, never fake success, and logs status/stage', async () => {
+  const h = harness({ generate: () => ({ error: transient }) })
+  const res = await h.post()
+  assert.equal(res.status, 503)
+  assert.equal(res.headers.get('Retry-After'), '60')
+  assert.equal((await res.json()).ok, undefined)
+  assert.equal(h.sends.length, 0)
+  assert.equal(h.generates.length, 3)
+  assert.match(JSON.stringify(h.logs), /generate-link.*AuthRetryableFetchError.*503/)
+})
+test('invalid credentials are not retried or suppressed', async () => {
+  const h = harness({ generate: () => ({ error: { name: 'AuthApiError', status: 401 } }) })
+  assert.equal((await h.post()).status, 503)
+  assert.equal(h.generates.length, 1)
+})
+test('unknown account remains enumeration-safe', async () => {
+  const h = harness({ generate: () => ({ error: { code: 'user_not_found', status: 404 } }) })
+  assert.equal((await h.post()).status, 200)
+  assert.equal(h.sends.length, 0)
+  assert.equal(h.logs.length, 0)
+})
+test('empty token response fails rather than claiming email was sent', async () => {
+  const h = harness({ generate: () => ({ data: { properties: {} } }) })
+  assert.equal((await h.post()).status, 503)
+  assert.equal(h.sends.length, 0)
+})
+test('email retry keeps the same token, payload and idempotency key', async () => {
+  const h = harness({ send: (n) => n === 1 ? { error: { name: 'application_error' } } : { data: { id: 'accepted' } } })
+  assert.equal((await h.post()).status, 200)
+  assert.equal(h.generates.length, 1)
+  assert.equal(h.sends.length, 2)
+  assert.equal(JSON.stringify(h.sends[0].payload), JSON.stringify(h.sends[1].payload))
+  assert.equal(h.sends[0].opts.idempotencyKey, h.sends[1].opts.idempotencyKey)
+})
+test('rejected mail is not reported as success or retried needlessly', async () => {
+  const h = harness({ send: () => ({ error: { name: 'validation_error', statusCode: 403 } }) })
+  assert.equal((await h.post()).status, 503)
+  assert.equal(h.sends.length, 1)
+})
+test('network exceptions during generation and email send are retried', async () => {
+  const h = harness({
+    generate: (n) => { if (n === 1) throw new TypeError('fetch failed'); return generated },
+    send: (n) => { if (n === 1) throw new TypeError('fetch failed'); return { data: { id: 'accepted' } } },
+  })
+  assert.equal((await h.post()).status, 200)
+  assert.equal(h.generates.length, 2)
+  assert.equal(h.sends.length, 2)
+})
+test('missing key, sender and client configuration fail visibly', async () => {
+  for (const options of [{ env: { RESEND_API_KEY: '' } }, { env: { RESEND_FROM_EMAIL: '' } }, { clientError: new Error('config') }]) {
+    const h = harness(options)
+    assert.equal((await h.post()).status, 503)
+    assert.equal(h.sends.length, 0)
+  }
+})
+test('invalid input cannot reach auth or send mail', async () => {
+  for (const body of [null, { email: 42 }, { email: 'bad' }, { email: 'valid@example.com' }]) {
+    const h = harness()
+    assert.equal((await h.post(body)).status, 400)
+    assert.equal(h.generates.length, 0)
+  }
+})
+test('captcha rejection is different from captcha service failure', async () => {
+  const rejected = harness({ captcha: { ok: false, reason: 'rejected', errorCodes: ['timeout-or-duplicate'] } })
+  assert.equal((await rejected.post()).status, 400)
+  const unavailable = harness({ captcha: { ok: false, reason: 'rejected', errorCodes: ['request-failed'] } })
+  assert.equal((await unavailable.post()).status, 503)
+  assert.equal(unavailable.generates.length, 0)
+})
+test('login never renders {} and distinguishes temporary outages from credentials', () => {
+  assert.match(policy.signInErrorMessage(transient), /temporarily unavailable/)
+  assert.match(policy.signInErrorMessage({ message: '{}' }), /temporarily unavailable/)
+  assert.match(policy.signInErrorMessage({ code: 'invalid_credentials', message: 'Invalid' }), /email or password is incorrect/)
+})
+
+test('the installed Resend SDK forwards timeout and idempotency options to fetch', async () => {
+  const { Resend } = require('resend')
+  const originalFetch = global.fetch
+  let observed
+  try {
+    global.fetch = async (_url, options) => {
+      observed = options
+      return Response.json({ id: 'accepted' })
+    }
+    const signal = AbortSignal.timeout(5000)
+    await new Resend('test-key').emails.send({ from: 'test@example.com', to: 'parent@example.com', subject: 'Test', text: 'Test' }, { idempotencyKey: 'test-key', signal })
+    assert.equal(observed.signal, signal)
+    assert.equal(observed.headers.get('Idempotency-Key'), 'test-key')
+  } finally {
+    global.fetch = originalFetch
+  }
+})
+
+function callbackHarness(authError) {
+  const calls = []
+  const callback = load('src/app/auth/callback/route.ts', {
+    'next/server': { NextResponse: Response },
+    '@/lib/supabase/server': { createServerSupabase: async () => ({ auth: {
+      verifyOtp: async (args) => { calls.push(args); return { error: authError } },
+      exchangeCodeForSession: async (code) => { calls.push(code); return { error: authError } },
+    } }) },
+  })
+  return { calls, get: (query) => {
+    const nextUrl = new URL(`https://www.clwizards.com/auth/callback?${query}`)
+    nextUrl.clone = () => new URL(nextUrl)
+    return callback.GET({ nextUrl })
+  } }
+}
+test('recovery token reaches password screen, not homepage', async () => {
+  const h = callbackHarness(null)
+  const res = await h.get('token_hash=test-token&type=recovery&next=%2Fupdate-password')
+  assert.equal(res.headers.get('location'), 'https://www.clwizards.com/update-password')
+  assert.equal(h.calls[0].type, 'recovery')
+})
+test('legacy PKCE links still reach password screen', async () => {
+  const h = callbackHarness(null)
+  assert.equal((await h.get('code=legacy-code')).headers.get('location'), 'https://www.clwizards.com/update-password')
+  assert.equal(h.calls[0], 'legacy-code')
+})
+test('expired links explain failure on password screen, not homepage', async () => {
+  const h = callbackHarness({ code: 'otp_expired' })
+  assert.equal((await h.get('token_hash=old&type=recovery')).headers.get('location'), 'https://www.clwizards.com/update-password?error=invalid-link')
+})
+test('callback rejects missing tokens and external redirects', async () => {
+  const h = callbackHarness(null)
+  assert.equal((await h.get('')).headers.get('location'), 'https://www.clwizards.com/update-password?error=invalid-link')
+  assert.equal((await h.get('token_hash=test&type=recovery&next=https://evil.example')).headers.get('location'), 'https://www.clwizards.com/update-password')
+})

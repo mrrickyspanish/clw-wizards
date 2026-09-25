@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "test:auth": "node --test tests/auth-recovery.test.cjs",
+    "prebuild": "npm run test:auth",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

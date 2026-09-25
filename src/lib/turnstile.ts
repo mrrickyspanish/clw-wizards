@@ -34,6 +34,7 @@ export async function verifyTurnstileToken(token: string): Promise<TurnstileResu
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ secret, response: token }),
+      signal: AbortSignal.timeout(10_000),
     })
     const data = (await res.json()) as { success?: boolean; 'error-codes'?: string[] }
 

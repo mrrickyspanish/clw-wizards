@@ -6,6 +6,7 @@ import Link from 'next/link'
 
 import { createBrowserSupabase } from '@/lib/supabase/browser'
 import { homeForRole } from '@/lib/auth/session'
+import { signInErrorMessage } from '@/lib/auth/recovery-errors'
 import { useTurnstile } from '@/components/auth/useTurnstile'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -49,32 +50,38 @@ function LoginForm() {
 
     setLoading(true)
 
-    const supabase = createBrowserSupabase()
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-      options: turnstile.token ? { captchaToken: turnstile.token } : {},
-    })
+    try {
+      const supabase = createBrowserSupabase()
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+        options: turnstile.token ? { captchaToken: turnstile.token } : {},
+      })
 
-    if (signInError) {
-      setError(signInError.message)
+      if (signInError) {
+        setError(signInErrorMessage(signInError))
+        turnstile.reset()
+        return
+      }
+
+      if (redirectTo) {
+        router.push(redirectTo)
+        return
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single()
+
+      router.push(homeForRole(profile?.role ?? null))
+    } catch (error) {
+      setError(signInErrorMessage(error))
       turnstile.reset()
+    } finally {
       setLoading(false)
-      return
     }
-
-    if (redirectTo) {
-      router.push(redirectTo)
-      return
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', data.user.id)
-      .single()
-
-    router.push(homeForRole(profile?.role ?? null))
   }
 
   return (
