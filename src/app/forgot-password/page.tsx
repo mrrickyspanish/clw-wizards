@@ -66,12 +66,20 @@ export default function ForgotPasswordPage() {
         </CardHeader>
         <CardContent>
           {sent ? (
-            <Alert>
-              <AlertDescription>
-                If an account exists for {email}, a reset link is on its way. Check your inbox and spam folder. If nothing arrives within 10 minutes, contact the club at{' '}
-                <a href={`mailto:${ORG.contactEmail}`} className="underline">{ORG.contactEmail}</a>.
-              </AlertDescription>
-            </Alert>
+            <div className="space-y-4">
+              <Alert>
+                <AlertDescription>
+                  If you already have an account for {email}, check your inbox and spam folder for a reset link. If nothing arrives within 10 minutes, contact the club at{' '}
+                  <a href={`mailto:${ORG.contactEmail}`} className="underline">{ORG.contactEmail}</a>.
+                </AlertDescription>
+              </Alert>
+              <div className="text-center text-sm">
+                <p className="mb-3 text-muted-foreground">New to CLW? Create your family account instead.</p>
+                <Button asChild variant="outline" className="w-full">
+                  <Link href="/signup">Create account</Link>
+                </Button>
+              </div>
+            </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
