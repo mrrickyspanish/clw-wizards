@@ -8,10 +8,10 @@ const ts = require('typescript')
 
 // Execute the real route and error policy with provider boundaries mocked.
 // No network, credentials, test users or actual emails are involved.
-function load(relative, mocks, env = {}, logs = [], fetcher = fetch) {
+function load(relative, mocks, env = {}, logs = [], fetcher = fetch, globals = {}) {
   const filename = path.join(__dirname, '..', relative)
   const code = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
   }).outputText
   const compiledModule = { exports: {} }
   vm.runInNewContext(code, {
@@ -19,7 +19,7 @@ function load(relative, mocks, env = {}, logs = [], fetcher = fetch) {
     require: (id) => id in mocks ? mocks[id] : require(id),
     process: { env }, URL, Response, Request, AbortSignal, fetch: fetcher,
     console: { info: (...args) => logs.push(args), error: (...args) => logs.push(args) },
-    setTimeout: (fn) => { fn(); return 0 },
+    setTimeout: (fn) => { fn(); return 0 }, ...globals,
   }, { filename })
   return compiledModule.exports
 }
@@ -66,7 +66,7 @@ test('successful send preserves callback, normalizes email and logs provider rec
   assert.equal(res.status, 200)
   assert.equal((await res.json()).ok, true)
   assert.equal(h.generates[0].email, 'parent@example.com')
-  assert.match(h.sends[0].payload.html, /https:\/\/www.clwizards.com\/auth\/callback\?token_hash=SECRET_RECOVERY_TOKEN&type=recovery&next=%2Fupdate-password/)
+  assert.match(h.sends[0].payload.html, /https:\/\/www.clwizards.com\/update-password#recovery_token=SECRET_RECOVERY_TOKEN/)
   assert.match(JSON.stringify(h.logs), /provider-message-id/)
   assert.doesNotMatch(JSON.stringify(h.logs), /SECRET_RECOVERY_TOKEN|parent@example.com|test-key/)
 })
@@ -178,7 +178,7 @@ test('the installed Resend SDK forwards timeout and idempotency options to fetch
 function callbackHarness(authError) {
   const calls = []
   const callback = load('src/app/auth/callback/route.ts', {
-    'next/server': { NextResponse: Response },
+    'next/server': require('next/server'),
     '@/lib/supabase/server': { createServerSupabase: async () => ({ auth: {
       verifyOtp: async (args) => { calls.push(args); return { error: authError } },
       exchangeCodeForSession: async (code) => { calls.push(code); return { error: authError } },
@@ -193,22 +193,26 @@ function callbackHarness(authError) {
 test('recovery token reaches password screen, not homepage', async () => {
   const h = callbackHarness(null)
   const res = await h.get('token_hash=test-token&type=recovery&next=%2Fupdate-password')
-  assert.equal(res.headers.get('location'), 'https://www.clwizards.com/update-password')
-  assert.equal(h.calls[0].type, 'recovery')
+  assert.equal(res.headers.get('location'), 'https://www.clwizards.com/update-password#recovery_token=test-token')
+  assert.equal(h.calls.length, 0)
+  assert.equal(res.headers.get('Cache-Control'), 'no-store')
 })
 test('legacy PKCE links still reach password screen', async () => {
   const h = callbackHarness(null)
   assert.equal((await h.get('code=legacy-code')).headers.get('location'), 'https://www.clwizards.com/update-password')
   assert.equal(h.calls[0], 'legacy-code')
 })
-test('expired links explain failure on password screen, not homepage', async () => {
+test('scanner and repeated GET visits never consume even an expired token', async () => {
   const h = callbackHarness({ code: 'otp_expired' })
-  assert.equal((await h.get('token_hash=old&type=recovery')).headers.get('location'), 'https://www.clwizards.com/update-password?error=invalid-link')
+  for (let i = 0; i < 5; i++) {
+    assert.equal((await h.get('token_hash=old&type=recovery')).headers.get('location'), 'https://www.clwizards.com/update-password#recovery_token=old')
+  }
+  assert.equal(h.calls.length, 0)
 })
 test('callback rejects missing tokens and external redirects', async () => {
   const h = callbackHarness(null)
   assert.equal((await h.get('')).headers.get('location'), 'https://www.clwizards.com/update-password?error=invalid-link')
-  assert.equal((await h.get('token_hash=test&type=recovery&next=https://evil.example')).headers.get('location'), 'https://www.clwizards.com/update-password')
+  assert.equal((await h.get('token_hash=test&type=recovery&next=https://evil.example')).headers.get('location'), 'https://www.clwizards.com/update-password#recovery_token=test')
 })
 
 test('scheduled canary bypasses CAPTCHA only for the exact configured account and valid cron secret', async () => {
@@ -222,6 +226,92 @@ test('scheduled canary bypasses CAPTCHA only for the exact configured account an
   const differentAccount = await h.post({ email: 'another@example.com' }, { Authorization: 'Bearer cron-secret' })
   assert.equal(differentAccount.status, 400)
   assert.equal(h.sends.length, 1)
+})
+
+// Run the actual password form with deterministic hook state and mocked auth.
+// This tests user events, not just source text or a copy of the implementation.
+function passwordForm(options = {}) {
+  const states = [], effects = [], calls = [], navigations = []
+  let cursor = 0
+  const window = { location: { hash: '#recovery_token=test-token' }, history: {
+    replaceState: (_state, _title, url) => { window.location.hash = ''; navigations.push(url) },
+  } }
+  const react = {
+    ...require('react'),
+    useState: (initial) => {
+      const index = cursor++
+      if (!(index in states)) states[index] = initial
+      return [states[index], (value) => { states[index] = value }]
+    },
+    useRef: (value) => {
+      const index = cursor++
+      if (!(index in states)) states[index] = { current: value }
+      return states[index]
+    },
+    useEffect: (effect) => { const index = cursor++; if (!(index in states)) { states[index] = true; effects.push(effect) } },
+  }
+  const mocks = {
+    react,
+    'next/navigation': { useRouter: () => ({ replace: (url) => navigations.push(url) }), useSearchParams: () => new URLSearchParams() },
+    '@/lib/supabase/browser': { createBrowserSupabase: () => ({ auth: {
+      getUser: async () => { calls.push('getUser'); return { data: { user: null } } },
+      verifyOtp: async (args) => { calls.push(['verify', args]); return { error: options.verifyError ?? null } },
+      updateUser: async (args) => { calls.push(['update', args]); return { error: options.updateError ?? null } },
+      signOut: async () => { calls.push('signOut'); return { error: null } },
+    } }) },
+  }
+  for (const [file, names] of Object.entries({
+    button: ['Button'], input: ['Input'], label: ['Label'],
+    card: ['Card', 'CardContent', 'CardDescription', 'CardHeader', 'CardTitle'],
+    alert: ['Alert', 'AlertDescription'],
+  })) mocks[`@/components/ui/${file}`] = Object.fromEntries(names.map((name) => [name, name]))
+  mocks['@/components/layout/AuthBrand'] = { AuthBrand: 'AuthBrand' }
+  const page = load('src/app/update-password/page.tsx', mocks, {}, [], fetch, { window, URLSearchParams })
+  const component = page.default().props.children.type
+  function render() { cursor = 0; return component() }
+  function nodes(node) {
+    if (!node || typeof node !== 'object') return []
+    if (Array.isArray(node)) return node.flatMap(nodes)
+    return [node, ...nodes(node.props?.children)]
+  }
+  render()
+  effects.forEach((effect) => effect())
+  function ready() {
+    const inputs = nodes(render()).filter((node) => node.type === 'Input')
+    inputs.forEach((node) => node.props.onChange({ target: { value: 'Valid-password-123!' } }))
+    return nodes(render()).find((node) => node.type === 'form')
+  }
+  return { calls, navigations, render, ready, nodes }
+}
+test('opening and rendering password form never verifies or consumes the token', () => {
+  const h = passwordForm()
+  for (let i = 0; i < 5; i++) h.render()
+  assert.deepEqual(h.calls, [])
+})
+test('explicit password submission verifies once, updates password, and returns to login', async () => {
+  const h = passwordForm()
+  const form = h.ready()
+  await Promise.all([form.props.onSubmit({ preventDefault() {} }), form.props.onSubmit({ preventDefault() {} })])
+  assert.equal(h.calls.filter((call) => call[0] === 'verify').length, 1)
+  assert.equal(h.calls[0][1].type, 'recovery')
+  assert.equal(h.calls[1][0], 'update')
+  assert.equal(h.calls[2], 'signOut')
+  assert.equal(h.navigations.at(-1), '/login?reset=success')
+})
+test('expired token never updates a password or reports success', async () => {
+  const h = passwordForm({ verifyError: { code: 'otp_expired' } })
+  await h.ready().props.onSubmit({ preventDefault() {} })
+  assert.equal(h.calls.length, 1)
+  assert.equal(h.navigations.length, 0)
+  assert.equal(h.nodes(h.render()).filter((node) => node.type === 'Input').length, 0)
+})
+test('password rejection can be retried without consuming the token again', async () => {
+  const h = passwordForm({ updateError: { message: 'Password rejected' } })
+  await h.ready().props.onSubmit({ preventDefault() {} })
+  await h.ready().props.onSubmit({ preventDefault() {} })
+  assert.equal(h.calls.filter((call) => call[0] === 'verify').length, 1)
+  assert.equal(h.calls.filter((call) => call[0] === 'update').length, 2)
+  assert.equal(h.navigations.includes('/login?reset=success'), false)
 })
 
 function recoveryAudit(emails, options = {}) {

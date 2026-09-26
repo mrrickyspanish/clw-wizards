@@ -69,7 +69,9 @@ export async function POST(request: Request) {
     })
     if (!data?.properties?.hashed_token) throw { name: 'MissingRecoveryToken' }
 
-    const resetLink = `${siteUrl}/auth/callback?token_hash=${encodeURIComponent(data.properties.hashed_token)}&type=recovery&next=${encodeURIComponent('/update-password')}`
+    // Fragments are not sent to web servers or through HTTP referrers. The
+    // password form verifies this token only after an explicit submission.
+    const resetLink = `${siteUrl}/update-password#recovery_token=${encodeURIComponent(data.properties.hashed_token)}`
     const html = `<p>Follow this link to reset the password for your ${ORG.name} account:</p>
 <p><a href="${resetLink}">Reset your password</a></p>
 <p>If the button above doesn't work, copy and paste this link into your browser:<br/>${resetLink}</p>
