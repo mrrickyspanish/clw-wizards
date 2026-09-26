@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import type Stripe from 'stripe'
 
 import { getStripeClient } from '@/lib/stripe'
+import { resolveSiteOrigin, siteOriginFixHint } from '@/lib/site-origin'
 import { sendAlert } from '@/lib/alerts'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { createAdminSupabase } from '@/lib/supabase/admin'
@@ -84,44 +85,91 @@ function safeWebsiteUrl(value: string | undefined) {
   }
 }
 
+/**
+ * The visitor never needs to know which credential is wrong, but the club does.
+ * Every failure answer carries a short `code` that the browser surfaces in the
+ * message, so a screenshot from a parent identifies the fault on its own —
+ * without a reproduction, a log search, or a second parent to test on.
+ */
+function checkoutError(message: string, code: string, status: number) {
+  return NextResponse.json({ error: message, code }, { status })
+}
+
+const GENERIC_FAILURE = 'Unable to start checkout. Please try again, or contact the club if it keeps happening.'
+
 export async function POST(request: Request) {
-  const stripeKey = process.env.STRIPE_SECRET_KEY
+  // Trimmed to match lib/stripe.ts. Checking the raw value here while the
+  // client trims meant a whitespace-only key passed this gate and then threw
+  // deeper in, as an unhandled 500 with no JSON body at all.
+  const stripeKey = process.env.STRIPE_SECRET_KEY?.trim()
   if (!stripeKey) {
-    return NextResponse.json({ error: 'Stripe is not configured yet.' }, { status: 500 })
+    console.error('[checkout] STRIPE_SECRET_KEY is not set on this deployment.')
+    await sendAlert('Checkout refused: Stripe is not configured', {
+      detail: 'STRIPE_SECRET_KEY is missing or blank on the production deployment.',
+    })
+    return checkoutError('Online payment is not available right now.', 'STRIPE-UNCONFIGURED', 503)
   }
 
   let body: CheckoutBody
   try {
     body = (await request.json()) as CheckoutBody
   } catch {
-    return NextResponse.json({ error: 'Invalid checkout request.' }, { status: 400 })
+    return checkoutError('Invalid checkout request.', 'BAD-REQUEST', 400)
   }
 
-  const url = new URL(request.url)
-  const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL ?? url.origin
-  const stripe = getStripeClient()
+  // Stripe requires absolute return URLs. Resolved and validated up front so a
+  // mis-set NEXT_PUBLIC_SITE_URL names itself instead of throwing from inside a
+  // flow handler as an anonymous 500.
+  const site = resolveSiteOrigin(new URL(request.url).origin)
+  if (!site.ok) {
+    console.error(`[checkout] ${siteOriginFixHint(site.reason)}`)
+    await sendAlert('Checkout blocked by an unusable NEXT_PUBLIC_SITE_URL', {
+      reason: site.reason,
+      fix: siteOriginFixHint(site.reason),
+    })
+    return checkoutError(GENERIC_FAILURE, `SITE-URL-${site.reason.toUpperCase()}`, 500)
+  }
+  const siteOrigin = site.origin
 
   // Hiding the buttons is not the same as closing the door: this endpoint is
   // reachable directly, and a stale tab still holds a working form. Refuse the
   // flow here too, so no card is charged before the club can be paid out.
   if (body.flow === 'donation' && !DONATIONS_ENABLED) {
-    return NextResponse.json({ error: DONATIONS_COMING_SOON_BODY }, { status: 503 })
+    return checkoutError(DONATIONS_COMING_SOON_BODY, 'DONATIONS-OFF', 503)
   }
 
   try {
+    // Inside the try on purpose. This constructs the Stripe client and runs the
+    // environment readiness check, both of which can throw — and when they did
+    // so from above the try, the handler crashed before it could answer with
+    // JSON at all. The browser then failed to parse the response and told the
+    // parent it was a network error, which it never was.
+    const stripe = getStripeClient()
+
     if (body.flow === 'dues') return await checkoutDues(stripe, body, siteOrigin)
     if (body.flow === 'donation') return await checkoutDonation(stripe, body, siteOrigin)
     if (body.flow === 'sponsor') return await checkoutSponsor(stripe, body, siteOrigin)
   } catch (err) {
-    console.error('Stripe checkout session creation failed:', err)
+    const message = err instanceof Error ? err.message : String(err)
+    // A rotated, revoked or test-mode key is the single most common reason a
+    // checkout that worked last week stops working, and Stripe reports it as an
+    // authentication error rather than anything resembling a payment problem.
+    const type = (err as { type?: string } | null)?.type
+    const code = type === 'StripeAuthenticationError' ? 'STRIPE-AUTH'
+      : type === 'StripePermissionError' ? 'STRIPE-PERMISSION'
+      : type === 'StripeConnectionError' ? 'STRIPE-UNREACHABLE'
+      : 'CHECKOUT-FAILED'
+
+    console.error(`[checkout] session creation failed (${code}):`, err)
     await sendAlert('Stripe checkout session creation failed', {
       flow: (body as CheckoutBody).flow,
-      error: err instanceof Error ? err.message : String(err),
+      code,
+      error: message,
     })
-    return NextResponse.json({ error: 'Unable to start checkout. Please try again.' }, { status: 500 })
+    return checkoutError(GENERIC_FAILURE, code, 500)
   }
 
-  return NextResponse.json({ error: 'Unknown checkout flow.' }, { status: 400 })
+  return checkoutError('Unknown checkout flow.', 'UNKNOWN-FLOW', 400)
 }
 
 async function checkoutDues(stripe: Stripe, body: DuesCheckoutBody, siteOrigin: string) {

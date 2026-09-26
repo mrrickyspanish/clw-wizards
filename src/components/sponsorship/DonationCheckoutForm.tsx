@@ -5,6 +5,7 @@ import { useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CTA_TYPE } from '@/lib/cta'
+import { startCheckout } from '@/lib/checkout-client'
 import { DONATIONS_ENABLED } from '@/config/donations'
 import { DonationsComingSoon } from './DonationsComingSoon'
 
@@ -43,30 +44,20 @@ export function DonationCheckoutForm({
     }
 
     setLoading(true)
-    try {
-      const response = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          flow: 'donation',
-          amountCents: Math.round(effectiveAmount * 100),
-          recurring,
-          returnPath,
-        }),
-      })
-      const data = await response.json()
+    const result = await startCheckout({
+      flow: 'donation',
+      amountCents: Math.round(effectiveAmount * 100),
+      recurring,
+      returnPath,
+    })
 
-      if (!response.ok || !data.url) {
-        setError(data.error ?? 'Unable to start checkout.')
-        setLoading(false)
-        return
-      }
-
-      window.location.href = data.url
-    } catch {
-      setError('Network error. Please try again.')
+    if (!result.ok) {
+      setError(result.message)
       setLoading(false)
+      return
     }
+
+    window.location.href = result.url
   }
 
   // Everything below this line is the live donation form, untouched. While

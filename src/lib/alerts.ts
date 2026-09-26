@@ -95,29 +95,44 @@ export function getIntegrationReadiness(): IntegrationReadiness[] {
 
 let environmentReported = false
 
+const CORE_VARIABLES = [
+  'NEXT_PUBLIC_SUPABASE_URL',
+  'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+  'SUPABASE_SERVICE_ROLE_KEY',
+  'NEXT_PUBLIC_SITE_URL',
+]
+
+/** Core variables absent from the environment. Empty means the app can run. */
+export function missingCoreVariables(): string[] {
+  return CORE_VARIABLES.filter((name) => !hasEnvironmentVariable(name))
+}
+
 /**
  * Logs safe configuration status without exposing values. A production deploy
  * fails fast only when the core Supabase/site configuration is absent. Optional
  * integrations remain warnings because staging intentionally brings them online
  * in phases.
+ *
+ * The core check deliberately runs BEFORE the once-only guard. It used to run
+ * after it, which meant the guard was set, then the throw fired -- so only the
+ * FIRST call on each cold serverless instance failed and every later call on
+ * that same warm instance sailed through. A missing core variable therefore
+ * showed up as payments and emails breaking for some people some of the time,
+ * while a hands-on test right afterwards passed and made it look fixed. A
+ * configuration fault has to fail the same way on every request or nobody can
+ * find it. Only the noisy per-integration warnings are rate-limited to once.
  */
 export function reportEnvironmentReadiness() {
-  if (environmentReported) return
-  environmentReported = true
-
-  const coreVariables = [
-    'NEXT_PUBLIC_SUPABASE_URL',
-    'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-    'SUPABASE_SERVICE_ROLE_KEY',
-    'NEXT_PUBLIC_SITE_URL',
-  ]
-  const missingCore = coreVariables.filter((name) => !hasEnvironmentVariable(name))
+  const missingCore = missingCoreVariables()
 
   if (missingCore.length > 0) {
     const message = `[environment] Missing core variables: ${missingCore.join(', ')}`
     if (process.env.VERCEL_ENV === 'production') throw new Error(message)
-    console.warn(message)
+    if (!environmentReported) console.warn(message)
   }
+
+  if (environmentReported) return
+  environmentReported = true
 
   for (const integration of getIntegrationReadiness()) {
     if (integration.state === 'missing' || integration.state === 'partial') {

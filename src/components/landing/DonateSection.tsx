@@ -6,6 +6,7 @@ import { HandCoins } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DONATIONS_ENABLED } from '@/config/donations'
+import { startCheckout } from '@/lib/checkout-client'
 import { DonationsComingSoon } from '@/components/sponsorship/DonationsComingSoon'
 
 const PRESETS = [25, 50, 100, 250]
@@ -29,27 +30,19 @@ export function DonateSection() {
     }
 
     setLoading(true)
-    try {
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          flow: 'donation',
-          amountCents: Math.round(effectiveDollars * 100),
-          recurring: false,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok || !data.url) {
-        setError(data.error ?? 'Unable to start checkout.')
-        setLoading(false)
-        return
-      }
-      window.location.href = data.url
-    } catch {
-      setError('Network error. Please try again.')
+    const result = await startCheckout({
+      flow: 'donation',
+      amountCents: Math.round(effectiveDollars * 100),
+      recurring: false,
+    })
+
+    if (!result.ok) {
+      setError(result.message)
       setLoading(false)
+      return
     }
+
+    window.location.href = result.url
   }
 
   return (

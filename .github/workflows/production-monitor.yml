@@ -29,6 +29,14 @@ jobs:
         if: always()
         run: curl --fail --show-error --silent --max-time 20 --retry 2 https://www.clwizards.com/api/health/parent-auth-alerts
 
+      # The public-site job below loads the donate and sponsor pages and sees a
+      # rendered form, which says nothing about whether pressing the button can
+      # reach Stripe. Until this check existed the club's first notice of broken
+      # payments was a parent texting to say the payment link did not work.
+      - name: Check the payment path can reach Stripe
+        if: always()
+        run: curl --fail --show-error --silent --max-time 20 --retry 2 https://www.clwizards.com/api/health/checkout
+
   public-site:
     runs-on: ubuntu-latest
     timeout-minutes: 15

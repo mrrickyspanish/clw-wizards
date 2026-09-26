@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { SponsorTierRow } from '@/types/database'
 import { CTA_TYPE } from '@/lib/cta'
+import { startCheckout } from '@/lib/checkout-client'
 
 type SponsorLevel = { value: string; label: string; amount: number }
 
@@ -60,33 +61,23 @@ export function SponsorCheckoutForm({
       return
     }
 
-    try {
-      const response = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          flow: 'sponsor',
-          sponsorName,
-          contactName,
-          contactEmail,
-          websiteUrl: websiteUrl || undefined,
-          tier,
-          returnPath,
-        }),
-      })
-      const data = await response.json()
+    const result = await startCheckout({
+      flow: 'sponsor',
+      sponsorName,
+      contactName,
+      contactEmail,
+      websiteUrl: websiteUrl || undefined,
+      tier,
+      returnPath,
+    })
 
-      if (!response.ok || !data.url) {
-        setError(data.error ?? 'Unable to start sponsorship checkout.')
-        setLoading(false)
-        return
-      }
-
-      window.location.href = data.url
-    } catch {
-      setError('Network error. Please try again.')
+    if (!result.ok) {
+      setError(result.message)
       setLoading(false)
+      return
     }
+
+    window.location.href = result.url
   }
 
   const inputClassName =
