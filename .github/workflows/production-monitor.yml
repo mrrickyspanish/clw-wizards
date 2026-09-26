@@ -7,9 +7,8 @@
 # a commit, so a deploy-triggered test can never notice them. This runs on a
 # clock against the real domain instead.
 #
-# Scope, honestly: this proves pages load and do not throw. It cannot prove an
-# email was delivered or a payment settled -- those need integration health
-# checks against Resend, QStash and Stripe, which are a separate piece of work.
+# The separate recovery-health job checks the actual reset canary and recent
+# Resend outcomes. It does not prove placement inside every parent's inbox.
 name: Production monitor
 
 on:
@@ -20,6 +19,13 @@ on:
   workflow_dispatch:
 
 jobs:
+  recovery-health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check live password recovery
+        run: curl --fail --show-error --silent --max-time 20 --retry 2 https://www.clwizards.com/api/health/password-recovery
+
   public-site:
     runs-on: ubuntu-latest
     timeout-minutes: 15

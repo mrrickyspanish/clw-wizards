@@ -68,7 +68,8 @@ export default function ForgotPasswordPage() {
           {sent ? (
             <Alert>
               <AlertDescription>
-                If an account exists for {email}, a reset link is on its way. Check your inbox.
+                If an account exists for {email}, a reset link is on its way. Check your inbox and spam folder. If nothing arrives within 10 minutes, contact the club at{' '}
+                <a href={`mailto:${ORG.contactEmail}`} className="underline">{ORG.contactEmail}</a>.
               </AlertDescription>
             </Alert>
           ) : (

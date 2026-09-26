@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { Resend } from 'resend'
 
 import { createAdminSupabase } from '@/lib/supabase/admin'
@@ -7,6 +7,8 @@ import { readCredential } from '@/lib/env'
 import { verifyTurnstileToken } from '@/lib/turnstile'
 import { providerError, retryTransient } from '@/lib/auth/recovery-errors'
 import { ORG } from '@/config/org.config'
+import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { sendAlert } from '@/lib/alerts'
 
 export const maxDuration = 60
 
@@ -16,6 +18,7 @@ export async function POST(request: Request) {
   const requestId = randomUUID()
   const ok = () => NextResponse.json({ ok: true, requestId }, { headers: { 'Cache-Control': 'no-store' } })
   let stage = 'request'
+  let email = ''
   try {
     let body: unknown
     try {
@@ -24,13 +27,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid request.' }, { status: 400 })
     }
     const input = body && typeof body === 'object' ? body as Record<string, unknown> : {}
-    const email = typeof input.email === 'string' ? input.email.trim().toLowerCase() : ''
+    email = typeof input.email === 'string' ? input.email.trim().toLowerCase() : ''
     if (!email || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: 'Enter a valid email address.' }, { status: 400 })
     }
+    // The scheduled canary can exercise this exact production route without a
+    // browser CAPTCHA. Its secret is restricted to one dedicated account.
+    const canaryEmail = readCredential('PASSWORD_RESET_CANARY_EMAIL')?.toLowerCase()
+    const authorizedCanary = Boolean(canaryEmail && email === canaryEmail && isAuthorizedCronRequest(request))
 
     stage = 'captcha'
-    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) {
+    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !authorizedCanary) {
       if (typeof input.turnstileToken !== 'string' || !input.turnstileToken) {
         return NextResponse.json({ error: 'Complete the security check before requesting a reset link.' }, { status: 400 })
       }
@@ -83,14 +90,29 @@ export async function POST(request: Request) {
     })
     // Never log addresses, credentials, tokens or full provider responses.
     console.info('[password-reset] accepted', { requestId, messageId: delivery.id })
-    return ok()
+    return authorizedCanary
+      ? NextResponse.json({ ok: true, requestId, messageId: delivery.id }, { headers: { 'Cache-Control': 'no-store' } })
+      : ok()
   } catch (error) {
     const details = providerError(error)
-    if (stage === 'generate-link' && (details.code === 'user_not_found' || /user (?:with this email )?not found/i.test(details.message ?? ''))) return ok()
+    if (stage === 'generate-link' && (details.code === 'user_not_found' || /user (?:with this email )?not found/i.test(details.message ?? ''))) {
+      // Keep the public response enumeration-safe, but give the club enough
+      // detail to resolve an unregistered parent before days of retries.
+      after(() => sendAlert('Password reset requested for an unknown account', { requestId, email }))
+      return ok()
+    }
     console.error('[password-reset] failed', {
       requestId, stage, name: details.name ?? 'UnknownError',
       status: details.status ?? details.statusCode, code: details.code,
     })
+    // If Supabase or our configuration breaks, the owner hears about it on
+    // the first request, rather than waiting for the daily canary. Resend
+    // outages are independently caught by the GitHub health check.
+    if (stage !== 'send-email' && stage !== 'request') {
+      after(() => sendAlert('Password recovery failed before email send', {
+        requestId, stage, status: details.status ?? details.statusCode, code: details.code,
+      }))
+    }
     return NextResponse.json({
       error: `We could not complete your reset request. Please wait a minute, then try again. If this continues, contact the club with reference ${requestId}.`,
       requestId,
