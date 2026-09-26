@@ -8,7 +8,7 @@ const ts = require('typescript')
 
 // Execute the real route and error policy with provider boundaries mocked.
 // No network, credentials, test users or actual emails are involved.
-function load(relative, mocks, env = {}, logs = []) {
+function load(relative, mocks, env = {}, logs = [], fetcher = fetch) {
   const filename = path.join(__dirname, '..', relative)
   const code = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
@@ -17,7 +17,7 @@ function load(relative, mocks, env = {}, logs = []) {
   vm.runInNewContext(code, {
     module: compiledModule, exports: compiledModule.exports,
     require: (id) => id in mocks ? mocks[id] : require(id),
-    process: { env }, URL, Response, Request, AbortSignal, fetch,
+    process: { env }, URL, Response, Request, AbortSignal, fetch: fetcher,
     console: { info: (...args) => logs.push(args), error: (...args) => logs.push(args) },
     setTimeout: (fn) => { fn(); return 0 },
   }, { filename })
@@ -34,8 +34,11 @@ function harness(options = {}) {
     NEXT_PUBLIC_SITE_URL: 'https://www.clwizards.com', ...options.env,
   }
   const route = load('src/app/api/auth/request-password-reset/route.ts', {
-    'next/server': { NextResponse: Response },
+    'next/server': { NextResponse: Response, after: () => undefined },
     '@/lib/env': { readCredential: (key) => env[key]?.trim() || undefined },
+    '@/lib/cron-auth': { isAuthorizedCronRequest: (request) =>
+      Boolean(env.CRON_SECRET) && request.headers.get('authorization') === `Bearer ${env.CRON_SECRET}` },
+    '@/lib/alerts': { sendAlert: async () => undefined },
     '@/lib/auth/recovery-errors': policy,
     '@/config/org.config': { ORG: { name: 'CLW' } },
     '@/lib/turnstile': { verifyTurnstileToken: async () => options.captcha ?? { ok: true } },
@@ -51,9 +54,9 @@ function harness(options = {}) {
       return options.send ? options.send(sends.length) : { data: { id: 'provider-message-id' }, error: null }
     } } } },
   }, env, logs)
-  return { logs, sends, generates, post: (body = { email: ' Parent@Example.com ', turnstileToken: 'captcha' }) =>
+  return { logs, sends, generates, post: (body = { email: ' Parent@Example.com ', turnstileToken: 'captcha' }, headers = {}) =>
     route.POST(new Request('https://www.clwizards.com/api/auth/request-password-reset', {
-      method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' },
+      method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json', ...headers },
     })) }
 }
 
@@ -200,4 +203,76 @@ test('callback rejects missing tokens and external redirects', async () => {
   const h = callbackHarness(null)
   assert.equal((await h.get('')).headers.get('location'), 'https://www.clwizards.com/update-password?error=invalid-link')
   assert.equal((await h.get('token_hash=test&type=recovery&next=https://evil.example')).headers.get('location'), 'https://www.clwizards.com/update-password')
+})
+
+test('scheduled canary bypasses CAPTCHA only for the exact configured account and valid cron secret', async () => {
+  const h = harness({ env: { PASSWORD_RESET_CANARY_EMAIL: 'canary@example.com', CRON_SECRET: 'cron-secret' } })
+  const authorized = await h.post({ email: 'canary@example.com' }, { Authorization: 'Bearer cron-secret' })
+  assert.equal(authorized.status, 200)
+  assert.equal((await authorized.json()).messageId, 'provider-message-id')
+  assert.equal(h.sends.length, 1)
+  const missingSecret = await h.post({ email: 'canary@example.com' })
+  assert.equal(missingSecret.status, 400)
+  const differentAccount = await h.post({ email: 'another@example.com' }, { Authorization: 'Bearer cron-secret' })
+  assert.equal(differentAccount.status, 400)
+  assert.equal(h.sends.length, 1)
+})
+
+function recoveryAudit(emails, options = {}) {
+  const now = Date.parse('2026-09-26T12:00:00Z')
+  const calls = []
+  const fetched = async (url, request) => {
+    calls.push({ url: String(url), request })
+    return options.response ?? Response.json({ data: emails, has_more: false })
+  }
+  const audit = load('src/lib/auth/recovery-audit.ts', {
+    '@/lib/env': { readCredential: (key) => ({
+      RESEND_API_KEY: 'test-provider-key', PASSWORD_RESET_CANARY_EMAIL: 'canary@example.com', ...options.env,
+    })[key] },
+  }, {}, [], fetched)
+  return { now, calls, audit }
+}
+
+const mail = (last_event, to = 'canary@example.com', created_at = '2026-09-26T11:00:00Z') => ({
+  id: 'message-id', to: [to], subject: 'Reset your password', created_at, last_event,
+})
+test('a canary delivered by Resend makes the independent audit healthy', async () => {
+  const h = recoveryAudit([mail('delivered')])
+  assert.equal((await h.audit.auditPasswordRecovery(h.now)).ok, true)
+  assert.equal(h.calls.length, 1)
+  assert.equal(h.calls[0].request.headers.Authorization, 'Bearer test-provider-key')
+})
+test('sent, bounced or suppressed messages trigger the recovery alarm', async () => {
+  for (const status of ['sent', 'bounced', 'suppressed', 'failed']) {
+    const h = recoveryAudit([mail(status)])
+    assert.equal((await h.audit.auditPasswordRecovery(h.now)).ok, false, status)
+  }
+})
+test('one delivered canary does not hide a parent email that failed', async () => {
+  const h = recoveryAudit([mail('delivered'), mail('bounced', 'parent@example.com')])
+  assert.equal((await h.audit.auditPasswordRecovery(h.now)).reason, 'delivery-bounced')
+})
+test('no canary, missing configuration, or provider outage fail closed', async () => {
+  assert.equal((await recoveryAudit([]).audit.auditPasswordRecovery(Date.parse('2026-09-26T12:00:00Z'))).reason, 'canary-missing')
+  const missing = recoveryAudit([], { env: { PASSWORD_RESET_CANARY_EMAIL: '' } })
+  assert.equal((await missing.audit.auditPasswordRecovery(missing.now)).reason, 'configuration-missing')
+  const outage = recoveryAudit([], { response: new Response('down', { status: 503 }) })
+  assert.equal((await outage.audit.auditPasswordRecovery(outage.now)).reason, 'provider-503')
+})
+
+test('cron must authorize before generating a token', async () => {
+  let sent = 0
+  const env = { CRON_SECRET: 'cron-secret', PASSWORD_RESET_CANARY_EMAIL: 'canary@example.com' }
+  const cron = load('src/app/api/crons/password-reset-canary/route.ts', {
+    'next/server': { NextResponse: Response },
+    '@/lib/cron-auth': { isAuthorizedCronRequest: (request) => request.headers.get('authorization') === 'Bearer cron-secret' },
+    '@/lib/env': { readCredential: (key) => env[key] },
+    '@/app/api/auth/request-password-reset/route': { POST: async () => { sent++; return Response.json({ ok: true, messageId: 'message-id' }) } },
+  })
+  assert.equal((await cron.GET(new Request('https://www.clwizards.com/api/crons/password-reset-canary'))).status, 401)
+  assert.equal(sent, 0)
+  assert.equal((await cron.GET(new Request('https://www.clwizards.com/api/crons/password-reset-canary', {
+    headers: { Authorization: 'Bearer cron-secret' },
+  }))).status, 200)
+  assert.equal(sent, 1)
 })
