@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import type { NextRequest, NextFetchEvent } from 'next/server'
 import { getSupabaseAndResponse } from '@/lib/supabase/middleware'
 import { getSessionRole, homeForRole } from '@/lib/auth/session'
+import { linkAttemptId, reportParentAuthFailure } from '@/lib/auth/incidents'
+import { ATTEMPT_COOKIE } from '@/lib/auth/incident-policy'
 
 const PUBLIC_AUTH_PATHS = ['/login', '/signup', '/forgot-password', '/update-password']
 
@@ -30,7 +32,7 @@ function safeInternalPath(value: string | undefined | null) {
   return value && value.startsWith('/') && !value.startsWith('//') ? value : null
 }
 
-export async function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest, event: NextFetchEvent) {
   const { pathname } = req.nextUrl
 
   const isAdminPath = matchesPrefix(pathname, ['/admin'])
@@ -47,13 +49,25 @@ export async function middleware(req: NextRequest) {
   }
 
   const { supabase, response } = await getSupabaseAndResponse(req)
-  const { user, role, adminScope, onboardingCompleted } = await getSessionRole(supabase)
+  const { user, role, adminScope, onboardingCompleted, accessError, sessionError } = await getSessionRole(supabase)
+
+  if (user && accessError && (isPortalPath || isOnboardingPath)) {
+    const attemptId = req.cookies.get(ATTEMPT_COOKIE)?.value ?? await linkAttemptId(`${user.id}:${Math.floor(Date.now() / 1800000)}`)
+    event.waitUntil(reportParentAuthFailure({ attemptId, step: 'family_setup', error: accessError,
+      email: user.email, emailSource: 'authenticated user' }))
+  }
 
   if (!user) {
+    if (req.cookies.get('clw_auth_pending')?.value === '1') {
+      event.waitUntil(reportParentAuthFailure({ attemptId: req.cookies.get(ATTEMPT_COOKIE)?.value,
+        step: 'family_setup', error: sessionError ?? { code: 'session_missing_after_auth', message: 'Session unavailable immediately after successful authentication' } }))
+    }
     const loginUrl = req.nextUrl.clone()
     loginUrl.pathname = '/login'
     loginUrl.searchParams.set('redirectTo', `${pathname}${req.nextUrl.search}`)
-    return NextResponse.redirect(loginUrl)
+    const redirect = NextResponse.redirect(loginUrl)
+    redirect.cookies.delete('clw_auth_pending')
+    return redirect
   }
 
   // A parent who has not finished onboarding can only be on /onboarding. Save
@@ -65,6 +79,7 @@ export async function middleware(req: NextRequest) {
     onboardingUrl.pathname = ONBOARDING_PATH
     onboardingUrl.search = ''
     const redirect = NextResponse.redirect(onboardingUrl)
+    response.cookies.getAll().forEach(cookie => redirect.cookies.set(cookie))
     redirect.cookies.set(POST_ONBOARDING_COOKIE, destination, {
       httpOnly: true,
       sameSite: 'lax',
@@ -111,6 +126,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
+  response.cookies.delete('clw_auth_pending')
   return response
 }
 

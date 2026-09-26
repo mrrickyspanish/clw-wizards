@@ -1,5 +1,6 @@
 {
   "crons": [
+    { "path": "/api/crons/parent-auth-alerts", "schedule": "*/5 * * * *" },
     { "path": "/api/crons/wednesday-reminder", "schedule": "0 14 * * 3" },
     { "path": "/api/crons/weigh-in-alert", "schedule": "0 7 * * *" },
     { "path": "/api/crons/password-reset-canary", "schedule": "0 11 * * *" },

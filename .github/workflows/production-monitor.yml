@@ -25,6 +25,9 @@ jobs:
     steps:
       - name: Check live password recovery
         run: curl --fail --show-error --silent --max-time 20 --retry 2 https://www.clwizards.com/api/health/password-recovery
+      - name: Check parent authentication alert delivery
+        if: always()
+        run: curl --fail --show-error --silent --max-time 20 --retry 2 https://www.clwizards.com/api/health/parent-auth-alerts
 
   public-site:
     runs-on: ubuntu-latest

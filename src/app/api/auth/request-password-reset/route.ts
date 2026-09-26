@@ -9,6 +9,7 @@ import { providerError, retryTransient } from '@/lib/auth/recovery-errors'
 import { ORG } from '@/config/org.config'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { sendAlert } from '@/lib/alerts'
+import { registerResetAttempt } from '@/lib/auth/incidents'
 
 export const maxDuration = 60
 
@@ -71,7 +72,8 @@ export async function POST(request: Request) {
 
     // Fragments are not sent to web servers or through HTTP referrers. The
     // password form verifies this token only after an explicit submission.
-    const resetLink = `${siteUrl}/update-password#recovery_token=${encodeURIComponent(data.properties.hashed_token)}`
+    await registerResetAttempt(requestId, email)
+    const resetLink = `${siteUrl}/update-password#recovery_token=${encodeURIComponent(data.properties.hashed_token)}&attempt=${requestId}`
     const html = `<p>Follow this link to reset the password for your ${ORG.name} account:</p>
 <p><a href="${resetLink}">Reset your password</a></p>
 <p>If the button above doesn't work, copy and paste this link into your browser:<br/>${resetLink}</p>
@@ -98,9 +100,7 @@ export async function POST(request: Request) {
   } catch (error) {
     const details = providerError(error)
     if (stage === 'generate-link' && (details.code === 'user_not_found' || /user (?:with this email )?not found/i.test(details.message ?? ''))) {
-      // Keep the public response enumeration-safe, but give the club enough
-      // detail to resolve an unregistered parent before days of retries.
-      after(() => sendAlert('Password reset requested for an unknown account', { requestId, email }))
+      // A new parent needing signup is not an authentication incident.
       return ok()
     }
     console.error('[password-reset] failed', {

@@ -1,6 +1,7 @@
-import { NextResponse, type NextRequest } from 'next/server'
+import { NextResponse, after, type NextRequest } from 'next/server'
 
 import { createServerSupabase } from '@/lib/supabase/server'
+import { linkAttemptId, requestSourceKey, reportParentAuthFailure } from '@/lib/auth/incidents'
 
 function safeInternalPath(value: string | null) {
   return value && value.startsWith('/') && !value.startsWith('//') ? value : '/update-password'
@@ -36,10 +37,23 @@ export async function GET(request: NextRequest) {
   }
 
   if (code) {
-    const supabase = await createServerSupabase()
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (error) return invalidLinkRedirect(request)
+    try {
+      const supabase = await createServerSupabase()
+      const { error } = await supabase.auth.exchangeCodeForSession(code)
+      if (error) throw error
+    } catch (error) {
+      const attemptId = await linkAttemptId(code)
+      const sourceKey = await requestSourceKey(request)
+      after(() => reportParentAuthFailure({ attemptId, step: 'reset_link', error, sourceKey }).then(() => undefined))
+      return invalidLinkRedirect(request)
+    }
   } else {
+    if (request.nextUrl.searchParams.has('error')) {
+      const error = { code: request.nextUrl.searchParams.get('error_code'), message: request.nextUrl.searchParams.get('error_description') ?? 'Reset link rejected' }
+      const sourceKey = await requestSourceKey(request)
+      const attemptId = request.cookies?.get('clw_auth_attempt')?.value
+      after(() => reportParentAuthFailure({ attemptId, step: 'reset_link', error, sourceKey }).then(() => undefined))
+    }
     return invalidLinkRedirect(request)
   }
 

@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AuthBrand } from '@/components/layout/AuthBrand'
+import { authAttempt, reportClientAuthFailure } from '@/lib/auth/report-client'
 
 export default function UpdatePasswordPage() {
   return (
@@ -36,7 +37,15 @@ function UpdatePasswordForm() {
   const submitting = useRef(false)
 
   useEffect(() => {
-    const token = new URLSearchParams(window.location.hash.slice(1)).get('recovery_token')
+    const fragment = new URLSearchParams(window.location.hash.slice(1))
+    const token = fragment.get('recovery_token')
+    authAttempt(undefined, fragment.get('attempt'))
+    if (fragment.has('error')) {
+      void reportClientAuthFailure('reset_link', {
+        code: fragment.get('error_code') ?? fragment.get('error'),
+        message: fragment.get('error_description') ?? 'Reset link rejected',
+      })
+    }
     if (token) {
       setRecoveryToken(token)
       setError(null)
@@ -59,6 +68,11 @@ function UpdatePasswordForm() {
         setError('This password-reset link is invalid or has expired. Request a new link below.')
       }
       setCheckingLink(false)
+    }).catch((failure: unknown) => {
+      if (!active) return
+      setCheckingLink(false)
+      setError('Could not check your reset link. Check your connection and try again.')
+      void reportClientAuthFailure('reset_link', failure)
     })
 
     return () => {
@@ -86,11 +100,13 @@ function UpdatePasswordForm() {
 
     submitting.current = true
     setLoading(true)
+    let failedStep: 'reset_link' | 'password_save' = recoveryToken ? 'reset_link' : 'password_save'
     try {
       const supabase = createBrowserSupabase()
       if (recoveryToken) {
         const { error: verifyError } = await supabase.auth.verifyOtp({ token_hash: recoveryToken, type: 'recovery' })
         if (verifyError) {
+          void reportClientAuthFailure('reset_link', verifyError)
           if (verifyError.code === 'otp_expired') {
             setCanReset(false)
             setError('This reset link has already been used or has expired. Request a new link below, then use the newest email.')
@@ -102,16 +118,21 @@ function UpdatePasswordForm() {
         setRecoveryToken(null)
         window.history.replaceState(null, '', '/update-password')
       }
+      failedStep = 'password_save'
       const { error: updateError } = await supabase.auth.updateUser({ password })
 
       if (updateError) {
+        void reportClientAuthFailure('password_save', updateError)
         setError(updateError.message)
         return
       }
 
-      await supabase.auth.signOut({ scope: 'local' })
+      // The password is already saved. A local sign-out transport error must
+      // not tell the parent (or the owner) that saving the password failed.
+      try { await supabase.auth.signOut({ scope: 'local' }) } catch { /* sign in below */ }
       router.replace('/login?reset=success')
-    } catch {
+    } catch (failure) {
+      void reportClientAuthFailure(failedStep, failure)
       setError('Could not reach the server. Check your connection and try again.')
     } finally {
       submitting.current = false

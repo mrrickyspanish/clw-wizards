@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AuthBrand } from '@/components/layout/AuthBrand'
 import { ORG } from '@/config/org.config'
 import { signupDestination } from '@/lib/auth/signup-routing'
+import { authAttempt, markAuthNavigation } from '@/lib/auth/report-client'
 
 function safeRedirect(value: string | null) {
   return value && value.startsWith('/') && !value.startsWith('//') ? value : null
@@ -50,6 +51,7 @@ function SignupForm() {
     }
 
     setLoading(true)
+    authAttempt(email.trim())
 
     const supabase = createBrowserSupabase()
     const { data, error: signUpError } = await supabase.auth.signUp({
@@ -72,6 +74,7 @@ function SignupForm() {
     // handle_new_user() creates the profiles row server-side. Contact info and
     // the athlete roster are collected afterward in /onboarding.
     if (data.session) {
+      markAuthNavigation()
       setLoading(false)
       router.push(redirectTo ?? '/dashboard')
       return
