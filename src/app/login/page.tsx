@@ -94,6 +94,15 @@ function LoginForm() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {searchParams.has('confirmation') && !error && (
+              <Alert className="border-clw-gold/40 bg-clw-gold/10">
+                <AlertDescription>
+                  {searchParams.get('confirmation') === 'complete'
+                    ? 'Email confirmed. Sign in with the password you chose to continue to family setup.'
+                    : 'Sign in with the email and password you chose to continue to family setup. If your email is not confirmed yet, open the newest confirmation email first.'}
+                </AlertDescription>
+              </Alert>
+            )}
             {searchParams.get('created') === 'admin' && !error && (
               <Alert className="border-clw-gold/40 bg-clw-gold/10">
                 <AlertDescription className="text-clw-gold-ink">

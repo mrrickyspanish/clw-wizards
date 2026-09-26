@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AuthBrand } from '@/components/layout/AuthBrand'
 import { ORG } from '@/config/org.config'
+import { signupDestination } from '@/lib/auth/signup-routing'
 
 function safeRedirect(value: string | null) {
   return value && value.startsWith('/') && !value.startsWith('//') ? value : null
@@ -55,6 +56,7 @@ function SignupForm() {
       email,
       password,
       options: {
+        emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent(signupDestination(redirectTo))}`,
         data: { full_name: fullName },
         ...(turnstile.token ? { captchaToken: turnstile.token } : {}),
       },
@@ -87,7 +89,7 @@ function SignupForm() {
           <CardHeader>
             <CardTitle className="text-clw-gold">Check your email</CardTitle>
             <CardDescription>
-              We sent a confirmation link to {email}. Once confirmed, sign in to finish setting up your account.
+              We sent a confirmation link to {email}. Open it to continue to family setup. If it opens in a different browser, sign in with the email and password you just chose.
             </CardDescription>
           </CardHeader>
           <CardContent>
