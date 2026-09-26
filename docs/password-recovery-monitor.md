@@ -3,6 +3,9 @@
 The public reset route retries temporary Supabase and Resend failures and only
 claims success after Resend accepts the message. The scheduled canary then
 uses the same route and checks delivery through Resend's sent-email API.
+When an address has no Supabase account, the public response remains private,
+but the club receives an alert with the address for follow-up. The confirmation
+screen directs parents to contact the club if no email arrives in 10 minutes.
 
 ## Production activation
 

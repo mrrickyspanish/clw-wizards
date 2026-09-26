@@ -27,18 +27,18 @@ const policy = load('src/lib/auth/recovery-errors.ts', {})
 const transient = { name: 'AuthRetryableFetchError', status: 503, message: '{}' }
 const generated = { data: { properties: { hashed_token: 'SECRET_RECOVERY_TOKEN' } }, error: null }
 function harness(options = {}) {
-  const logs = [], sends = [], generates = []
+  const logs = [], sends = [], generates = [], alerts = [], afterTasks = []
   const env = {
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: 'captcha-enabled',
     RESEND_API_KEY: 'test-key', RESEND_FROM_EMAIL: 'CLW <auth@example.com>',
     NEXT_PUBLIC_SITE_URL: 'https://www.clwizards.com', ...options.env,
   }
   const route = load('src/app/api/auth/request-password-reset/route.ts', {
-    'next/server': { NextResponse: Response, after: () => undefined },
+    'next/server': { NextResponse: Response, after: (task) => afterTasks.push(task) },
     '@/lib/env': { readCredential: (key) => env[key]?.trim() || undefined },
     '@/lib/cron-auth': { isAuthorizedCronRequest: (request) =>
       Boolean(env.CRON_SECRET) && request.headers.get('authorization') === `Bearer ${env.CRON_SECRET}` },
-    '@/lib/alerts': { sendAlert: async () => undefined },
+    '@/lib/alerts': { sendAlert: async (subject, context) => alerts.push({ subject, context }) },
     '@/lib/auth/recovery-errors': policy,
     '@/config/org.config': { ORG: { name: 'CLW' } },
     '@/lib/turnstile': { verifyTurnstileToken: async () => options.captcha ?? { ok: true } },
@@ -54,7 +54,7 @@ function harness(options = {}) {
       return options.send ? options.send(sends.length) : { data: { id: 'provider-message-id' }, error: null }
     } } } },
   }, env, logs)
-  return { logs, sends, generates, post: (body = { email: ' Parent@Example.com ', turnstileToken: 'captcha' }, headers = {}) =>
+  return { logs, sends, generates, alerts, afterTasks, post: (body = { email: ' Parent@Example.com ', turnstileToken: 'captcha' }, headers = {}) =>
     route.POST(new Request('https://www.clwizards.com/api/auth/request-password-reset', {
       method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json', ...headers },
     })) }
@@ -85,6 +85,8 @@ test('persistent upstream failure is 503, never fake success, and logs status/st
   assert.equal(h.sends.length, 0)
   assert.equal(h.generates.length, 3)
   assert.match(JSON.stringify(h.logs), /generate-link.*AuthRetryableFetchError.*503/)
+  await Promise.all(h.afterTasks.map((task) => task()))
+  assert.equal(h.alerts[0].context.stage, 'generate-link')
 })
 test('invalid credentials are not retried or suppressed', async () => {
   const h = harness({ generate: () => ({ error: { name: 'AuthApiError', status: 401 } }) })
@@ -96,6 +98,10 @@ test('unknown account remains enumeration-safe', async () => {
   assert.equal((await h.post()).status, 200)
   assert.equal(h.sends.length, 0)
   assert.equal(h.logs.length, 0)
+  assert.equal(h.alerts.length, 0)
+  await Promise.all(h.afterTasks.map((task) => task()))
+  assert.equal(h.alerts[0].context.email, 'parent@example.com')
+  assert.match(h.alerts[0].subject, /unknown account/)
 })
 test('empty token response fails rather than claiming email was sent', async () => {
   const h = harness({ generate: () => ({ data: { properties: {} } }) })
