@@ -2,17 +2,22 @@ import { NextResponse, after, type NextRequest } from 'next/server'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { linkAttemptId, requestSourceKey, reportParentAuthFailure } from '@/lib/auth/incidents'
+import { validAttempt } from '@/lib/auth/incident-policy'
 
 function safeInternalPath(value: string | null) {
   return value && value.startsWith('/') && !value.startsWith('//') ? value : '/update-password'
 }
 
-function invalidLinkRedirect(request: NextRequest) {
+function invalidLinkRedirect(request: NextRequest, attemptId?: string) {
   const url = request.nextUrl.clone()
   url.pathname = '/update-password'
   url.search = ''
   url.searchParams.set('error', 'invalid-link')
-  return NextResponse.redirect(url)
+  const response = NextResponse.redirect(url)
+  if (attemptId) response.cookies.set('clw_auth_attempt', attemptId, { path: '/', maxAge: 1800, sameSite: 'lax', secure: true })
+  response.headers.set('Cache-Control', 'private, no-store')
+  response.headers.set('Referrer-Policy', 'no-referrer')
+  return response
 }
 
 /**
@@ -45,14 +50,16 @@ export async function GET(request: NextRequest) {
       const attemptId = await linkAttemptId(code)
       const sourceKey = await requestSourceKey(request)
       after(() => reportParentAuthFailure({ attemptId, step: 'reset_link', error, sourceKey }).then(() => undefined))
-      return invalidLinkRedirect(request)
+      return invalidLinkRedirect(request, attemptId)
     }
   } else {
     if (request.nextUrl.searchParams.has('error')) {
       const error = { code: request.nextUrl.searchParams.get('error_code'), message: request.nextUrl.searchParams.get('error_description') ?? 'Reset link rejected' }
       const sourceKey = await requestSourceKey(request)
-      const attemptId = request.cookies?.get('clw_auth_attempt')?.value
+      const existing = request.cookies?.get('clw_auth_attempt')?.value
+      const attemptId = validAttempt(existing) ? existing : crypto.randomUUID()
       after(() => reportParentAuthFailure({ attemptId, step: 'reset_link', error, sourceKey }).then(() => undefined))
+      return invalidLinkRedirect(request, attemptId)
     }
     return invalidLinkRedirect(request)
   }

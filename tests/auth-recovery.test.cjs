@@ -13,6 +13,7 @@ function load(relative, mocks, env = {}, logs = [], fetcher = fetch, globals = {
   if (mocks['next/server'] && (!mocks['next/server'].after || mocks['next/server'].after === require('next/server').after)) mocks['next/server'] = { ...mocks['next/server'], after: () => {} }
   mocks['@/lib/auth/incidents'] ??= { registerResetAttempt: async () => {}, linkAttemptId: async () => '11111111-1111-4111-a111-111111111111', requestSourceKey: async () => 'test', reportParentAuthFailure: async () => {} }
   mocks['@/lib/auth/report-client'] ??= { authAttempt: () => 'test', reportClientAuthFailure: async () => {}, markAuthNavigation: () => {} }
+  if (relative.startsWith('src/app/') || relative === 'src/middleware.ts') mocks['@/lib/auth/incident-policy'] ??= incidentPolicy
   const filename = path.join(__dirname, '..', relative)
   const code = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
@@ -23,13 +24,39 @@ function load(relative, mocks, env = {}, logs = [], fetcher = fetch, globals = {
     require: (id) => id in mocks ? mocks[id] : require(id),
     process: { env }, URL, URLSearchParams, Response, Request, AbortSignal, fetch: fetcher,
     console: { info: (...args) => logs.push(args), error: (...args) => logs.push(args) },
-    setTimeout: (fn) => { fn(); return 0 }, ...globals,
+    setTimeout: (fn) => { fn(); return 0 }, crypto: require('node:crypto').webcrypto, ...globals,
   }, { filename })
   return compiledModule.exports
 }
 const policy = load('src/lib/auth/recovery-errors.ts', {})
 const incidentPolicy = load('src/lib/auth/incident-policy.ts', {})
 const incidentId = '11111111-1111-4111-a111-111111111111'
+
+test('rejected confirmation/reset callbacks retain one attempt reference through fallback redirects', async () => {
+  const next = require('next/server')
+  for (const [routePath, step] of [['confirm', 'confirmation_link'], ['callback', 'reset_link']]) {
+    const tasks = [], reports = []
+    const mod = load(`src/app/auth/${routePath}/route.ts`, {
+      'next/server': { ...next, after: task => tasks.push(task) },
+      '@/lib/supabase/server': { createServerSupabase: async () => ({}) },
+      '@/lib/auth/signup-routing': { signupDestination: () => '/dashboard' },
+      '@/lib/auth/incidents': { requestSourceKey: async () => 'source', reportParentAuthFailure: async input => reports.push(input) },
+    })
+    let cookie = ''
+    for (let i = 0; i < 2; i++) {
+      const res = await mod.GET(new next.NextRequest(`https://www.clwizards.com/auth/${routePath}?error=access_denied&error_code=otp_expired&error_description=Link+expired`, { headers: { cookie } }))
+      const id = res.cookies.get('clw_auth_attempt').value
+      assert.ok(incidentPolicy.validAttempt(id))
+      cookie = `clw_auth_attempt=${id}`
+    }
+    await Promise.all(tasks.map(task => task()))
+    assert.equal(reports.length, 2)
+    assert.equal(reports[0].attemptId, reports[1].attemptId)
+    assert.equal(reports[0].step, step)
+    assert.equal(reports[0].error.code, 'otp_expired')
+    assert.equal(reports[0].error.message, 'Link expired')
+  }
+})
 
 function incidentsHarness(options = {}) {
   const rows = new Map(), sends = [], logs = []
