@@ -17,7 +17,7 @@ function load(relative, mocks, env = {}, logs = [], fetcher = fetch, globals = {
   vm.runInNewContext(code, {
     module: compiledModule, exports: compiledModule.exports,
     require: (id) => id in mocks ? mocks[id] : require(id),
-    process: { env }, URL, Response, Request, AbortSignal, fetch: fetcher,
+    process: { env }, URL, URLSearchParams, Response, Request, AbortSignal, fetch: fetcher,
     console: { info: (...args) => logs.push(args), error: (...args) => logs.push(args) },
     setTimeout: (fn) => { fn(); return 0 }, ...globals,
   }, { filename })
@@ -312,6 +312,36 @@ test('password rejection can be retried without consuming the token again', asyn
   assert.equal(h.calls.filter((call) => call[0] === 'verify').length, 1)
   assert.equal(h.calls.filter((call) => call[0] === 'update').length, 2)
   assert.equal(h.navigations.includes('/login?reset=success'), false)
+})
+
+const signupRouting = load('src/lib/auth/signup-routing.ts', {})
+test('old signup emails landing on home are routed to confirmation without exposing fragments', () => {
+  assert.equal(signupRouting.signupLandingTarget('?code=signup-code', ''), '/auth/confirm?code=signup-code&next=%2Fdashboard')
+  assert.equal(signupRouting.signupLandingTarget('', '#type=signup&access_token=secret'), '/login?confirmation=complete&redirectTo=%2Fdashboard')
+  assert.equal(signupRouting.signupLandingTarget('', '#error=access_denied'), '/login?confirmation=retry&redirectTo=%2Fdashboard')
+  assert.equal(signupRouting.signupLandingTarget('?donation=success', ''), null)
+  assert.equal(signupRouting.signupLandingTarget('', '#type=recovery'), null)
+})
+test('signup confirmation supports same-browser, cross-browser, duplicate and invalid links', async () => {
+  for (const [query, error, expected] of [
+    ['code=valid', null, '/dashboard'],
+    ['code=valid&next=%2Fregistration', null, '/registration'],
+    ['code=valid&next=https://evil.example', null, '/dashboard'],
+    ['code=valid&next=%2F%5Cevil.example', null, '/dashboard'],
+    ['code=other-browser', { code: 'flow_state_not_found' }, '/login?redirectTo=%2Fdashboard&confirmation=retry'],
+    ['code=used', { code: 'invalid_grant' }, '/login?redirectTo=%2Fdashboard&confirmation=retry'],
+    ['', null, '/login?redirectTo=%2Fdashboard&confirmation=retry'],
+    ['error=access_denied', null, '/login?redirectTo=%2Fdashboard&confirmation=retry'],
+  ]) {
+    const route = load('src/app/auth/confirm/route.ts', {
+      'next/server': require('next/server'),
+      '@/lib/auth/signup-routing': signupRouting,
+      '@/lib/supabase/server': { createServerSupabase: async () => ({ auth: { exchangeCodeForSession: async () => ({ error }) } }) },
+    })
+    const response = await route.GET({ nextUrl: new URL(`https://www.clwizards.com/auth/confirm?${query}`) })
+    assert.equal(response.headers.get('location'), `https://www.clwizards.com${expected}`)
+    assert.equal(response.headers.get('cache-control'), 'private, no-store')
+  }
 })
 
 function recoveryAudit(emails, options = {}) {

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { SignupLandingRedirect } from '@/components/auth/SignupLandingRedirect'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { chicagoDateString } from '@/lib/chicago-time'
@@ -81,6 +82,7 @@ export default async function HomePage({
 
   return (
     <main className="marketing-site min-h-screen overflow-x-clip bg-clw-black">
+      <SignupLandingRedirect />
       <SiteHeader />
       <div aria-hidden className="h-[116px] sm:h-[120px] min-[1180px]:h-[104px]" />
 
