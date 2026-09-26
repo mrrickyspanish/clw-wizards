@@ -149,12 +149,17 @@ export async function sendAlert(subject: string, context: Record<string, unknown
     .join('\n')
 
   try {
-    await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from: fromAddress,
       to: [ALERT_EMAIL],
       subject: `[${ORG.shortName} Alert] ${subject}`,
       text: `${subject}\n\n${detailLines}\n\nTime: ${new Date().toISOString()}`,
     })
+    if (error || !data?.id) {
+      console.error('[alert] Provider rejected alert email:', {
+        name: error?.name ?? 'MissingProviderReceipt',
+      })
+    }
   } catch (err) {
     console.error('[alert] Failed to send alert email:', err)
   }

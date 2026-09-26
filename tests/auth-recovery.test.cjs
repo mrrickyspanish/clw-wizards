@@ -276,3 +276,13 @@ test('cron must authorize before generating a token', async () => {
   }))).status, 200)
   assert.equal(sent, 1)
 })
+
+test('owner alert reports a provider rejection rather than swallowing it', async () => {
+  const logs = []
+  const alert = load('src/lib/alerts.ts', {
+    resend: { Resend: class { emails = { send: async () => ({ data: null, error: { name: 'validation_error' } }) } } },
+    '@/config/org.config': { ORG: { shortName: 'CLW', contactEmail: 'club@example.com' } },
+  }, { RESEND_API_KEY: 'test-provider-key', RESEND_FROM_EMAIL: 'CLW <auth@example.com>' }, logs)
+  await alert.sendAlert('Recovery failed', { requestId: 'test-id' })
+  assert.match(JSON.stringify(logs), /Provider rejected alert email.*validation_error/)
+})
