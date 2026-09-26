@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AuthBrand } from '@/components/layout/AuthBrand'
 import { ORG } from '@/config/org.config'
+import { authAttempt, markAuthNavigation, reportClientAuthFailure } from '@/lib/auth/report-client'
 
 function safeRedirect(value: string | null) {
   return value && value.startsWith('/') && !value.startsWith('//') ? value : null
@@ -49,6 +50,8 @@ function LoginForm() {
     }
 
     setLoading(true)
+    authAttempt(email.trim())
+    let authenticated = false
 
     try {
       const supabase = createBrowserSupabase()
@@ -63,20 +66,29 @@ function LoginForm() {
         turnstile.reset()
         return
       }
+      authenticated = true
+      markAuthNavigation()
 
       if (redirectTo) {
         router.push(redirectTo)
         return
       }
 
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', data.user.id)
         .single()
 
+      if (profileError || !profile) {
+        void reportClientAuthFailure('family_setup', profileError ?? { code: 'profile_missing', message: 'Authenticated user has no profile' }, email)
+        setError('We could not open your family account. Please try signing in again or contact the club.')
+        return
+      }
+
       router.push(homeForRole(profile?.role ?? null))
     } catch (error) {
+      if (authenticated) void reportClientAuthFailure('family_setup', error, email)
       setError(signInErrorMessage(error))
       turnstile.reset()
     } finally {

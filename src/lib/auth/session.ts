@@ -4,19 +4,21 @@ import type { AppRole, AdminScope } from '@/types/database'
 export async function getSessionRole(supabase: SupabaseClient) {
   const {
     data: { user },
+    error: sessionError,
   } = await supabase.auth.getUser()
 
   if (!user)
-    return { user: null, role: null as AppRole | null, adminScope: null as AdminScope | null, onboardingCompleted: false }
+    return { user: null, role: null as AppRole | null, adminScope: null as AdminScope | null, onboardingCompleted: false, sessionError }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('role, admin_scope, is_active, onboarding_completed_at')
     .eq('id', user.id)
     .single()
 
   if (!profile || !profile.is_active)
-    return { user, role: null as AppRole | null, adminScope: null as AdminScope | null, onboardingCompleted: false }
+    return { user, role: null as AppRole | null, adminScope: null as AdminScope | null, onboardingCompleted: false,
+      accessError: profileError ?? { code: profile ? 'profile_inactive' : 'profile_missing', message: profile ? 'Account profile is inactive' : 'Authenticated user has no profile' } }
 
   return {
     user,

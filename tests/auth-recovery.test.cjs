@@ -9,6 +9,11 @@ const ts = require('typescript')
 // Execute the real route and error policy with provider boundaries mocked.
 // No network, credentials, test users or actual emails are involved.
 function load(relative, mocks, env = {}, logs = [], fetcher = fetch, globals = {}) {
+  mocks = { ...mocks }
+  if (mocks['next/server'] && (!mocks['next/server'].after || mocks['next/server'].after === require('next/server').after)) mocks['next/server'] = { ...mocks['next/server'], after: () => {} }
+  mocks['@/lib/auth/incidents'] ??= { registerResetAttempt: async () => {}, linkAttemptId: async () => '11111111-1111-4111-a111-111111111111', requestSourceKey: async () => 'test', reportParentAuthFailure: async () => {} }
+  mocks['@/lib/auth/report-client'] ??= { authAttempt: () => 'test', reportClientAuthFailure: async () => {}, markAuthNavigation: () => {} }
+  if (relative.startsWith('src/app/') || relative === 'src/middleware.ts') mocks['@/lib/auth/incident-policy'] ??= incidentPolicy
   const filename = path.join(__dirname, '..', relative)
   const code = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
@@ -19,11 +24,177 @@ function load(relative, mocks, env = {}, logs = [], fetcher = fetch, globals = {
     require: (id) => id in mocks ? mocks[id] : require(id),
     process: { env }, URL, URLSearchParams, Response, Request, AbortSignal, fetch: fetcher,
     console: { info: (...args) => logs.push(args), error: (...args) => logs.push(args) },
-    setTimeout: (fn) => { fn(); return 0 }, ...globals,
+    setTimeout: (fn) => { fn(); return 0 }, crypto: require('node:crypto').webcrypto, ...globals,
   }, { filename })
   return compiledModule.exports
 }
 const policy = load('src/lib/auth/recovery-errors.ts', {})
+const incidentPolicy = load('src/lib/auth/incident-policy.ts', {})
+const incidentId = '11111111-1111-4111-a111-111111111111'
+
+test('rejected confirmation/reset callbacks retain one attempt reference through fallback redirects', async () => {
+  const next = require('next/server')
+  for (const [routePath, step] of [['confirm', 'confirmation_link'], ['callback', 'reset_link']]) {
+    const tasks = [], reports = []
+    const mod = load(`src/app/auth/${routePath}/route.ts`, {
+      'next/server': { ...next, after: task => tasks.push(task) },
+      '@/lib/supabase/server': { createServerSupabase: async () => ({}) },
+      '@/lib/auth/signup-routing': { signupDestination: () => '/dashboard' },
+      '@/lib/auth/incidents': { requestSourceKey: async () => 'source', reportParentAuthFailure: async input => reports.push(input) },
+    })
+    let cookie = ''
+    for (let i = 0; i < 2; i++) {
+      const res = await mod.GET(new next.NextRequest(`https://www.clwizards.com/auth/${routePath}?error=access_denied&error_code=otp_expired&error_description=Link+expired`, { headers: { cookie } }))
+      const id = res.cookies.get('clw_auth_attempt').value
+      assert.ok(incidentPolicy.validAttempt(id))
+      cookie = `clw_auth_attempt=${id}`
+    }
+    await Promise.all(tasks.map(task => task()))
+    assert.equal(reports.length, 2)
+    assert.equal(reports[0].attemptId, reports[1].attemptId)
+    assert.equal(reports[0].step, step)
+    assert.equal(reports[0].error.code, 'otp_expired')
+    assert.equal(reports[0].error.message, 'Link expired')
+  }
+})
+
+function incidentsHarness(options = {}) {
+  const rows = new Map(), sends = [], logs = []
+  let sendFails = Boolean(options.sendFails)
+  const admin = {
+    rpc: async (name, args) => {
+      if (options.dbFails) return { error: { message: 'DB unavailable' } }
+      if (name === 'record_parent_auth_failure') {
+        if (options.rateLimited) return { data: false }
+        const previous = rows.get(args.p_id)
+        const row = previous ?? { id: args.p_id, occurrences: 0 }
+        if (!row.first_seen) Object.assign(row, {
+          first_seen: '2026-09-26T20:00:00Z', first_step: args.p_step, first_error: args.p_error,
+          first_email: row.email ?? args.p_email, first_email_source: row.email_source ?? args.p_email_source,
+        })
+        row.latest_step = args.p_step; row.latest_error = args.p_error; row.occurrences++
+        rows.set(args.p_id, row)
+        return { data: true }
+      }
+      const row = rows.get(args.p_id)
+      if (!row || row.notified_at || row.lease_until) return { data: [] }
+      row.lease_until = 'claimed'
+      return { data: [{ ...row }] }
+    },
+    from: () => ({
+      insert: async row => { rows.set(row.id, { ...row, occurrences: 0 }); return { error: null } },
+      update: values => ({ eq: async (_field, id) => { Object.assign(rows.get(id), values); return { error: null } } }),
+    }),
+  }
+  const incidentModule = load('src/lib/auth/incidents.ts', {
+    './incident-policy': incidentPolicy,
+    '@/lib/supabase/admin': { createAdminSupabase: () => admin },
+    '@/lib/env': { readCredential: key => ({ RESEND_API_KEY: 'test', RESEND_FROM_EMAIL: 'CLW <auth@example.com>', ALERT_EMAIL: 'owner@example.com' })[key] },
+    '@/config/org.config': { ORG: { shortName: 'CLW', contactEmail: 'fallback@example.com' } },
+    resend: { Resend: class { emails = { send: async (payload, opts) => {
+      sends.push({ payload, opts })
+      return sendFails ? { error: { name: 'RateLimit' } } : { data: { id: 'accepted-message' } }
+    } } } },
+  }, {}, logs, fetch, { crypto: require('node:crypto').webcrypto, TextEncoder })
+  return { ...incidentModule, rows, sends, logs, recover: () => { sendFails = false } }
+}
+
+test('actual incident sender groups concurrent failures into one email with required diagnostics', async () => {
+  const h = incidentsHarness()
+  const input = { attemptId: incidentId, step: 'reset_link', email: 'parent@example.com', error: { code: 'otp_expired', message: 'Link expired', status: 403 } }
+  await Promise.all([h.reportParentAuthFailure(input), h.reportParentAuthFailure(input)])
+  assert.equal(h.rows.get(incidentId).occurrences, 2)
+  assert.equal(h.sends.length, 1)
+  assert.deepEqual(Array.from(h.sends[0].payload.to), ['owner@example.com'])
+  for (const expected of ['parent@example.com', 'reset_link', 'otp_expired', 'Link expired', '2026-09-26T20:00:00Z', incidentId]) assert.ok(h.sends[0].payload.text.includes(expected))
+  assert.doesNotMatch(JSON.stringify(h.logs), /parent@example.com/)
+})
+
+test('failed alert delivery remains pending and retries with identical payload and idempotency key', async () => {
+  const h = incidentsHarness({ sendFails: true })
+  const input = { attemptId: incidentId, step: 'reset_link', error: { code: 'otp_expired' } }
+  assert.equal((await h.reportParentAuthFailure(input)).recorded, false)
+  assert.equal(h.rows.get(incidentId).notified_at, undefined)
+  assert.equal(h.rows.get(incidentId).lease_until, null)
+  h.recover()
+  await h.reportParentAuthFailure({ ...input, step: 'password_save', error: { message: 'Second failure' }, email: 'later@example.com' })
+  assert.deepEqual(h.sends[0].payload, h.sends[1].payload)
+  assert.equal(h.sends[0].opts.idempotencyKey, h.sends[1].opts.idempotencyKey)
+  assert.equal(h.rows.get(incidentId).latest_step, 'password_save')
+  assert.equal(h.rows.get(incidentId).message_id, 'accepted-message')
+})
+
+test('reset recipient is available even when verification fails without a session', async () => {
+  const h = incidentsHarness()
+  await h.registerResetAttempt(incidentId, 'parent@example.com')
+  await h.reportParentAuthFailure({ attemptId: incidentId, step: 'reset_link', error: { code: 'otp_expired' }, email: 'spoof@example.com' })
+  assert.match(h.sends[0].payload.text, /parent@example.com/)
+  assert.doesNotMatch(h.sends[0].payload.text, /spoof@example.com/)
+})
+
+test('rate-limited and unavailable incident storage cannot send uncontrolled emails or break auth', async () => {
+  for (const options of [{ rateLimited: true }, { dbFails: true }]) {
+    const h = incidentsHarness(options)
+    const result = await h.reportParentAuthFailure({ attemptId: incidentId, step: 'family_setup', error: 'Failure' })
+    assert.equal(result.recorded, false)
+    assert.equal(h.sends.length, 0)
+  }
+})
+
+test('diagnostics exclude token URLs, passwords, JWTs, and extra auth response fields', () => {
+  const details = incidentPolicy.safeAuthError({
+    message: 'Rejected https://example.com/#token=secret password=hunter2 token_hash=SECRET_TOKEN',
+    code: 'otp_expired', access_token: 'SUPER_SECRET', password: 'SECOND_SECRET',
+  })
+  assert.equal(details.code, 'otp_expired')
+  assert.doesNotMatch(JSON.stringify(details), /hunter2|SECRET|example.com/)
+})
+
+test('password form reports expired links and password saving failures at the correct step', async () => {
+  for (const [options, step, code] of [
+    [{ verifyError: { code: 'otp_expired', message: 'Token used' } }, 'reset_link', 'otp_expired'],
+    [{ updateError: { code: 'weak_password', message: 'Password rejected' } }, 'password_save', 'weak_password'],
+  ]) {
+    const h = passwordForm(options)
+    await h.ready().props.onSubmit({ preventDefault() {} })
+    assert.equal(h.reports.length, 1)
+    assert.equal(h.reports[0][0], step)
+    assert.equal(h.reports[0][1].code, code)
+    assert.doesNotMatch(JSON.stringify(h.reports), /Valid-password|test-token/)
+  }
+  const success = passwordForm()
+  await success.ready().props.onSubmit({ preventDefault() {} })
+  assert.equal(success.reports.length, 0)
+})
+
+test('middleware alerts on blocked authenticated parents, not normal logged-out visits or successful setup', async () => {
+  const next = require('next/server')
+  for (const scenario of ['missing_profile', 'logged_out', 'lost_session', 'success']) {
+    const reports = [], tasks = []
+    const user = ['missing_profile', 'success'].includes(scenario) ? { id: 'user', email: 'parent@example.com' } : null
+    const session = {
+      user, role: scenario === 'success' ? 'parent' : null, onboardingCompleted: false,
+      ...(scenario === 'missing_profile' ? { accessError: { code: 'PGRST116', message: 'No profile row' } } : {}),
+      sessionError: user ? null : { code: 'session_not_found', message: 'No session' },
+    }
+    const mod = load('src/middleware.ts', {
+      'next/server': next,
+      '@/lib/auth/session': { getSessionRole: async () => session, homeForRole: () => '/login' },
+      '@/lib/supabase/middleware': { getSupabaseAndResponse: async () => ({ supabase: {}, response: next.NextResponse.next() }) },
+      '@/lib/auth/incident-policy': incidentPolicy,
+      '@/lib/auth/incidents': { linkAttemptId: async () => incidentId, reportParentAuthFailure: async input => reports.push(input) },
+    })
+    const request = new next.NextRequest('https://www.clwizards.com/onboarding', { headers: {
+      cookie: 'clw_auth_attempt=' + incidentId + (scenario === 'lost_session' ? '; clw_auth_pending=1' : ''),
+    } })
+    await mod.middleware(request, { waitUntil: task => tasks.push(task) })
+    await Promise.all(tasks)
+    assert.equal(reports.length, ['missing_profile', 'lost_session'].includes(scenario) ? 1 : 0)
+    if (reports.length) { assert.equal(reports[0].step, 'family_setup'); assert.equal(reports[0].attemptId, incidentId) }
+    if (scenario === 'missing_profile') assert.equal(reports[0].email, 'parent@example.com')
+  }
+})
+
 const transient = { name: 'AuthRetryableFetchError', status: 503, message: '{}' }
 const generated = { data: { properties: { hashed_token: 'SECRET_RECOVERY_TOKEN' } }, error: null }
 function harness(options = {}) {
@@ -100,8 +271,7 @@ test('unknown account remains enumeration-safe', async () => {
   assert.equal(h.logs.length, 0)
   assert.equal(h.alerts.length, 0)
   await Promise.all(h.afterTasks.map((task) => task()))
-  assert.equal(h.alerts[0].context.email, 'parent@example.com')
-  assert.match(h.alerts[0].subject, /unknown account/)
+  assert.equal(h.alerts.length, 0)
 })
 test('empty token response fails rather than claiming email was sent', async () => {
   const h = harness({ generate: () => ({ data: { properties: {} } }) })
@@ -231,7 +401,7 @@ test('scheduled canary bypasses CAPTCHA only for the exact configured account an
 // Run the actual password form with deterministic hook state and mocked auth.
 // This tests user events, not just source text or a copy of the implementation.
 function passwordForm(options = {}) {
-  const states = [], effects = [], calls = [], navigations = []
+  const states = [], effects = [], calls = [], navigations = [], reports = []
   let cursor = 0
   const window = { location: { hash: '#recovery_token=test-token' }, history: {
     replaceState: (_state, _title, url) => { window.location.hash = ''; navigations.push(url) },
@@ -251,6 +421,7 @@ function passwordForm(options = {}) {
     useEffect: (effect) => { const index = cursor++; if (!(index in states)) { states[index] = true; effects.push(effect) } },
   }
   const mocks = {
+    '@/lib/auth/report-client': { authAttempt: () => 'test', reportClientAuthFailure: async (...args) => reports.push(args) },
     react,
     'next/navigation': { useRouter: () => ({ replace: (url) => navigations.push(url) }), useSearchParams: () => new URLSearchParams() },
     '@/lib/supabase/browser': { createBrowserSupabase: () => ({ auth: {
@@ -281,7 +452,7 @@ function passwordForm(options = {}) {
     inputs.forEach((node) => node.props.onChange({ target: { value: 'Valid-password-123!' } }))
     return nodes(render()).find((node) => node.type === 'form')
   }
-  return { calls, navigations, render, ready, nodes }
+  return { calls, navigations, reports, render, ready, nodes }
 }
 test('opening and rendering password form never verifies or consumes the token', () => {
   const h = passwordForm()

@@ -399,9 +399,24 @@ export type Donation = {
   created_at: string
 }
 
+export type ParentAuthIncident = {
+  id: string; created_at: string; email: string | null; email_source: string | null
+  first_email: string | null; first_email_source: string | null
+  first_step: string | null; first_error: Record<string, unknown> | null; first_seen: string | null
+  latest_step: string | null; latest_error: Record<string, unknown> | null; last_seen: string | null
+  occurrences: number; source_key: string | null; notified_at: string | null
+  message_id: string | null; lease_until: string | null
+}
+
 export type Database = {
   public: {
     Tables: {
+      parent_auth_incidents: {
+        Row: ParentAuthIncident
+        Insert: Partial<ParentAuthIncident> & { id: string }
+        Update: Partial<ParentAuthIncident>
+        Relationships: []
+      }
       profiles: {
         Row: Profile
         Insert: Partial<Profile>
@@ -555,6 +570,14 @@ export type Database = {
     }
     Views: { [_ in never]: never }
     Functions: {
+      record_parent_auth_failure: {
+        Args: { p_id: string; p_step: string; p_error: Record<string, unknown>; p_email: string | null; p_email_source: string; p_source_key: string }
+        Returns: boolean
+      }
+      claim_parent_auth_incident: {
+        Args: { p_id: string }
+        Returns: ParentAuthIncident[]
+      }
       submit_season_enrollment: {
         Args: {
           _season_registration_id: string
