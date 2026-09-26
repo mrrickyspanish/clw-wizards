@@ -233,7 +233,7 @@ function recoveryAudit(emails, options = {}) {
   }
   const audit = load('src/lib/auth/recovery-audit.ts', {
     '@/lib/env': { readCredential: (key) => ({
-      RESEND_API_KEY: 'test-provider-key', PASSWORD_RESET_CANARY_EMAIL: 'canary@example.com', ...options.env,
+      RESEND_AUDIT_API_KEY: 'test-provider-key', PASSWORD_RESET_CANARY_EMAIL: 'canary@example.com', ...options.env,
     })[key] },
   }, {}, [], fetched)
   return { now, calls, audit }

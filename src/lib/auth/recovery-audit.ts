@@ -14,7 +14,9 @@ interface SentEmailPage {
 }
 
 export async function auditPasswordRecovery(now = Date.now()): Promise<{ ok: boolean; reason: string; checked: number }> {
-  const key = readCredential('RESEND_API_KEY')
+  // Resend requires full access for GET /emails. Keep the transactional
+  // sending key restricted, and use a separate key for this read-side audit.
+  const key = readCredential('RESEND_AUDIT_API_KEY')
   const canary = readCredential('PASSWORD_RESET_CANARY_EMAIL')?.toLowerCase()
   if (!key || !canary) return { ok: false, reason: 'configuration-missing', checked: 0 }
 

@@ -15,9 +15,11 @@ screen directs parents to contact the club if no email arrives in 10 minutes.
 2. In Vercel Production, set `PASSWORD_RESET_CANARY_EMAIL` to that address.
    Confirm the existing `CRON_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`,
    Supabase URL, and service role key are present. Never put secrets in GitHub.
-3. Confirm the Resend API key can call both `POST /emails` and `GET /emails`.
-   The latter is needed to audit final delivery and is not supported by the
-   project's older Resend SDK, so the audit calls the documented API directly.
+3. In Resend, create a separate full-access API key named `CLW recovery audit`
+   and store it as `RESEND_AUDIT_API_KEY` in Vercel Production. Resend requires
+   broader permission for `GET /emails`; keep the existing `RESEND_API_KEY`
+   send-only. The older SDK cannot list email, so the audit calls Resend's
+   documented read API directly. Do not paste either key into a PR or chat.
 4. Deploy the branch after step 2. Trigger the authorized cron route once,
    then check `/api/health/password-recovery` after delivery. It must return
    `{ "ok": true, "reason": "delivered" }`. Also inspect the canary inbox.
