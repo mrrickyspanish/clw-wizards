@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useState, type FormEvent } from 'react'
+import { Suspense, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 import { createBrowserSupabase } from '@/lib/supabase/browser'
@@ -32,8 +32,18 @@ function UpdatePasswordForm() {
   const [loading, setLoading] = useState(false)
   const [checkingLink, setCheckingLink] = useState(true)
   const [canReset, setCanReset] = useState(false)
+  const [recoveryToken, setRecoveryToken] = useState<string | null>(null)
+  const submitting = useRef(false)
 
   useEffect(() => {
+    const token = new URLSearchParams(window.location.hash.slice(1)).get('recovery_token')
+    if (token) {
+      setRecoveryToken(token)
+      setError(null)
+      setCanReset(true)
+      setCheckingLink(false)
+      return
+    }
     if (searchParams.get('error') === 'invalid-link') {
       setCheckingLink(false)
       return
@@ -58,6 +68,7 @@ function UpdatePasswordForm() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    if (submitting.current) return
     setError(null)
 
     if (password !== confirmPassword) {
@@ -73,18 +84,39 @@ function UpdatePasswordForm() {
       return
     }
 
+    submitting.current = true
     setLoading(true)
-    const supabase = createBrowserSupabase()
-    const { error: updateError } = await supabase.auth.updateUser({ password })
-    setLoading(false)
+    try {
+      const supabase = createBrowserSupabase()
+      if (recoveryToken) {
+        const { error: verifyError } = await supabase.auth.verifyOtp({ token_hash: recoveryToken, type: 'recovery' })
+        if (verifyError) {
+          if (verifyError.code === 'otp_expired') {
+            setCanReset(false)
+            setError('This reset link has already been used or has expired. Request a new link below, then use the newest email.')
+          } else {
+            setError('We could not verify the reset link right now. Please try again.')
+          }
+          return
+        }
+        setRecoveryToken(null)
+        window.history.replaceState(null, '', '/update-password')
+      }
+      const { error: updateError } = await supabase.auth.updateUser({ password })
 
-    if (updateError) {
-      setError(updateError.message)
-      return
+      if (updateError) {
+        setError(updateError.message)
+        return
+      }
+
+      await supabase.auth.signOut({ scope: 'local' })
+      router.replace('/login?reset=success')
+    } catch {
+      setError('Could not reach the server. Check your connection and try again.')
+    } finally {
+      submitting.current = false
+      setLoading(false)
     }
-
-    await supabase.auth.signOut({ scope: 'local' })
-    router.replace('/login?reset=success')
   }
 
   return (
