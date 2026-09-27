@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { Suspense, useState, type FormEvent } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 import { useTurnstile } from '@/components/auth/useTurnstile'
@@ -13,7 +14,28 @@ import { AuthBrand } from '@/components/layout/AuthBrand'
 import { ORG } from '@/config/org.config'
 
 export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState('')
+  return (
+    <Suspense>
+      <ForgotPasswordForm />
+    </Suspense>
+  )
+}
+
+/**
+ * The email field is prefilled from ?email= when the signup form sent the
+ * parent here after finding they already had an account.
+ *
+ * Not a convenience. This route answers a neutral success for an address that
+ * has no account -- deliberately, so it cannot be used to discover who is
+ * registered. The cost is that a typo here looks exactly like a sent email: the
+ * parent is told to check their inbox and waits for a message that was never
+ * addressed to them. Carrying the address they already typed removes the one
+ * keystroke that can put them back in the dead end they just escaped.
+ */
+function ForgotPasswordForm() {
+  const searchParams = useSearchParams()
+  const prefill = searchParams.get('email') ?? ''
+  const [email, setEmail] = useState(prefill.length <= 254 ? prefill : '')
   const [error, setError] = useState<string | null>(null)
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)

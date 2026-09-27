@@ -38,6 +38,7 @@ function SignupForm() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [needsConfirmation, setNeedsConfirmation] = useState(false)
+  const [existingAccount, setExistingAccount] = useState(false)
   const [loading, setLoading] = useState(false)
   const turnstile = useTurnstile()
 
@@ -71,6 +72,25 @@ function SignupForm() {
       return
     }
 
+    // Supabase does not error when the address already has an account -- email
+    // enumeration protection makes it answer with a normal-looking success and
+    // an empty identities array, and it sends no mail at all.
+    //
+    // Left unhandled, that is the worst screen on the site. Every family the
+    // club imported already HAS an account: the importer creates them with the
+    // email pre-confirmed and no password, to be claimed later through "forgot
+    // password". A parent who was never told that arrives here and tries to
+    // sign up, gets told to check their email, and waits for a message nobody
+    // ever sent -- unable to sign in, because they have no password, and unable
+    // to register, because the account exists. That is indistinguishable, from
+    // their side, from the whole site being broken, and it is what has been
+    // reaching the club as "the payment links aren't working".
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      setExistingAccount(true)
+      setLoading(false)
+      return
+    }
+
     // handle_new_user() creates the profiles row server-side. Contact info and
     // the athlete roster are collected afterward in /onboarding.
     if (data.session) {
@@ -82,6 +102,37 @@ function SignupForm() {
 
     setLoading(false)
     setNeedsConfirmation(true)
+  }
+
+  if (existingAccount) {
+    return (
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-clw-black px-4 py-12">
+        <AuthBrand />
+        <Card className="w-full max-w-md border-clw-gold/20 bg-clw-black-2">
+          <CardHeader>
+            <CardTitle className="text-clw-gold">You already have an account</CardTitle>
+            <CardDescription className="text-base">
+              {ORG.shortName} already has an account for {email}, created when the club added your
+              family to the portal. It just needs a password.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button asChild className="w-full">
+              <Link href={`/forgot-password?email=${encodeURIComponent(email.trim())}`}>
+                Set my password
+              </Link>
+            </Button>
+            <p className="text-sm text-muted-foreground">
+              You will get an email with a link to choose a password. After that, sign in normally to
+              register and pay.
+            </p>
+            <Link href={loginHref} className="block text-sm hover:underline">
+              Back to sign in
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   if (needsConfirmation) {
