@@ -24,3 +24,32 @@ export function safeEmail(value: unknown) {
   return typeof value === 'string' && value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
     ? value.trim().toLowerCase() : null
 }
+
+/**
+ * A confirmation link opened somewhere other than where signup started.
+ *
+ * The PKCE verifier is written by the browser that submitted the signup form.
+ * Tapping the emailed link from a mail app opens it in a different browser --
+ * an in-app webview, or the phone's default -- which has no verifier, so the
+ * code exchange fails. On a phone that is the NORMAL path, not the exception.
+ *
+ * Nobody is blocked when it happens. Supabase confirms the address at its own
+ * verify endpoint before it ever redirects back here with a code, so the
+ * account is already confirmed; only the automatic sign-in is lost. The
+ * confirm route falls through to /login, which tells the parent to sign in
+ * with the password they just chose, and they do.
+ *
+ * It still paged the club as "Parent blocked: confirmation_link". An alert that
+ * fires on a self-healing condition, names it blocking, and offers nothing to
+ * act on is worse than no alert: it spends the attention that a real failure
+ * needs. Recorded in parent_auth_incidents either way -- count them there to
+ * see volume -- but it does not wake anyone.
+ */
+const SELF_HEALING_CONFIRMATION_CODES = new Set(['pkce_code_verifier_not_found'])
+const SELF_HEALING_CONFIRMATION_NAMES = new Set(['AuthPKCECodeVerifierMissingError'])
+
+export function isSelfHealingFailure(step: FailureStep, error: unknown) {
+  if (step !== 'confirmation_link') return false
+  const { code, name } = safeAuthError(error)
+  return SELF_HEALING_CONFIRMATION_CODES.has(code) || SELF_HEALING_CONFIRMATION_NAMES.has(name)
+}

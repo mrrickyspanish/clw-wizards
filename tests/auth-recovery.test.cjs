@@ -110,6 +110,32 @@ test('actual incident sender groups concurrent failures into one email with requ
   assert.doesNotMatch(JSON.stringify(h.logs), /parent@example.com/)
 })
 
+test('a confirmation link opened in another browser is recorded but never paged', async () => {
+  const h = incidentsHarness()
+  await h.reportParentAuthFailure({
+    attemptId: incidentId, step: 'confirmation_link',
+    error: { code: 'pkce_code_verifier_not_found', name: 'AuthPKCECodeVerifierMissingError', status: 400,
+      message: 'PKCE code verifier not found in storage.' },
+  })
+  // Recorded with diagnostics intact, so volume is still countable in the table.
+  assert.equal(h.rows.get(incidentId).occurrences, 1)
+  assert.equal(h.rows.get(incidentId).first_step, 'confirmation_link')
+  // But nobody is woken, and the retry sweep must not mail it later either.
+  assert.equal(h.sends.length, 0)
+  assert.equal(h.rows.get(incidentId).message_id, 'suppressed:self-healing')
+  assert.ok(h.rows.get(incidentId).notified_at)
+})
+
+test('a genuinely blocking failure on the same step still pages', async () => {
+  const h = incidentsHarness()
+  await h.reportParentAuthFailure({
+    attemptId: incidentId, step: 'confirmation_link',
+    error: { code: 'otp_expired', message: 'Email link is invalid or has expired' },
+  })
+  assert.equal(h.sends.length, 1)
+  assert.ok(h.sends[0].payload.text.includes('otp_expired'))
+})
+
 test('failed alert delivery remains pending and retries with identical payload and idempotency key', async () => {
   const h = incidentsHarness({ sendFails: true })
   const input = { attemptId: incidentId, step: 'reset_link', error: { code: 'otp_expired' } }

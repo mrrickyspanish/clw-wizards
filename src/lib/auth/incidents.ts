@@ -2,7 +2,7 @@ import { Resend } from 'resend'
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { readCredential } from '@/lib/env'
 import { ORG } from '@/config/org.config'
-import { safeAuthError, safeEmail, validAttempt, type FailureStep } from './incident-policy'
+import { safeAuthError, safeEmail, validAttempt, isSelfHealingFailure, type FailureStep } from './incident-policy'
 
 export async function incidentFingerprint(value: string) {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
@@ -73,6 +73,19 @@ export async function deliverParentAuthIncident(id: string) {
   }
 }
 
+/**
+ * Records the incident as handled without emailing anyone. The row stays in
+ * parent_auth_incidents with its diagnostics intact; only the page is dropped.
+ */
+async function suppressParentAuthAlert(id: string) {
+  const admin = createAdminSupabase()
+  const { error } = await admin.from('parent_auth_incidents').update({
+    notified_at: new Date().toISOString(), message_id: 'suppressed:self-healing', lease_until: null,
+  }).eq('id', id)
+  if (error) throw error
+  console.info('[parent-auth] self-healing failure recorded, not alerted', { referenceId: id })
+}
+
 export async function reportParentAuthFailure(input: {
   attemptId?: string | null; step: FailureStep; error: unknown; email?: string | null;
   emailSource?: string; sourceKey?: string;
@@ -85,7 +98,12 @@ export async function reportParentAuthFailure(input: {
       p_source_key: input.sourceKey ?? 'server',
     })
     if (error) throw error
-    if (data) await deliverParentAuthIncident(id)
+    if (data) {
+      // Marked notified rather than left pending, so the retry sweep does not
+      // pick it back up and mail it an hour later.
+      if (isSelfHealingFailure(input.step, input.error)) await suppressParentAuthAlert(id)
+      else await deliverParentAuthIncident(id)
+    }
     return { referenceId: id, recorded: Boolean(data) }
   } catch {
     console.error('[parent-auth] reporting incomplete', { referenceId: id, step: input.step })
