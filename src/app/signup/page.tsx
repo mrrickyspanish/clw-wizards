@@ -1,10 +1,9 @@
 'use client'
 
 import { Suspense, useState, type FormEvent } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
-import { createBrowserSupabase } from '@/lib/supabase/browser'
 import { useTurnstile } from '@/components/auth/useTurnstile'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,8 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AuthBrand } from '@/components/layout/AuthBrand'
 import { ORG } from '@/config/org.config'
-import { signupDestination } from '@/lib/auth/signup-routing'
-import { authAttempt, markAuthNavigation } from '@/lib/auth/report-client'
+import { authAttempt } from '@/lib/auth/report-client'
 
 function safeRedirect(value: string | null) {
   return value && value.startsWith('/') && !value.startsWith('//') ? value : null
@@ -29,7 +27,6 @@ export default function SignupPage() {
 }
 
 function SignupForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = safeRedirect(searchParams.get('redirectTo'))
   const loginHref = redirectTo ? `/login?redirectTo=${encodeURIComponent(redirectTo)}` : '/login'
@@ -53,19 +50,45 @@ function SignupForm() {
     setLoading(true)
     authAttempt(email.trim())
 
-    const supabase = createBrowserSupabase()
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent(signupDestination(redirectTo))}`,
-        data: { full_name: fullName },
-        ...(turnstile.token ? { captchaToken: turnstile.token } : {}),
-      },
-    })
+    // Deliberately NOT supabase.auth.signUp(). That sends the confirmation
+    // through Supabase's built-in sender, which has a low project-wide hourly
+    // cap and silently stops sending past it -- while still reporting success,
+    // so the parent is told to check an inbox nothing was sent to. Our own
+    // route generates the same link and sends it through Resend, the provider
+    // that already carries password resets and every other club email.
+    let response: Response
+    try {
+      response = await fetch('/api/auth/request-signup-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+          fullName,
+          redirectTo,
+          ...(turnstile.token ? { turnstileToken: turnstile.token } : {}),
+        }),
+      })
+    } catch {
+      setError('Could not reach the site. Check your connection and try again.')
+      turnstile.reset()
+      setLoading(false)
+      return
+    }
 
-    if (signUpError) {
-      setError(signUpError.message)
+    const raw = await response.text().catch(() => '')
+    let data: Record<string, unknown> = {}
+    try {
+      const parsed = JSON.parse(raw) as unknown
+      if (parsed && typeof parsed === 'object') data = parsed as Record<string, unknown>
+    } catch {
+      console.error('[signup] non-JSON response', { status: response.status, bodyStart: raw.slice(0, 200) })
+    }
+
+    if (!response.ok) {
+      setError(typeof data.error === 'string' && data.error
+        ? data.error
+        : 'We could not finish creating your account. Please try again in a moment.')
       turnstile.reset()
       setLoading(false)
       return
@@ -73,13 +96,6 @@ function SignupForm() {
 
     // handle_new_user() creates the profiles row server-side. Contact info and
     // the athlete roster are collected afterward in /onboarding.
-    if (data.session) {
-      markAuthNavigation()
-      setLoading(false)
-      router.push(redirectTo ?? '/dashboard')
-      return
-    }
-
     setLoading(false)
     setNeedsConfirmation(true)
   }

@@ -11,7 +11,41 @@ export async function GET(request: NextRequest) {
   login.searchParams.set('confirmation', 'retry')
   let destination = login
   const code = request.nextUrl.searchParams.get('code')
+  const tokenHash = request.nextUrl.searchParams.get('token_hash')
   let reportAttemptId: string | undefined
+
+  // Confirmation links we send ourselves through Resend carry a token hash
+  // rather than a PKCE code, because generateLink produces the token and the
+  // send is ours. Verifying here establishes the session directly.
+  //
+  // An email scanner that opens the link first will consume the token, and
+  // that is survivable in a way it never was for recovery: the account's email
+  // ends up confirmed either way, so the parent lands on /login and signs in
+  // with the password they just chose. The retry notice there already says so.
+  if (tokenHash && request.nextUrl.searchParams.get('type') === 'signup') {
+    try {
+      const supabase = await createServerSupabase()
+      const { error } = await supabase.auth.verifyOtp({ type: 'signup', token_hash: tokenHash })
+      if (error) throw error
+      destination = new URL(next, request.nextUrl.origin)
+    } catch (error) {
+      const attemptId = await linkAttemptId(tokenHash)
+      reportAttemptId = attemptId
+      const sourceKey = await requestSourceKey(request)
+      after(() => reportParentAuthFailure({ attemptId, step: 'confirmation_link', error, sourceKey }).then(() => undefined))
+    }
+    const response = NextResponse.redirect(destination)
+    if (reportAttemptId) {
+      response.cookies.set('clw_auth_attempt', reportAttemptId, { path: '/', maxAge: 1800, sameSite: 'lax', secure: true })
+    } else {
+      response.cookies.set('clw_auth_pending', '1', { path: '/', maxAge: 60, sameSite: 'lax', secure: true })
+      response.cookies.set('clw_auth_attempt', await linkAttemptId(tokenHash), { path: '/', maxAge: 1800, sameSite: 'lax', secure: true })
+    }
+    response.headers.set('Cache-Control', 'private, no-store')
+    response.headers.set('Referrer-Policy', 'no-referrer')
+    return response
+  }
+
   if (code) {
     try {
       const supabase = await createServerSupabase()
