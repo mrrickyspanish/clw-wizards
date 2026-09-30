@@ -49,7 +49,14 @@ const SELF_HEALING_CONFIRMATION_CODES = new Set(['pkce_code_verifier_not_found']
 const SELF_HEALING_CONFIRMATION_NAMES = new Set(['AuthPKCECodeVerifierMissingError'])
 
 export function isSelfHealingFailure(step: FailureStep, error: unknown) {
-  if (step !== 'confirmation_link') return false
   const { code, name } = safeAuthError(error)
-  return SELF_HEALING_CONFIRMATION_CODES.has(code) || SELF_HEALING_CONFIRMATION_NAMES.has(name)
+  if (step === 'confirmation_link') {
+    return SELF_HEALING_CONFIRMATION_CODES.has(code) || SELF_HEALING_CONFIRMATION_NAMES.has(name)
+  }
+  // same_password can only be returned when the parent typed their CURRENT
+  // password correctly. Far from being locked out, they have just proved they
+  // know it -- they are on the reset page by mistake and need the sign-in door,
+  // not a red error. Paging the club "Parent blocked" for it is backwards.
+  if (step === 'password_save') return code === 'same_password'
+  return false
 }

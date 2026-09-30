@@ -30,6 +30,7 @@ function UpdatePasswordForm() {
       ? 'This password-reset link is invalid or has expired. Request a new link below.'
       : null
   )
+  const [alreadyCurrent, setAlreadyCurrent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [checkingLink, setCheckingLink] = useState(true)
   const [canReset, setCanReset] = useState(false)
@@ -123,6 +124,16 @@ function UpdatePasswordForm() {
 
       if (updateError) {
         void reportClientAuthFailure('password_save', updateError)
+        // Reaching this with same_password means the parent entered the password
+        // they already have. Nothing is wrong with their account and nothing
+        // needs resetting -- they are simply on the wrong page. Send them to
+        // sign in rather than leaving the provider's "New password should be
+        // different from the old password" sitting in a red box above a form
+        // they have no reason to complete.
+        if (updateError.code === 'same_password') {
+          setAlreadyCurrent(true)
+          return
+        }
         setError(updateError.message)
         return
       }
@@ -138,6 +149,35 @@ function UpdatePasswordForm() {
       submitting.current = false
       setLoading(false)
     }
+  }
+
+  if (alreadyCurrent) {
+    return (
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-clw-black px-4 py-12">
+        <AuthBrand />
+        <Card className="w-full max-w-md border-clw-gold/20 bg-clw-black-2">
+          <CardHeader>
+            <CardTitle className="text-clw-gold">That is already your password</CardTitle>
+            <CardDescription className="text-base">
+              Nothing needs changing — the password you entered is the one already on your account.
+              Sign in with it and carry on.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button type="button" className="w-full" onClick={() => router.replace('/login')}>
+              Sign in
+            </Button>
+            <button
+              type="button"
+              onClick={() => { setAlreadyCurrent(false); setPassword(''); setConfirmPassword('') }}
+              className="block w-full text-sm text-muted-foreground hover:underline"
+            >
+              Choose a different password instead
+            </button>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (

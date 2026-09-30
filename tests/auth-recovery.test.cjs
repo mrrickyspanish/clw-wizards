@@ -126,6 +126,28 @@ test('a confirmation link opened in another browser is recorded but never paged'
   assert.ok(h.rows.get(incidentId).notified_at)
 })
 
+test('re-entering the password you already have is recorded but never paged', async () => {
+  const h = incidentsHarness()
+  await h.reportParentAuthFailure({
+    attemptId: incidentId, step: 'password_save', email: 'parent@example.com',
+    error: { code: 'same_password', name: 'AuthApiError', status: 422,
+      message: 'New password should be different from the old password.' },
+  })
+  assert.equal(h.rows.get(incidentId).occurrences, 1)
+  assert.equal(h.sends.length, 0)
+  assert.equal(h.rows.get(incidentId).message_id, 'suppressed:self-healing')
+})
+
+test('a real password_save failure still pages', async () => {
+  const h = incidentsHarness()
+  await h.reportParentAuthFailure({
+    attemptId: incidentId, step: 'password_save',
+    error: { code: 'weak_password', message: 'Password is too short' },
+  })
+  assert.equal(h.sends.length, 1)
+  assert.ok(h.sends[0].payload.text.includes('weak_password'))
+})
+
 test('a genuinely blocking failure on the same step still pages', async () => {
   const h = incidentsHarness()
   await h.reportParentAuthFailure({
