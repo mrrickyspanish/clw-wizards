@@ -1,4 +1,5 @@
 import { getTwilioClient } from './client'
+import { toE164 } from '@/lib/phone'
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import type { CommType } from '@/types/database'
 
@@ -50,8 +51,25 @@ export async function sendSms({
     return { ok: false, errorMessage: 'TWILIO_PHONE_NUMBER is not configured.' }
   }
 
+  // Twilio wants E.164. A number that cannot be turned into one is logged as a
+  // failure here rather than sent and rejected one by one.
+  const dialable = toE164(to)
+  if (!dialable) {
+    await supabase.from('communication_log').insert({
+      channel: 'sms',
+      comm_type: commType,
+      recipient_id: profileId,
+      recipient_phone: to,
+      tournament_id: tournamentId ?? null,
+      body_preview: body.slice(0, 160),
+      status: 'failed',
+      blast_id: blastId ?? null,
+    })
+    return { ok: false, errorMessage: 'Phone number is not a valid US number.' }
+  }
+
   try {
-    const message = await getTwilioClient().messages.create({ to, from: fromNumber, body })
+    const message = await getTwilioClient().messages.create({ to: dialable, from: fromNumber, body })
 
     await supabase.from('communication_log').insert({
       channel: 'sms',

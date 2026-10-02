@@ -7,6 +7,7 @@ import { createServerSupabase } from '@/lib/supabase/server'
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { SMS_CONSENT_TEXT } from '@/lib/twilio/opt-in'
 import { ORG } from '@/config/org.config'
+import { normalizeUsPhone } from '@/lib/phone'
 
 export type ActionResult = { ok: true } | { ok: false; error: string }
 
@@ -91,7 +92,7 @@ export async function updateParent(
     .update({
       full_name: parsed.full_name,
       email,
-      phone: parsed.phone || null,
+      phone: normalizeUsPhone(parsed.phone),
       sms_opt_in: parsed.sms_opt_in,
       sms_opt_in_at: enablingSms ? new Date().toISOString() : current.sms_opt_in_at,
       consent_text: enablingSms ? SMS_CONSENT_TEXT : current.consent_text,

@@ -5,6 +5,7 @@ import { z } from 'zod'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { SMS_CONSENT_TEXT } from '@/lib/twilio/opt-in'
+import { normalizeUsPhone } from '@/lib/phone'
 
 // Writes go through the authenticated server client; the "Users can update own
 // profile" RLS policy (auth.uid() = id) means a parent can only ever touch
@@ -30,7 +31,7 @@ export async function updateContactPrefs(values: ContactPrefsInput): Promise<Act
   const { error } = await supabase
     .from('profiles')
     .update({
-      phone: phone || null,
+      phone: normalizeUsPhone(phone),
       sms_opt_in: smsOptIn,
       sms_opt_in_at: smsOptIn ? new Date().toISOString() : null,
       consent_text: smsOptIn ? SMS_CONSENT_TEXT : null,

@@ -8,6 +8,7 @@ import { createServerSupabase } from '@/lib/supabase/server'
 import { registrationSchema } from '@/lib/registration-schema'
 import { sendRegistrationConfirmation } from './confirmation-email'
 import type { Disclosure } from '@/types/database'
+import { normalizeUsPhone } from '@/lib/phone'
 
 export type ActionResult = { ok: true } | { ok: false; error: string }
 
@@ -59,7 +60,7 @@ export async function submitRegistration(values: unknown): Promise<ActionResult>
 
   const { error: profileError } = await supabase
     .from('profiles')
-    .update({ phone, street_address, city, state: state || null, postal_code: postal_code || null })
+    .update({ phone: normalizeUsPhone(phone), street_address, city, state: state || null, postal_code: postal_code || null })
     .eq('id', userId)
   if (profileError) return { ok: false, error: profileError.message }
 
@@ -82,7 +83,7 @@ export async function submitRegistration(values: unknown): Promise<ActionResult>
       ordinal: guardian.ordinal,
       name: guardian.name,
       relationship: guardian.relationship || null,
-      phone: guardian.phone || null,
+      phone: normalizeUsPhone(guardian.phone),
       email: guardian.email || null,
       coach_interest: guardian.coach_interest || null,
     })),

@@ -16,6 +16,7 @@ function load(relative, mocks, env = {}, logs = [], fetcher = fetch, globals = {
   if (relative.startsWith('src/app/') || relative === 'src/middleware.ts') mocks['@/lib/auth/incident-policy'] ??= incidentPolicy
   if (relative.startsWith('src/app/')) mocks['@/lib/auth/recovery-errors'] ??= policy
   if (relative.startsWith('src/app/') || relative === 'src/middleware.ts') mocks['@/lib/safe-path'] ??= safePath
+  if (relative.startsWith('src/app/')) mocks['@/lib/phone'] ??= phoneLib
   const filename = path.join(__dirname, '..', relative)
   const code = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
@@ -33,6 +34,7 @@ function load(relative, mocks, env = {}, logs = [], fetcher = fetch, globals = {
 const policy = load('src/lib/auth/recovery-errors.ts', {})
 const incidentPolicy = load('src/lib/auth/incident-policy.ts', {})
 const safePath = load('src/lib/safe-path.ts', {})
+const phoneLib = load('src/lib/phone.ts', {})
 const incidentId = '11111111-1111-4111-a111-111111111111'
 
 test('rejected confirmation/reset callbacks retain one attempt reference through fallback redirects', async () => {
@@ -720,4 +722,18 @@ test('redirect targets that leave the site are refused', () => {
   assert.equal(safePath.safeInternalPath('/dues'), '/dues')
   assert.equal(safePath.safeInternalPath('/registration?step=2#pay'), '/registration?step=2#pay')
   assert.equal(safePath.safeInternalPath('/athletes/new?redirectTo=%2Fregistration'), '/athletes/new?redirectTo=%2Fregistration')
+})
+
+test('phone numbers are stored in one form and sent to SMS as E.164', () => {
+  const phone = load('src/lib/phone.ts', {})
+  for (const typed of ['8155551234', '815-555-1234', '(815) 555-1234', '815 555 1234', '815-5551234', '18155551234', '+18155551234', ' 815.555.1234 ']) {
+    assert.equal(phone.normalizeUsPhone(typed), '8155551234', typed)
+    assert.equal(phone.toE164(typed), '+18155551234', typed)
+  }
+  // Not recognisably a US number: kept as typed so a person can fix it, never sent.
+  assert.equal(phone.normalizeUsPhone('555123'), '555123')
+  assert.equal(phone.toE164('555123'), null)
+  assert.equal(phone.toE164('28155551234'), null)
+  assert.equal(phone.normalizeUsPhone('   '), null)
+  assert.equal(phone.normalizeUsPhone(null), null)
 })

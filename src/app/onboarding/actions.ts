@@ -7,6 +7,7 @@ import { createServerSupabase } from '@/lib/supabase/server'
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { SMS_CONSENT_TEXT } from '@/lib/twilio/opt-in'
 import { athleteSchema } from '@/lib/registration-schema'
+import { normalizeUsPhone } from '@/lib/phone'
 
 export type ActionResult = { ok: true } | { ok: false; error: string }
 
@@ -94,7 +95,7 @@ export async function completeOnboarding(values: OnboardingInput): Promise<Actio
   const { error: profileError } = await supabase
     .from('profiles')
     .update({
-      phone: phone || null,
+      phone: normalizeUsPhone(phone),
       sms_opt_in: smsOptIn,
       sms_opt_in_at: smsOptIn ? new Date().toISOString() : null,
       consent_text: smsOptIn ? SMS_CONSENT_TEXT : null,
