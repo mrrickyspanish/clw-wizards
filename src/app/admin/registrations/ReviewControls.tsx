@@ -24,18 +24,23 @@ export function ReviewControls({
   documentVerified,
   status,
   approvalReady,
+  canOverrideCard,
 }: {
   enrollmentId: string
   documentId: string | null
   documentVerified: boolean
   status: string
   approvalReady: boolean
+  /** Only the card check is in the way: dues and agreements are done. */
+  canOverrideCard: boolean
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [note, setNote] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [overrideOpen, setOverrideOpen] = useState(false)
+  const [overrideNote, setOverrideNote] = useState('')
   const approved = status === 'approved'
 
   function run(action: () => Promise<{ ok: boolean; error?: string }>, onSuccess?: () => void) {
@@ -70,6 +75,23 @@ export function ReviewControls({
       () => {
         setDialogOpen(false)
         setNote('')
+      }
+    )
+  }
+
+  function approveWithoutCard() {
+    run(
+      () =>
+        reviewSeasonEnrollment({
+          enrollmentId,
+          status: 'approved',
+          note: null,
+          overrideCard: true,
+          overrideNote: overrideNote.trim() || null,
+        }),
+      () => {
+        setOverrideOpen(false)
+        setOverrideNote('')
       }
     )
   }
@@ -135,6 +157,41 @@ export function ReviewControls({
           </DialogContent>
         </Dialog>
 
+        {canOverrideCard && !approved && (
+          <Dialog open={overrideOpen} onOpenChange={setOverrideOpen}>
+            <DialogTrigger asChild>
+              <Button type="button" variant="outline" size="sm" disabled={pending}>
+                Approve without card check
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-clw-gold">Approve without the card check?</DialogTitle>
+                <DialogDescription>
+                  Use this when you have confirmed the USA Wrestling membership another way. Your name and the time are
+                  recorded on the registration.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-2">
+                <Label htmlFor={`override-note-${enrollmentId}`}>Note (optional, staff only)</Label>
+                <Textarea
+                  id={`override-note-${enrollmentId}`}
+                  rows={3}
+                  maxLength={500}
+                  value={overrideNote}
+                  onChange={(event) => setOverrideNote(event.target.value)}
+                  placeholder="Checked on the USA Wrestling member lookup."
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" disabled={pending} onClick={approveWithoutCard}>
+                  {pending ? 'Approving…' : 'Approve'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+
         <Button
           type="button"
           size="sm"
@@ -145,7 +202,7 @@ export function ReviewControls({
           {approved ? 'Approved' : 'Approve'}
         </Button>
       </div>
-      {error && <p className="text-right text-xs text-red-400">{error}</p>}
+      {error && <p className="text-right text-sm text-red-400">{error}</p>}
     </div>
   )
 }

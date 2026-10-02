@@ -59,6 +59,11 @@ export type Athlete = {
   referral_source: string | null
   birth_certificate_url: string | null
   usa_wrestling_card_url: string | null
+  // Set by staff for a returning wrestler: the club already has a birth
+  // certificate, so the family is not asked again. Who and when are kept.
+  birth_certificate_on_file: boolean
+  birth_certificate_on_file_by: string | null
+  birth_certificate_on_file_at: string | null
   active: boolean
   created_at: string
   updated_at: string
@@ -295,6 +300,11 @@ export type SeasonEnrollment = {
   reviewed_by: string | null
   reviewed_at: string | null
   admin_note: string | null
+  // Set when an admin approved without the USA Wrestling card check, having
+  // confirmed membership another way. The note is internal and optional.
+  card_override_by: string | null
+  card_override_at: string | null
+  card_override_note: string | null
   // Re-confirmed every season rather than carried over from the athlete record,
   // because all of these change year to year.
   grade: string | null

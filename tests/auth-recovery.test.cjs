@@ -846,3 +846,139 @@ test('family setup skips a child already on file under different punctuation', a
   assert.equal(result.ok, true)
   assert.equal(h.inserts.length, 0)
 })
+
+// Registrations: an admin may approve without the USA Wrestling card check.
+// The override is recorded with who and when; the note is optional; dues and
+// the waiver are still required.
+function reviewHarness({ card = null, duesStatus = 'paid', signed = true } = {}) {
+  const updates = []
+  const tableData = {
+    season_enrollments: { id: 'enr-1', status: 'submitted', season_registration_id: 'season-1', athlete_id: 'ath-1', parent_id: 'par-1', dues_payment_id: 'dues-1', usa_card_document_id: card ? 'card-1' : null },
+    season_registrations: { id: 'season-1', require_usa_card: true, dues_amount_cents: 30000, season_label: '26-27' },
+    athletes: { first_name: 'Sam', last_name: 'Ortiz' },
+    profiles: { full_name: 'Pat Ortiz', email: null },
+    dues_payments: { status: duesStatus },
+    athlete_documents: card,
+  }
+  const listData = {
+    disclosures: [{ id: 'waiver', title: 'Program waiver' }],
+    disclosure_acceptances: signed ? [{ disclosure_id: 'waiver' }] : [],
+  }
+  function chain(table) {
+    const q = {
+      select: () => q, eq: () => q, in: () => q, limit: () => q,
+      single: async () => ({ data: tableData[table], error: null }),
+      maybeSingle: async () => ({ data: tableData[table], error: null }),
+      update: (values) => { updates.push({ table, values }); return { eq: async () => ({ error: null }) } },
+      then: (resolve) => resolve({ data: listData[table] ?? [], error: null }),
+    }
+    return q
+  }
+  const server = {
+    auth: { getUser: async () => ({ data: { user: { id: 'tony' } } }) },
+    from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: { role: 'admin' } }) }) }) }),
+  }
+  const actions = load('src/app/admin/registrations/actions.ts', {
+    'next/cache': { revalidatePath: () => {} },
+    resend: { Resend: class {} },
+    '@/lib/supabase/server': { createServerSupabase: async () => server },
+    '@/lib/supabase/admin': { createAdminSupabase: () => ({ from: chain }) },
+    '@/config/org.config': { ORG: { domain: 'example.org', shortName: 'CLW', name: 'Club' } },
+  })
+  return { actions, updates }
+}
+
+test('approval still requires a verified card unless the admin overrides it', async () => {
+  const h = reviewHarness()
+  const result = await h.actions.reviewSeasonEnrollment({ enrollmentId: '11111111-1111-4111-a111-111111111111', status: 'approved' })
+  assert.equal(result.ok, false)
+  assert.match(result.error, /Verify the current-season USA Wrestling card/)
+  assert.equal(h.updates.length, 0)
+})
+
+test('approving without the card check records who and when, with no note needed', async () => {
+  const h = reviewHarness()
+  const result = await h.actions.reviewSeasonEnrollment({ enrollmentId: '11111111-1111-4111-a111-111111111111', status: 'approved', overrideCard: true })
+  assert.equal(result.ok, true)
+  const { values } = h.updates.find((u) => u.table === 'season_enrollments')
+  assert.equal(values.status, 'approved')
+  assert.equal(values.card_override_by, 'tony')
+  assert.ok(values.card_override_at)
+  assert.equal(values.card_override_at, values.reviewed_at)
+  assert.equal(values.card_override_note, null)
+  assert.equal(values.admin_note, null)
+})
+
+test('the override keeps an optional note and never skips dues or the waiver', async () => {
+  const withNote = reviewHarness()
+  await withNote.actions.reviewSeasonEnrollment({ enrollmentId: '11111111-1111-4111-a111-111111111111', status: 'approved', overrideCard: true, overrideNote: ' Checked USAW lookup ' })
+  assert.equal(withNote.updates.find((u) => u.table === 'season_enrollments').values.card_override_note, 'Checked USAW lookup')
+
+  const unpaid = reviewHarness({ duesStatus: 'pending' })
+  const r1 = await unpaid.actions.reviewSeasonEnrollment({ enrollmentId: '11111111-1111-4111-a111-111111111111', status: 'approved', overrideCard: true })
+  assert.equal(r1.ok, false)
+  assert.match(r1.error, /dues must be paid or waived/)
+
+  const unsigned = reviewHarness({ signed: false })
+  const r2 = await unsigned.actions.reviewSeasonEnrollment({ enrollmentId: '11111111-1111-4111-a111-111111111111', status: 'approved', overrideCard: true })
+  assert.equal(r2.ok, false)
+  assert.match(r2.error, /Program waiver/)
+})
+
+test('a normal approval with a verified card records no override', async () => {
+  const h = reviewHarness({ card: { id: 'card-1', verified: true } })
+  const result = await h.actions.reviewSeasonEnrollment({ enrollmentId: '11111111-1111-4111-a111-111111111111', status: 'approved' })
+  assert.equal(result.ok, true)
+  assert.equal('card_override_by' in h.updates.find((u) => u.table === 'season_enrollments').values, false)
+})
+
+// Messages to families missing documents: read the uploads, honour "on file".
+function recipientsHarness({ athletes, docs, season = { registration_open_date: '2026-08-01' } }) {
+  const tables = {
+    athletes: athletes,
+    athlete_documents: docs,
+    profiles: [...new Set(athletes.map((a) => a.parent_id))].map((id) => ({ id, is_active: true })),
+  }
+  let profileFilter = null
+  function chain(table) {
+    const q = {
+      select: () => q, eq: () => q, order: () => q, limit: () => q,
+      in: (_col, ids) => { if (table === 'profiles') profileFilter = ids; return q },
+      maybeSingle: async () => ({ data: table === 'season_registrations' ? season : null, error: null }),
+      then: (resolve) => resolve({ data: table === 'profiles' ? tables.profiles.filter((p) => profileFilter.includes(p.id)) : tables[table] ?? [], error: null }),
+    }
+    return q
+  }
+  return load('src/lib/comms/recipients.ts', { '@/lib/supabase/admin': { createAdminSupabase: () => ({ from: chain }) } })
+}
+
+test('missing birth certificate skips uploads and wrestlers marked on file', async () => {
+  const lib = recipientsHarness({
+    athletes: [
+      { id: 'a', parent_id: 'p-uploaded', birth_certificate_on_file: false },
+      { id: 'b', parent_id: 'p-onfile', birth_certificate_on_file: true },
+      { id: 'c', parent_id: 'p-missing', birth_certificate_on_file: false },
+    ],
+    docs: [{ athlete_id: 'a', doc_type: 'birth_certificate', verified: false, uploaded_at: '2026-09-01T00:00:00Z' }],
+  })
+  const recipients = await lib.resolveRecipients({ type: 'missing_document', documents: ['birth_certificate'] })
+  assert.deepEqual(recipients.map((r) => r.id), ['p-missing'])
+})
+
+test('missing USA card counts verified cards and this season\'s uploads only', async () => {
+  const lib = recipientsHarness({
+    athletes: [
+      { id: 'old-verified', parent_id: 'p1', birth_certificate_on_file: false },
+      { id: 'new-upload', parent_id: 'p2', birth_certificate_on_file: false },
+      { id: 'old-unverified', parent_id: 'p3', birth_certificate_on_file: false },
+      { id: 'none', parent_id: 'p4', birth_certificate_on_file: false },
+    ],
+    docs: [
+      { athlete_id: 'old-verified', doc_type: 'usa_wrestling_card', verified: true, uploaded_at: '2025-09-01T00:00:00Z' },
+      { athlete_id: 'new-upload', doc_type: 'usa_wrestling_card', verified: false, uploaded_at: '2026-09-01T00:00:00Z' },
+      { athlete_id: 'old-unverified', doc_type: 'usa_wrestling_card', verified: false, uploaded_at: '2025-09-01T00:00:00Z' },
+    ],
+  })
+  const recipients = await lib.resolveRecipients({ type: 'missing_document', documents: ['usa_wrestling_card'] })
+  assert.deepEqual(recipients.map((r) => r.id).sort(), ['p3', 'p4'])
+})

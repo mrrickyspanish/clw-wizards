@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { AthleteDialog } from '../AthleteDialog'
+import { BirthCertificateToggle } from '../../registrations/BirthCertificateToggle'
 import { DeleteFamilyButton } from '../DeleteFamilyButton'
 import { FamilyActiveToggle } from '../FamilyActiveToggle'
 import { ParentDialog } from '../ParentDialog'
@@ -236,6 +237,14 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
                     <p className="text-clw-gray/70">USAW card</p>
                     <p className="text-clw-white">{athlete.usa_wrestling_card_number ?? '—'}</p>
                   </div>
+                </div>
+                <div className="pt-2">
+                  <BirthCertificateToggle
+                    athleteId={athlete.id}
+                    onFile={athlete.birth_certificate_on_file}
+                    recordedBy={null}
+                    recordedAt={athlete.birth_certificate_on_file_at}
+                  />
                 </div>
                 <div className="pt-2">
                   <AthleteDialog athlete={athlete} />

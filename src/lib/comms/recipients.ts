@@ -46,21 +46,40 @@ export async function resolveRecipients(target: CommTarget): Promise<Profile[]> 
     return data ?? []
   }
 
-  // Parents of active athletes still missing any of the selected documents
-  // (e.g. "registered but need a birth certificate").
+  // Parents of active athletes still missing any of the selected documents.
+  // Read from the uploads themselves (athlete_documents): the athletes table's
+  // old *_url columns are never filled in, so checking them matched every
+  // family. A birth certificate counts if one was uploaded or staff marked it
+  // on file; a USA Wrestling card counts if it was verified (those carry over)
+  // or uploaded since the newest season opened, the same rule registration uses.
   if (target.type === 'missing_document') {
     if (!target.documents.length) return []
-    const orFilter = target.documents
-      .map((doc) => (doc === 'birth_certificate' ? 'birth_certificate_url.is.null' : 'usa_wrestling_card_url.is.null'))
-      .join(',')
+    const [{ data: athletes }, { data: docs }, { data: season }] = await Promise.all([
+      supabase.from('athletes').select('id, parent_id, birth_certificate_on_file').eq('active', true),
+      supabase.from('athlete_documents').select('athlete_id, doc_type, verified, uploaded_at'),
+      supabase
+        .from('season_registrations')
+        .select('registration_open_date')
+        .order('registration_open_date', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ])
+    const cardWindow = season ? `${season.registration_open_date}T00:00:00.000Z` : null
+    const hasBirthCertificate = new Set<string>()
+    const hasCard = new Set<string>()
+    for (const doc of docs ?? []) {
+      if (doc.doc_type === 'birth_certificate') hasBirthCertificate.add(doc.athlete_id)
+      if (doc.doc_type === 'usa_wrestling_card' && (doc.verified || !cardWindow || doc.uploaded_at >= cardWindow)) {
+        hasCard.add(doc.athlete_id)
+      }
+    }
+    const missing = (athletes ?? []).filter(
+      (a) =>
+        (target.documents.includes('birth_certificate') && !a.birth_certificate_on_file && !hasBirthCertificate.has(a.id)) ||
+        (target.documents.includes('usa_wrestling_card') && !hasCard.has(a.id))
+    )
 
-    const { data: athletes } = await supabase
-      .from('athletes')
-      .select('parent_id')
-      .eq('active', true)
-      .or(orFilter)
-
-    const parentIds = [...new Set((athletes ?? []).map((a) => a.parent_id))]
+    const parentIds = [...new Set(missing.map((a) => a.parent_id))]
     if (!parentIds.length) return []
 
     const { data } = await supabase.from('profiles').select('*').eq('is_active', true).in('id', parentIds)

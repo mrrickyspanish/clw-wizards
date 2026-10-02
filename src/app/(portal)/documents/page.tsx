@@ -42,11 +42,11 @@ export default async function DocumentsPage() {
   const familyOwnerIds = await resolveFamilyOwnerIds(supabase, userId)
   const { data: athletes, error } = await supabase
     .from('athletes')
-    .select('id, first_name, last_name')
+    .select('id, first_name, last_name, birth_certificate_on_file')
     .in('parent_id', familyOwnerIds)
     .order('created_at', { ascending: true })
 
-  const athleteRows = (athletes ?? []) as Pick<Athlete, 'id' | 'first_name' | 'last_name'>[]
+  const athleteRows = (athletes ?? []) as Pick<Athlete, 'id' | 'first_name' | 'last_name' | 'birth_certificate_on_file'>[]
   // Documents resolve by the family's wrestlers (RLS: adoc_guardian_read), so a
   // co-guardian sees and can add docs for any wrestler in the family.
   const athleteIds = athleteRows.map((a) => a.id)
@@ -103,6 +103,20 @@ export default async function DocumentsPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {REQUIRED_DOCS.map((req) => {
+                // The club already holds a returning wrestler's birth certificate.
+                if (req.type === 'birth_certificate' && a.birth_certificate_on_file && !docByKey.get(`${a.id}:${req.type}`)) {
+                  return (
+                    <div
+                      key={req.type}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-clw-black px-4 py-3"
+                    >
+                      <span className="text-sm text-clw-white">{req.label}</span>
+                      <Badge variant="outline" className={STATUS_STYLES.verified}>
+                        on file with the club
+                      </Badge>
+                    </div>
+                  )
+                }
                 const doc = docByKey.get(`${a.id}:${req.type}`)
                 const status = statusFor(doc)
                 return (

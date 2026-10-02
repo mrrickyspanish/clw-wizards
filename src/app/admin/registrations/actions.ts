@@ -105,6 +105,10 @@ const reviewSchema = z.object({
   enrollmentId: z.string().uuid(),
   status: z.enum(['changes_requested', 'approved', 'withdrawn']),
   note: z.string().trim().max(1000).optional().nullable(),
+  // Approve without the USA Wrestling card check. Recorded with who and when;
+  // overrideNote is optional and stays internal (never emailed to the family).
+  overrideCard: z.boolean().optional(),
+  overrideNote: z.string().trim().max(500).optional().nullable(),
 })
 
 export async function reviewSeasonEnrollment(values: z.input<typeof reviewSchema>): Promise<ActionResult> {
@@ -144,8 +148,10 @@ export async function reviewSeasonEnrollment(values: z.input<typeof reviewSchema
 
   if (!season || !athlete) return { ok: false, error: 'Registration details are incomplete.' }
 
+  const overrideCard = parsed.data.status === 'approved' && parsed.data.overrideCard === true
+
   if (parsed.data.status === 'approved') {
-    if (season.require_usa_card && !card?.verified) {
+    if (season.require_usa_card && !card?.verified && !overrideCard) {
       return { ok: false, error: 'Verify the current-season USA Wrestling card before approving this registration.' }
     }
     if (season.dues_amount_cents > 0 && dues?.status !== 'paid' && dues?.status !== 'waived') {
@@ -175,13 +181,17 @@ export async function reviewSeasonEnrollment(values: z.input<typeof reviewSchema
     }
   }
 
+  const reviewedAt = new Date().toISOString()
   const { error: updateError } = await admin
     .from('season_enrollments')
     .update({
       status: parsed.data.status,
       admin_note: parsed.data.note || null,
       reviewed_by: auth.userId,
-      reviewed_at: new Date().toISOString(),
+      reviewed_at: reviewedAt,
+      ...(overrideCard
+        ? { card_override_by: auth.userId, card_override_at: reviewedAt, card_override_note: parsed.data.overrideNote || null }
+        : {}),
     })
     .eq('id', enrollment.id)
 
@@ -242,4 +252,35 @@ async function sendStatusEmail(params: {
   })
 
   if (error) throw new Error(error.message)
+}
+
+const onFileSchema = z.object({ athleteId: z.string().uuid(), onFile: z.boolean() })
+
+/**
+ * Mark a returning wrestler's birth certificate as already on file with the
+ * club, or undo it. Records who and when; undoing clears both.
+ */
+export async function setBirthCertificateOnFile(values: z.input<typeof onFileSchema>): Promise<ActionResult> {
+  const auth = await requireAdmin()
+  if (!auth.ok) return auth
+  const parsed = onFileSchema.safeParse(values)
+  if (!parsed.success) return { ok: false, error: 'Invalid wrestler.' }
+
+  const admin = createAdminSupabase()
+  const { data, error } = await admin
+    .from('athletes')
+    .update({
+      birth_certificate_on_file: parsed.data.onFile,
+      birth_certificate_on_file_by: parsed.data.onFile ? auth.userId : null,
+      birth_certificate_on_file_at: parsed.data.onFile ? new Date().toISOString() : null,
+    })
+    .eq('id', parsed.data.athleteId)
+    .select('id')
+    .maybeSingle()
+  if (error) return { ok: false, error: error.message }
+  if (!data) return { ok: false, error: 'Wrestler not found.' }
+
+  revalidateRegistrationSurfaces()
+  revalidatePath('/admin/families', 'layout')
+  return { ok: true }
 }

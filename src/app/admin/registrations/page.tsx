@@ -20,6 +20,7 @@ import { AthleteDialog } from '../families/AthleteDialog'
 import { ParentDialog } from '../families/ParentDialog'
 import { DuesEditDialog } from '../dues/DuesEditDialog'
 import { ReviewControls } from './ReviewControls'
+import { BirthCertificateToggle } from './BirthCertificateToggle'
 
 function money(cents: number) {
   return formatCents(cents)
@@ -72,6 +73,32 @@ export default async function AdminRegistrationsPage() {
         ? supabase.from('athlete_documents').select('*').in('id', documentIds)
         : Promise.resolve({ data: [] as AthleteDocument[] }),
     ])
+
+  // Birth certificates on file (uploaded) for the wrestlers on screen, and the
+  // names of admins who recorded a decision, for the who-and-when lines.
+  const athletesOnScreen = (athleteData ?? []) as Athlete[]
+  const deciderIds = [
+    ...new Set([
+      ...enrollments.map((row) => row.card_override_by),
+      ...athletesOnScreen.map((row) => row.birth_certificate_on_file_by),
+    ].filter(Boolean)),
+  ] as string[]
+  const [{ data: birthCertificateData }, { data: deciderData }] = await Promise.all([
+    athleteIds.length
+      ? supabase.from('athlete_documents').select('athlete_id, verified').eq('doc_type', 'birth_certificate').in('athlete_id', athleteIds)
+      : Promise.resolve({ data: [] as { athlete_id: string; verified: boolean }[] }),
+    deciderIds.length
+      ? supabase.from('profiles').select('id, full_name, email').in('id', deciderIds)
+      : Promise.resolve({ data: [] as { id: string; full_name: string | null; email: string | null }[] }),
+  ])
+  const birthCertificateByAthlete = new Map<string, { verified: boolean }>()
+  for (const row of birthCertificateData ?? []) {
+    const known = birthCertificateByAthlete.get(row.athlete_id)
+    birthCertificateByAthlete.set(row.athlete_id, { verified: Boolean(known?.verified || row.verified) })
+  }
+  const deciderName = new Map((deciderData ?? []).map((p) => [p.id, p.full_name || p.email || 'an admin']))
+  const stamp = (iso: string) =>
+    new Date(iso).toLocaleString('en-US', { timeZone: 'America/Chicago', dateStyle: 'medium', timeStyle: 'short' })
 
   const seasons = (seasonData ?? []) as SeasonRegistration[]
   const eventIds = [...new Set(seasons.map((row) => row.event_id))]
@@ -156,7 +183,7 @@ export default async function AdminRegistrationsPage() {
               <p className="text-2xl font-display text-clw-white">{submittedCount}</p>
               <p className="text-sm text-clw-gray">Awaiting review</p>
               <p className="mt-1 text-sm text-clw-gray/70">
-                Missing payment, birth certificate, or USA Wrestling card.
+                Missing payment, a signed waiver, or a verified USA Wrestling card.
               </p>
             </div>
           </CardContent>
@@ -180,7 +207,7 @@ export default async function AdminRegistrationsPage() {
               <p className="text-2xl font-display text-clw-white">{approvedCount}</p>
               <p className="text-sm text-clw-gray">Approved</p>
               <p className="mt-1 text-sm text-clw-gray/70">
-                Paid, birth certificate verified, USA Wrestling card verified.
+                Paid, waiver signed, and USA Wrestling card verified or cleared by an admin.
               </p>
             </div>
           </CardContent>
@@ -229,6 +256,9 @@ export default async function AdminRegistrationsPage() {
           const disclosuresReady = missingDisclosures.length === 0
 
           const approvalReady = documentReady && paymentReady && disclosuresReady
+          // The card check is the only thing left: an admin may clear it.
+          const canOverrideCard = !documentReady && paymentReady && disclosuresReady
+          const birthCertificate = athlete ? birthCertificateByAthlete.get(athlete.id) : undefined
 
           return (
             <details
@@ -293,7 +323,35 @@ export default async function AdminRegistrationsPage() {
                             ? `Verified · ${card.file_name}`
                             : `Awaiting verification · ${card.file_name}`}
                     </p>
+                    {enrollment.card_override_at && (
+                      <p className="mt-2 text-sm text-emerald-300">
+                        Approved without card check by{' '}
+                        {(enrollment.card_override_by && deciderName.get(enrollment.card_override_by)) || 'an admin'} ·{' '}
+                        {stamp(enrollment.card_override_at)}
+                        {enrollment.card_override_note ? ` · ${enrollment.card_override_note}` : ''}
+                      </p>
+                    )}
                   </div>
+                  {athlete && (
+                    <div className="rounded-md border border-clw-gold/10 bg-clw-black-2 p-4 sm:col-span-2">
+                      <p className="text-sm font-medium text-clw-white">Birth certificate</p>
+                      <p className="mb-3 mt-1 text-sm text-clw-gray">
+                        {athlete.birth_certificate_on_file
+                          ? 'On file with the club. The family is not asked for it.'
+                          : birthCertificate
+                            ? birthCertificate.verified
+                              ? 'Uploaded and verified.'
+                              : 'Uploaded, not yet verified.'
+                            : 'Not uploaded. Needed only the first time a wrestler registers.'}
+                      </p>
+                      <BirthCertificateToggle
+                        athleteId={athlete.id}
+                        onFile={athlete.birth_certificate_on_file}
+                        recordedBy={athlete.birth_certificate_on_file_by ? deciderName.get(athlete.birth_certificate_on_file_by) ?? null : null}
+                        recordedAt={athlete.birth_certificate_on_file_at}
+                      />
+                    </div>
+                  )}
                   <div className="rounded-md border border-clw-gold/10 bg-clw-black-2 p-4">
                     <div className="flex items-center justify-between gap-2">
                       <p className="flex items-center gap-2 text-sm font-medium text-clw-white">
@@ -348,7 +406,11 @@ export default async function AdminRegistrationsPage() {
                     {approvalReady
                       ? 'Current-season documentation, agreements, and payment are ready for approval.'
                       : [
-                          documentReady ? null : 'Verify the submitted wrestling card.',
+                          documentReady
+                            ? null
+                            : canOverrideCard
+                              ? 'Verify the wrestling card, or approve without the card check.'
+                              : 'Verify the submitted wrestling card.',
                           disclosuresReady ? null : 'Required agreements are unsigned.',
                           paymentReady ? null : 'Payment is still outstanding.',
                         ]
@@ -361,6 +423,7 @@ export default async function AdminRegistrationsPage() {
                     documentVerified={card?.verified ?? false}
                     status={enrollment.status}
                     approvalReady={approvalReady}
+                    canOverrideCard={canOverrideCard}
                   />
                 </div>
               </CardContent>
