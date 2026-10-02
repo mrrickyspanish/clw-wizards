@@ -57,17 +57,25 @@ RETURNS UUID LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT parent_id FROM public.athletes WHERE id = _athlete;
 $$;
 
--- Guardians see and edit wrestlers one by one rather than by family. The edit
--- may not change parent_id: before this, a co-guardian could move a shared
--- wrestler onto their own account and out of the other parent's.
+-- Guardians see and edit wrestlers one by one rather than by family.
 DROP POLICY "athletes_guardian_read" ON public.athletes;
 CREATE POLICY "athletes_guardian_read" ON public.athletes
   FOR SELECT USING (public.guards_athlete(id));
 
 DROP POLICY "athletes_guardian_update" ON public.athletes;
 CREATE POLICY "athletes_guardian_update" ON public.athletes
-  FOR UPDATE USING (public.guards_athlete(id))
-  WITH CHECK (public.guards_athlete(id) AND parent_id = public.athlete_parent(id));
+  FOR UPDATE USING (public.guards_athlete(id)) WITH CHECK (public.guards_athlete(id));
+
+-- No portal edit may move a wrestler to another account. Permissive policies
+-- are OR'd, so a check on the guardian policy alone is not enough: a
+-- co-guardian's update passed parents_own_athletes' implicit check
+-- (parent_id = auth.uid()) by setting parent_id to themselves, which moved a
+-- shared wrestler out of the other parent's account. A restrictive policy
+-- applies to every update. Staff reassign wrestlers with the service role,
+-- which RLS does not apply to.
+CREATE POLICY "athletes_parent_unchanged" ON public.athletes
+  AS RESTRICTIVE FOR UPDATE USING (true)
+  WITH CHECK (parent_id = public.athlete_parent(id));
 
 DROP POLICY "family_guardians_owner_all" ON public.family_guardians;
 CREATE POLICY "family_guardians_owner_read" ON public.family_guardians
