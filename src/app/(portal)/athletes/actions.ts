@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { athleteSchema } from '@/lib/registration-schema'
 import { resolveFamilyOwnerIds } from '@/lib/family'
+import { sameChildKey } from '@/lib/child-key'
 
 export type ActionResult = { ok: true } | { ok: false; error: string }
 
@@ -34,8 +35,8 @@ export async function addAthlete(values: AddAthleteInput): Promise<ActionResult>
     .from('athletes')
     .select('first_name, last_name')
     .in('parent_id', familyOwnerIds)
-  const key = (first: string, last: string) => `${first.trim().toLowerCase()} ${last.trim().toLowerCase()}`
-  const existing = (roster ?? []).find((r) => key(r.first_name, r.last_name) === key(a.first_name, a.last_name))
+  const wanted = sameChildKey(a.first_name, a.last_name)
+  const existing = (roster ?? []).find((r) => sameChildKey(r.first_name, r.last_name) === wanted)
   if (existing) {
     return {
       ok: false,

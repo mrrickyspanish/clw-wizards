@@ -8,6 +8,7 @@ import { createAdminSupabase } from '@/lib/supabase/admin'
 import { SMS_CONSENT_TEXT } from '@/lib/twilio/opt-in'
 import { athleteSchema } from '@/lib/registration-schema'
 import { normalizeUsPhone } from '@/lib/phone'
+import { sameChildKey } from '@/lib/child-key'
 
 export type ActionResult = { ok: true } | { ok: false; error: string }
 
@@ -17,17 +18,6 @@ const onboardingSchema = z.object({
   // May be empty when the family already has wrestlers on file -- see below.
   athletes: z.array(athleteSchema),
 })
-
-/**
- * Same child, same family: a first and last name match. Birth dates are
- * deliberately NOT part of the key. Production had two families whose parent
- * typed a different birth date from the one the club imported, and matching on
- * the date as well would have let both copies through. Two children in one
- * family sharing a first and last name is not a case this club has.
- */
-function sameChildKey(firstName: string, lastName: string) {
-  return `${firstName.trim().toLowerCase()}|${lastName.trim().toLowerCase()}`
-}
 
 export type OnboardingInput = z.input<typeof onboardingSchema>
 

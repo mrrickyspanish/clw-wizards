@@ -17,6 +17,7 @@ function load(relative, mocks, env = {}, logs = [], fetcher = fetch, globals = {
   if (relative.startsWith('src/app/')) mocks['@/lib/auth/recovery-errors'] ??= policy
   if (relative.startsWith('src/app/') || relative === 'src/middleware.ts') mocks['@/lib/safe-path'] ??= safePath
   if (relative.startsWith('src/app/')) mocks['@/lib/phone'] ??= phoneLib
+  if (relative.startsWith('src/app/')) mocks['@/lib/child-key'] ??= childKeyLib
   const filename = path.join(__dirname, '..', relative)
   const code = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
@@ -35,6 +36,7 @@ const policy = load('src/lib/auth/recovery-errors.ts', {})
 const incidentPolicy = load('src/lib/auth/incident-policy.ts', {})
 const safePath = load('src/lib/safe-path.ts', {})
 const phoneLib = load('src/lib/phone.ts', {})
+const childKeyLib = load('src/lib/child-key.ts', {})
 const incidentId = '11111111-1111-4111-a111-111111111111'
 
 test('rejected confirmation/reset callbacks retain one attempt reference through fallback redirects', async () => {
@@ -826,4 +828,21 @@ test('the menu link accepts site pages and https addresses only', () => {
   for (const bad of ['', 'http://example.org', '//evil.example', 'javascript:alert(1)', 'example.org', '/\\evil']) {
     assert.equal(registry.safeMenuHref(bad), null, bad)
   }
+})
+
+test('the same child is recognised despite punctuation, spacing, case and accents', () => {
+  const k = childKeyLib.sameChildKey
+  assert.equal(k('Tre’Lyn', 'Morrow'), k('TreLyn', 'morrow'))
+  assert.equal(k("Tre'Lyn", 'Morrow'), k('trelyn', 'MORROW '))
+  assert.equal(k('Brayden', 'Mc Knight'), k('Brayden', 'McKnight'))
+  assert.equal(k('José', 'Peña'), k('Jose', 'Pena'))
+  assert.notEqual(k('Ceci', 'Nieves'), k('Cecilia', 'Nieves'))
+  assert.notEqual(k('Kevin', 'Brogan'), k('Luke', 'Brogan'))
+})
+
+test('family setup skips a child already on file under different punctuation', async () => {
+  const h = onboardingHarness([{ first_name: 'Tre’Lyn', last_name: 'Morrow' }])
+  const result = await h.actions.completeOnboarding({ phone: '', smsOptIn: false, athletes: [kid('TreLyn', 'Morrow')] })
+  assert.equal(result.ok, true)
+  assert.equal(h.inserts.length, 0)
 })

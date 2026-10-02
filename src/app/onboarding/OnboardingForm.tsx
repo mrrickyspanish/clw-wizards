@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { sameChildKey } from '@/lib/child-key'
 
 type AthleteDraft = {
   key: string
@@ -45,10 +46,8 @@ type ExistingAthlete = {
   date_of_birth: string | null
 }
 
-// Mirrors sameChildKey in actions.ts: one family, same first and last name.
-function childKey(firstName: string, lastName: string) {
-  return `${firstName.trim().toLowerCase()}|${lastName.trim().toLowerCase()}`
-}
+// Same rule the server applies, so the form flags exactly what it would skip.
+const childKey = sameChildKey
 
 const STEPS = ['Your info', 'Your wrestlers', 'Review'] as const
 
