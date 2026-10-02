@@ -6,6 +6,7 @@ import { Pencil } from 'lucide-react'
 
 import type { Athlete } from '@/types/database'
 import { ORG } from '@/config/org.config'
+import { DIVISIONS } from '@/lib/registration-schema'
 import { updateAthlete, type AthleteInput } from './actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -42,6 +43,7 @@ export function AthleteDialog({ athlete }: { athlete: Athlete }) {
   // Radix Select cannot hold null, and an imported athlete has no group until
   // staff place them.
   const [group, setGroup] = useState(athlete.practice_group ?? 'none')
+  const [division, setDivision] = useState<string>(athlete.division ?? 'none')
   const [weightClass, setWeightClass] = useState(athlete.weight_class ?? '')
   const [cardNumber, setCardNumber] = useState(athlete.usa_wrestling_card_number ?? '')
   const [shirtSize, setShirtSize] = useState(athlete.shirt_size ?? '')
@@ -57,6 +59,7 @@ export function AthleteDialog({ athlete }: { athlete: Athlete }) {
       last_name: lastName,
       date_of_birth: dob,
       practice_group: group === 'none' ? '' : group,
+      division: division === 'none' ? '' : (division as 'boys' | 'girls'),
       weight_class: weightClass,
       usa_wrestling_card_number: cardNumber,
       shirt_size: shirtSize,
@@ -111,6 +114,23 @@ export function AthleteDialog({ athlete }: { athlete: Athlete }) {
           <div className="space-y-2">
             <Label htmlFor="dob">Date of birth</Label>
             <Input id="dob" type="date" required value={dob} onChange={(e) => setDob(e.target.value)} />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Division</Label>
+            <Select value={division} onValueChange={setDivision}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Not set</SelectItem>
+                {DIVISIONS.map((d) => (
+                  <SelectItem key={d.value} value={d.value}>
+                    {d.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

@@ -53,6 +53,8 @@ export type Athlete = {
   weight_class: string | null
   // Null until staff assign a group; the registration form never asks for one.
   practice_group: string | null
+  // Boys or girls division. Null for wrestlers added before it was asked.
+  division: 'boys' | 'girls' | null
   usa_wrestling_card_number: string | null
   shirt_size: string | null
   // Asked once when the family joins, not re-asked each season.

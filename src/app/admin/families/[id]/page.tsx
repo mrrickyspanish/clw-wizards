@@ -226,6 +226,12 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
                     <p className="text-clw-white">{athlete.practice_group ?? 'Not assigned'}</p>
                   </div>
                   <div>
+                    <p className="text-clw-gray/70">Division</p>
+                    <p className="text-clw-white">
+                      {athlete.division === 'girls' ? 'Girls' : athlete.division === 'boys' ? 'Boys' : 'Not set'}
+                    </p>
+                  </div>
+                  <div>
                     <p className="text-clw-gray/70">Weight class</p>
                     <p className="text-clw-white">{athlete.weight_class ?? '—'}</p>
                   </div>

@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { ORG } from '@/config/org.config'
+import { DIVISIONS, type Division } from '@/lib/registration-schema'
 import { addAthlete } from './actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,6 +18,7 @@ export function AddAthleteForm({ redirectTo = '/athletes' }: { redirectTo?: stri
   const [lastName, setLastName] = useState('')
   const [dob, setDob] = useState('')
   const [group, setGroup] = useState(ORG.practiceGroups[0])
+  const [division, setDivision] = useState<Division | ''>('')
   const [weightClass, setWeightClass] = useState('')
   const [shirtSize, setShirtSize] = useState('')
   const [cardNumber, setCardNumber] = useState('')
@@ -26,12 +28,17 @@ export function AddAthleteForm({ redirectTo = '/athletes' }: { redirectTo?: stri
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
+    if (!division) {
+      setError('Choose Boys or Girls.')
+      return
+    }
     setLoading(true)
     const result = await addAthlete({
       first_name: firstName,
       last_name: lastName,
       date_of_birth: dob,
       practice_group: group,
+      division,
       weight_class: weightClass,
       shirt_size: shirtSize,
       usa_wrestling_card_number: cardNumber,
@@ -67,6 +74,22 @@ export function AddAthleteForm({ redirectTo = '/athletes' }: { redirectTo?: stri
       <div className="space-y-2">
         <Label htmlFor="dob">Date of birth</Label>
         <Input id="dob" type="date" required value={dob} onChange={(e) => setDob(e.target.value)} />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="division">Division</Label>
+        <Select value={division} onValueChange={(value) => setDivision(value as Division)}>
+          <SelectTrigger id="division">
+            <SelectValue placeholder="Boys or Girls" />
+          </SelectTrigger>
+          <SelectContent>
+            {DIVISIONS.map((d) => (
+              <SelectItem key={d.value} value={d.value}>
+                {d.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-2">

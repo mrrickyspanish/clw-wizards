@@ -14,6 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { sameChildKey } from '@/lib/child-key'
+import { DIVISIONS, type Division } from '@/lib/registration-schema'
 
 type AthleteDraft = {
   key: string
@@ -21,6 +22,7 @@ type AthleteDraft = {
   last_name: string
   date_of_birth: string
   practice_group: string
+  division: Division | ''
   weight_class: string
   usa_wrestling_card_number: string
   shirt_size: string
@@ -33,6 +35,7 @@ function emptyAthlete(): AthleteDraft {
     last_name: '',
     date_of_birth: '',
     practice_group: ORG.practiceGroups[0],
+    division: '',
     weight_class: '',
     usa_wrestling_card_number: '',
     shirt_size: '',
@@ -141,7 +144,7 @@ export function OnboardingForm({
   // wrestlers step (mirrors the server-side zod schema).
   function athletesValid(): boolean {
     return athletes.every(
-      (a) => a.first_name.trim() && a.last_name.trim() && /^\d{4}-\d{2}-\d{2}$/.test(a.date_of_birth)
+      (a) => a.first_name.trim() && a.last_name.trim() && /^\d{4}-\d{2}-\d{2}$/.test(a.date_of_birth) && a.division
     )
   }
 
@@ -159,7 +162,7 @@ export function OnboardingForm({
   function next() {
     setError(null)
     if (step === 1 && !athletesValid()) {
-      setError('Each wrestler needs a first name, last name, and date of birth.')
+      setError('Each wrestler needs a first name, last name, date of birth, and Boys or Girls.')
       return
     }
     if (step === 1) {
@@ -190,6 +193,7 @@ export function OnboardingForm({
         last_name: a.last_name,
         date_of_birth: a.date_of_birth,
         practice_group: a.practice_group,
+        division: a.division as Division,
         weight_class: a.weight_class,
         usa_wrestling_card_number: a.usa_wrestling_card_number,
         shirt_size: a.shirt_size,
@@ -364,6 +368,25 @@ export function OnboardingForm({
                     value={athlete.date_of_birth}
                     onChange={(e) => updateAthlete(athlete.key, { date_of_birth: e.target.value })}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`division_${athlete.key}`}>Division</Label>
+                  <Select
+                    value={athlete.division}
+                    onValueChange={(value) => updateAthlete(athlete.key, { division: value as Division })}
+                  >
+                    <SelectTrigger id={`division_${athlete.key}`}>
+                      <SelectValue placeholder="Boys or Girls" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DIVISIONS.map((d) => (
+                        <SelectItem key={d.value} value={d.value}>
+                          {d.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">

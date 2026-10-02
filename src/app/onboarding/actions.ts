@@ -71,6 +71,7 @@ export async function completeOnboarding(values: OnboardingInput): Promise<Actio
       last_name: a.last_name,
       date_of_birth: a.date_of_birth,
       practice_group: a.practice_group,
+      division: a.division,
       weight_class: a.weight_class || null,
       usa_wrestling_card_number: a.usa_wrestling_card_number || null,
       shirt_size: a.shirt_size || null,

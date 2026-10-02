@@ -129,6 +129,8 @@ const athleteSchema = z.object({
     .or(z.literal(''))
     .optional()
     .nullable(),
+  // Empty means not set yet: wrestlers added before the question was asked.
+  division: z.enum(['boys', 'girls']).or(z.literal('')).optional().nullable(),
   weight_class: z.string().trim().optional().nullable(),
   usa_wrestling_card_number: z.string().trim().optional().nullable(),
   shirt_size: z.string().trim().optional().nullable(),
@@ -158,6 +160,7 @@ export async function updateAthlete(id: string, values: AthleteInput): Promise<A
       last_name: parsed.last_name,
       date_of_birth: parsed.date_of_birth,
       practice_group: parsed.practice_group || null,
+      division: parsed.division || null,
       weight_class: parsed.weight_class || null,
       usa_wrestling_card_number: parsed.usa_wrestling_card_number || null,
       shirt_size: parsed.shirt_size || null,

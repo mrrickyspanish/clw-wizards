@@ -8,11 +8,21 @@ import { ORG } from '@/config/org.config'
  * byte-identical copies of this schema, which was going to drift the moment a
  * field was added.
  */
+export const DIVISIONS = [
+  { value: 'boys', label: 'Boys' },
+  { value: 'girls', label: 'Girls' },
+] as const
+
+export type Division = (typeof DIVISIONS)[number]['value']
+
+const divisionSchema = z.enum(['boys', 'girls'], { message: 'Choose Boys or Girls' })
+
 export const athleteSchema = z.object({
   first_name: z.string().trim().min(1, 'First name is required'),
   last_name: z.string().trim().min(1, 'Last name is required'),
   date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Valid date of birth is required'),
   practice_group: z.enum(ORG.practiceGroups as unknown as [string, ...string[]]),
+  division: divisionSchema,
   weight_class: z.string().trim().optional().nullable(),
   usa_wrestling_card_number: z.string().trim().optional().nullable(),
   shirt_size: z.string().trim().optional().nullable(),
@@ -45,6 +55,7 @@ export const registrationSchema = z.object({
 
   // Asked once and kept on the athlete record.
   referral_source: z.string().trim().max(80).optional().nullable(),
+  division: divisionSchema,
 
   // Re-confirmed every season.
   grade: z.string().trim().min(1, 'Grade is required').max(40),

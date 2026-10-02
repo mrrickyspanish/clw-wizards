@@ -43,6 +43,7 @@ export async function submitRegistration(values: unknown): Promise<ActionResult>
     state,
     postal_code,
     referral_source,
+    division,
     grade,
     school,
     weight_lbs,
@@ -83,6 +84,7 @@ export async function submitRegistration(values: unknown): Promise<ActionResult>
     .from('athletes')
     .update({
       referral_source: referral_source || null,
+      division,
       shirt_size,
       weight_class: String(weight_lbs),
     })

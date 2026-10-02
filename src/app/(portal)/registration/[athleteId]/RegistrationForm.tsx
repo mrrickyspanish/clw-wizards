@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Check } from 'lucide-react'
 
 import { submitRegistration } from '../actions'
-import { ageOnDecember31 } from '@/lib/registration-schema'
+import { ageOnDecember31, DIVISIONS, type Division } from '@/lib/registration-schema'
 import {
   COACH_INTEREST_OPTIONS,
   GUARDIAN_RELATIONSHIPS,
@@ -109,6 +109,7 @@ export function RegistrationForm({
   const [postalCode, setPostalCode] = useState(profile?.postal_code ?? '')
 
   const [referralSource, setReferralSource] = useState(athlete.referral_source ?? '')
+  const [division, setDivision] = useState<Division | ''>(athlete.division ?? '')
   const [grade, setGrade] = useState(enrollment?.grade ?? '')
   const [school, setSchool] = useState(enrollment?.school ?? '')
   const [weight, setWeight] = useState(enrollment?.weight_lbs != null ? String(enrollment.weight_lbs) : '')
@@ -147,7 +148,7 @@ export function RegistrationForm({
 
   const wrestlerValid = Boolean(
     phone.trim() && streetAddress.trim() && city.trim() && grade.trim() && school.trim() && weight.trim() &&
-      Number(weight) > 0 && shirtSize && yearsExperience && commitment
+      Number(weight) > 0 && shirtSize && yearsExperience && commitment && division
   )
   const guardiansValid = Boolean(guardians[0]?.name.trim())
   const requiredDisclosures = disclosures.filter((disclosure) => disclosure.required)
@@ -171,6 +172,7 @@ export function RegistrationForm({
       state,
       postal_code: postalCode,
       referral_source: referralSource,
+      division: division as Division,
       grade,
       school,
       weight_lbs: weight,
@@ -225,6 +227,20 @@ export function RegistrationForm({
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Division" htmlFor="division">
+              <Select value={division} onValueChange={(value) => setDivision(value as Division)}>
+                <SelectTrigger id="division">
+                  <SelectValue placeholder="Boys or Girls" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DIVISIONS.map((d) => (
+                    <SelectItem key={d.value} value={d.value}>
+                      {d.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
             <Field label="Grade for the season" htmlFor="grade">
               <Input id="grade" value={grade} onChange={(e) => setGrade(e.target.value)} placeholder="6th" />
             </Field>

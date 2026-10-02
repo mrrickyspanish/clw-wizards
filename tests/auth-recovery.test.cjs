@@ -662,7 +662,7 @@ function onboardingHarness(onFile) {
   })
   return { actions, inserts, updates }
 }
-const kid = (first, last, dob = '2015-04-02') => ({ first_name: first, last_name: last, date_of_birth: dob, practice_group: 'Group A' })
+const kid = (first, last, dob = '2015-04-02') => ({ first_name: first, last_name: last, date_of_birth: dob, practice_group: 'Group A', division: 'boys' })
 
 test('family setup does not re-add a child the club already has on file', async () => {
   const h = onboardingHarness([{ first_name: 'Sam', last_name: 'Ortiz' }])
@@ -981,4 +981,27 @@ test('missing USA card counts verified cards and this season\'s uploads only', a
   })
   const recipients = await lib.resolveRecipients({ type: 'missing_document', documents: ['usa_wrestling_card'] })
   assert.deepEqual(recipients.map((r) => r.id).sort(), ['p3', 'p4'])
+})
+
+test('a new wrestler must be marked Boys or Girls, and it is saved', async () => {
+  const missing = addAthleteHarness([])
+  const noDivision = { ...kid('Mila', 'Saldarriaga') }
+  delete noDivision.division
+  const refused = await missing.actions.addAthlete(noDivision)
+  assert.equal(refused.ok, false)
+  assert.match(refused.error, /Boys or Girls/)
+  assert.equal(missing.inserts.length, 0)
+
+  const ok = addAthleteHarness([])
+  await ok.actions.addAthlete({ ...kid('Mila', 'Saldarriaga'), division: 'girls' })
+  assert.equal(ok.inserts[0].division, 'girls')
+})
+
+test('family setup refuses a new wrestler without Boys or Girls', async () => {
+  const h = onboardingHarness([])
+  const noDivision = kid('Lee', 'Park')
+  delete noDivision.division
+  const result = await h.actions.completeOnboarding({ phone: '', smsOptIn: false, athletes: [noDivision] })
+  assert.equal(result.ok, false)
+  assert.equal(h.inserts.length, 0)
 })
