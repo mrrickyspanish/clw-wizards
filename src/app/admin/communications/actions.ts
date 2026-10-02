@@ -3,8 +3,10 @@
 import { createServerSupabase } from '@/lib/supabase/server'
 import { resolveRecipients, type CommTarget } from '@/lib/comms/recipients'
 
+export type PreviewRecipient = { name: string; email: string | null }
+
 export type PreviewResult =
-  | { ok: true; count: number; sample: string[] }
+  | { ok: true; count: number; recipients: PreviewRecipient[] }
   | { ok: false; error: string }
 
 // Lets an admin see how many parents a target resolves to before they hit send.
@@ -23,12 +25,10 @@ export async function previewRecipients(target: CommTarget): Promise<PreviewResu
     return { ok: false, error: 'Admin access required' }
   }
 
-  const recipients = await resolveRecipients(target)
-  return {
-    ok: true,
-    count: recipients.length,
-    sample: recipients
-      .slice(0, 5)
-      .map((r) => r.full_name || r.email || 'Unnamed parent'),
-  }
+  // The whole list, alphabetical, so an admin can scroll it and check exactly
+  // who a send reaches before it goes out.
+  const recipients = (await resolveRecipients(target))
+    .map((r) => ({ name: r.full_name || r.email || 'Unnamed parent', email: r.email }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+  return { ok: true, count: recipients.length, recipients }
 }

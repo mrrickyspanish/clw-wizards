@@ -10,7 +10,7 @@
 // To make a new slot editable: add an entry here, then read it in the component
 // via getSiteContent(). Nothing else is required.
 
-export type ContentFieldType = 'text' | 'textarea' | 'image'
+export type ContentFieldType = 'text' | 'textarea' | 'image' | 'toggle'
 
 export type ContentField = {
   key: string
@@ -21,9 +21,44 @@ export type ContentField = {
   help?: string
   /** Public path(s) to revalidate when this field changes. */
   revalidate: string[]
+  /** Shown in the shared site header, so every public page refreshes. */
+  revalidateLayout?: boolean
 }
 
 export const CONTENT_FIELDS: ContentField[] = [
+  // --- Site menu · Extra link ---------------------------------------------
+  // One temporary link the club can switch on in the main menu, placed right
+  // after Join. Off, or missing a label or address, it does not show at all.
+  {
+    key: 'nav.extra.active',
+    label: 'Show this link in the menu',
+    type: 'toggle',
+    group: 'Site menu · Extra link',
+    default: 'off',
+    revalidate: ['/'],
+    revalidateLayout: true,
+  },
+  {
+    key: 'nav.extra.label',
+    label: 'Link text',
+    type: 'text',
+    group: 'Site menu · Extra link',
+    default: '',
+    help: 'A word or two, e.g. "Fundraiser". Long text crowds the menu.',
+    revalidate: ['/'],
+    revalidateLayout: true,
+  },
+  {
+    key: 'nav.extra.url',
+    label: 'Link address',
+    type: 'text',
+    group: 'Site menu · Extra link',
+    default: '',
+    help: 'A full web address starting with https://, or a page on this site such as /events. Outside links open in a new tab.',
+    revalidate: ['/'],
+    revalidateLayout: true,
+  },
+
   // --- Home · Hero ---------------------------------------------------------
   {
     key: 'home.hero.line1',
@@ -251,6 +286,26 @@ export const CONTENT_LIMITS: Record<string, { min: number; max: number }> = {
   'about.value2': { min: 5, max: 120 },
   'about.value3': { min: 5, max: 120 },
   'about.value4': { min: 5, max: 120 },
+  'nav.extra.label': { min: 0, max: 16 },
+  'nav.extra.url': { min: 0, max: 300 },
+}
+
+/**
+ * The extra menu link's address, if it is one the site may link to: a page on
+ * this site ("/events") or an https:// address. Anything else -- another
+ * scheme, "//host", a typo -- is refused, so a bad entry hides the link rather
+ * than shipping a broken or unsafe one.
+ */
+export function safeMenuHref(value: string): string | null {
+  const v = value.trim()
+  if (!v) return null
+  if (v.startsWith('/') && !v.startsWith('//') && !v.includes('\\')) return v
+  try {
+    const url = new URL(v)
+    return url.protocol === 'https:' ? url.toString() : null
+  } catch {
+    return null
+  }
 }
 
 export function contentLimit(key: string): { min: number; max: number } | undefined {

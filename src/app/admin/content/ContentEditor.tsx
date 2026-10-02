@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 function safeName(name: string) {
@@ -152,6 +153,17 @@ export function ContentEditor({ initial }: { initial: Record<string, string> }) 
                       maxLength={CONTENT_LIMITS[field.key]?.max}
                       onChange={(e) => setValue(field.key, e.target.value)}
                     />
+                  )}
+
+                  {field.type === 'toggle' && (
+                    <div className="flex items-center gap-3">
+                      <Switch
+                        id={field.key}
+                        checked={value === 'on'}
+                        onCheckedChange={(checked) => setValue(field.key, checked ? 'on' : 'off')}
+                      />
+                      <span className="text-base text-clw-gray">{value === 'on' ? 'On' : 'Off'}</span>
+                    </div>
                   )}
 
                   {field.type === 'text' && (

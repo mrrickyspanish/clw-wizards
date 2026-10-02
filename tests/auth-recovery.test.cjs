@@ -799,3 +799,31 @@ test('adding a new sibling still works for a co-guardian', async () => {
   assert.equal(h.inserts.length, 1)
   assert.equal(h.inserts[0].parent_id, 'guardian-1')
 })
+
+// Communications: picking an event fills in its details in plain words.
+const eventLib = load('src/lib/comms/event-message.ts', {})
+
+test('an event message names the day, time range and place', () => {
+  const draft = eventLib.eventMessage({
+    id: 'e1', title: 'Facility Cleaning', date: '2026-10-10', start_time: '09:00', end_time: '12:30',
+    location: 'Wizards Wrestling Room', notes: 'Bring gloves.',
+  })
+  assert.equal(draft.subject, 'Facility Cleaning: Saturday, October 10')
+  assert.equal(draft.body, 'Facility Cleaning\nWhen: Saturday, October 10, 9:00 AM – 12:30 PM\nWhere: Wizards Wrestling Room\n\nBring gloves.')
+})
+
+test('an event message leaves out what the event does not have', () => {
+  const draft = eventLib.eventMessage({ id: 'e2', title: 'Parent Meeting', date: '2026-10-14', start_time: '18:30', end_time: null, location: null, notes: null })
+  assert.equal(draft.body, 'Parent Meeting\nWhen: Wednesday, October 14, 6:30 PM')
+})
+
+// Site menu: the club's temporary link may only point somewhere safe.
+const registry = load('src/lib/content/registry.ts', {})
+
+test('the menu link accepts site pages and https addresses only', () => {
+  assert.equal(registry.safeMenuHref('/events'), '/events')
+  assert.equal(registry.safeMenuHref(' https://example.org/fundraiser '), 'https://example.org/fundraiser')
+  for (const bad of ['', 'http://example.org', '//evil.example', 'javascript:alert(1)', 'example.org', '/\\evil']) {
+    assert.equal(registry.safeMenuHref(bad), null, bad)
+  }
+})

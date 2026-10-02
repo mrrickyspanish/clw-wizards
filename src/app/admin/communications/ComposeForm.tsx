@@ -3,9 +3,10 @@
 import { useState, type FormEvent } from 'react'
 import { Check, ChevronsUpDown, X } from 'lucide-react'
 
-import { previewRecipients } from './actions'
+import { previewRecipients, type PreviewRecipient } from './actions'
 import type { CommTarget, MissingDocument } from '@/lib/comms/recipients'
 import type { CommType } from '@/types/database'
+import { eventMessage, formatEventDate, type EventOption } from '@/lib/comms/event-message'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -116,12 +117,14 @@ function parentDisplayName(p: ParentOption): string {
 export function ComposeForm({
   practiceGroups,
   tournaments,
+  events,
   parents,
   queueReady,
   queueMissing,
 }: {
   practiceGroups: readonly string[]
   tournaments: TournamentOption[]
+  events: EventOption[]
   parents: ParentOption[]
   queueReady: boolean
   queueMissing: string[]
@@ -135,7 +138,8 @@ export function ComposeForm({
   const [subject, setSubject] = useState('')
   const [message, setMessage] = useState('')
 
-  const [preview, setPreview] = useState<{ count: number; sample: string[] } | null>(null)
+  const [eventId, setEventId] = useState('')
+  const [preview, setPreview] = useState<{ count: number; recipients: PreviewRecipient[] } | null>(null)
   const [previewing, setPreviewing] = useState(false)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -151,6 +155,18 @@ export function ComposeForm({
   function resetFeedback() {
     setError(null)
     setSent(null)
+  }
+
+  // Picking an event fills in its details. What the admin already typed is
+  // kept: the subject only fills when empty, and the details go above any
+  // message already written.
+  function chooseEvent(id: string) {
+    setEventId(id)
+    const event = events.find((e) => e.id === id)
+    if (!event) return
+    const draft = eventMessage(event)
+    if (!subject.trim()) setSubject(draft.subject)
+    setMessage((current) => (current.trim() ? `${draft.body}\n\n${current}` : `${draft.body}\n\n`))
   }
 
   function currentTarget(): CommTarget | null {
@@ -171,7 +187,7 @@ export function ComposeForm({
       setError(result.error)
       return
     }
-    setPreview({ count: result.count, sample: result.sample })
+    setPreview({ count: result.count, recipients: result.recipients })
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -224,6 +240,7 @@ export function ComposeForm({
       setSent('Your email is queued and sending now.')
       setSubject('')
       setMessage('')
+      setEventId('')
       setPreview(null)
     } catch {
       // Genuinely never reached the server — fetch itself rejected.
@@ -442,13 +459,46 @@ export function ComposeForm({
             {previewing ? 'Checking…' : 'Preview recipients'}
           </Button>
           {preview && (
-            <p className="text-sm text-clw-gray">
+            <p className="text-base text-clw-white">
               {preview.count} recipient{preview.count === 1 ? '' : 's'}
-              {preview.sample.length > 0 && <> — {preview.sample.join(', ')}{preview.count > preview.sample.length && '…'}</>}
             </p>
           )}
         </div>
+        {preview && preview.recipients.length > 0 && (
+          <ul
+            aria-label="Recipients"
+            className="max-h-80 divide-y divide-clw-gold/10 overflow-y-auto rounded-md border border-clw-gold/20 bg-clw-black/40"
+          >
+            {preview.recipients.map((r, index) => (
+              <li key={`${r.email ?? r.name}-${index}`} className="flex flex-wrap items-baseline justify-between gap-x-4 px-3 py-2">
+                <span className="text-base text-clw-white">{r.name}</span>
+                <span className={cn('text-sm', r.email ? 'text-clw-gray' : 'text-red-400')}>
+                  {r.email ?? 'No email: will not receive this'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
+
+      {events.length > 0 && (
+        <div className="space-y-2">
+          <Label>About an event (optional)</Label>
+          <Select value={eventId} onValueChange={chooseEvent}>
+            <SelectTrigger>
+              <SelectValue placeholder="Choose an event to fill in its details" />
+            </SelectTrigger>
+            <SelectContent>
+              {events.map((e) => (
+                <SelectItem key={e.id} value={e.id}>
+                  {e.title}: {formatEventDate(e.date)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-sm text-clw-gray">Adds the event&apos;s date, time and place to the message. Edit it before sending.</p>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="subject">Subject</Label>

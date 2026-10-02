@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import ScrollingTicker from '@/components/landing/ScrollingTicker'
 import { QuietBoundary } from '@/components/landing/QuietBoundary'
 import { ORG } from '@/config/org.config'
+import type { ExtraNavLink } from '@/lib/content/get'
 
 const NAV_LINKS = [
   { href: '/about', label: 'Mission' },
@@ -18,9 +19,9 @@ const NAV_LINKS = [
   { href: '/sponsorship', label: 'Support' },
 ]
 
-const MOBILE_NAV_LINKS = [...NAV_LINKS, { href: '/join', label: 'Join the Wizards' }]
-const DESKTOP_LEFT_LINKS = NAV_LINKS.slice(0, 3)
-const DESKTOP_RIGHT_LINKS = [...NAV_LINKS.slice(3), { href: '/join', label: 'Join' }]
+type NavLink = { href: string; label: string; external?: boolean }
+
+const DESKTOP_LEFT_LINKS: NavLink[] = NAV_LINKS.slice(0, 3)
 
 const SEARCH_ITEMS = [
   {
@@ -79,8 +80,13 @@ const SEARCH_ITEMS = [
   },
 ]
 
-export function SiteHeader() {
+export function SiteHeader({ extraLink = null }: { extraLink?: ExtraNavLink | null }) {
   const pathname = usePathname()
+  // The club's temporary link, when switched on in Admin -> Content, goes
+  // right after Join.
+  const extra: NavLink[] = extraLink ? [extraLink] : []
+  const MOBILE_NAV_LINKS: NavLink[] = [...NAV_LINKS, { href: '/join', label: 'Join the Wizards' }, ...extra]
+  const DESKTOP_RIGHT_LINKS: NavLink[] = [...NAV_LINKS.slice(3), { href: '/join', label: 'Join' }, ...extra]
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -134,12 +140,13 @@ export function SiteHeader() {
     return pathname === href || pathname.startsWith(`${href}/`)
   }
 
-  function DesktopLink({ href, label }: { href: string; label: string }) {
-    const active = isActive(href)
+  function DesktopLink({ href, label, external }: NavLink) {
+    const active = !external && isActive(href)
 
     return (
       <Link
         href={href}
+        {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
         aria-current={active ? 'page' : undefined}
         className={`group relative flex items-center whitespace-nowrap font-cond text-[1rem] font-bold uppercase tracking-[0.11em] transition-colors xl:text-[1.08rem] xl:tracking-[0.12em] 2xl:text-[1.12rem] ${
           active ? 'text-clw-gold' : 'text-clw-white/90 hover:text-clw-white'
@@ -288,6 +295,7 @@ export function SiteHeader() {
               <Link
                 key={link.label}
                 href={link.href}
+                {...(link.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                 onClick={() => setOpen(false)}
                 className={`block border-b border-clw-white/10 px-6 py-5 font-display text-4xl uppercase tracking-wide text-clw-white transition-all duration-300 ease-out hover:text-clw-gold ${
                   open ? 'translate-y-0 opacity-100' : '-translate-y-3 opacity-0'

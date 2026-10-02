@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { isFullAdmin } from '@/lib/auth/admin'
-import { contentField, contentLimit, isContentKey } from '@/lib/content/registry'
+import { contentField, contentLimit, isContentKey, safeMenuHref } from '@/lib/content/registry'
 
 // Writes go through the authenticated server client; `full_admin_write_page_content`
 // RLS enforces full-admin-only, and /admin/content is middleware-gated to full
@@ -33,6 +33,14 @@ export async function updateContent(values: Record<string, string>): Promise<Act
       return { ok: false, error: `"${label}" must be at least ${limit.min} characters.` }
     }
   }
+  const menuUrl = rows.find((row) => row.key === 'nav.extra.url')
+  if (menuUrl?.value && !safeMenuHref(menuUrl.value)) {
+    return { ok: false, error: 'The link address must start with https:// or be a page on this site, like /events.' }
+  }
+  const menuToggle = rows.find((row) => row.key === 'nav.extra.active')
+  if (menuToggle && menuToggle.value !== 'on' && menuToggle.value !== 'off') {
+    return { ok: false, error: 'Invalid value for the menu link switch.' }
+  }
 
   const supabase = await createServerSupabase()
   if (!(await isFullAdmin(supabase))) return { ok: false, error: 'Only full admins can edit website content.' }
@@ -46,6 +54,7 @@ export async function updateContent(values: Record<string, string>): Promise<Act
     if (field) for (const path of field.revalidate) paths.add(path)
   }
   for (const path of paths) revalidatePath(path)
+  if (entries.some(([key]) => contentField(key)?.revalidateLayout)) revalidatePath('/', 'layout')
 
   return { ok: true }
 }

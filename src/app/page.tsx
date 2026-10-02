@@ -18,6 +18,7 @@ import { SectionSlideOver } from '@/components/landing/SectionSlideOver'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { MobileCtaBar } from '@/components/landing/MobileCtaBar'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { getExtraNavLink } from '@/lib/content/get'
 
 export const metadata: Metadata = {
   description:
@@ -83,7 +84,7 @@ export default async function HomePage({
   return (
     <main className="marketing-site min-h-screen overflow-x-clip bg-clw-black">
       <SignupLandingRedirect />
-      <SiteHeader />
+      <SiteHeader extraLink={await getExtraNavLink()} />
       <div aria-hidden className="h-[116px] sm:h-[120px] min-[1180px]:h-[104px]" />
 
       {donation === 'success' && (
