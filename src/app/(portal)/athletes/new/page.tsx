@@ -3,9 +3,10 @@ import { headers } from 'next/headers'
 import { ChevronLeft } from 'lucide-react'
 
 import { AddAthleteForm } from '../AddAthleteForm'
+import { safeInternalPath } from '@/lib/safe-path'
 
-function safeRedirect(value: string | undefined) {
-  return value && value.startsWith('/') && !value.startsWith('//') ? value : null
+function safeRedirect(value: string | null | undefined) {
+  return safeInternalPath(value)
 }
 
 function refererPath(value: string | null) {

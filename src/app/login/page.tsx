@@ -17,9 +17,10 @@ import { AuthBrand } from '@/components/layout/AuthBrand'
 import { ORG } from '@/config/org.config'
 import { signupDestination } from '@/lib/auth/signup-routing'
 import { authAttempt, markAuthNavigation, reportClientAuthFailure } from '@/lib/auth/report-client'
+import { safeInternalPath } from '@/lib/safe-path'
 
 function safeRedirect(value: string | null) {
-  return value && value.startsWith('/') && !value.startsWith('//') ? value : null
+  return safeInternalPath(value)
 }
 
 export default function LoginPage() {

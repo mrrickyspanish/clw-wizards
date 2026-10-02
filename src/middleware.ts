@@ -4,6 +4,7 @@ import { getSupabaseAndResponse } from '@/lib/supabase/middleware'
 import { getSessionRole, homeForRole } from '@/lib/auth/session'
 import { linkAttemptId, reportParentAuthFailure } from '@/lib/auth/incidents'
 import { ATTEMPT_COOKIE } from '@/lib/auth/incident-policy'
+import { safeInternalPath } from '@/lib/safe-path'
 
 const PUBLIC_AUTH_PATHS = ['/login', '/signup', '/forgot-password', '/update-password']
 
@@ -28,9 +29,7 @@ function matchesPrefix(pathname: string, prefixes: string[]) {
   return prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`))
 }
 
-function safeInternalPath(value: string | undefined | null) {
-  return value && value.startsWith('/') && !value.startsWith('//') ? value : null
-}
+
 
 export async function middleware(req: NextRequest, event: NextFetchEvent) {
   const { pathname } = req.nextUrl

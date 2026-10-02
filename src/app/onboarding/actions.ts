@@ -13,8 +13,20 @@ export type ActionResult = { ok: true } | { ok: false; error: string }
 const onboardingSchema = z.object({
   phone: z.string().trim().max(20).optional().nullable().or(z.literal('')),
   smsOptIn: z.boolean(),
-  athletes: z.array(athleteSchema).min(1, 'Add at least one athlete'),
+  // May be empty when the family already has wrestlers on file -- see below.
+  athletes: z.array(athleteSchema),
 })
+
+/**
+ * Same child, same family: a first and last name match. Birth dates are
+ * deliberately NOT part of the key. Production had two families whose parent
+ * typed a different birth date from the one the club imported, and matching on
+ * the date as well would have let both copies through. Two children in one
+ * family sharing a first and last name is not a case this club has.
+ */
+function sameChildKey(firstName: string, lastName: string) {
+  return `${firstName.trim().toLowerCase()}|${lastName.trim().toLowerCase()}`
+}
 
 export type OnboardingInput = z.input<typeof onboardingSchema>
 
@@ -28,12 +40,41 @@ export async function completeOnboarding(values: OnboardingInput): Promise<Actio
 
   const { phone, smsOptIn, athletes } = parsed.data
 
+  // Families the club imported already have their wrestlers on file, created
+  // with the account. This step used to require at least one wrestler and
+  // insert whatever arrived, so every imported family that claimed its account
+  // re-entered its children and got a second copy of each: same name, no
+  // registration, no dues, and a "Register" button beside the real one. It was
+  // also unsafe to submit twice -- a retry after an error inserted the whole
+  // list again. Read what is already there and add only children who are not.
+  const { data: onFile, error: onFileError } = await supabase
+    .from('athletes')
+    .select('first_name, last_name')
+    .eq('parent_id', auth.user.id)
+  if (onFileError) {
+    console.error('[onboarding] could not read existing athletes', { code: onFileError.code })
+    return { ok: false, error: 'We could not load your family right now. Please try again in a moment.' }
+  }
+
+  const seen = new Set((onFile ?? []).map((a) => sameChildKey(a.first_name, a.last_name)))
+  const newAthletes = athletes.filter((a) => {
+    const key = sameChildKey(a.first_name, a.last_name)
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+
+  if ((onFile?.length ?? 0) === 0 && newAthletes.length === 0) {
+    return { ok: false, error: 'Add at least one athlete' }
+  }
+
   // Insert athletes BEFORE stamping onboarding_completed_at. If this write
   // fails, the parent stays un-onboarded and middleware keeps them on this
   // page for a clean retry — rather than being flagged complete with no
-  // athletes on file (which onboarding exists to prevent).
-  const { error: athletesError } = await supabase.from('athletes').insert(
-    athletes.map((a) => ({
+  // athletes on file (which onboarding exists to prevent). The retry is safe
+  // now: anything the failed attempt did insert is skipped above.
+  const { error: athletesError } = newAthletes.length === 0 ? { error: null } : await supabase.from('athletes').insert(
+    newAthletes.map((a) => ({
       parent_id: auth.user.id,
       first_name: a.first_name,
       last_name: a.last_name,
@@ -45,7 +86,10 @@ export async function completeOnboarding(values: OnboardingInput): Promise<Actio
     }))
   )
 
-  if (athletesError) return { ok: false, error: athletesError.message }
+  if (athletesError) {
+    console.error('[onboarding] athlete insert failed', { code: athletesError.code })
+    return { ok: false, error: 'We could not save your wrestlers. Please try again in a moment.' }
+  }
 
   const { error: profileError } = await supabase
     .from('profiles')
@@ -58,7 +102,10 @@ export async function completeOnboarding(values: OnboardingInput): Promise<Actio
     })
     .eq('id', auth.user.id)
 
-  if (profileError) return { ok: false, error: profileError.message }
+  if (profileError) {
+    console.error('[onboarding] profile update failed', { code: profileError.code })
+    return { ok: false, error: 'We could not finish setting up your account. Please try again in a moment.' }
+  }
 
   revalidatePath('/dashboard')
   return { ok: true }

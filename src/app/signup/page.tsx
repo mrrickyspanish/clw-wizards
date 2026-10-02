@@ -15,9 +15,11 @@ import { AuthBrand } from '@/components/layout/AuthBrand'
 import { ORG } from '@/config/org.config'
 import { signupDestination } from '@/lib/auth/signup-routing'
 import { authAttempt, markAuthNavigation } from '@/lib/auth/report-client'
+import { signUpErrorMessage } from '@/lib/auth/recovery-errors'
+import { safeInternalPath } from '@/lib/safe-path'
 
 function safeRedirect(value: string | null) {
-  return value && value.startsWith('/') && !value.startsWith('//') ? value : null
+  return safeInternalPath(value)
 }
 
 export default function SignupPage() {
@@ -66,7 +68,7 @@ function SignupForm() {
     })
 
     if (signUpError) {
-      setError(signUpError.message)
+      setError(signUpErrorMessage(signUpError))
       turnstile.reset()
       setLoading(false)
       return

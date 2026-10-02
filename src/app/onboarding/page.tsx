@@ -22,17 +22,32 @@ export default async function OnboardingPage() {
     throw new Error('Unable to load family setup')
   }
 
+  // Imported families arrive with their wrestlers already on file. Show them,
+  // so nobody re-enters a child the club already has.
+  const { data: onFile } = await supabase
+    .from('athletes')
+    .select('id, first_name, last_name, date_of_birth')
+    .eq('parent_id', auth.user!.id)
+    .order('created_at')
+  const existingAthletes = onFile ?? []
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-clw-black px-4 py-12">
       <Card className="w-full max-w-2xl border-clw-gold/20 bg-clw-black-2">
         <CardHeader>
           <CardTitle className="text-clw-gold">Complete your profile</CardTitle>
-          <CardDescription>
-            Add your contact info and at least one athlete to finish setting up your {ORG.shortName} account.
+          <CardDescription className="text-base">
+            {existingAthletes.length > 0
+              ? `Your wrestlers are already on file with the club. Confirm how we can reach you to finish setting up your ${ORG.shortName} account.`
+              : `Add your contact info and at least one athlete to finish setting up your ${ORG.shortName} account.`}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <OnboardingForm initialPhone={profile?.phone ?? null} initialSmsOptIn={profile?.sms_opt_in ?? false} />
+          <OnboardingForm
+            initialPhone={profile?.phone ?? null}
+            initialSmsOptIn={profile?.sms_opt_in ?? false}
+            existingAthletes={existingAthletes}
+          />
         </CardContent>
       </Card>
     </div>

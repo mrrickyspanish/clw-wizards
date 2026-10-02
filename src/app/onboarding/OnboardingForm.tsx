@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Trash2, Check } from 'lucide-react'
 
@@ -36,6 +36,18 @@ function emptyAthlete(): AthleteDraft {
     usa_wrestling_card_number: '',
     shirt_size: '',
   }
+}
+
+type ExistingAthlete = {
+  id: string
+  first_name: string
+  last_name: string
+  date_of_birth: string | null
+}
+
+// Mirrors sameChildKey in actions.ts: one family, same first and last name.
+function childKey(firstName: string, lastName: string) {
+  return `${firstName.trim().toLowerCase()}|${lastName.trim().toLowerCase()}`
 }
 
 const STEPS = ['Your info', 'Your wrestlers', 'Review'] as const
@@ -77,15 +89,23 @@ function Stepper({ current }: { current: number }) {
 export function OnboardingForm({
   initialPhone,
   initialSmsOptIn,
+  existingAthletes = [],
 }: {
   initialPhone: string | null
   initialSmsOptIn: boolean
+  existingAthletes?: ExistingAthlete[]
 }) {
   const router = useRouter()
+  const hasOnFile = existingAthletes.length > 0
   const [step, setStep] = useState(0)
   const [phone, setPhone] = useState(initialPhone ?? '')
   const [smsOptIn, setSmsOptIn] = useState(initialSmsOptIn)
-  const [athletes, setAthletes] = useState<AthleteDraft[]>([emptyAthlete()])
+  // A family with wrestlers already on file starts with no blank form to fill:
+  // adding someone is optional for them, and only for a child not listed.
+  const [athletes, setAthletes] = useState<AthleteDraft[]>(hasOnFile ? [] : [emptyAthlete()])
+  // Guards the save against a second tap landing before React re-renders the
+  // disabled button.
+  const finishing = useRef(false)
   const [loading, setLoading] = useState(false)
   const [skipping, setSkipping] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -126,11 +146,29 @@ export function OnboardingForm({
     )
   }
 
+  // A child entered here who is already on file would be skipped by the server
+  // anyway; saying so now stops the parent wondering where their entry went.
+  function alreadyOnFile(): ExistingAthlete | undefined {
+    const onFile = new Map(existingAthletes.map((a) => [childKey(a.first_name, a.last_name), a]))
+    for (const draft of athletes) {
+      const match = onFile.get(childKey(draft.first_name, draft.last_name))
+      if (match) return match
+    }
+    return undefined
+  }
+
   function next() {
     setError(null)
     if (step === 1 && !athletesValid()) {
       setError('Each wrestler needs a first name, last name, and date of birth.')
       return
+    }
+    if (step === 1) {
+      const duplicate = alreadyOnFile()
+      if (duplicate) {
+        setError(`${duplicate.first_name} ${duplicate.last_name} is already on file, so there is no need to add them again. If any of their details are wrong, the club can correct them.`)
+        return
+      }
     }
     setStep((s) => Math.min(s + 1, STEPS.length - 1))
   }
@@ -141,6 +179,8 @@ export function OnboardingForm({
   }
 
   async function handleFinish() {
+    if (finishing.current) return
+    finishing.current = true
     setError(null)
     setLoading(true)
     const result = await completeOnboarding({
@@ -158,6 +198,7 @@ export function OnboardingForm({
     })
     setLoading(false)
     if (!result.ok) {
+      finishing.current = false
       setError(result.error)
       return
     }
@@ -255,7 +296,7 @@ export function OnboardingForm({
             </div>
             <div className="flex items-start gap-2">
               <Checkbox id="smsOptIn" checked={smsOptIn} onCheckedChange={(checked) => setSmsOptIn(checked === true)} />
-              <Label htmlFor="smsOptIn" className="text-xs font-normal leading-relaxed text-muted-foreground">
+              <Label htmlFor="smsOptIn" className="text-sm font-normal leading-relaxed text-muted-foreground">
                 {SMS_CONSENT_TEXT}
               </Label>
             </div>
@@ -264,11 +305,27 @@ export function OnboardingForm({
 
         {step === 1 && (
           <div className="space-y-4">
+            {hasOnFile && (
+              <div className="space-y-2 rounded-md border border-clw-gold/30 bg-clw-gold/5 p-4">
+                <p className="text-base font-medium text-clw-white">Already on file with the club</p>
+                <ul className="space-y-1">
+                  {existingAthletes.map((a) => (
+                    <li key={a.id} className="text-base text-clw-gray">
+                      {a.first_name} {a.last_name}
+                      {a.date_of_birth && ` · DOB ${a.date_of_birth}`}
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-base text-clw-gray">
+                  No need to add these again. Only add a wrestler who is not listed here.
+                </p>
+              </div>
+            )}
             {athletes.map((athlete, index) => (
               <div key={athlete.key} className="space-y-4 rounded-md border border-clw-gold/10 p-4">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium text-clw-white">Wrestler {index + 1}</p>
-                  {athletes.length > 1 && (
+                  {(athletes.length > 1 || hasOnFile) && (
                     <Button
                       type="button"
                       variant="ghost"
@@ -365,7 +422,7 @@ export function OnboardingForm({
               size="sm"
               onClick={() => setAthletes((rows) => [...rows, emptyAthlete()])}
             >
-              + Add another wrestler
+              {hasOnFile && athletes.length === 0 ? '+ Add a wrestler not listed above' : '+ Add another wrestler'}
             </Button>
           </div>
         )}
@@ -380,8 +437,16 @@ export function OnboardingForm({
               </p>
             </div>
             <div>
-              <h3 className="text-sm font-medium text-clw-gray">Wrestlers ({athletes.length})</h3>
+              <h3 className="text-sm font-medium text-clw-gray">Wrestlers ({existingAthletes.length + athletes.length})</h3>
               <ul className="mt-2 space-y-2">
+                {existingAthletes.map((a) => (
+                  <li key={a.id} className="rounded-md border border-clw-gold/10 p-3">
+                    <p className="font-medium text-clw-white">
+                      {a.first_name} {a.last_name}
+                    </p>
+                    <p className="text-sm text-clw-gray">Already on file{a.date_of_birth && ` · DOB ${a.date_of_birth}`}</p>
+                  </li>
+                ))}
                 {athletes.map((a) => (
                   <li key={a.key} className="rounded-md border border-clw-gold/10 p-3">
                     <p className="font-medium text-clw-white">

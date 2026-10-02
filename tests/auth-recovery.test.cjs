@@ -14,6 +14,8 @@ function load(relative, mocks, env = {}, logs = [], fetcher = fetch, globals = {
   mocks['@/lib/auth/incidents'] ??= { registerResetAttempt: async () => {}, linkAttemptId: async () => '11111111-1111-4111-a111-111111111111', requestSourceKey: async () => 'test', reportParentAuthFailure: async () => {} }
   mocks['@/lib/auth/report-client'] ??= { authAttempt: () => 'test', reportClientAuthFailure: async () => {}, markAuthNavigation: () => {} }
   if (relative.startsWith('src/app/') || relative === 'src/middleware.ts') mocks['@/lib/auth/incident-policy'] ??= incidentPolicy
+  if (relative.startsWith('src/app/')) mocks['@/lib/auth/recovery-errors'] ??= policy
+  if (relative.startsWith('src/app/') || relative === 'src/middleware.ts') mocks['@/lib/safe-path'] ??= safePath
   const filename = path.join(__dirname, '..', relative)
   const code = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
@@ -30,6 +32,7 @@ function load(relative, mocks, env = {}, logs = [], fetcher = fetch, globals = {
 }
 const policy = load('src/lib/auth/recovery-errors.ts', {})
 const incidentPolicy = load('src/lib/auth/incident-policy.ts', {})
+const safePath = load('src/lib/safe-path.ts', {})
 const incidentId = '11111111-1111-4111-a111-111111111111'
 
 test('rejected confirmation/reset callbacks retain one attempt reference through fallback redirects', async () => {
@@ -630,4 +633,91 @@ test('owner alert reports a provider rejection rather than swallowing it', async
   }, { RESEND_API_KEY: 'test-provider-key', RESEND_FROM_EMAIL: 'CLW <auth@example.com>' }, logs)
   await alert.sendAlert('Recovery failed', { requestId: 'test-id' })
   assert.match(JSON.stringify(logs), /Provider rejected alert email.*validation_error/)
+})
+
+// Family setup: imported families arrive with wrestlers already on file. The
+// action must add only children who are not, and must be safe to submit twice.
+function onboardingHarness(onFile) {
+  const inserts = []
+  const updates = []
+  const client = {
+    auth: { getUser: async () => ({ data: { user: { id: 'parent-1' } } }) },
+    from: () => ({
+      select: () => ({ eq: async () => ({ data: onFile, error: null }) }),
+      insert: async (rows) => { inserts.push(rows); onFile.push(...rows); return { error: null } },
+      update: (values) => ({ eq: async () => { updates.push(values); return { error: null } } }),
+    }),
+  }
+  const schema = load('src/lib/registration-schema.ts', { '@/config/org.config': { ORG: { practiceGroups: ['Group A', 'Group B'] } } })
+  const actions = load('src/app/onboarding/actions.ts', {
+    'next/cache': { revalidatePath: () => {} },
+    '@/lib/supabase/server': { createServerSupabase: async () => client },
+    '@/lib/supabase/admin': { createAdminSupabase: () => ({}) },
+    '@/lib/twilio/opt-in': { SMS_CONSENT_TEXT: 'consent' },
+    '@/lib/registration-schema': schema,
+  })
+  return { actions, inserts, updates }
+}
+const kid = (first, last, dob = '2015-04-02') => ({ first_name: first, last_name: last, date_of_birth: dob, practice_group: 'Group A' })
+
+test('family setup does not re-add a child the club already has on file', async () => {
+  const h = onboardingHarness([{ first_name: 'Sam', last_name: 'Ortiz' }])
+  // Different case, stray spaces and a different birth date: still the same child.
+  const result = await h.actions.completeOnboarding({ phone: '', smsOptIn: false, athletes: [kid(' sam ', 'ORTIZ', '2015-09-30')] })
+  assert.equal(result.ok, true)
+  assert.equal(h.inserts.length, 0)
+  assert.ok(h.updates[0].onboarding_completed_at)
+})
+
+test('family setup with wrestlers on file can finish without adding anyone', async () => {
+  const h = onboardingHarness([{ first_name: 'Sam', last_name: 'Ortiz' }])
+  const result = await h.actions.completeOnboarding({ phone: '', smsOptIn: false, athletes: [] })
+  assert.equal(result.ok, true)
+  assert.equal(h.inserts.length, 0)
+  assert.ok(h.updates[0].onboarding_completed_at)
+})
+
+test('family setup still adds a sibling who is not on file', async () => {
+  const h = onboardingHarness([{ first_name: 'Sam', last_name: 'Ortiz' }])
+  await h.actions.completeOnboarding({ phone: '', smsOptIn: false, athletes: [kid('Sam', 'Ortiz'), kid('Ana', 'Ortiz')] })
+  assert.equal(h.inserts.length, 1)
+  assert.deepEqual(h.inserts[0].map((row) => row.first_name), ['Ana'])
+})
+
+test('a new family must still add at least one wrestler', async () => {
+  const h = onboardingHarness([])
+  const result = await h.actions.completeOnboarding({ phone: '', smsOptIn: false, athletes: [] })
+  assert.equal(result.ok, false)
+  assert.match(result.error, /at least one athlete/)
+  assert.equal(h.updates.length, 0)
+})
+
+test('submitting family setup twice creates each child once', async () => {
+  const h = onboardingHarness([])
+  const values = { phone: '', smsOptIn: false, athletes: [kid('Lee', 'Park'), kid('lee', 'park')] }
+  await h.actions.completeOnboarding(values)
+  await h.actions.completeOnboarding(values)
+  assert.equal(h.inserts.length, 1)
+  assert.equal(h.inserts[0].length, 1)
+})
+
+test('sign-up and password-save failures never show provider internals', () => {
+  assert.doesNotMatch(policy.signUpErrorMessage({ code: 'unexpected_failure', status: 500, message: 'gomail: could not send email 1: gomail: invalid address' }), /gomail/)
+  assert.match(policy.signUpErrorMessage({ code: 'unexpected_failure', status: 500, message: 'gomail' }), /typos/)
+  assert.match(policy.signUpErrorMessage({ code: 'over_email_send_rate_limit', status: 429, message: 'email rate limit exceeded' }), /Too many attempts/)
+  assert.match(policy.signUpErrorMessage({ code: 'captcha_failed', message: 'captcha protection: request disallowed' }), /security check expired/)
+  assert.match(policy.signUpErrorMessage({ code: 'weak_password', message: 'Password should be at least 8 characters.' }), /at least 8 characters/)
+  assert.match(policy.passwordSaveErrorMessage({ name: 'AuthSessionMissingError', message: 'Auth session missing!' }), /reset session has ended/)
+  assert.doesNotMatch(policy.passwordSaveErrorMessage({ code: 'unexpected_failure', message: 'pq: relation does not exist' }), /pq:/)
+  assert.match(policy.signInErrorMessage({ code: 'invalid_credentials', message: 'Invalid' }), /never chosen a password/)
+})
+
+test('redirect targets that leave the site are refused', () => {
+  for (const hostile of ['/\\evil.example', '/\\/evil.example', '//evil.example', '/\t/evil.example', '/\n/evil.example',
+    'https://evil.example', 'javascript:alert(1)', 'evil.example', '', null, undefined]) {
+    assert.equal(safePath.safeInternalPath(hostile), null, `accepted ${JSON.stringify(hostile)}`)
+  }
+  assert.equal(safePath.safeInternalPath('/dues'), '/dues')
+  assert.equal(safePath.safeInternalPath('/registration?step=2#pay'), '/registration?step=2#pay')
+  assert.equal(safePath.safeInternalPath('/athletes/new?redirectTo=%2Fregistration'), '/athletes/new?redirectTo=%2Fregistration')
 })

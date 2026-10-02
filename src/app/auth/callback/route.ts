@@ -3,9 +3,10 @@ import { NextResponse, after, type NextRequest } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { linkAttemptId, requestSourceKey, reportParentAuthFailure } from '@/lib/auth/incidents'
 import { validAttempt } from '@/lib/auth/incident-policy'
+import { safeInternalPath } from '@/lib/safe-path'
 
-function safeInternalPath(value: string | null) {
-  return value && value.startsWith('/') && !value.startsWith('//') ? value : '/update-password'
+function safeNext(value: string | null) {
+  return safeInternalPath(value) ?? '/update-password'
 }
 
 function invalidLinkRedirect(request: NextRequest, attemptId?: string) {
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get('code')
   const tokenHash = request.nextUrl.searchParams.get('token_hash')
   const type = request.nextUrl.searchParams.get('type')
-  const next = safeInternalPath(request.nextUrl.searchParams.get('next'))
+  const next = safeNext(request.nextUrl.searchParams.get('next'))
 
   // Email scanners and previews GET links before the parent does. Never
   // consume a recovery token here; only the password form may verify it.

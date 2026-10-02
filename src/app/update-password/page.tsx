@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AuthBrand } from '@/components/layout/AuthBrand'
 import { authAttempt, reportClientAuthFailure } from '@/lib/auth/report-client'
+import { passwordSaveErrorMessage } from '@/lib/auth/recovery-errors'
 
 export default function UpdatePasswordPage() {
   return (
@@ -134,7 +135,7 @@ function UpdatePasswordForm() {
           setAlreadyCurrent(true)
           return
         }
-        setError(updateError.message)
+        setError(passwordSaveErrorMessage(updateError))
         return
       }
 
