@@ -182,22 +182,24 @@ async function checkoutDues(stripe: Stripe, body: DuesCheckoutBody, siteOrigin: 
   const admin = createAdminSupabase()
   const { data: dues, error } = await admin
     .from('dues_payments')
-    .select('id, parent_id, amount_cents, amount_paid_cents, season')
+    .select('id, parent_id, athlete_id, amount_cents, amount_paid_cents, season')
     .eq('id', body.duesId)
     .single()
 
   if (error || !dues) {
     return NextResponse.json({ error: 'Dues record not found.' }, { status: 404 })
   }
-  // The billed parent, or a co-guardian of that family, may pay these dues.
+  // The billed parent, or a co-guardian of that family, may pay these dues. A
+  // co-guardian limited to certain wrestlers may pay only those wrestlers' dues.
   if (dues.parent_id !== auth.user.id) {
     const { data: link } = await admin
       .from('family_guardians')
-      .select('id')
+      .select('id, athlete_ids')
       .eq('owner_id', dues.parent_id)
       .eq('guardian_id', auth.user.id)
       .maybeSingle()
-    if (!link) return NextResponse.json({ error: 'Forbidden.' }, { status: 403 })
+    const covered = link && (link.athlete_ids === null || (!!dues.athlete_id && link.athlete_ids.includes(dues.athlete_id)))
+    if (!covered) return NextResponse.json({ error: 'Forbidden.' }, { status: 403 })
   }
 
   const remainingCents = dues.amount_cents - dues.amount_paid_cents

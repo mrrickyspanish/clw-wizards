@@ -41,6 +41,17 @@ export default async function FamilyPage() {
     for (const p of (profiles ?? []) as Pick<Profile, 'id' | 'full_name' | 'email'>[]) profileMap.set(p.id, p)
   }
 
+  // Links the club limited to certain wrestlers name those wrestlers. Both sides
+  // can read them: the owner as their parent, the guardian through the link.
+  const sharedAthleteIds = [...new Set([...guardianRows, ...joinedRows].flatMap((g) => g.athlete_ids ?? []))]
+  const athleteNames = new Map<string, string>()
+  if (sharedAthleteIds.length) {
+    const { data: athletes } = await supabase.from('athletes').select('id, first_name, last_name').in('id', sharedAthleteIds)
+    for (const a of athletes ?? []) athleteNames.set(a.id, `${a.first_name} ${a.last_name}`.trim())
+  }
+  const sharedNames = (g: FamilyGuardian) =>
+    (g.athlete_ids ?? []).map((id) => athleteNames.get(id)).filter(Boolean).join(', ') || 'one wrestler'
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
@@ -60,8 +71,15 @@ export default async function FamilyPage() {
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-clw-gold/30 text-clw-gold-ink">
                   <UsersRound className="h-4 w-4" />
                 </span>
-                <span className="flex-1 text-clw-white">{displayName(profileMap.get(g.owner_id))}&apos;s family</span>
-                <RemoveGuardianButton id={g.id} label={`${displayName(profileMap.get(g.owner_id))}'s family`} action="leave" />
+                <span className="min-w-0 flex-1">
+                  <span className="block font-medium text-clw-white">
+                    {g.athlete_ids ? `Shared with you: ${sharedNames(g)}` : `${displayName(profileMap.get(g.owner_id))}'s family`}
+                  </span>
+                  {g.locked && <span className="block text-sm text-clw-gray">Set up by the club. Contact the club to change it.</span>}
+                </span>
+                {!g.locked && (
+                  <RemoveGuardianButton id={g.id} label={`${displayName(profileMap.get(g.owner_id))}'s family`} action="leave" />
+                )}
               </li>
             ))}
           </ul>
@@ -81,9 +99,14 @@ export default async function FamilyPage() {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium text-clw-white">{displayName(profileMap.get(g.guardian_id))}</span>
-                  <span className="block text-sm text-clw-gray">Co-guardian</span>
+                  <span className="block text-sm text-clw-gray">
+                    {g.athlete_ids ? `Co-guardian for ${sharedNames(g)} only` : 'Co-guardian'}
+                    {g.locked && ' · Set up by the club'}
+                  </span>
                 </span>
-                <RemoveGuardianButton id={g.id} label={displayName(profileMap.get(g.guardian_id))} action="remove" />
+                {!g.locked && (
+                  <RemoveGuardianButton id={g.id} label={displayName(profileMap.get(g.guardian_id))} action="remove" />
+                )}
               </li>
             ))}
           </ul>

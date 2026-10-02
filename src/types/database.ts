@@ -349,6 +349,10 @@ export type FamilyGuardian = {
   id: string
   owner_id: string
   guardian_id: string
+  // null: every wrestler the owner has, now and later. A list: only those.
+  athlete_ids: string[] | null
+  // Set by the club; neither parent can remove a locked link from the portal.
+  locked: boolean
   created_at: string
 }
 

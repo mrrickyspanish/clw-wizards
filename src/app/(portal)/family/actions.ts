@@ -47,12 +47,15 @@ export async function revokeFamilyInvite(id: string): Promise<ActionResult> {
 }
 
 // Remove a guardian link — either the owner removing a co-guardian, or a
-// guardian leaving a family they joined. RLS decides which the caller may do.
+// guardian leaving a family they joined. RLS decides which the caller may do,
+// and refuses both for a link the club locked. A refused delete is not an
+// error to Postgres, just zero rows, so count what was removed.
 export async function removeFamilyGuardian(id: string): Promise<ActionResult> {
   if (!id) return { ok: false, error: 'Missing link id' }
   const supabase = await createServerSupabase()
-  const { error } = await supabase.from('family_guardians').delete().eq('id', id)
+  const { data, error } = await supabase.from('family_guardians').delete().eq('id', id).select('id')
   if (error) return { ok: false, error: error.message }
+  if (!data?.length) return { ok: false, error: 'The club set up this link. Contact the club to change it.' }
   revalidatePath('/family')
   return { ok: true }
 }
