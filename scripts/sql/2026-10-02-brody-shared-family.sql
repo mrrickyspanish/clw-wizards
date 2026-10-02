@@ -1,6 +1,4 @@
 -- One-off data fix: let Karley Kilday manage Brody Connolly alongside Jim
--- RAN 2 Oct 2026 (this version). Narrowed to Brody only and locked by
--- 2026-10-02-brody-limit-and-lock.sql after the scoped-links migration.
 -- Connolly. NOT a migration -- run by hand, once. One statement.
 --
 -- Karley joins the family on Jim's account (where Brody's registration and
@@ -11,6 +9,8 @@
 -- runs from guardian into owner. Caveat: a child Jim adds to his account later
 -- would be visible to Karley too. Aborts unless Brody is the only child on
 -- Jim's account today.
+-- RAN 2 Oct 2026 (this version). Narrowed to Brody only and locked by
+-- 2026-10-02-brody-limit-and-lock.sql after the scoped-links migration.
 
 do $$
 declare
