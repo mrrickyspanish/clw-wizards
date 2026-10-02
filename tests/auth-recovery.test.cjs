@@ -1005,3 +1005,123 @@ test('family setup refuses a new wrestler without Boys or Girls', async () => {
   assert.equal(result.ok, false)
   assert.equal(h.inserts.length, 0)
 })
+
+// Login page, arriving from an expired or already-used confirmation link. The
+// parent can ask for a fresh link right there, from the address they type,
+// without first attempting a sign-in.
+function loginPage({ query = 'confirmation=retry', resendError = null, signInError = { code: 'invalid_credentials' }, turnstile = { enabled: false, token: null } } = {}) {
+  const states = [], resends = []
+  let cursor = 0
+  const react = {
+    ...require('react'),
+    useState: (initial) => {
+      const index = cursor++
+      if (!(index in states)) states[index] = initial
+      return [states[index], (value) => { states[index] = typeof value === 'function' ? value(states[index]) : value }]
+    },
+  }
+  const mocks = {
+    react,
+    'next/navigation': { useRouter: () => ({ push() {} }), useSearchParams: () => new URLSearchParams(query) },
+    'next/link': { default: 'Link' },
+    '@/lib/supabase/browser': { createBrowserSupabase: () => ({ auth: {
+      resend: async (args) => { resends.push(args); return { error: resendError } },
+      signInWithPassword: async () => ({ data: null, error: signInError }),
+    } }) },
+    '@/lib/auth/session': { homeForRole: () => '/dashboard' },
+    '@/components/auth/useTurnstile': { useTurnstile: () => ({ ...turnstile, widget: null, reset() {} }) },
+    '@/components/layout/AuthBrand': { AuthBrand: 'AuthBrand' },
+    '@/config/org.config': { ORG: { shortName: 'CLW', contactEmail: 'club@example.org' } },
+    '@/lib/auth/signup-routing': signupRouting,
+  }
+  for (const [file, names] of Object.entries({
+    button: ['Button'], input: ['Input'], label: ['Label'],
+    card: ['Card', 'CardContent', 'CardDescription', 'CardHeader', 'CardTitle'],
+    alert: ['Alert', 'AlertDescription'],
+  })) mocks[`@/components/ui/${file}`] = Object.fromEntries(names.map((name) => [name, name]))
+  const page = load('src/app/login/page.tsx', mocks, {}, [], fetch, {
+    window: { location: { origin: 'https://www.clwizards.com' } }, URLSearchParams,
+  })
+  const component = page.default().props.children.type
+  function render() { cursor = 0; return component() }
+  function nodes(node) {
+    if (!node || typeof node !== 'object') return []
+    if (Array.isArray(node)) return node.flatMap(nodes)
+    return [node, ...nodes(node.props?.children)]
+  }
+  function text(node) {
+    if (node == null || node === false) return ''
+    if (typeof node !== 'object') return String(node)
+    if (Array.isArray(node)) return node.map(text).join('')
+    return text(node.props?.children)
+  }
+  const freshLinkButton = () =>
+    nodes(render()).find((n) => n.type === 'Button' && text(n) === 'Email me a new confirmation link')
+  const typeEmail = (value) =>
+    nodes(render()).find((n) => n.type === 'Input' && n.props.id === 'email').props.onChange({ target: { value } })
+  return { resends, render, nodes, text, freshLinkButton, typeEmail }
+}
+
+test('an expired confirmation link offers a fresh one on the landing page, before any sign-in', () => {
+  const h = loginPage()
+  assert.ok(h.freshLinkButton())
+  assert.match(h.text(h.render()), /did not open\. It may have expired or already been used/)
+  assert.deepEqual(h.resends, [])
+})
+
+test('the fresh-link option is not shown on an ordinary visit to the login page', () => {
+  const h = loginPage({ query: '' })
+  assert.equal(h.freshLinkButton(), undefined)
+})
+
+test('asking for a fresh link without typing an email sends nothing and says what to do', async () => {
+  const h = loginPage()
+  await h.freshLinkButton().props.onClick()
+  assert.deepEqual(h.resends, [])
+  assert.match(h.text(h.render()), /Type your email address in the Email box first/)
+})
+
+test('asking for a fresh link sends it to the typed address and returns to the same signup landing', async () => {
+  const h = loginPage()
+  h.typeEmail('  pat@example.org ')
+  await h.freshLinkButton().props.onClick()
+  assert.equal(h.resends.length, 1)
+  assert.equal(h.resends[0].type, 'signup')
+  assert.equal(h.resends[0].email, 'pat@example.org')
+  assert.equal(h.resends[0].options.emailRedirectTo, 'https://www.clwizards.com/auth/confirm?next=%2Fdashboard')
+  const screen = h.text(h.render())
+  assert.match(screen, /If pat@example\.org still needs confirming, a new link is on its way/)
+  assert.match(screen, /Already confirmed\? Just sign in/)
+  assert.equal(h.freshLinkButton(), undefined)
+})
+
+test('a rate-limited fresh-link request gets a plain explanation, never the provider wording', async () => {
+  const h = loginPage({ resendError: { code: 'over_email_send_rate_limit', message: 'email rate limit exceeded' } })
+  h.typeEmail('pat@example.org')
+  await h.freshLinkButton().props.onClick()
+  const screen = h.text(h.render())
+  assert.match(screen, /sent moments ago/)
+  assert.doesNotMatch(screen, /rate limit exceeded/)
+  assert.ok(h.freshLinkButton())
+})
+
+test('the fresh-link button waits for the security check when it is switched on', () => {
+  const h = loginPage({ turnstile: { enabled: true, token: null } })
+  assert.equal(h.freshLinkButton().props.disabled, true)
+  const ready = loginPage({ turnstile: { enabled: true, token: 'ok' } })
+  assert.equal(ready.freshLinkButton().props.disabled, false)
+})
+
+test('after a sign-in fails on an unconfirmed address, the existing fresh-link button still sends to that address', async () => {
+  const h = loginPage({ query: '', signInError: { code: 'email_not_confirmed' } })
+  h.typeEmail('lee@example.org')
+  const password = h.nodes(h.render()).find((n) => n.type === 'Input' && n.props.id === 'password')
+  password.props.onChange({ target: { value: 'Chosen-password-1' } })
+  await h.nodes(h.render()).find((n) => n.type === 'form').props.onSubmit({ preventDefault() {} })
+  const screen = h.text(h.render())
+  assert.match(screen, /Your email is not confirmed yet/)
+  await h.freshLinkButton().props.onClick()
+  assert.equal(h.resends.length, 1)
+  assert.equal(h.resends[0].email, 'lee@example.org')
+  assert.match(h.text(h.render()), /We sent a new confirmation link to lee@example\.org/)
+})

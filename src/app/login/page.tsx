@@ -43,6 +43,9 @@ function LoginForm() {
   const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null)
   const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent'>('idle')
   const [resendError, setResendError] = useState<string | null>(null)
+  // The address a fresh link was last requested for, so the confirmation can
+  // name it whichever way the request started.
+  const [resendAddress, setResendAddress] = useState('')
   const turnstile = useTurnstile()
   const redirectTo = safeRedirect(searchParams.get('redirectTo'))
   const signupHref = redirectTo ? `/signup?redirectTo=${encodeURIComponent(redirectTo)}` : '/signup'
@@ -115,19 +118,27 @@ function LoginForm() {
     }
   }
 
-  async function handleResend() {
-    if (!unconfirmedEmail) return
+  // Sends a fresh confirmation link to `address`. Reached two ways: after a
+  // sign-in that failed because the address was unconfirmed, and straight from
+  // the landing page of an expired or already-used link, where the parent has
+  // not signed in at all and the address comes from the Email box.
+  async function handleResend(address: string) {
+    if (!/^\S+@\S+\.\S+$/.test(address)) {
+      setResendError('Type your email address in the Email box first, then ask for a new link.')
+      return
+    }
     if (turnstile.enabled && !turnstile.token) {
       setResendError('Complete the security check below, then ask for a new link.')
       return
     }
     setResendState('sending')
     setResendError(null)
+    setResendAddress(address)
     try {
       const supabase = createBrowserSupabase()
       const { error: resendFailure } = await supabase.auth.resend({
         type: 'signup',
-        email: unconfirmedEmail,
+        email: address,
         options: {
           // Same landing as the original signup email, so the fresh link
           // continues into family setup exactly as the first one would have.
@@ -168,7 +179,7 @@ function LoginForm() {
                 <AlertDescription className="text-base">
                   {searchParams.get('confirmation') === 'complete'
                     ? 'Email confirmed. Sign in with the password you chose to continue to family setup.'
-                    : 'If the link did not open or has expired, sign in below with the email and password you chose. If your email still needs confirming, we will send you a fresh link.'}
+                    : 'That confirmation link did not open. It may have expired or already been used. If you already confirmed your email, sign in below. If not, ask for a fresh link under the Sign In button.'}
                 </AlertDescription>
               </Alert>
             )}
@@ -191,7 +202,7 @@ function LoginForm() {
                     <Button
                       type="button"
                       className="w-full"
-                      onClick={handleResend}
+                      onClick={() => handleResend(unconfirmedEmail)}
                       disabled={resendState === 'sending' || (turnstile.enabled && !turnstile.token)}
                     >
                       {resendState === 'sending' ? 'Sending…' : 'Email me a new confirmation link'}
@@ -256,6 +267,34 @@ function LoginForm() {
             >
               {loading ? 'Signing in…' : 'Sign In'}
             </Button>
+            {searchParams.get('confirmation') === 'retry' && !unconfirmedEmail && (
+              <div role="status" className="space-y-3 rounded-md border border-clw-gold/30 bg-clw-gold/5 p-4">
+                <p className="text-base font-medium text-clw-gold-ink">Need a fresh confirmation link?</p>
+                {resendState === 'sent' ? (
+                  <p className="text-base text-clw-white">
+                    If {resendAddress} still needs confirming, a new link is on its way. Open the newest email
+                    from us (check spam too), and use it soon. Already confirmed? Just sign in with your password.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-base text-clw-white">
+                      Type your email in the Email box, then tap the button. If it still needs confirming, we will
+                      send a new link. If you already confirmed it, there is nothing more to do: sign in.
+                    </p>
+                    {resendError && <p className="text-base text-red-400">{resendError}</p>}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => handleResend(email.trim())}
+                      disabled={resendState === 'sending' || (turnstile.enabled && !turnstile.token)}
+                    >
+                      {resendState === 'sending' ? 'Sending…' : 'Email me a new confirmation link'}
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
             <div className="flex justify-between text-sm text-muted-foreground">
               <Link href="/forgot-password" className="hover:underline">
                 Forgot password?
