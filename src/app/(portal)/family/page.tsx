@@ -33,12 +33,13 @@ export default async function FamilyPage() {
   const joinedRows = (joinedFamilies ?? []) as FamilyGuardian[]
   const inviteRows = (invites ?? []) as FamilyInvite[]
 
-  // Resolve names for the guardians in my family and the owners of families I joined.
-  const profileIds = [...new Set([...guardianRows.map((g) => g.guardian_id), ...joinedRows.map((g) => g.owner_id)])]
-  const profileMap = new Map<string, Pick<Profile, 'id' | 'full_name' | 'email'>>()
-  if (profileIds.length) {
-    const { data: profiles } = await supabase.from('profiles').select('id, full_name, email').in('id', profileIds)
-    for (const p of (profiles ?? []) as Pick<Profile, 'id' | 'full_name' | 'email'>[]) profileMap.set(p.id, p)
+  // Names for the guardians in my family and the owners of families I joined.
+  // Profiles are readable by self only, so this goes through a function that
+  // returns just the names of people I am linked to.
+  const profileMap = new Map<string, Pick<Profile, 'full_name' | 'email'>>()
+  if (guardianRows.length || joinedRows.length) {
+    const { data: names } = await supabase.rpc('family_link_names')
+    for (const n of names ?? []) profileMap.set(n.id, { full_name: n.full_name, email: null })
   }
 
   // Links the club limited to certain wrestlers name those wrestlers. Both sides

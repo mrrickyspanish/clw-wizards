@@ -5,6 +5,7 @@ import { z } from 'zod'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { athleteSchema } from '@/lib/registration-schema'
+import { resolveFamilyOwnerIds } from '@/lib/family'
 
 export type ActionResult = { ok: true } | { ok: false; error: string }
 
@@ -23,6 +24,25 @@ export async function addAthlete(values: AddAthleteInput): Promise<ActionResult>
   if (!user) return { ok: false, error: 'Not signed in' }
 
   const a = parsed.data
+
+  // One wrestler, one record. A co-guardian sees the family's wrestlers but
+  // adds to their own account, so a check of their own account alone let them
+  // add a child the family already has -- a copy with no registration or dues,
+  // and a second Register button that could charge the family twice.
+  const familyOwnerIds = await resolveFamilyOwnerIds(supabase, user.id)
+  const { data: roster } = await supabase
+    .from('athletes')
+    .select('first_name, last_name')
+    .in('parent_id', familyOwnerIds)
+  const key = (first: string, last: string) => `${first.trim().toLowerCase()} ${last.trim().toLowerCase()}`
+  const existing = (roster ?? []).find((r) => key(r.first_name, r.last_name) === key(a.first_name, a.last_name))
+  if (existing) {
+    return {
+      ok: false,
+      error: `${existing.first_name} ${existing.last_name} is already on your family's roster. Contact the club if something about them needs fixing.`,
+    }
+  }
+
   const { error } = await supabase.from('athletes').insert({
     parent_id: user.id,
     first_name: a.first_name,

@@ -58,6 +58,18 @@ export async function submitRegistration(values: unknown): Promise<ActionResult>
   if (!auth.user) return { ok: false, error: 'Not signed in' }
   const userId = auth.user.id
 
+  // Checked before anything is written: the contact and detail writes below
+  // would otherwise half-apply for a co-guardian the database then refuses.
+  // Only a definite "no" stops here; if the check itself fails, the database
+  // still refuses the registration for anyone who may not make it.
+  const { data: manages } = await supabase.rpc('manages_athlete', { _athlete: athleteId })
+  if (manages === false) {
+    return {
+      ok: false,
+      error: "This wrestler's registration is managed from the other parent's account. Contact the club to change it.",
+    }
+  }
+
   const { error: profileError } = await supabase
     .from('profiles')
     .update({ phone: normalizeUsPhone(phone), street_address, city, state: state || null, postal_code: postal_code || null })

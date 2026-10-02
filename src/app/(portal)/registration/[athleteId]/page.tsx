@@ -3,7 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
-import { resolveFamilyOwnerIds } from '@/lib/family'
+import { resolveFamilyOwnerIds, resolveReadOnlyAthleteIds } from '@/lib/family'
 import { chicagoDateString } from '@/lib/chicago-time'
 import type {
   Athlete,
@@ -42,6 +42,10 @@ export default async function RegisterAthletePage({ params }: { params: Promise<
 
   const athlete = athleteRow as Athlete | null
   if (!athlete) notFound()
+
+  // A wrestler shared through a club-locked link is registered from the
+  // owning account; the roster page says so.
+  if ((await resolveReadOnlyAthleteIds(supabase, userId, [athlete])).has(athlete.id)) redirect('/registration')
 
   const activeEventIds = new Set(((eventRows ?? []) as ClubEvent[]).map((event) => event.id))
   const season = ((seasonRows ?? []) as SeasonRegistration[]).find(

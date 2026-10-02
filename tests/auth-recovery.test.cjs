@@ -737,3 +737,65 @@ test('phone numbers are stored in one form and sent to SMS as E.164', () => {
   assert.equal(phone.normalizeUsPhone('   '), null)
   assert.equal(phone.normalizeUsPhone(null), null)
 })
+
+// Shared wrestlers: a co-guardian on a club-locked link sees the wrestler but
+// registers, edits and withdraws nothing; a normal link manages as before.
+const familyLib = load('src/lib/family.ts', {})
+function linksClient(links) {
+  return { from: () => ({ select: () => ({ eq: async () => ({ data: links, error: null }) }) }) }
+}
+const shared = { id: 'brody', parent_id: 'jim' }
+const ownKid = { id: 'beckham', parent_id: 'karley' }
+
+test('a wrestler reached only through a locked link is read-only, own wrestlers are not', async () => {
+  const links = [{ owner_id: 'jim', athlete_ids: ['brody'], locked: true }]
+  const readOnly = await familyLib.resolveReadOnlyAthleteIds(linksClient(links), 'karley', [shared, ownKid])
+  assert.deepEqual([...readOnly], ['brody'])
+})
+
+test('an unlocked link manages the wrestlers it covers and nothing else', async () => {
+  const whole = await familyLib.resolveReadOnlyAthleteIds(linksClient([{ owner_id: 'jim', athlete_ids: null, locked: false }]), 'karley', [shared])
+  assert.equal(whole.size, 0)
+  const other = { id: 'sibling', parent_id: 'jim' }
+  const limited = await familyLib.resolveReadOnlyAthleteIds(linksClient([{ owner_id: 'jim', athlete_ids: ['brody'], locked: false }]), 'karley', [shared, other])
+  assert.deepEqual([...limited], ['sibling'])
+})
+
+// Add a wrestler: checks the whole family a parent can see, not only their own
+// account, so a co-guardian cannot create a second copy of a shared child.
+function addAthleteHarness(roster) {
+  const inserts = []
+  const client = {
+    auth: { getUser: async () => ({ data: { user: { id: 'guardian-1' } } }) },
+    from: (table) => table === 'family_guardians'
+      ? { select: () => ({ eq: async () => ({ data: [{ owner_id: 'owner-1' }], error: null }) }) }
+      : {
+          select: () => ({ in: async (_col, ids) => ({ data: roster.filter((r) => ids.includes(r.parent_id)), error: null }) }),
+          insert: async (row) => { inserts.push(row); return { error: null } },
+        },
+  }
+  const schema = load('src/lib/registration-schema.ts', { '@/config/org.config': { ORG: { practiceGroups: ['Group A', 'Group B'] } } })
+  const actions = load('src/app/(portal)/athletes/actions.ts', {
+    'next/cache': { revalidatePath: () => {} },
+    '@/lib/supabase/server': { createServerSupabase: async () => client },
+    '@/lib/registration-schema': schema,
+    '@/lib/family': load('src/lib/family.ts', {}),
+  })
+  return { actions, inserts }
+}
+
+test('a co-guardian cannot add a child already on the family roster', async () => {
+  const h = addAthleteHarness([{ parent_id: 'owner-1', first_name: 'Rowan', last_name: 'Saldarriaga' }])
+  const result = await h.actions.addAthlete(kid(' rowan ', 'SALDARRIAGA'))
+  assert.equal(result.ok, false)
+  assert.match(result.error, /Rowan Saldarriaga is already on your family's roster/)
+  assert.equal(h.inserts.length, 0)
+})
+
+test('adding a new sibling still works for a co-guardian', async () => {
+  const h = addAthleteHarness([{ parent_id: 'owner-1', first_name: 'Rowan', last_name: 'Saldarriaga' }])
+  const result = await h.actions.addAthlete(kid('Mila', 'Saldarriaga'))
+  assert.equal(result.ok, true)
+  assert.equal(h.inserts.length, 1)
+  assert.equal(h.inserts[0].parent_id, 'guardian-1')
+})

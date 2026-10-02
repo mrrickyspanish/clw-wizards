@@ -601,6 +601,14 @@ export type Database = {
         Args: { _enrollment_id: string }
         Returns: undefined
       }
+      manages_athlete: {
+        Args: { _athlete: string }
+        Returns: boolean
+      }
+      family_link_names: {
+        Args: Record<string, never>
+        Returns: { id: string; full_name: string | null }[]
+      }
     }
   }
 }

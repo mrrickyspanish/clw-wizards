@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { AlertCircle, CheckCircle2, Clock3, CreditCard, FileCheck2, Plus, ShieldCheck } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
-import { resolveFamilyOwnerIds } from '@/lib/family'
+import { resolveFamilyOwnerIds, resolveReadOnlyAthleteIds } from '@/lib/family'
 import { chicagoDateString } from '@/lib/chicago-time'
 import { resolveDuesPricing } from '@/lib/season-pricing'
 import { formatCents } from '@/lib/format/money'
@@ -136,6 +136,7 @@ export default async function RegistrationPage({
   const pricing = resolveDuesPricing(season, (tierData ?? []) as SeasonPriceTier[], today)
   const athletes = (athleteData ?? []) as Athlete[]
   const athleteIds = athletes.map((athlete) => athlete.id)
+  const readOnlyIds = await resolveReadOnlyAthleteIds(supabase, userId, athletes)
   const currentCardWindow = `${season.registration_open_date}T00:00:00.000Z`
 
   const [{ data: enrollmentData }, { data: documentData }] = athleteIds.length
@@ -490,14 +491,23 @@ export default async function RegistrationPage({
                               ? 'Review the details and agreements, then submit for the season.'
                               : 'The form takes a few minutes: wrestler details, parent contacts, and the program waiver.'}
                       </p>
-                      <div className="flex items-center gap-2">
-                        {enrollment && <EnrollmentControls enrollmentId={enrollment.id} />}
-                        <Button asChild size="sm" disabled={!canSubmit}>
-                          <Link href={`/registration/${athlete.id}`}>
-                            {resubmitting ? 'Update and resubmit' : `Register ${athlete.first_name}`}
-                          </Link>
-                        </Button>
-                      </div>
+                      {readOnlyIds.has(athlete.id) ? (
+                        <p className="max-w-xs text-sm text-clw-gray">
+                          {athlete.first_name}&apos;s registration is managed from the other parent&apos;s account. Contact the
+                          club to change it.
+                        </p>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          {enrollment && enrollment.status !== 'withdrawn' && (
+                            <EnrollmentControls enrollmentId={enrollment.id} athleteName={athlete.first_name} />
+                          )}
+                          <Button asChild size="sm" disabled={!canSubmit}>
+                            <Link href={`/registration/${athlete.id}`}>
+                              {resubmitting ? 'Update and resubmit' : `Register ${athlete.first_name}`}
+                            </Link>
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>
