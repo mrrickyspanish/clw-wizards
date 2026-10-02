@@ -1,14 +1,16 @@
 -- One-off data fix: let Karley Kilday manage Brody Connolly alongside Jim
--- Connolly. NOT a migration -- run by hand, once, AFTER migration
--- 20261002000001_family_guardian_scoped_links.sql. One statement.
+-- RAN 2 Oct 2026 (this version). Narrowed to Brody only and locked by
+-- 2026-10-02-brody-limit-and-lock.sql after the scoped-links migration.
+-- Connolly. NOT a migration -- run by hand, once. One statement.
 --
--- Karley becomes a co-guardian for Brody only, on Jim's account (where Brody's
--- registration and dues are), and her duplicate Brody is removed.
---   - Both parents see Brody, his registration, dues, documents and waiver.
---   - Karley sees no other child Jim has or adds later, and none of Jim's
---     family-level records. Jim sees nothing of Karley's account.
---   - The link is locked: neither parent can remove it from the portal.
---     Staff change it by hand (update or delete the family_guardians row).
+-- Karley joins the family on Jim's account (where Brody's registration and
+-- dues are) as a co-guardian, and her duplicate Brody is removed.
+-- What each sees: Karley sees Brody, his registration, dues, waiver and the
+-- guardian contacts entered at registration -- not Jim's address or phone.
+-- Jim sees nothing of Karley's account (Beckham stays private): the link only
+-- runs from guardian into owner. Caveat: a child Jim adds to his account later
+-- would be visible to Karley too. Aborts unless Brody is the only child on
+-- Jim's account today.
 
 do $$
 declare
@@ -22,8 +24,8 @@ begin
      or not exists (select 1 from public.athletes where id = brody_copy and parent_id = karley) then
     raise exception 'Brody''s records are not where the review found them. Nothing changed.';
   end if;
-  if exists (select 1 from public.family_guardians where owner_id = jim and guardian_id = karley) then
-    raise exception 'Karley is already linked to Jim''s family. Nothing changed.';
+  if (select count(*) from public.athletes where parent_id = jim) <> 1 then
+    raise exception 'Jim''s account holds more than Brody, so Karley would see more than Brody. Nothing changed.';
   end if;
   if exists (select 1 from public.season_enrollments where athlete_id = brody_copy)
      or exists (select 1 from public.dues_payments where athlete_id = brody_copy)
@@ -38,8 +40,8 @@ begin
   create table data_fix_backups.brody_copy_20261002 as select * from public.athletes where id = brody_copy;
   revoke all on all tables in schema data_fix_backups from anon, authenticated;
 
-  insert into public.family_guardians (owner_id, guardian_id, athlete_ids, locked)
-  values (jim, karley, array[brody_real], true);
+  insert into public.family_guardians (owner_id, guardian_id) values (jim, karley)
+  on conflict (owner_id, guardian_id) do nothing;
   delete from public.athletes where id = brody_copy;
   get diagnostics n = row_count;
   if n <> 1 then raise exception 'Removed % copies of Brody, expected 1. Rolled back.', n; end if;
