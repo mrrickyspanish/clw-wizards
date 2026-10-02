@@ -55,6 +55,7 @@ begin
   end if;
   if exists (select 1 from public.disclosure_acceptances where accepted_by = peter_yahoo)
      or exists (select 1 from public.dues_payments where parent_id = peter_yahoo or waived_by = peter_yahoo)
+     or exists (select 1 from public.athlete_documents where verified_by = peter_yahoo)
      or exists (select 1 from public.season_enrollments where parent_id = peter_yahoo)
      or exists (select 1 from public.athletes where parent_id = peter_yahoo and id <> peter_copy) then
     raise exception 'Peter''s Yahoo account now holds other records. Nothing changed.';
