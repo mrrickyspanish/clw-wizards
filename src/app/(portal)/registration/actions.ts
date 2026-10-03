@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { registrationSchema } from '@/lib/registration-schema'
 import { sendRegistrationConfirmation } from './confirmation-email'
+import { sendRegistrationNotice } from './admin-notice'
 import type { Disclosure } from '@/types/database'
 import { normalizeUsPhone } from '@/lib/phone'
 
@@ -151,14 +152,15 @@ export async function submitRegistration(values: unknown): Promise<ActionResult>
   if (error) return { ok: false, error: error.message }
 
   // The Google Form emailed families a copy of their answers; families expect
-  // that receipt. A delivery failure must not fail a registration that the
-  // database has already accepted, so this is deliberately not awaited into the
-  // result.
-  try {
-    await sendRegistrationConfirmation({ seasonRegistrationId, athleteId, userId })
-  } catch {
-    // Logged inside the sender; the registration itself stands.
-  }
+  // that receipt. The club contact also gets a short notice of every new
+  // registration. A delivery failure must not fail a registration that the
+  // database has already accepted, so neither can change the result. They run
+  // side by side so the family is not kept waiting on two sends.
+  const [, notice] = await Promise.allSettled([
+    sendRegistrationConfirmation({ seasonRegistrationId, athleteId, userId }),
+    sendRegistrationNotice({ seasonRegistrationId, athleteId, userId }),
+  ])
+  if (notice.status === 'rejected') console.error('Registration notice email failed:', notice.reason)
 
   revalidateRegistrationSurfaces()
   return { ok: true }

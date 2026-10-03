@@ -1417,3 +1417,79 @@ test('an open admin sign-up still needs the right code', async () => {
 test('a provider "sign-ups disabled" answer is explained in the club\'s words, naming who to contact', () => {
   assert.match(policy.signUpErrorMessage({ code: 'signup_disabled', message: 'Signups not allowed' }), /Sign-ups are paused.*contact Tony/)
 })
+
+const registrationSource = load('src/lib/registration-source.ts', {})
+
+test('a wrestler created in the Google Form import run is labelled an import; everything else came from the website', () => {
+  assert.equal(registrationSource.wrestlerSource('2026-08-25T20:56:31.123Z'), 'import')
+  assert.equal(registrationSource.wrestlerSource('2026-08-25 20:56:59.9+00'), 'import')
+  assert.equal(registrationSource.wrestlerSource('2026-08-25T20:57:00Z'), 'website')
+  assert.equal(registrationSource.wrestlerSource('2026-09-27T19:23:00Z'), 'website')
+  assert.equal(registrationSource.wrestlerSource(null), 'website')
+  assert.equal(registrationSource.wrestlerSource('not a date'), 'website')
+})
+
+// The club contact's notice of a new registration, with the database and the
+// email provider mocked.
+function registrationNoticeHarness({ enrollment, key = 'resend-key', count = 140 }) {
+  const sends = []
+  const rows = {
+    season_registrations: { id: 'season-1', season_label: '2026-27 Wizards Season Registration' },
+    athletes: { id: 'kid-1', first_name: 'Theo', last_name: 'Williams', date_of_birth: '2021-05-01', created_at: '2026-09-15T20:29:00Z' },
+    profiles: { id: 'parent-1', full_name: 'Aaron Williams', email: 'parent@example.com', phone: '8155550100' },
+    season_enrollments: enrollment,
+    dues_payments: { id: 'dues-1', amount_cents: 35000, amount_paid_cents: 0 },
+  }
+  const client = {
+    from: (table) => {
+      const query = {
+        select: () => query, eq: () => query, neq: () => query,
+        maybeSingle: async () => ({ data: rows[table] ?? null }),
+        then: (resolve) => resolve({ count }),
+      }
+      return query
+    },
+  }
+  class Resend { constructor() { this.emails = { send: async (message) => { sends.push(message); return { error: null } } } } }
+  const notice = load('src/app/(portal)/registration/admin-notice.ts', {
+    'server-only': {},
+    resend: { Resend },
+    '@/lib/supabase/admin': { createAdminSupabase: () => client },
+    '@/config/org.config': { ORG: { contactEmail: 'tony@example.com', shortName: 'CLW', domain: 'clwizards.com' } },
+    '@/lib/format/money': { formatCents: (cents) => `$${(cents / 100).toFixed(2)}` },
+    '@/lib/registration-source': registrationSource,
+  }, key ? { RESEND_API_KEY: key } : {})
+  return { notice, sends }
+}
+const firstSubmission = { id: 'enr-1', dues_payment_id: 'dues-1', created_at: '2026-09-15T20:34:00Z', submitted_at: '2026-09-15T20:34:00.400Z' }
+const params = { seasonRegistrationId: 'season-1', athleteId: 'kid-1', userId: 'parent-1' }
+
+test('the club contact is emailed each new registration with the family, how they came in, dues and the season count', async () => {
+  const h = registrationNoticeHarness({ enrollment: firstSubmission })
+  await h.notice.sendRegistrationNotice(params)
+  assert.equal(h.sends.length, 1)
+  assert.equal(h.sends[0].to, 'tony@example.com')
+  assert.equal(h.sends[0].subject, 'New registration: Theo Williams')
+  assert.match(h.sends[0].text, /Aaron Williams just submitted a registration for Theo Williams/)
+  assert.match(h.sends[0].text, /parent@example\.com · 8155550100/)
+  assert.match(h.sends[0].text, /Came in through: Added on website/)
+  assert.match(h.sends[0].text, /Dues: \$0\.00 paid of \$350\.00/)
+  assert.match(h.sends[0].text, /Registrations this season: 140/)
+  assert.match(h.sends[0].text, /\/admin\/registrations/)
+})
+
+test('a resubmission is called a resubmission, so it is not counted as a new family', async () => {
+  const h = registrationNoticeHarness({ enrollment: { ...firstSubmission, submitted_at: '2026-10-02T12:00:00Z' } })
+  await h.notice.sendRegistrationNotice(params)
+  assert.equal(h.sends[0].subject, 'Registration resubmitted: Theo Williams')
+  assert.match(h.sends[0].text, /Aaron Williams resubmitted a registration/)
+})
+
+test('no notice is attempted without an email key or without a saved registration', async () => {
+  const noKey = registrationNoticeHarness({ enrollment: firstSubmission, key: null })
+  await noKey.notice.sendRegistrationNotice(params)
+  assert.equal(noKey.sends.length, 0)
+  const noEnrollment = registrationNoticeHarness({ enrollment: null })
+  await noEnrollment.notice.sendRegistrationNotice(params)
+  assert.equal(noEnrollment.sends.length, 0)
+})

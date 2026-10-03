@@ -1,8 +1,9 @@
 import Link from 'next/link'
-import { AlertTriangle, CheckCircle2, ChevronDown, Clock3, CreditCard, FileCheck2, Users } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ChevronDown, Clock3, CreditCard, FileCheck2, UserPlus, Users } from 'lucide-react'
 
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { formatCents } from '@/lib/format/money'
+import { WRESTLER_SOURCE_LABELS, wrestlerSource } from '@/lib/registration-source'
 import type {
   Athlete,
   AthleteDocument,
@@ -74,6 +75,31 @@ export default async function AdminRegistrationsPage() {
         : Promise.resolve({ data: [] as AthleteDocument[] }),
     ])
 
+  // Children a family added who have no registration for the current season,
+  // so no waiver, dues or review yet. A family can stop after adding a child,
+  // and nothing else on this page would show them.
+  const { data: currentSeasonData } = await supabase
+    .from('season_registrations')
+    .select('*')
+    .order('registration_close_date', { ascending: false })
+    .limit(1)
+  const currentSeason = ((currentSeasonData ?? []) as SeasonRegistration[])[0]
+  const enrolledInCurrentSeason = new Set(
+    enrollments.filter((row) => row.season_registration_id === currentSeason?.id).map((row) => row.athlete_id)
+  )
+  const { data: activeAthleteData } = currentSeason
+    ? await supabase.from('athletes').select('*').eq('active', true)
+    : { data: [] as Athlete[] }
+  const notRegistered = ((activeAthleteData ?? []) as Athlete[])
+    .filter((athlete) => !enrolledInCurrentSeason.has(athlete.id))
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+  const notRegisteredParentIds = [...new Set(notRegistered.map((athlete) => athlete.parent_id))].filter(
+    (id) => !parentIds.includes(id)
+  )
+  const { data: notRegisteredParentData } = notRegisteredParentIds.length
+    ? await supabase.from('profiles').select('*').in('id', notRegisteredParentIds)
+    : { data: [] as Profile[] }
+
   // Birth certificates on file (uploaded) for the wrestlers on screen, and the
   // names of admins who recorded a decision, for the who-and-when lines.
   const athletesOnScreen = (athleteData ?? []) as Athlete[]
@@ -129,7 +155,9 @@ export default async function AdminRegistrationsPage() {
   const seasonById = new Map(seasons.map((season) => [season.id, season]))
   const eventById = new Map(((eventData ?? []) as ClubEvent[]).map((event) => [event.id, event]))
   const athleteById = new Map(((athleteData ?? []) as Athlete[]).map((athlete) => [athlete.id, athlete]))
-  const parentById = new Map(((parentData ?? []) as Profile[]).map((parent) => [parent.id, parent]))
+  const parentById = new Map(
+    [...((parentData ?? []) as Profile[]), ...((notRegisteredParentData ?? []) as Profile[])].map((parent) => [parent.id, parent])
+  )
   const duesById = new Map(((duesData ?? []) as DuesPayment[]).map((dues) => [dues.id, dues]))
   const documentById = new Map(((documentData ?? []) as AthleteDocument[]).map((document) => [document.id, document]))
 
@@ -214,6 +242,50 @@ export default async function AdminRegistrationsPage() {
         </Card>
       </div>
 
+      {currentSeason && notRegistered.length > 0 && (
+        <details className="group rounded-lg border border-amber-500/20 bg-clw-black">
+          <summary className="flex cursor-pointer list-none items-start gap-3 p-6 [&::-webkit-details-marker]:hidden">
+            <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-clw-gold transition-transform duration-200 group-open:rotate-180" />
+            <div>
+              <p className="flex items-center gap-2 text-lg font-semibold leading-none tracking-tight text-clw-white">
+                <UserPlus className="h-5 w-5 text-amber-400" /> Added, not registered ({notRegistered.length})
+              </p>
+              <p className="mt-2 max-w-2xl text-sm text-clw-gray">
+                These children have a profile on a family&rsquo;s account, but the family has not completed the{' '}
+                {currentSeason.season_label}. No waiver, dues, or review yet. Newest first.
+              </p>
+            </div>
+          </summary>
+          <ul className="divide-y divide-clw-gold/10 border-t border-clw-gold/10">
+            {notRegistered.map((athlete) => {
+              const parent = parentById.get(athlete.parent_id)
+              return (
+                <li key={athlete.id} className="flex flex-wrap items-start justify-between gap-3 px-6 py-4">
+                  <div>
+                    <p className="text-base font-medium text-clw-white">
+                      {athlete.first_name} {athlete.last_name}
+                    </p>
+                    <p className="mt-1 text-sm text-clw-gray">
+                      {parent?.full_name ?? 'Unknown parent'} · {parent?.email ?? 'No email'}
+                      {parent?.phone ? ` · ${parent.phone}` : ''}
+                    </p>
+                    <p className="mt-1 text-sm text-clw-gray/70">
+                      Added {formatDate(athlete.created_at)} · {WRESTLER_SOURCE_LABELS[wrestlerSource(athlete.created_at)]}
+                    </p>
+                  </div>
+                  <Link
+                    href={`/admin/families/${athlete.parent_id}`}
+                    className="text-sm text-clw-gold hover:text-clw-gold-l"
+                  >
+                    Open family
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+        </details>
+      )}
+
       {error && (
         <p className="rounded-md border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-400">
           Failed to load registrations: {error.message}
@@ -277,6 +349,7 @@ export default async function AdminRegistrationsPage() {
                     </p>
                     <p className="mt-1 text-sm text-clw-gray/70">
                       {event?.title ?? season?.season_label ?? 'Season registration'} · submitted {formatDate(enrollment.submitted_at)}
+                      {athlete ? ` · ${WRESTLER_SOURCE_LABELS[wrestlerSource(athlete.created_at)]}` : ''}
                     </p>
                   </div>
                 </div>
