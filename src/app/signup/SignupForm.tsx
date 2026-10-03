@@ -1,0 +1,231 @@
+'use client'
+
+import { Suspense, useState, type FormEvent } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+
+import { createBrowserSupabase } from '@/lib/supabase/browser'
+import { useTurnstile } from '@/components/auth/useTurnstile'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AuthBrand } from '@/components/layout/AuthBrand'
+import { ORG } from '@/config/org.config'
+import { signupDestination } from '@/lib/auth/signup-routing'
+import { authAttempt, markAuthNavigation } from '@/lib/auth/report-client'
+import { signUpErrorMessage } from '@/lib/auth/recovery-errors'
+import { safeInternalPath } from '@/lib/safe-path'
+
+function safeRedirect(value: string | null) {
+  return safeInternalPath(value)
+}
+
+export default function SignupFormPage() {
+  return (
+    <Suspense>
+      <SignupForm />
+    </Suspense>
+  )
+}
+
+function SignupForm() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = safeRedirect(searchParams.get('redirectTo'))
+  const loginHref = redirectTo ? `/login?redirectTo=${encodeURIComponent(redirectTo)}` : '/login'
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [needsConfirmation, setNeedsConfirmation] = useState(false)
+  const [existingAccount, setExistingAccount] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const turnstile = useTurnstile()
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    setError(null)
+
+    if (turnstile.enabled && !turnstile.token) {
+      setError('Complete the security check before creating your account.')
+      return
+    }
+
+    setLoading(true)
+    authAttempt(email.trim())
+
+    const supabase = createBrowserSupabase()
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent(signupDestination(redirectTo))}`,
+        data: { full_name: fullName },
+        ...(turnstile.token ? { captchaToken: turnstile.token } : {}),
+      },
+    })
+
+    if (signUpError) {
+      setError(signUpErrorMessage(signUpError))
+      turnstile.reset()
+      setLoading(false)
+      return
+    }
+
+    // Supabase does not error when the address already has an account -- email
+    // enumeration protection makes it answer with a normal-looking success and
+    // an empty identities array, and it sends no mail at all.
+    //
+    // Left unhandled, that is the worst screen on the site. Every family the
+    // club imported already HAS an account: the importer creates them with the
+    // email pre-confirmed and no password, to be claimed later through "forgot
+    // password". A parent who was never told that arrives here and tries to
+    // sign up, gets told to check their email, and waits for a message nobody
+    // ever sent -- unable to sign in, because they have no password, and unable
+    // to register, because the account exists. That is indistinguishable, from
+    // their side, from the whole site being broken, and it is what has been
+    // reaching the club as "the payment links aren't working".
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      setExistingAccount(true)
+      setLoading(false)
+      return
+    }
+
+    // handle_new_user() creates the profiles row server-side. Contact info and
+    // the athlete roster are collected afterward in /onboarding.
+    if (data.session) {
+      markAuthNavigation()
+      setLoading(false)
+      router.push(redirectTo ?? '/dashboard')
+      return
+    }
+
+    setLoading(false)
+    setNeedsConfirmation(true)
+  }
+
+  if (existingAccount) {
+    return (
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-clw-black px-4 py-12">
+        <AuthBrand />
+        <Card className="w-full max-w-md border-clw-gold/20 bg-clw-black-2">
+          <CardHeader>
+            <CardTitle className="text-clw-gold">You already have an account</CardTitle>
+            <CardDescription className="text-base">
+              {ORG.shortName} already has an account for {email}, created when the club added your
+              family to the portal. It just needs a password.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button asChild className="w-full">
+              <Link href={`/forgot-password?email=${encodeURIComponent(email.trim())}`}>
+                Set my password
+              </Link>
+            </Button>
+            <p className="text-sm text-muted-foreground">
+              You will get an email with a link to choose a password. After that, sign in normally to
+              register and pay.
+            </p>
+            <Link href={loginHref} className="block text-sm hover:underline">
+              Back to sign in
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (needsConfirmation) {
+    return (
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-clw-black px-4 py-12">
+        <AuthBrand />
+        <Card className="w-full max-w-md border-clw-gold/20 bg-clw-black-2">
+          <CardHeader>
+            <CardTitle className="text-clw-gold">Check your email</CardTitle>
+            <CardDescription>
+              We sent a confirmation link to {email}. Open it to continue to family setup. If it opens in a different browser, sign in with the email and password you just chose.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href={loginHref} className="text-sm hover:underline">
+              Back to sign in
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-clw-black px-4 py-12">
+      <AuthBrand />
+      <Card className="w-full max-w-md border-clw-gold/20 bg-clw-black-2">
+        <CardHeader>
+          <CardTitle className="text-clw-gold">Create your {ORG.shortName} account</CardTitle>
+          <CardDescription>For parents and guardians of {ORG.name} wrestlers.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {redirectTo === '/registration' && !error && (
+              <Alert className="border-clw-gold/30 bg-clw-gold/5">
+                <AlertDescription className="text-clw-gray">
+                  Create your family account, then you will continue to season registration.
+                </AlertDescription>
+              </Alert>
+            )}
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Full name</Label>
+              <Input id="fullName" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
+              />
+            </div>
+
+            {turnstile.widget}
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loading || (turnstile.enabled && !turnstile.token)}
+            >
+              {loading ? 'Creating account…' : 'Create account'}
+            </Button>
+            <div className="text-center text-sm text-muted-foreground">
+              Already have an account?{' '}
+              <Link href={loginHref} className="hover:underline">
+                Sign in
+              </Link>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

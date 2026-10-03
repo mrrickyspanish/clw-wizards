@@ -3,6 +3,7 @@
 import { z } from 'zod'
 
 import { createAdminSupabase } from '@/lib/supabase/admin'
+import { getSignupStatus } from '@/lib/content/get'
 import type { AdminScope } from '@/types/database'
 
 export type ActionResult = { ok: true } | { ok: false; error: string }
@@ -45,11 +46,19 @@ async function resolveCode(
  * profile to admin. The account then signs in through the normal login page.
  */
 export async function createAdminAccount(values: z.input<typeof schema>): Promise<ActionResult> {
+  const admin = createAdminSupabase()
+
+  // First, before the code or anything else is looked at: admin sign-up is
+  // closed unless someone switched it on. This is a server action, so it can be
+  // called without the page; checking here is what keeps the door shut.
+  if (!(await getSignupStatus(admin)).admins) {
+    return { ok: false, error: 'Admin sign-up is closed. Contact Tony if you need access.' }
+  }
+
   const parsed = schema.safeParse(values)
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
 
   const { fullName, email, password, code } = parsed.data
-  const admin = createAdminSupabase()
 
   const resolved = await resolveCode(admin, code)
   // Deliberately generic — don't reveal whether the code or something else was

@@ -1316,3 +1316,104 @@ test('trouble copying the board never fails a send that already went out', async
   assert.equal(body.emailsSent, 1)
   assert.deepEqual(plain(body.boardCopies), { sent: 0, failed: 0, skipped: 0 })
 })
+
+// Sign-ups: closed unless a switch is explicitly on, on the page and, more
+// importantly, on the server action that makes admin accounts.
+function switchClient({ rows = [], error = null, throws = false } = {}) {
+  return { from: () => ({ select: () => ({ in: async () => {
+    if (throws) throw new Error('database unreachable')
+    return { data: error ? null : rows, error }
+  } }) }) }
+}
+const contentGet = (client) => load('src/lib/content/get.ts', {
+  react: { cache: (fn) => fn },
+  '@/lib/supabase/server': { createServerSupabase: async () => ({}) },
+  '@/lib/supabase/public': { createPublicSupabase: () => client },
+  './registry': load('src/lib/content/registry.ts', {}),
+})
+
+test('sign-ups read as closed unless a switch is explicitly on, whatever goes wrong', async () => {
+  const get = (client) => contentGet(client).getSignupStatus(client)
+  const parentsOn = [{ key: 'signups.parents_open', value: 'on' }, { key: 'signups.admins_open', value: 'off' }]
+  assert.deepEqual(plain(await get(switchClient({ rows: parentsOn }))), { parents: true, admins: false })
+  assert.deepEqual(plain(await get(switchClient({ rows: [{ key: 'signups.admins_open', value: 'on' }] }))), { parents: false, admins: true })
+  assert.deepEqual(plain(await get(switchClient({ rows: [] }))), { parents: false, admins: false })
+  assert.deepEqual(plain(await get(switchClient({ rows: [{ key: 'signups.parents_open', value: 'true' }, { key: 'signups.admins_open', value: 'ON' }] }))), { parents: false, admins: false })
+  assert.deepEqual(plain(await get(switchClient({ error: { message: 'relation does not exist' } }))), { parents: false, admins: false })
+  assert.deepEqual(plain(await get(switchClient({ throws: true }))), { parents: false, admins: false })
+  assert.deepEqual(plain(await contentGet(null).getSignupStatus()), { parents: false, admins: false })
+})
+
+function signupPages(status) {
+  const mocks = {
+    '@/components/auth/SignupsPaused': { SignupsPaused: 'Paused' },
+    '@/lib/content/get': { getSignupStatus: async () => status },
+    './SignupForm': { default: 'ParentForm' },
+    './AdminSignupForm': { default: 'AdminForm' },
+  }
+  return {
+    parents: load('src/app/signup/page.tsx', mocks),
+    admins: load('src/app/admin-signup/page.tsx', mocks),
+  }
+}
+
+test('the sign-up pages show the contact message while closed and the form only while open', async () => {
+  const closed = signupPages({ parents: false, admins: false })
+  assert.equal((await closed.parents.default()).type, 'Paused')
+  const admin = await closed.admins.default()
+  assert.equal(admin.type, 'Paused')
+  assert.equal(admin.props.audience, 'admins')
+  const open = signupPages({ parents: true, admins: true })
+  assert.equal((await open.parents.default()).type, 'ParentForm')
+  assert.equal((await open.admins.default()).type, 'AdminForm')
+  // One switch does not open the other door.
+  const parentsOnly = signupPages({ parents: true, admins: false })
+  assert.equal((await parentsOnly.admins.default()).type, 'Paused')
+})
+
+function adminSignupHarness({ adminsOpen }) {
+  const calls = { codeLookups: 0, created: [] }
+  const client = {
+    from: (table) => {
+      if (table === 'page_content') return { select: () => ({ in: async () => ({ data: [{ key: 'signups.admins_open', value: adminsOpen ? 'on' : 'off' }], error: null }) }) }
+      if (table === 'admin_invites') { calls.codeLookups += 1; return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null }) }) }) } }
+      return { update: () => ({ eq: async () => ({ error: null }) }) }
+    },
+    auth: { admin: {
+      createUser: async (args) => { calls.created.push(args.email); return { data: { user: { id: 'new-admin' } }, error: null } },
+      deleteUser: async () => ({}),
+    } },
+  }
+  const actions = load('src/app/admin-signup/actions.ts', {
+    '@/lib/supabase/admin': { createAdminSupabase: () => client },
+    '@/lib/content/get': contentGet(null),
+  }, { ADMIN_SIGNUP_CODE: 'the-real-code' })
+  return { actions, calls }
+}
+const adminForm = { fullName: 'New Admin', email: 'new@example.org', password: 'Long-enough-1', code: 'the-real-code' }
+
+test('a closed admin sign-up refuses even a correct access code, before looking at the code or making anyone', async () => {
+  const h = adminSignupHarness({ adminsOpen: false })
+  const result = await h.actions.createAdminAccount(adminForm)
+  assert.equal(result.ok, false)
+  assert.match(result.error, /Admin sign-up is closed/)
+  assert.equal(h.calls.codeLookups, 0)
+  assert.deepEqual(plain(h.calls.created), [])
+})
+
+test('an open admin sign-up still needs the right code', async () => {
+  const wrong = adminSignupHarness({ adminsOpen: true })
+  const refused = await wrong.actions.createAdminAccount({ ...adminForm, code: 'guess' })
+  assert.equal(refused.ok, false)
+  assert.match(refused.error, /invalid or has expired/)
+  assert.deepEqual(plain(wrong.calls.created), [])
+
+  const right = adminSignupHarness({ adminsOpen: true })
+  const made = await right.actions.createAdminAccount(adminForm)
+  assert.equal(made.ok, true)
+  assert.deepEqual(plain(right.calls.created), ['new@example.org'])
+})
+
+test('a provider "sign-ups disabled" answer is explained in the club\'s words, naming who to contact', () => {
+  assert.match(policy.signUpErrorMessage({ code: 'signup_disabled', message: 'Signups not allowed' }), /Sign-ups are paused.*contact Tony/)
+})

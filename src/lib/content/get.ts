@@ -1,7 +1,9 @@
 import { cache } from 'react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createPublicSupabase } from '@/lib/supabase/public'
+import type { Database } from '@/types/database'
 import { CONTENT_DEFAULTS, safeMenuHref } from './registry'
 
 export type SiteContent = {
@@ -55,5 +57,30 @@ export async function getExtraNavLink(): Promise<ExtraNavLink | null> {
     return { label, href, external: !href.startsWith('/') }
   } catch {
     return null
+  }
+}
+
+export type SignupStatus = { parents: boolean; admins: boolean }
+
+const SIGNUP_KEYS = ['signups.parents_open', 'signups.admins_open']
+
+/**
+ * Whether new accounts may be made. Closed unless a switch is explicitly 'on':
+ * a missing row, a failed read or a missing client all read as closed, so a
+ * database problem can never leave the doors open.
+ *
+ * `client` lets a server action pass its service-role client; pages use the
+ * cookie-free public one.
+ */
+export async function getSignupStatus(client?: SupabaseClient<Database>): Promise<SignupStatus> {
+  const supabase = client ?? createPublicSupabase()
+  if (!supabase) return { parents: false, admins: false }
+  try {
+    const { data, error } = await supabase.from('page_content').select('key, value').in('key', SIGNUP_KEYS)
+    if (error || !data) return { parents: false, admins: false }
+    const on = (key: string) => data.find((row) => row.key === key)?.value?.trim() === 'on'
+    return { parents: on('signups.parents_open'), admins: on('signups.admins_open') }
+  } catch {
+    return { parents: false, admins: false }
   }
 }

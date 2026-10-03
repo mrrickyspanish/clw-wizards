@@ -37,9 +37,10 @@ export async function updateContent(values: Record<string, string>): Promise<Act
   if (menuUrl?.value && !safeMenuHref(menuUrl.value)) {
     return { ok: false, error: 'The link address must start with https:// or be a page on this site, like /events.' }
   }
-  const menuToggle = rows.find((row) => row.key === 'nav.extra.active')
-  if (menuToggle && menuToggle.value !== 'on' && menuToggle.value !== 'off') {
-    return { ok: false, error: 'Invalid value for the menu link switch.' }
+  for (const row of rows) {
+    if (contentField(row.key)?.type === 'toggle' && row.value !== 'on' && row.value !== 'off') {
+      return { ok: false, error: 'Invalid value for a switch.' }
+    }
   }
 
   const supabase = await createServerSupabase()

@@ -53,7 +53,7 @@ export function signUpErrorMessage(error: unknown) {
   if (code === 'over_email_send_rate_limit' || code === 'over_request_rate_limit') return TOO_MANY
   if (code === 'email_address_invalid' || code === 'validation_failed') return 'That email address does not look right. Check it for typos and try again.'
   if (code === 'email_exists' || code === 'user_already_exists') return 'An account already exists for that email. Sign in, or use Forgot password to set a password.'
-  if (code === 'signup_disabled') return 'New accounts are not open right now. Please contact the club.'
+  if (code === 'signup_disabled') return 'Sign-ups are paused right now. Please contact Tony, the club contact, to get an account.'
   const checkAddress = 'We could not create your account with that email address. Check it for typos (for example, two dots in a row) and try again. If it keeps happening, contact the club.'
   if (code === 'unexpected_failure') return checkAddress
   if (isTransientAuthError(error)) return 'We could not create your account right now. Please wait a minute and try again.'
