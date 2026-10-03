@@ -22,13 +22,22 @@ const practiceSchema = z.object({
   location: z.string().trim().min(1, 'Location is required'),
   notes: z.string().trim().optional().nullable(),
   active: z.boolean(),
+  // First and last day of the series; blank means no limit.
+  starts_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Enter a valid start date').optional().nullable().or(z.literal('')),
+  ends_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Enter a valid end date').optional().nullable().or(z.literal('')),
 })
+
+function datesInOrder(v: { starts_on?: string | null; ends_on?: string | null }) {
+  return !v.starts_on || !v.ends_on || v.ends_on >= v.starts_on
+}
+const DATES_ORDER_MESSAGE = 'The last day must be on or after the first day.'
 
 export type PracticeInput = z.input<typeof practiceSchema>
 export type ActionResult = { ok: true } | { ok: false; error: string }
 
 function normalize(values: PracticeInput) {
   const parsed = practiceSchema.parse(values)
+  if (!datesInOrder(parsed)) throw new z.ZodError([{ code: 'custom', path: ['ends_on'], message: DATES_ORDER_MESSAGE }])
   return {
     practice_group: parsed.practice_group,
     weekday: parsed.weekday,
@@ -37,6 +46,8 @@ function normalize(values: PracticeInput) {
     location: parsed.location,
     notes: parsed.notes || null,
     active: parsed.active,
+    starts_on: parsed.starts_on || null,
+    ends_on: parsed.ends_on || null,
   }
 }
 
@@ -73,6 +84,7 @@ export async function createPractices(values: PracticesCreateInput): Promise<Act
     if (err instanceof z.ZodError) return { ok: false, error: err.issues[0]?.message ?? 'Invalid input' }
     throw err
   }
+  if (!datesInOrder(parsed)) return { ok: false, error: DATES_ORDER_MESSAGE }
 
   const uniqueWeekdays = [...new Set(parsed.weekdays)]
   const rows = uniqueWeekdays.map((weekday) => ({
@@ -83,6 +95,8 @@ export async function createPractices(values: PracticesCreateInput): Promise<Act
     location: parsed.location,
     notes: parsed.notes || null,
     active: parsed.active,
+    starts_on: parsed.starts_on || null,
+    ends_on: parsed.ends_on || null,
   }))
 
   const supabase = await createServerSupabase()

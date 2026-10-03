@@ -15,7 +15,7 @@ import {
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { chicagoDateString, chicagoHour } from '@/lib/chicago-time'
-import { WEEKDAYS, formatTime, nextPractice } from '@/lib/practice'
+import { WEEKDAYS, formatTime, nextPractice, practiceEnded, practiceDateNote } from '@/lib/practice'
 import { resolveFamilyOwnerIds } from '@/lib/family'
 import { ORG } from '@/config/org.config'
 import type { Tournament, TournamentRegistration, Practice, Athlete, ClubEvent } from '@/types/database'
@@ -116,7 +116,7 @@ export default async function ParentDashboardPage() {
 
   const groups = new Set(athleteRows.map((a) => a.practice_group))
   const myPractices = ((practices ?? []) as Practice[])
-    .filter((p) => groups.has(p.practice_group))
+    .filter((p) => groups.has(p.practice_group) && !practiceEnded(p, today))
     .sort((a, b) => a.weekday - b.weekday || a.start_time.localeCompare(b.start_time))
   const cancelledSet = new Set(
     ((cancellations ?? []) as { practice_id: string; date: string }[]).map((c) => `${c.practice_id}|${c.date}`)
@@ -337,7 +337,10 @@ export default async function ParentDashboardPage() {
                   <span className="block font-medium text-clw-white">{WEEKDAYS[p.weekday]}</span>
                   <span className="block text-sm text-clw-gray">{p.location}</span>
                 </span>
-                <span className="text-sm text-clw-gold-ink">{formatTime(p.start_time)}</span>
+                <span className="text-right text-sm text-clw-gold-ink">
+                  {formatTime(p.start_time)}
+                  {practiceDateNote(p, today) && <span className="block text-clw-gray">{practiceDateNote(p, today)}</span>}
+                </span>
               </li>
             ))}
           </ul>

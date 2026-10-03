@@ -6,7 +6,7 @@ import type {
   SeasonPriceTier,
   SeasonRegistration,
 } from '@/types/database'
-import { WEEKDAYS, formatTime } from '@/lib/practice'
+import { WEEKDAYS, formatTime, formatPracticeDate } from '@/lib/practice'
 import { Badge } from '@/components/ui/badge'
 import {
   Table,
@@ -114,6 +114,7 @@ export default async function AdminPracticesPage() {
                   <TableHead className="text-clw-gray">Time</TableHead>
                   <TableHead className="text-clw-gray">Group</TableHead>
                   <TableHead className="text-clw-gray">Location</TableHead>
+                  <TableHead className="text-clw-gray">Runs</TableHead>
                   <TableHead className="text-clw-gray">Status</TableHead>
                   <TableHead className="w-[240px]" />
                 </TableRow>
@@ -130,6 +131,11 @@ export default async function AdminPracticesPage() {
                       </TableCell>
                       <TableCell className="text-clw-gray">{practice.practice_group}</TableCell>
                       <TableCell className="text-clw-gray">{practice.location}</TableCell>
+                      <TableCell className="text-clw-gray">
+                        {practice.starts_on || practice.ends_on
+                          ? `${practice.starts_on ? formatPracticeDate(practice.starts_on) : 'Now'} to ${practice.ends_on ? formatPracticeDate(practice.ends_on) : 'no end'}`
+                          : 'No dates set'}
+                      </TableCell>
                       <TableCell>
                         <Badge
                           variant="outline"

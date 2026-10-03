@@ -4,6 +4,7 @@ import { verifyQstashSignature } from '@/lib/qstash'
 import { resolveRecipients } from '@/lib/comms/recipients'
 import { sendCommEmail } from '@/lib/comms/send-email'
 import { sendSms } from '@/lib/twilio/send-sms'
+import { sendBoardCopies } from '@/lib/comms/board-copy'
 import type { BlastRequestBody } from '@/app/api/comms/blast/route'
 
 /**
@@ -107,6 +108,26 @@ export async function POST(request: Request) {
 
   await Promise.all(inFlight)
 
+  // The board gets one copy of every send, after the families', and a problem
+  // here never turns a delivered send into a failed job.
+  let boardCopies = { sent: 0, failed: 0, skipped: 0 }
+  try {
+    boardCopies = await sendBoardCopies({
+      target: payload.target,
+      channel: payload.channel,
+      commType: payload.commType,
+      subject: payload.subject,
+      message: payload.message,
+      totalRecipients: recipients.length,
+      counts: { emailsSent, emailsFailed, smsSent, smsFailed },
+      familyEmails: wantsEmail ? recipients.flatMap((r) => (r.email ? [r.email] : [])) : [],
+      blastId,
+      tournamentId,
+    })
+  } catch (error) {
+    console.error('[comms] board copy failed', error instanceof Error ? error.message : 'unknown error')
+  }
+
   return NextResponse.json({
     ok: true,
     blastId,
@@ -115,5 +136,6 @@ export async function POST(request: Request) {
     emailsFailed,
     smsSent,
     smsFailed,
+    boardCopies,
   })
 }

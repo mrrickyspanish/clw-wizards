@@ -3,7 +3,8 @@ import { MapPin } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { resolveFamilyOwnerIds } from '@/lib/family'
-import { WEEKDAYS, formatTime } from '@/lib/practice'
+import { WEEKDAYS, formatTime, practiceEnded, practiceDateNote } from '@/lib/practice'
+import { chicagoDateString } from '@/lib/chicago-time'
 import type { Practice } from '@/types/database'
 
 // Monday-first weekly order (0 = Sunday in the data).
@@ -28,7 +29,11 @@ export default async function SchedulePage({
   const myGroups = new Set((athletes ?? []).map((a) => a.practice_group))
   const mineView = view === 'mine' && myGroups.size > 0
 
-  const all = (practices ?? []) as Practice[]
+  // A practice whose series has ended is gone. One that has not started yet
+  // stays on the weekly schedule, marked with its first day, so families can
+  // plan; the dashboard's "next practice" never counts it before then.
+  const today = chicagoDateString()
+  const all = ((practices ?? []) as Practice[]).filter((p) => !practiceEnded(p, today))
   const shown = mineView ? all.filter((p) => myGroups.has(p.practice_group)) : all
 
   const byDay = new Map<number, Practice[]>()
@@ -85,6 +90,11 @@ export default async function SchedulePage({
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-clw-white">{formatTime(p.start_time)}</span>
+                        {practiceDateNote(p, today) && (
+                          <span className="rounded-full border border-clw-gold/40 px-2 py-0.5 text-sm text-clw-gold-ink">
+                            {practiceDateNote(p, today)}
+                          </span>
+                        )}
                         <span
                           className={
                             mine

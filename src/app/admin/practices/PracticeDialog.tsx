@@ -6,7 +6,7 @@ import { Pencil, Plus } from 'lucide-react'
 
 import type { Practice } from '@/types/database'
 import { ORG } from '@/config/org.config'
-import { WEEKDAYS } from '@/lib/practice'
+import { WEEKDAYS, PRACTICE_SEASON } from '@/lib/practice'
 import { createPractices, updatePractice, type PracticeInput } from './actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -39,6 +39,10 @@ export function PracticeDialog({ practice }: { practice?: Practice }) {
   const [location, setLocation] = useState(practice?.location ?? '')
   const [notes, setNotes] = useState(practice?.notes ?? '')
   const [active, setActive] = useState(practice?.active ?? true)
+  // A new practice starts from the season's dates so it cannot show before the
+  // season; an existing one keeps whatever it has (blank = no limit).
+  const [startsOn, setStartsOn] = useState(editing ? (practice?.starts_on ?? '') : PRACTICE_SEASON.starts_on)
+  const [endsOn, setEndsOn] = useState(editing ? (practice?.ends_on ?? '') : PRACTICE_SEASON.ends_on)
 
   function toggleWeekday(day: number) {
     setWeekdays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]))
@@ -62,6 +66,8 @@ export function PracticeDialog({ practice }: { practice?: Practice }) {
       location,
       notes,
       active,
+      starts_on: startsOn,
+      ends_on: endsOn,
     }
     const result = editing
       ? await updatePractice(practice!.id, { ...base, weekday: Number(weekday) } as PracticeInput)
@@ -164,6 +170,20 @@ export function PracticeDialog({ practice }: { practice?: Practice }) {
               <Label htmlFor="end_time">End time</Label>
               <Input id="end_time" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="starts_on">First practice on or after</Label>
+              <Input id="starts_on" type="date" value={startsOn} onChange={(e) => setStartsOn(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ends_on">Last day</Label>
+              <Input id="ends_on" type="date" value={endsOn} min={startsOn || undefined} onChange={(e) => setEndsOn(e.target.value)} />
+            </div>
+            <p className="col-span-2 -mt-2 text-sm text-clw-gray">
+              Parents see nothing of this practice before the first date or after the last. Clear a date for no limit.
+            </p>
           </div>
 
           <div className="space-y-2">

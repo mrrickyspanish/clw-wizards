@@ -1125,3 +1125,194 @@ test('after a sign-in fails on an unconfirmed address, the existing fresh-link b
   assert.equal(h.resends[0].email, 'lee@example.org')
   assert.match(h.text(h.render()), /We sent a new confirmation link to lee@example\.org/)
 })
+
+// Practices with a first and last day: entered ahead of the season, they must
+// not show as "next practice" before they start or after they end.
+const chicagoTime = load('src/lib/chicago-time.ts', {})
+const practiceLib = load('src/lib/practice.ts', { '@/lib/chicago-time': chicagoTime })
+// Saturday, Oct 3 2026, noon in Chicago.
+const SAT_NOON = new Date('2026-10-03T17:00:00Z')
+const tuesdayPractice = (extra = {}) => ({
+  id: 'p-tue', practice_group: 'Group 1', weekday: 2, start_time: '18:30', end_time: null,
+  location: 'Wizards Wrestling Room', notes: null, active: true, starts_on: null, ends_on: null, ...extra,
+})
+
+test('with no dates a practice is next on its coming weekday', () => {
+  const next = practiceLib.nextPractice([tuesdayPractice()], SAT_NOON)
+  assert.equal(next.label, 'Tuesday')
+})
+
+test('a practice entered ahead of the season is not next until its first day', () => {
+  const next = practiceLib.nextPractice([tuesdayPractice({ starts_on: '2026-11-01' })], SAT_NOON)
+  assert.equal(next.label, 'Tue, Nov 3')
+})
+
+test('a series starting on its own weekday counts that first day', () => {
+  const sunday = tuesdayPractice({ id: 'p-sun', weekday: 0, starts_on: '2026-11-01' })
+  assert.equal(practiceLib.nextPractice([sunday], SAT_NOON).label, 'Sun, Nov 1')
+})
+
+test('a cancelled first practice rolls to the following week, still not before the start', () => {
+  const next = practiceLib.nextPractice(
+    [tuesdayPractice({ starts_on: '2026-11-01' })], SAT_NOON, new Set(['p-tue|2026-11-03']))
+  assert.equal(next.label, 'Tue, Nov 10')
+})
+
+test('a practice that has ended, or ends before its next day, is never next', () => {
+  assert.equal(practiceLib.nextPractice([tuesdayPractice({ ends_on: '2026-10-01' })], SAT_NOON), null)
+  assert.equal(practiceLib.nextPractice([tuesdayPractice({ starts_on: '2026-11-01', ends_on: '2026-11-02' })], SAT_NOON), null)
+})
+
+test('the soonest practice wins among several, ignoring ones that have not started', () => {
+  const early = tuesdayPractice({ id: 'p-fri', weekday: 5, starts_on: '2026-11-01' })
+  const now = tuesdayPractice({ id: 'p-wed', weekday: 3 })
+  assert.equal(practiceLib.nextPractice([early, now], SAT_NOON).practice.id, 'p-wed')
+})
+
+test('ended and not-started practices are recognised by the date notes parents see', () => {
+  assert.equal(practiceLib.practiceEnded({ ends_on: '2027-03-15' }, '2027-03-16'), true)
+  assert.equal(practiceLib.practiceEnded({ ends_on: '2027-03-15' }, '2027-03-15'), false)
+  assert.equal(practiceLib.practiceEnded({ ends_on: null }, '2030-01-01'), false)
+  assert.equal(practiceLib.practiceDateNote({ starts_on: '2026-11-01', ends_on: null }, '2026-10-03'), 'Starts Sun, Nov 1')
+  assert.equal(practiceLib.practiceDateNote({ starts_on: '2026-11-01', ends_on: null }, '2026-11-01'), '')
+  assert.equal(practiceLib.PRACTICE_SEASON.starts_on, '2026-11-01')
+})
+
+// Board copy: every send also goes once to each board member.
+// Objects built inside the loader's sandbox are not reference-equal to the test's own;
+// compare plain copies.
+const plain = (value) => JSON.parse(JSON.stringify(value))
+function boardHarness({ board, sendOk = () => true, tournamentName = 'Fall Open' } = {}) {
+  const sends = []
+  const tables = { board_copy_recipients: board, tournaments: [{ name: tournamentName }] }
+  function chain(table) {
+    const q = {
+      select: () => q, order: () => q, eq: () => q,
+      maybeSingle: async () => ({ data: tables[table][0] ?? null, error: null }),
+      then: (resolve) => resolve({ data: tables[table], error: null }),
+    }
+    return q
+  }
+  const lib = load('src/lib/comms/board-copy.ts', {
+    '@/lib/supabase/admin': { createAdminSupabase: () => ({ from: chain }) },
+    '@/lib/comms/send-email': { sendCommEmail: async (args) => { sends.push(args); return { ok: sendOk(args) } } },
+  })
+  return { lib, sends }
+}
+const BOARD = [
+  { id: '1', name: 'Tony Fontanetta', email: 'tony@example.org' },
+  { id: '2', name: 'Tyler Simmons', email: 'Tyler@Example.org' },
+  { id: '3', name: 'Jeremy Carbone', email: 'jeremy@example.org' },
+]
+const counts = { emailsSent: 97, emailsFailed: 2, smsSent: 0, smsFailed: 0 }
+
+test('the board copy says who the message went to, in plain words', () => {
+  const { lib } = boardHarness({ board: [] })
+  assert.equal(lib.describeAudience({ type: 'all' }), 'All active parents')
+  assert.equal(lib.describeAudience({ type: 'outstanding_dues' }), 'Parents with outstanding dues')
+  assert.equal(lib.describeAudience({ type: 'practice_groups', practiceGroups: ['Group 1', 'Group 3'] }), 'Practice groups: Group 1, Group 3')
+  assert.equal(lib.describeAudience({ type: 'tournament_registrants', tournamentId: 't' }, 'Fall Open'), 'Registrants for Fall Open')
+  assert.equal(lib.describeAudience({ type: 'missing_document', documents: ['birth_certificate', 'usa_wrestling_card'] }), 'Parents missing: birth certificate and USA Wrestling card')
+  assert.equal(lib.describeAudience({ type: 'custom', profileIds: ['a'] }), '1 specific parent')
+})
+
+test('the board copy header names the audience and counts, then shows the message as families saw it', () => {
+  const { lib } = boardHarness({ board: [] })
+  const html = lib.boardCopyHtml({
+    audience: 'All active parents <b>', totalRecipients: 99, channel: 'email', subject: 'Facility Cleaning',
+    message: '<p>Bring gloves.</p>', counts, sentAt: new Date('2026-10-10T14:00:00Z'),
+  })
+  assert.match(html, /Sent to: All active parents &lt;b&gt; \(99 families\)/)
+  assert.match(html, /Emails: 97 sent, 2 failed\./)
+  assert.doesNotMatch(html, /Texts:/)
+  assert.match(html, /Oct 10, 2026/)
+  assert.match(html, /<p>Bring gloves\.<\/p>$/)
+  const text = lib.boardCopyHtml({ audience: 'x', totalRecipients: 1, channel: 'sms', message: 'Weigh-ins <tomorrow>\nBring ID', counts, sentAt: new Date() })
+  assert.match(text, /Texts: 0 sent, 0 failed\./)
+  assert.match(text, /Weigh-ins &lt;tomorrow&gt;<br>Bring ID$/)
+  assert.equal(lib.boardCopySubject('Facility Cleaning', 'email'), '[Board copy] Facility Cleaning')
+  assert.equal(lib.boardCopySubject(undefined, 'sms'), '[Board copy] Text message to families')
+})
+
+test('each board member gets one copy, except anyone who already got the message as a parent', async () => {
+  const h = boardHarness({ board: BOARD })
+  const result = await h.lib.sendBoardCopies({
+    target: { type: 'all' }, channel: 'email', commType: 'general_blast', subject: 'Facility Cleaning', message: '<p>Hi</p>',
+    totalRecipients: 99, counts, familyEmails: ['  tyler@example.org ', 'a@example.org'], blastId: 'blast-1',
+  })
+  assert.deepEqual(plain(h.sends.map((s) => s.to)), ['tony@example.org', 'jeremy@example.org'])
+  assert.deepEqual(plain(result), { sent: 2, failed: 0, skipped: 1 })
+  assert.ok(h.sends.every((s) => s.profileId === null && s.blastId === 'blast-1' && s.commType === 'general_blast'))
+  assert.ok(h.sends.every((s) => s.subject === '[Board copy] Facility Cleaning'))
+})
+
+test('a send that reached nobody is not copied to the board', async () => {
+  const h = boardHarness({ board: BOARD })
+  const result = await h.lib.sendBoardCopies({
+    target: { type: 'tournament_registrants', tournamentId: 't' }, channel: 'both', commType: 'tournament_reminder_wednesday',
+    subject: 'Reminder', message: 'x', totalRecipients: 0, counts, familyEmails: [], blastId: 'b',
+  })
+  assert.deepEqual(plain(result), { sent: 0, failed: 0, skipped: 0 })
+  assert.equal(h.sends.length, 0)
+})
+
+test('a tournament reminder names the tournament, and a failed copy is counted, not thrown', async () => {
+  const h = boardHarness({ board: BOARD, sendOk: (s) => s.to !== 'tony@example.org' })
+  const result = await h.lib.sendBoardCopies({
+    target: { type: 'tournament_registrants', tournamentId: 't' }, channel: 'email', commType: 'tournament_reminder_wednesday',
+    subject: 'Reminder: Fall Open', message: '<p>See you</p>', totalRecipients: 12, counts, familyEmails: [], blastId: 'b', tournamentId: 't',
+  })
+  assert.deepEqual(plain(result), { sent: 2, failed: 1, skipped: 0 })
+  assert.match(h.sends[0].html, /Registrants for Fall Open \(12 families\)/)
+  assert.equal(h.sends[0].tournamentId, 't')
+})
+
+// The real job route: the board is copied after the families, and trouble
+// copying the board never turns a delivered send into a failed job.
+function blastJobHarness({ boardThrows = false } = {}) {
+  const captured = { board: null, familySends: [] }
+  const route = load('src/app/api/comms/blast-job/route.ts', {
+    'next/server': require('next/server'),
+    '@/lib/qstash': { verifyQstashSignature: async () => true },
+    '@/lib/comms/recipients': { resolveRecipients: async () => [
+      { id: 'p1', email: 'one@example.org', phone: null, sms_opt_in: false },
+      { id: 'p2', email: 'two@example.org', phone: null, sms_opt_in: false },
+      { id: 'p3', email: null, phone: null, sms_opt_in: false },
+    ] },
+    '@/lib/comms/send-email': { sendCommEmail: async (args) => { captured.familySends.push(args.to); return { ok: args.to !== 'two@example.org' } } },
+    '@/lib/twilio/send-sms': { sendSms: async () => ({ ok: true }) },
+    '@/lib/comms/board-copy': { sendBoardCopies: async (args) => {
+      captured.board = args
+      if (boardThrows) throw new Error('board list unavailable')
+      return { sent: 5, failed: 0, skipped: 0 }
+    } },
+  })
+  const post = () => route.POST(new Request('https://example.org/api/comms/blast-job', {
+    method: 'POST',
+    body: JSON.stringify({ target: { type: 'all' }, channel: 'email', commType: 'general_blast', subject: 'Hello', message: '<p>Hi</p>' }),
+  }))
+  return { post, captured }
+}
+
+test('the job copies the board after the families, passing the real counts and who got the email', async () => {
+  const h = blastJobHarness()
+  const res = await h.post()
+  const body = await res.json()
+  assert.equal(res.status, 200)
+  assert.deepEqual(plain(h.captured.familySends), ['one@example.org', 'two@example.org'])
+  assert.equal(h.captured.board.totalRecipients, 3)
+  assert.deepEqual(plain(h.captured.board.counts), { emailsSent: 1, emailsFailed: 1, smsSent: 0, smsFailed: 0 })
+  assert.deepEqual(plain(h.captured.board.familyEmails), ['one@example.org', 'two@example.org'])
+  assert.equal(h.captured.board.blastId, body.blastId)
+  assert.deepEqual(plain(body.boardCopies), { sent: 5, failed: 0, skipped: 0 })
+})
+
+test('trouble copying the board never fails a send that already went out', async () => {
+  const h = blastJobHarness({ boardThrows: true })
+  const res = await h.post()
+  const body = await res.json()
+  assert.equal(res.status, 200)
+  assert.equal(body.ok, true)
+  assert.equal(body.emailsSent, 1)
+  assert.deepEqual(plain(body.boardCopies), { sent: 0, failed: 0, skipped: 0 })
+})

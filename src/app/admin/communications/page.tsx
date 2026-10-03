@@ -4,11 +4,13 @@ import { ORG } from '@/config/org.config'
 import { commsQueueStatus } from '@/lib/qstash'
 import { ComposeForm } from './ComposeForm'
 import { CommsHistory } from './CommsHistory'
+import { BoardCopyManager } from './BoardCopyManager'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import type { BoardCopyRecipient } from '@/types/database'
 
 export default async function AdminCommunicationsPage() {
   const supabase = await createServerSupabase()
-  const [{ data: tournaments }, { data: events }, { data: parents }] = await Promise.all([
+  const [{ data: tournaments }, { data: events }, { data: parents }, { data: boardRows }] = await Promise.all([
     supabase.from('tournaments').select('id, name').order('date', { ascending: false }),
     // Upcoming club events (not the season registration itself) for the
     // "About an event" picker.
@@ -26,7 +28,9 @@ export default async function AdminCommunicationsPage() {
       .eq('is_active', true)
       .order('last_name', { ascending: true })
       .order('first_name', { ascending: true }),
+    supabase.from('board_copy_recipients').select('id, name, email, created_at').order('name', { ascending: true }),
   ])
+  const board = (boardRows ?? []) as BoardCopyRecipient[]
 
   const queue = commsQueueStatus()
 
@@ -41,6 +45,7 @@ export default async function AdminCommunicationsPage() {
         <TabsList>
           <TabsTrigger value="compose">Compose</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
+          <TabsTrigger value="board">Board copy</TabsTrigger>
         </TabsList>
 
         <TabsContent value="compose" className="mt-6">
@@ -48,6 +53,7 @@ export default async function AdminCommunicationsPage() {
             practiceGroups={ORG.practiceGroups}
             tournaments={tournaments ?? []}
             events={events ?? []}
+            boardNames={board.map((b) => b.name)}
             parents={parents ?? []}
             queueReady={queue.ready}
             queueMissing={queue.missing}
@@ -56,6 +62,10 @@ export default async function AdminCommunicationsPage() {
 
         <TabsContent value="history" className="mt-6 max-w-3xl">
           <CommsHistory />
+        </TabsContent>
+
+        <TabsContent value="board" className="mt-6">
+          <BoardCopyManager recipients={board} />
         </TabsContent>
       </Tabs>
     </div>

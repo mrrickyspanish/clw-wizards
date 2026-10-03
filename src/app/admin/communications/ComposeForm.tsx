@@ -118,6 +118,7 @@ export function ComposeForm({
   practiceGroups,
   tournaments,
   events,
+  boardNames,
   parents,
   queueReady,
   queueMissing,
@@ -125,6 +126,7 @@ export function ComposeForm({
   practiceGroups: readonly string[]
   tournaments: TournamentOption[]
   events: EventOption[]
+  boardNames: string[]
   parents: ParentOption[]
   queueReady: boolean
   queueMissing: string[]
@@ -516,6 +518,11 @@ export function ComposeForm({
         />
         <p className="text-sm text-clw-gray">
           Sends by email. SMS is a planned fast-follow. Only parents with a valid email receive it.
+        </p>
+        <p className="text-sm text-clw-gray">
+          {boardNames.length > 0
+            ? `Board copy: ${boardNames.join(', ')} each get one copy of this message. Change the list on the Board copy tab.`
+            : 'Nobody is on the board copy list yet. Add people on the Board copy tab.'}
         </p>
       </div>
 

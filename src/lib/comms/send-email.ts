@@ -5,7 +5,8 @@ import { readCredential } from '@/lib/env'
 import type { CommType } from '@/types/database'
 
 interface SendCommEmailParams {
-  profileId: string
+  // Null for someone with no account, such as a board member copied on a send.
+  profileId: string | null
   to: string
   subject: string
   html: string

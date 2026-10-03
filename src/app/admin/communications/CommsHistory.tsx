@@ -1,6 +1,7 @@
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import type { CommType, CommunicationLogRow } from '@/types/database'
 import { COMM_TYPE_LABELS } from '@/lib/comms/labels'
+import { BOARD_COPY_PREFIX } from '@/lib/comms/board-copy'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
@@ -20,7 +21,14 @@ type Group = {
   failed: number
   bounced: number
   rows: CommunicationLogRow[]
+  // The board's copies of this send, kept apart so they never inflate the
+  // families' counts.
+  boardRows: CommunicationLogRow[]
 }
+
+const isBoardCopy = (row: CommunicationLogRow) => Boolean(row.subject?.startsWith(BOARD_COPY_PREFIX))
+const stripBoardPrefix = (subject: string | null) =>
+  subject?.startsWith(BOARD_COPY_PREFIX) ? subject.slice(BOARD_COPY_PREFIX.length) : subject
 
 function statusCounts(rows: CommunicationLogRow[]) {
   return rows.reduce(
@@ -49,7 +57,7 @@ function groupRows(rows: CommunicationLogRow[]): Group[] {
       group = {
         key,
         inferred: !row.blast_id,
-        subject: row.subject,
+        subject: stripBoardPrefix(row.subject),
         commType: row.comm_type,
         channels: new Set(),
         sentAt: row.sent_at,
@@ -57,8 +65,13 @@ function groupRows(rows: CommunicationLogRow[]): Group[] {
         failed: 0,
         bounced: 0,
         rows: [],
+        boardRows: [],
       }
       groups.set(key, group)
+    }
+    if (isBoardCopy(row)) {
+      group.boardRows.push(row)
+      continue
     }
     group.channels.add(row.channel)
     group.rows.push(row)
@@ -189,6 +202,14 @@ export async function CommsHistory() {
                 </TableBody>
               </Table>
             </div>
+            {group.boardRows.length > 0 && (
+              <p className="border-t border-clw-gold/10 px-4 py-3 text-sm text-clw-gray">
+                Board copy:{' '}
+                {group.boardRows
+                  .map((row) => `${row.recipient_email ?? 'unknown'}${row.status === 'sent' ? '' : ` (${row.status})`}`)
+                  .join(', ')}
+              </p>
+            )}
           </details>
         )
       })}

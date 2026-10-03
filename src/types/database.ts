@@ -232,6 +232,10 @@ export type Practice = {
   location: string
   notes: string | null
   active: boolean
+  // First and last day of the weekly series. Null means no limit, so a practice
+  // can be entered ahead of the season without showing before it starts.
+  starts_on: string | null
+  ends_on: string | null
   created_at: string
   updated_at: string
 }
@@ -365,6 +369,15 @@ export type FamilyGuardian = {
   athlete_ids: string[] | null
   // Set by the club; neither parent can remove a locked link from the portal.
   locked: boolean
+  created_at: string
+}
+
+// Someone copied by email on every message the site sends to families: the
+// board members who are not wrestling parents. Managed in Admin -> Communications.
+export type BoardCopyRecipient = {
+  id: string
+  name: string
+  email: string
   created_at: string
 }
 
@@ -563,6 +576,12 @@ export type Database = {
         Row: FamilyGuardian
         Insert: Partial<FamilyGuardian>
         Update: Partial<FamilyGuardian>
+        Relationships: []
+      }
+      board_copy_recipients: {
+        Row: BoardCopyRecipient
+        Insert: Partial<BoardCopyRecipient>
+        Update: Partial<BoardCopyRecipient>
         Relationships: []
       }
       family_invites: {
