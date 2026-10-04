@@ -4,12 +4,13 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
 import { createServerSupabase } from '@/lib/supabase/server'
-import { resolveRecipients, type CommTarget } from '@/lib/comms/recipients'
+import { recipientWrestlers, resolveRecipients, type CommTarget } from '@/lib/comms/recipients'
 
-export type PreviewRecipient = { name: string; email: string | null }
+// One family on a send: the wrestlers it is about, then the parent the email goes to.
+export type PreviewRecipient = { wrestlers: string[]; parent: string; email: string | null }
 
 export type PreviewResult =
-  | { ok: true; count: number; recipients: PreviewRecipient[] }
+  | { ok: true; count: number; wrestlerCount: number; recipients: PreviewRecipient[] }
   | { ok: false; error: string }
 
 // Lets an admin see how many parents a target resolves to before they hit send.
@@ -28,12 +29,26 @@ export async function previewRecipients(target: CommTarget): Promise<PreviewResu
     return { ok: false, error: 'Admin access required' }
   }
 
-  // The whole list, alphabetical, so an admin can scroll it and check exactly
-  // who a send reaches before it goes out.
-  const recipients = (await resolveRecipients(target))
-    .map((r) => ({ name: r.full_name || r.email || 'Unnamed parent', email: r.email }))
-    .sort((a, b) => a.name.localeCompare(b.name))
-  return { ok: true, count: recipients.length, recipients }
+  // The whole list, listed by wrestler (coaches know the kids, not always the
+  // parents) and alphabetical by the wrestler's last name, so an admin can
+  // check exactly who a send reaches before it goes out. Families with no
+  // matching wrestler sort to the end by parent name.
+  const profiles = await resolveRecipients(target)
+  const wrestlersByParent = await recipientWrestlers(target, profiles.map((p) => p.id))
+  const rows = profiles.map((p) => {
+    const kids = [...(wrestlersByParent.get(p.id) ?? [])].sort(
+      (a, b) => a.last_name.localeCompare(b.last_name) || a.first_name.localeCompare(b.first_name)
+    )
+    const parent = p.full_name || p.email || 'Unnamed parent'
+    return {
+      recipient: { wrestlers: kids.map((k) => `${k.first_name} ${k.last_name}`), parent, email: p.email },
+      sortKey: kids.length ? `0 ${kids[0].last_name} ${kids[0].first_name}` : `1 ${parent}`,
+    }
+  })
+  rows.sort((a, b) => a.sortKey.localeCompare(b.sortKey, 'en', { sensitivity: 'base' }))
+  const recipients = rows.map((row) => row.recipient)
+  const wrestlerCount = recipients.reduce((sum, r) => sum + r.wrestlers.length, 0)
+  return { ok: true, count: recipients.length, wrestlerCount, recipients }
 }
 
 export type BoardActionResult = { ok: true } | { ok: false; error: string }

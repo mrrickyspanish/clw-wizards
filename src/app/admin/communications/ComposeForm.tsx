@@ -141,7 +141,7 @@ export function ComposeForm({
   const [message, setMessage] = useState('')
 
   const [eventId, setEventId] = useState('')
-  const [preview, setPreview] = useState<{ count: number; recipients: PreviewRecipient[] } | null>(null)
+  const [preview, setPreview] = useState<{ count: number; wrestlerCount: number; recipients: PreviewRecipient[] } | null>(null)
   const [previewing, setPreviewing] = useState(false)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -189,7 +189,7 @@ export function ComposeForm({
       setError(result.error)
       return
     }
-    setPreview({ count: result.count, recipients: result.recipients })
+    setPreview({ count: result.count, wrestlerCount: result.wrestlerCount, recipients: result.recipients })
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -462,7 +462,8 @@ export function ComposeForm({
           </Button>
           {preview && (
             <p className="text-base text-clw-white">
-              {preview.count} recipient{preview.count === 1 ? '' : 's'}
+              {preview.wrestlerCount} wrestler{preview.wrestlerCount === 1 ? '' : 's'} · {preview.count} famil
+              {preview.count === 1 ? 'y' : 'ies'} emailed
             </p>
           )}
         </div>
@@ -472,11 +473,13 @@ export function ComposeForm({
             className="max-h-80 divide-y divide-clw-gold/10 overflow-y-auto rounded-md border border-clw-gold/20 bg-clw-black/40"
           >
             {preview.recipients.map((r, index) => (
-              <li key={`${r.email ?? r.name}-${index}`} className="flex flex-wrap items-baseline justify-between gap-x-4 px-3 py-2">
-                <span className="text-base text-clw-white">{r.name}</span>
-                <span className={cn('text-sm', r.email ? 'text-clw-gray' : 'text-red-400')}>
-                  {r.email ?? 'No email: will not receive this'}
-                </span>
+              <li key={`${r.email ?? r.parent}-${index}`} className="px-3 py-2">
+                <p className="text-base text-clw-white">
+                  {r.wrestlers.length ? r.wrestlers.join(', ') : <span className="text-clw-gray">No wrestler listed</span>}
+                </p>
+                <p className={cn('text-sm', r.email ? 'text-clw-gray' : 'text-red-400')}>
+                  {r.parent} · {r.email ?? 'No email: will not receive this'}
+                </p>
               </li>
             ))}
           </ul>

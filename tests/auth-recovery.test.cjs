@@ -1512,3 +1512,17 @@ test('admin search matches every word across names and email, ignoring case, acc
   assert.equal(searchLib.matchesSearch('   ', fields), true)
   assert.equal(searchLib.matchesSearch('jose', ['José', 'Flores']), true)
 })
+
+test('the recipient preview names the wrestler who is missing the document, not the brothers who are not', async () => {
+  const lib = recipientsHarness({
+    athletes: [
+      { id: 'k1', parent_id: 'p-knoth', first_name: 'Kendall', last_name: 'Knoth', birth_certificate_on_file: false },
+      { id: 'b1', parent_id: 'p-brogan', first_name: 'Luke', last_name: 'Brogan', birth_certificate_on_file: false },
+      { id: 'b2', parent_id: 'p-brogan', first_name: 'Ryan', last_name: 'Brogan', birth_certificate_on_file: false },
+    ],
+    docs: [{ athlete_id: 'b2', doc_type: 'usa_wrestling_card', verified: true, uploaded_at: '2026-09-01T00:00:00Z' }],
+  })
+  const byParent = await lib.recipientWrestlers({ type: 'missing_document', documents: ['usa_wrestling_card'] }, ['p-knoth', 'p-brogan'])
+  assert.deepEqual(plain(byParent.get('p-knoth')), [{ first_name: 'Kendall', last_name: 'Knoth' }])
+  assert.deepEqual(plain(byParent.get('p-brogan')), [{ first_name: 'Luke', last_name: 'Brogan' }])
+})
