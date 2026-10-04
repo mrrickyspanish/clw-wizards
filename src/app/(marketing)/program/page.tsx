@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import { pageMetadata } from '@/lib/page-metadata'
 import { ArrowRight, Check, Trophy } from 'lucide-react'
 import { CTA_BUTTON } from '@/lib/cta'
+import { PracticeSchedule } from '@/components/landing/PracticeSchedule'
 
 // Public-facing group copy — presents the club's four practice groups as a
 // progression. (Backend group identifiers live in ORG.practiceGroups and are
@@ -42,9 +43,13 @@ const SEASON_POINTS = [
 ]
 
 export const metadata: Metadata = pageMetadata({
-  title: 'Training Groups',
-  description: 'Practice groups, coaching structure, and season overview for Wizards Wrestling Club.',
+  title: 'Training Groups & Practice Schedule',
+  description: 'Practice groups, weekly practice schedule, coaching structure, and season overview for Wizards Wrestling Club.',
 })
+
+// The practice schedule section reads the live schedule. Rebuilt at most every
+// five minutes, and right away when an admin changes a practice.
+export const revalidate = 300
 
 export default function ProgramPage() {
   return (
@@ -95,6 +100,8 @@ export default function ProgramPage() {
             </article>
           ))}
         </section>
+
+        <PracticeSchedule />
 
         <section className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-12">
           <div className="chamfer-md card-depth border border-clw-gold/15 bg-clw-black-2 p-7 sm:p-8 lg:col-span-8 lg:p-10">

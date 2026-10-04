@@ -6,6 +6,7 @@ import { createAdminSupabase } from '@/lib/supabase/admin'
 import { ORG } from '@/config/org.config'
 import { formatCents } from '@/lib/format/money'
 import { WRESTLER_SOURCE_LABELS, wrestlerSource } from '@/lib/registration-source'
+import { listBoardRecipients } from '@/lib/comms/board-copy'
 import type { Athlete, DuesPayment, Profile, SeasonEnrollment, SeasonRegistration } from '@/types/database'
 
 // The RPC keeps created_at and moves submitted_at when a family resubmits
@@ -14,9 +15,10 @@ import type { Athlete, DuesPayment, Profile, SeasonEnrollment, SeasonRegistratio
 const RESUBMIT_GAP_MS = 60_000
 
 /**
- * Tells the club contact each time a family submits a season registration,
- * so new sign-ups do not sit unnoticed until someone reads the whole list.
- * One short email per wrestler, with the running count for the season.
+ * Tells the club contact and the board (Admin -> Communications -> Board copy)
+ * each time a family submits a season registration, so new sign-ups do not sit
+ * unnoticed until someone reads the whole list. One short email per wrestler,
+ * with the running count for the season.
  */
 export async function sendRegistrationNotice(params: { seasonRegistrationId: string; athleteId: string; userId: string }) {
   const key = process.env.RESEND_API_KEY
@@ -73,10 +75,22 @@ export async function sendRegistrationNotice(params: { seasonRegistrationId: str
     .filter((line) => line !== null)
     .join('\n')
 
+  // The club contact always gets it, even if the board list cannot be read.
+  let board: string[] = []
+  try {
+    board = (await listBoardRecipients()).map((recipient) => recipient.email)
+  } catch (err) {
+    console.error('Registration notice: board list unavailable, sending to the club contact only:', err)
+  }
+  const seen = new Set<string>()
+  const to = [ORG.contactEmail, ...board]
+    .map((email) => email.trim())
+    .filter((email) => email && !seen.has(email.toLowerCase()) && Boolean(seen.add(email.toLowerCase())))
+
   const resend = new Resend(key)
   const { error } = await resend.emails.send({
     from: process.env.RESEND_FROM_EMAIL ?? `${ORG.shortName} <onboarding@resend.dev>`,
-    to: ORG.contactEmail,
+    to,
     subject: `${resubmitted ? 'Registration resubmitted' : 'New registration'}: ${athleteName}`,
     text: body,
   })

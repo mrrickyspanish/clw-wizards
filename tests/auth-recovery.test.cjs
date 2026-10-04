@@ -1431,7 +1431,7 @@ test('a wrestler created in the Google Form import run is labelled an import; ev
 
 // The club contact's notice of a new registration, with the database and the
 // email provider mocked.
-function registrationNoticeHarness({ enrollment, key = 'resend-key', count = 140 }) {
+function registrationNoticeHarness({ enrollment, key = 'resend-key', count = 140, board = [{ email: 'Tony@Example.com' }, { email: 'coach@example.com' }] }) {
   const sends = []
   const rows = {
     season_registrations: { id: 'season-1', season_label: '2026-27 Wizards Season Registration' },
@@ -1458,6 +1458,7 @@ function registrationNoticeHarness({ enrollment, key = 'resend-key', count = 140
     '@/config/org.config': { ORG: { contactEmail: 'tony@example.com', shortName: 'CLW', domain: 'clwizards.com' } },
     '@/lib/format/money': { formatCents: (cents) => `$${(cents / 100).toFixed(2)}` },
     '@/lib/registration-source': registrationSource,
+    '@/lib/comms/board-copy': { listBoardRecipients: async () => { if (board instanceof Error) throw board; return board } },
   }, key ? { RESEND_API_KEY: key } : {})
   return { notice, sends }
 }
@@ -1468,7 +1469,7 @@ test('the club contact is emailed each new registration with the family, how the
   const h = registrationNoticeHarness({ enrollment: firstSubmission })
   await h.notice.sendRegistrationNotice(params)
   assert.equal(h.sends.length, 1)
-  assert.equal(h.sends[0].to, 'tony@example.com')
+  assert.deepEqual(plain(h.sends[0].to), ['tony@example.com', 'coach@example.com'])
   assert.equal(h.sends[0].subject, 'New registration: Theo Williams')
   assert.match(h.sends[0].text, /Aaron Williams just submitted a registration for Theo Williams/)
   assert.match(h.sends[0].text, /parent@example\.com · 8155550100/)
@@ -1492,4 +1493,22 @@ test('no notice is attempted without an email key or without a saved registratio
   const noEnrollment = registrationNoticeHarness({ enrollment: null })
   await noEnrollment.notice.sendRegistrationNotice(params)
   assert.equal(noEnrollment.sends.length, 0)
+})
+
+test('the club contact still gets the registration notice when the board list cannot be read', async () => {
+  const h = registrationNoticeHarness({ enrollment: firstSubmission, board: new Error('database down') })
+  await h.notice.sendRegistrationNotice(params)
+  assert.deepEqual(plain(h.sends[0].to), ['tony@example.com'])
+})
+
+const searchLib = load('src/lib/search.ts', {})
+
+test('admin search matches every word across names and email, ignoring case, accents and punctuation', () => {
+  const fields = ['Tre’Lyn', 'Morrow', 'Jeff Morrow', 'jef2mac@comcast.net']
+  assert.equal(searchLib.matchesSearch('trelyn', fields), true)
+  assert.equal(searchLib.matchesSearch('MORROW jeff', fields), true)
+  assert.equal(searchLib.matchesSearch('comcast', fields), true)
+  assert.equal(searchLib.matchesSearch('morrow vocos', fields), false)
+  assert.equal(searchLib.matchesSearch('   ', fields), true)
+  assert.equal(searchLib.matchesSearch('jose', ['José', 'Flores']), true)
 })

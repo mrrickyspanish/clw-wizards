@@ -12,56 +12,81 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { FamilySearch } from './FamilySearch'
+import { AdminSearch } from '../AdminSearch'
+import { matchesSearch } from '@/lib/search'
 
 export default async function AdminFamiliesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>
+  searchParams: Promise<{ q?: string; show?: string }>
 }) {
-  const { q } = await searchParams
+  const { q, show } = await searchParams
   const query = (q ?? '').trim()
+  const emptyOnly = show === 'empty'
 
   const supabase = createAdminSupabase()
 
-  let familiesQuery = supabase
-    .from('profiles')
-    .select('id, full_name, email, phone, is_active, sms_opt_in')
-    .eq('role', 'parent')
-    .order('last_name', { ascending: true })
-    .order('first_name', { ascending: true })
-
-  // Strip characters that have meaning in the PostgREST `or()` filter grammar
-  // (comma separates conditions; parens group them) before interpolating.
-  const safeQuery = query.replace(/[,()*\\]/g, ' ').trim()
-  if (safeQuery) {
-    familiesQuery = familiesQuery.or(`full_name.ilike.%${safeQuery}%,email.ilike.%${safeQuery}%`)
-  }
-
   const [{ data: families, error }, { data: athletes }] = await Promise.all([
-    familiesQuery,
-    supabase.from('athletes').select('id, parent_id, active'),
+    supabase
+      .from('profiles')
+      .select('id, full_name, email, phone, is_active, sms_opt_in')
+      .eq('role', 'parent')
+      .order('last_name', { ascending: true })
+      .order('first_name', { ascending: true }),
+    supabase.from('athletes').select('id, parent_id, active, first_name, last_name'),
   ])
 
   const countsByParent = new Map<string, { total: number; active: number }>()
-  for (const a of (athletes ?? []) as Pick<Athlete, 'id' | 'parent_id' | 'active'>[]) {
+  const wrestlerNamesByParent = new Map<string, string[]>()
+  for (const a of (athletes ?? []) as Pick<Athlete, 'id' | 'parent_id' | 'active' | 'first_name' | 'last_name'>[]) {
     const entry = countsByParent.get(a.parent_id) ?? { total: 0, active: 0 }
     entry.total += 1
     if (a.active) entry.active += 1
     countsByParent.set(a.parent_id, entry)
+    wrestlerNamesByParent.set(a.parent_id, [...(wrestlerNamesByParent.get(a.parent_id) ?? []), `${a.first_name} ${a.last_name}`])
   }
 
   type FamilyRow = Pick<Profile, 'id' | 'full_name' | 'email' | 'phone' | 'is_active' | 'sms_opt_in'>
-  const rows = (families ?? []) as FamilyRow[]
+  const allFamilies = (families ?? []) as FamilyRow[]
+  const hasNoWrestlers = (family: FamilyRow) => (countsByParent.get(family.id)?.total ?? 0) === 0
+  const emptyCount = allFamilies.filter(hasNoWrestlers).length
+  // Search covers the parent and their wrestlers, so a child's name finds the family.
+  const rows = allFamilies.filter(
+    (family) =>
+      (!emptyOnly || hasNoWrestlers(family)) &&
+      matchesSearch(query, [family.full_name, family.email, family.phone, ...(wrestlerNamesByParent.get(family.id) ?? [])])
+  )
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between gap-4">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-display text-clw-gold">Families</h1>
           <p className="text-sm text-clw-gray">Parent accounts and their registered athletes.</p>
         </div>
-        <FamilySearch initial={query} />
+        <AdminSearch
+          initial={query}
+          basePath="/admin/families"
+          placeholder="Search parent, wrestler, email…"
+          keep={emptyOnly ? { show: 'empty' } : {}}
+        />
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <FilterLink href={query ? `/admin/families?q=${encodeURIComponent(query)}` : '/admin/families'} active={!emptyOnly}>
+          All families ({allFamilies.length})
+        </FilterLink>
+        <FilterLink
+          href={`/admin/families?show=empty${query ? `&q=${encodeURIComponent(query)}` : ''}`}
+          active={emptyOnly}
+        >
+          No wrestlers added ({emptyCount})
+        </FilterLink>
+        {emptyOnly && (
+          <p className="w-full text-sm text-clw-gray">
+            Accounts with no child on them: a family that stopped partway, a second login, a mistake, or a test.
+          </p>
+        )}
       </div>
 
       {error && (
@@ -72,7 +97,7 @@ export default async function AdminFamiliesPage({
 
       {!error && rows.length === 0 && (
         <div className="rounded-md border border-clw-gold/10 bg-clw-black p-10 text-center">
-          <p className="text-clw-gray">{query ? `No families match “${query}”.` : 'No families have registered yet.'}</p>
+          <p className="text-clw-gray">{query || emptyOnly ? 'No families match this filter.' : 'No families have registered yet.'}</p>
         </div>
       )}
 
@@ -139,5 +164,20 @@ export default async function AdminFamiliesPage({
         </div>
       )}
     </div>
+  )
+}
+
+function FilterLink({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className={
+        active
+          ? 'rounded-full border border-clw-gold/40 bg-clw-gold/10 px-3 py-1 text-sm text-clw-gold'
+          : 'rounded-full border border-clw-gold/10 px-3 py-1 text-sm text-clw-gray hover:text-clw-gold'
+      }
+    >
+      {children}
+    </Link>
   )
 }

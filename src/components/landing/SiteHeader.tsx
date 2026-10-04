@@ -37,6 +37,12 @@ const SEARCH_ITEMS = [
     keywords: ['groups', 'practice', 'training', 'program', 'beginner', 'advanced', 'levels'],
   },
   {
+    title: 'Practice Schedule',
+    description: 'Weekly practice days and times for each group, and where practices are held.',
+    href: '/program#schedule',
+    keywords: ['schedule', 'practice', 'practices', 'times', 'days', 'when', 'location'],
+  },
+  {
     title: 'Upcoming Events',
     description: 'See the full calendar of tournaments, fundraisers, and club events.',
     href: '/events',

@@ -63,6 +63,7 @@ export async function createPractice(values: PracticeInput): Promise<ActionResul
   const { error } = await supabase.from('practices').insert(row)
   if (error) return { ok: false, error: error.message }
   revalidatePath('/admin/practices')
+  revalidatePath('/program')
   return { ok: true }
 }
 
@@ -103,6 +104,7 @@ export async function createPractices(values: PracticesCreateInput): Promise<Act
   const { error } = await supabase.from('practices').insert(rows)
   if (error) return { ok: false, error: error.message }
   revalidatePath('/admin/practices')
+  revalidatePath('/program')
   return { ok: true }
 }
 
@@ -119,6 +121,7 @@ export async function updatePractice(id: string, values: PracticeInput): Promise
   const { error } = await supabase.from('practices').update(row).eq('id', id)
   if (error) return { ok: false, error: error.message }
   revalidatePath('/admin/practices')
+  revalidatePath('/program')
   return { ok: true }
 }
 
@@ -128,6 +131,7 @@ export async function deletePractice(id: string): Promise<ActionResult> {
   const { error } = await supabase.from('practices').delete().eq('id', id)
   if (error) return { ok: false, error: error.message }
   revalidatePath('/admin/practices')
+  revalidatePath('/program')
   return { ok: true }
 }
 
@@ -161,6 +165,7 @@ export async function cancelPracticeDate(values: CancellationInput): Promise<Act
     return { ok: false, error: error.message }
   }
   revalidatePath('/admin/practices')
+  revalidatePath('/program')
   return { ok: true }
 }
 
@@ -170,5 +175,6 @@ export async function removePracticeCancellation(id: string): Promise<ActionResu
   const { error } = await supabase.from('practice_cancellations').delete().eq('id', id)
   if (error) return { ok: false, error: error.message }
   revalidatePath('/admin/practices')
+  revalidatePath('/program')
   return { ok: true }
 }

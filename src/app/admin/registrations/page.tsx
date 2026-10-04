@@ -1,9 +1,10 @@
 import Link from 'next/link'
-import { AlertTriangle, CheckCircle2, ChevronDown, Clock3, CreditCard, FileCheck2, UserPlus, Users } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ChevronDown, Clock3, CreditCard, ExternalLink, FileCheck2, UserPlus, Users } from 'lucide-react'
 
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { formatCents } from '@/lib/format/money'
 import { WRESTLER_SOURCE_LABELS, wrestlerSource } from '@/lib/registration-source'
+import { matchesSearch } from '@/lib/search'
 import type {
   Athlete,
   AthleteDocument,
@@ -22,6 +23,20 @@ import { ParentDialog } from '../families/ParentDialog'
 import { DuesEditDialog } from '../dues/DuesEditDialog'
 import { ReviewControls } from './ReviewControls'
 import { BirthCertificateToggle } from './BirthCertificateToggle'
+import { AdminSearch } from '../AdminSearch'
+
+// Tony's living roster spreadsheet. Kept in an environment variable rather
+// than in Website content because that table is publicly readable, and this
+// link opens a sheet of family details. Only an https:// address is used.
+function rosterSheetUrl(): string | null {
+  const value = process.env.ADMIN_ROSTER_SHEET_URL?.trim()
+  if (!value) return null
+  try {
+    return new URL(value).protocol === 'https:' ? value : null
+  } catch {
+    return null
+  }
+}
 
 function money(cents: number) {
   return formatCents(cents)
@@ -45,7 +60,9 @@ const STATUS_LABELS: Record<SeasonEnrollment['status'], string> = {
   withdrawn: 'withdrawn',
 }
 
-export default async function AdminRegistrationsPage() {
+export default async function AdminRegistrationsPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const { q } = await searchParams
+  const query = (q ?? '').trim()
   const supabase = createAdminSupabase()
   const { data: enrollmentData, error } = await supabase.from('season_enrollments').select('*')
 
@@ -188,6 +205,14 @@ export default async function AdminRegistrationsPage() {
     return firstA.localeCompare(firstB, 'en', { sensitivity: 'base' })
   })
 
+  // Search by wrestler, parent name or email. The counts above stay whole-season.
+  const matchesQuery = (athlete: Athlete | undefined, parentId: string) => {
+    const parent = parentById.get(parentId)
+    return matchesSearch(query, [athlete?.first_name, athlete?.last_name, parent?.full_name, parent?.email])
+  }
+  const shownEnrollments = sortedEnrollments.filter((row) => matchesQuery(athleteById.get(row.athlete_id), row.parent_id))
+  const shownNotRegistered = notRegistered.filter((athlete) => matchesQuery(athlete, athlete.parent_id))
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -198,10 +223,35 @@ export default async function AdminRegistrationsPage() {
             from Families, so edits in either place use the same record.
           </p>
         </div>
-        <Link href="/admin/communications" className="text-sm text-clw-gold hover:text-clw-gold-l">
-          Send registration reminder
-        </Link>
+        <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:items-end">
+          <AdminSearch initial={query} basePath="/admin/registrations" placeholder="Search wrestler, parent, email…" />
+          <div className="flex flex-wrap gap-x-4 gap-y-1 sm:justify-end">
+            {rosterSheetUrl() && (
+              <a
+                href={rosterSheetUrl()!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-sm text-clw-gold hover:text-clw-gold-l"
+              >
+                Club roster sheet <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            )}
+            <Link href="/admin/communications" className="text-sm text-clw-gold hover:text-clw-gold-l">
+              Send registration reminder
+            </Link>
+          </div>
+        </div>
       </div>
+
+      {query && (
+        <p className="text-sm text-clw-gray">
+          {shownEnrollments.length} registration{shownEnrollments.length === 1 ? '' : 's'} and {shownNotRegistered.length}{' '}
+          not-registered child{shownNotRegistered.length === 1 ? '' : 'ren'} match &ldquo;{query}&rdquo;.{' '}
+          <Link href="/admin/registrations" className="text-clw-gold hover:text-clw-gold-l">
+            Clear search
+          </Link>
+        </p>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card className="border-clw-gold/10 bg-clw-black">
@@ -242,13 +292,13 @@ export default async function AdminRegistrationsPage() {
         </Card>
       </div>
 
-      {currentSeason && notRegistered.length > 0 && (
-        <details className="group rounded-lg border border-amber-500/20 bg-clw-black">
+      {currentSeason && shownNotRegistered.length > 0 && (
+        <details open={Boolean(query)} className="group rounded-lg border border-amber-500/20 bg-clw-black">
           <summary className="flex cursor-pointer list-none items-start gap-3 p-6 [&::-webkit-details-marker]:hidden">
             <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-clw-gold transition-transform duration-200 group-open:rotate-180" />
             <div>
               <p className="flex items-center gap-2 text-lg font-semibold leading-none tracking-tight text-clw-white">
-                <UserPlus className="h-5 w-5 text-amber-400" /> Added, not registered ({notRegistered.length})
+                <UserPlus className="h-5 w-5 text-amber-400" /> Added, not registered ({shownNotRegistered.length})
               </p>
               <p className="mt-2 max-w-2xl text-sm text-clw-gray">
                 These children have a profile on a family&rsquo;s account, but the family has not completed the{' '}
@@ -257,7 +307,7 @@ export default async function AdminRegistrationsPage() {
             </div>
           </summary>
           <ul className="divide-y divide-clw-gold/10 border-t border-clw-gold/10">
-            {notRegistered.map((athlete) => {
+            {shownNotRegistered.map((athlete) => {
               const parent = parentById.get(athlete.parent_id)
               return (
                 <li key={athlete.id} className="flex flex-wrap items-start justify-between gap-3 px-6 py-4">
@@ -308,7 +358,7 @@ export default async function AdminRegistrationsPage() {
       )}
 
       <div className="space-y-4">
-        {sortedEnrollments.map((enrollment) => {
+        {shownEnrollments.map((enrollment) => {
           const season = seasonById.get(enrollment.season_registration_id)
           const event = season ? eventById.get(season.event_id) : undefined
           const athlete = athleteById.get(enrollment.athlete_id)
