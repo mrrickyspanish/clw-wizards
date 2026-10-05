@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, type FormEvent } from 'react'
+import Link from 'next/link'
 import { Check, ChevronsUpDown, X } from 'lucide-react'
 
 import { previewRecipients, type PreviewRecipient } from './actions'
@@ -145,7 +146,8 @@ export function ComposeForm({
   const [previewing, setPreviewing] = useState(false)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [sent, setSent] = useState<string | null>(null)
+  // What was just sent, for the confirmation: its subject and how many families it is going to.
+  const [sent, setSent] = useState<{ subject: string; families: number | null } | null>(null)
 
   // Outstanding-dues blasts are logged as dues reminders; everything else an
   // admin composes by hand is a general blast. comm_type is for the log, not
@@ -217,6 +219,9 @@ export function ComposeForm({
 
     setSending(true)
     try {
+      // How many families this reaches, for the confirmation. Best effort: the
+      // send itself does not depend on it.
+      const counted = await previewRecipients(target).catch(() => null)
       const res = await fetch('/api/comms/blast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -239,11 +244,18 @@ export function ComposeForm({
         return
       }
 
-      setSent('Your email is queued and sending now.')
+      setSent({ subject: subject.trim(), families: counted?.ok ? counted.count : null })
+      // Clear the whole form so it is plain the message has gone. The audience
+      // type stays, but its picks are cleared, so a second send cannot reach
+      // the same people again (or everyone) by accident: it asks for a pick.
       setSubject('')
       setMessage('')
       setEventId('')
       setPreview(null)
+      setSelectedGroups([])
+      setDocuments([])
+      setSelectedParentIds([])
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch {
       // Genuinely never reached the server — fetch itself rejected.
       setError('Could not reach the server. Check your connection and try again — nothing was sent.')
@@ -273,7 +285,14 @@ export function ComposeForm({
       )}
       {sent && (
         <Alert className="border-clw-gold/40 bg-clw-gold/10">
-          <AlertDescription className="text-base text-clw-gold">{sent}</AlertDescription>
+          <AlertTitle className="text-base text-clw-gold">Sent: &ldquo;{sent.subject}&rdquo;</AlertTitle>
+          <AlertDescription className="text-base text-clw-gold">
+            {sent.families != null && `Going to ${sent.families} famil${sent.families === 1 ? 'y' : 'ies'}. `}
+            Emails go out within a minute, and the form is cleared for your next message.{' '}
+            <Link href="/admin/communications?tab=history" className="font-medium underline">
+              Check delivery in History
+            </Link>
+          </AlertDescription>
         </Alert>
       )}
 

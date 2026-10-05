@@ -8,7 +8,10 @@ import { BoardCopyManager } from './BoardCopyManager'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { BoardCopyRecipient } from '@/types/database'
 
-export default async function AdminCommunicationsPage() {
+export default async function AdminCommunicationsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  // ?tab=history opens History, e.g. from the link shown after a send.
+  const { tab } = await searchParams
+  const openTab = tab === 'history' || tab === 'board' ? tab : 'compose'
   const supabase = await createServerSupabase()
   const [{ data: tournaments }, { data: events }, { data: parents }, { data: boardRows }] = await Promise.all([
     supabase.from('tournaments').select('id, name').order('date', { ascending: false }),
@@ -41,7 +44,7 @@ export default async function AdminCommunicationsPage() {
         <p className="text-base text-clw-gray">Compose and send an email to parents.</p>
       </div>
 
-      <Tabs defaultValue="compose">
+      <Tabs key={openTab} defaultValue={openTab}>
         <TabsList>
           <TabsTrigger value="compose">Compose</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
