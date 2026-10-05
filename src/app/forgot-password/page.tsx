@@ -83,15 +83,18 @@ function ForgotPasswordForm() {
       <AuthBrand />
       <Card className="w-full max-w-md border-clw-gold/20 bg-clw-black-2">
         <CardHeader>
-          <CardTitle className="text-clw-gold">Reset your password</CardTitle>
-          <CardDescription>We&apos;ll email you a link to reset your {ORG.shortName} account password.</CardDescription>
+          <CardTitle className="text-clw-gold">Set or reset your password</CardTitle>
+          <CardDescription>
+            First time signing in? If you registered with the club, your account is already set up. Enter that email and
+            we&apos;ll send you a link to choose your password.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {sent ? (
             <div className="space-y-4">
               <Alert>
                 <AlertDescription>
-                  If you already have an account for {email}, check your inbox and spam folder for a reset link. If nothing arrives within 10 minutes, contact the club at{' '}
+                  If you have an account for {email}, check your inbox and spam folder for the link. It works once, so use the newest email. If nothing arrives within 10 minutes, contact the club at{' '}
                   <a href={`mailto:${ORG.contactEmail}`} className="underline">{ORG.contactEmail}</a>.
                 </AlertDescription>
               </Alert>
@@ -126,7 +129,7 @@ function ForgotPasswordForm() {
                 className="w-full"
                 disabled={loading || (turnstile.enabled && !turnstile.token)}
               >
-                {loading ? 'Sending…' : 'Send reset link'}
+                {loading ? 'Sending…' : 'Email me a link'}
               </Button>
             </form>
           )}

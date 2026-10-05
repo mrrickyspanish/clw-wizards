@@ -170,7 +170,11 @@ function LoginForm() {
       <Card className="w-full max-w-md border-clw-gold/20 bg-clw-black-2">
         <CardHeader>
           <CardTitle className="text-clw-gold">{ORG.shortName} Sign In</CardTitle>
-          <CardDescription>Sign in to your parent portal or staff dashboard.</CardDescription>
+          <CardDescription>
+            Sign in to your parent portal or staff dashboard. First time here? If you registered with the club, your
+            account is already set up: use <Link href="/forgot-password" className="underline">Set or reset password</Link>{' '}
+            with that email.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -297,7 +301,7 @@ function LoginForm() {
             )}
             <div className="flex justify-between text-sm text-muted-foreground">
               <Link href="/forgot-password" className="hover:underline">
-                Forgot password?
+                Set or reset password
               </Link>
               <Link href={signupHref} className="hover:underline">
                 Create account

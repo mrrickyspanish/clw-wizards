@@ -74,8 +74,12 @@ export async function POST(request: Request) {
     // password form verifies this token only after an explicit submission.
     await registerResetAttempt(requestId, email)
     const resetLink = `${siteUrl}/update-password#recovery_token=${encodeURIComponent(data.properties.hashed_token)}&attempt=${requestId}`
-    const html = `<p>Follow this link to reset the password for your ${ORG.name} account:</p>
-<p><a href="${resetLink}">Reset your password</a></p>
+    // The subject stays "Reset your password": recovery-audit matches on it.
+    // The body also speaks to families the club set up from its registration
+    // form, who are choosing a password for the first time.
+    const html = `<p>Follow this link to set or reset the password for your ${ORG.name} account. If this is your first time signing in, this is how you choose your password.</p>
+<p><a href="${resetLink}">Set your password</a></p>
+<p>The link works once. If you asked for more than one, use the newest email.</p>
 <p>If the button above doesn't work, copy and paste this link into your browser:<br/>${resetLink}</p>
 <p>If you didn't request a password reset, you can safely ignore this email.</p>`
 
@@ -86,7 +90,7 @@ export async function POST(request: Request) {
       const sendOptions = { idempotencyKey: `password-reset/${requestId}`, signal: AbortSignal.timeout(5_000) }
       const result = await resend.emails.send({
         from: fromAddress, to: [email], subject: 'Reset your password', html,
-        text: `Reset your ${ORG.name} password: ${resetLink}\n\nIf you did not request this, ignore this email.`,
+        text: `Set or reset your ${ORG.name} password: ${resetLink}\n\nThe link works once. If you asked for more than one, use the newest email.\n\nIf you did not request this, ignore this email.`,
       }, sendOptions)
       if (result.error) throw result.error
       if (!result.data?.id) throw { name: 'MissingEmailReceipt' }
