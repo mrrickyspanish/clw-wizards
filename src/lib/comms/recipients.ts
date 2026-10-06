@@ -98,22 +98,30 @@ export async function resolveRecipients(target: CommTarget): Promise<Profile[]> 
 // uploads themselves (athlete_documents): the athletes table's old *_url
 // columns are never filled in, so checking them matched every family. A birth
 // certificate counts if one was uploaded or staff marked it on file; a USA
-// Wrestling card counts if it was verified (those carry over) or uploaded
-// since the newest season opened, the same rule registration uses.
+// Wrestling card counts if it was verified (those carry over), uploaded since
+// the newest season opened (the same rule registration uses), or an admin
+// approved this season's registration without the card check -- the club has
+// already confirmed that wrestler's membership another way.
 async function athletesMissingDocuments(supabase: AdminClient, documents: MissingDocument[]): Promise<WrestlerRow[]> {
   const [{ data: athletes }, { data: docs }, { data: season }] = await Promise.all([
     supabase.from('athletes').select('id, parent_id, first_name, last_name, birth_certificate_on_file').eq('active', true),
     supabase.from('athlete_documents').select('athlete_id, doc_type, verified, uploaded_at'),
     supabase
       .from('season_registrations')
-      .select('registration_open_date')
+      .select('id, registration_open_date')
       .order('registration_open_date', { ascending: false })
       .limit(1)
       .maybeSingle(),
   ])
   const cardWindow = season ? `${season.registration_open_date}T00:00:00.000Z` : null
+  const { data: enrollments } = season
+    ? await supabase.from('season_enrollments').select('athlete_id, card_override_at').eq('season_registration_id', season.id)
+    : { data: [] as { athlete_id: string; card_override_at: string | null }[] }
   const hasBirthCertificate = new Set<string>()
   const hasCard = new Set<string>()
+  for (const enrollment of enrollments ?? []) {
+    if (enrollment.card_override_at) hasCard.add(enrollment.athlete_id)
+  }
   for (const doc of docs ?? []) {
     if (doc.doc_type === 'birth_certificate') hasBirthCertificate.add(doc.athlete_id)
     if (doc.doc_type === 'usa_wrestling_card' && (doc.verified || !cardWindow || doc.uploaded_at >= cardWindow)) {

@@ -56,6 +56,25 @@ export default async function DocumentsPage() {
   // Index documents by athlete + type for quick lookup. The query is
   // newest-first (uploaded_at desc), so keep the FIRST row seen per slot —
   // otherwise a replaced document would render the older upload it replaced.
+  // A wrestler whose registration this season an admin approved without the
+  // card check: the club already confirmed the membership, so the card is not
+  // asked for here.
+  const { data: currentSeason } = await supabase
+    .from('season_registrations')
+    .select('id')
+    .order('registration_open_date', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  const { data: clearedRows } =
+    currentSeason && athleteIds.length
+      ? await supabase
+          .from('season_enrollments')
+          .select('athlete_id, card_override_at')
+          .eq('season_registration_id', currentSeason.id)
+          .in('athlete_id', athleteIds)
+      : { data: [] as { athlete_id: string; card_override_at: string | null }[] }
+  const cardClearedByClub = new Set((clearedRows ?? []).filter((r) => r.card_override_at).map((r) => r.athlete_id))
+
   const docByKey = new Map<string, AthleteDocument>()
   for (const d of (docs ?? []) as AthleteDocument[]) {
     const key = `${d.athlete_id}:${d.doc_type}`
@@ -103,8 +122,12 @@ export default async function DocumentsPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {REQUIRED_DOCS.map((req) => {
-                // The club already holds a returning wrestler's birth certificate.
-                if (req.type === 'birth_certificate' && a.birth_certificate_on_file && !docByKey.get(`${a.id}:${req.type}`)) {
+                // The club already holds a returning wrestler's birth certificate,
+                // or already confirmed this season's USA Wrestling membership.
+                const heldByClub =
+                  (req.type === 'birth_certificate' && a.birth_certificate_on_file) ||
+                  (req.type === 'usa_wrestling_card' && cardClearedByClub.has(a.id))
+                if (heldByClub && !docByKey.get(`${a.id}:${req.type}`)) {
                   return (
                     <div
                       key={req.type}
@@ -112,7 +135,7 @@ export default async function DocumentsPage() {
                     >
                       <span className="text-sm text-clw-white">{req.label}</span>
                       <Badge variant="outline" className={STATUS_STYLES.verified}>
-                        on file with the club
+                        {req.type === 'usa_wrestling_card' ? 'confirmed by the club' : 'on file with the club'}
                       </Badge>
                     </div>
                   )

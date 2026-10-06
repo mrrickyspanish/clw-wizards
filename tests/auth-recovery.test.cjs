@@ -933,10 +933,11 @@ test('a normal approval with a verified card records no override', async () => {
 })
 
 // Messages to families missing documents: read the uploads, honour "on file".
-function recipientsHarness({ athletes, docs, season = { registration_open_date: '2026-08-01' } }) {
+function recipientsHarness({ athletes, docs, enrollments = [], season = { id: 'season-1', registration_open_date: '2026-08-01' } }) {
   const tables = {
     athletes: athletes,
     athlete_documents: docs,
+    season_enrollments: enrollments,
     profiles: [...new Set(athletes.map((a) => a.parent_id))].map((id) => ({ id, is_active: true })),
   }
   let profileFilter = null
@@ -1525,4 +1526,22 @@ test('the recipient preview names the wrestler who is missing the document, not 
   const byParent = await lib.recipientWrestlers({ type: 'missing_document', documents: ['usa_wrestling_card'] }, ['p-knoth', 'p-brogan'])
   assert.deepEqual(plain(byParent.get('p-knoth')), [{ first_name: 'Kendall', last_name: 'Knoth' }])
   assert.deepEqual(plain(byParent.get('p-brogan')), [{ first_name: 'Luke', last_name: 'Brogan' }])
+})
+
+test('a wrestler approved without the card check is not on the missing-card list (the Arandas)', async () => {
+  const lib = recipientsHarness({
+    athletes: [
+      { id: 'vicente', parent_id: 'p-aranda', first_name: 'Vicente', last_name: 'Aranda', birth_certificate_on_file: false },
+      { id: 'patrizio', parent_id: 'p-aranda', first_name: 'Patrizio', last_name: 'Aranda', birth_certificate_on_file: false },
+      { id: 'other', parent_id: 'p-other', first_name: 'No', last_name: 'Card', birth_certificate_on_file: false },
+    ],
+    docs: [],
+    enrollments: [
+      { athlete_id: 'vicente', card_override_at: '2026-10-03T15:00:00Z' },
+      { athlete_id: 'patrizio', card_override_at: '2026-10-03T15:00:00Z' },
+      { athlete_id: 'other', card_override_at: null },
+    ],
+  })
+  const recipients = await lib.resolveRecipients({ type: 'missing_document', documents: ['usa_wrestling_card'] })
+  assert.deepEqual(recipients.map((r) => r.id), ['p-other'])
 })
