@@ -20,7 +20,16 @@ function pad(n: number) {
  * no shared state. `todayISO` comes from the server (Chicago time) so the
  * highlighted "today" never depends on the visitor's clock or hydration.
  */
-export function EventsCalendar({ eventDates, todayISO }: { eventDates: string[]; todayISO: string }) {
+export function EventsCalendar({
+  eventDates,
+  practiceDates = [],
+  todayISO,
+}: {
+  eventDates: string[]
+  // Days with practice that are not in the list below, marked but not linked.
+  practiceDates?: string[]
+  todayISO: string
+}) {
   const [todayYear, todayMonth] = todayISO.split('-').map(Number)
 
   const counts = useMemo(() => {
@@ -28,6 +37,7 @@ export function EventsCalendar({ eventDates, todayISO }: { eventDates: string[];
     for (const date of eventDates) map.set(date, (map.get(date) ?? 0) + 1)
     return map
   }, [eventDates])
+  const practiceSet = useMemo(() => new Set(practiceDates), [practiceDates])
 
   // Months are navigable from the current month through the later of the last
   // event month or five months out, so the range always has somewhere to go.
@@ -35,12 +45,12 @@ export function EventsCalendar({ eventDates, todayISO }: { eventDates: string[];
   const maxKey = useMemo(() => {
     const fiveOut = new Date(todayYear, todayMonth - 1 + 5, 1)
     let max = `${fiveOut.getFullYear()}-${pad(fiveOut.getMonth() + 1)}`
-    for (const date of eventDates) {
+    for (const date of [...eventDates, ...practiceDates]) {
       const key = date.slice(0, 7)
       if (key > max) max = key
     }
     return max
-  }, [eventDates, todayYear, todayMonth])
+  }, [eventDates, practiceDates, todayYear, todayMonth])
 
   const [view, setView] = useState({ year: todayYear, month: todayMonth - 1 })
   const viewKey = `${view.year}-${pad(view.month + 1)}`
@@ -119,6 +129,21 @@ export function EventsCalendar({ eventDates, todayISO }: { eventDates: string[];
             )
           }
 
+          if (practiceSet.has(dateStr)) {
+            return (
+              <span
+                key={dateStr}
+                aria-label={`Practice on ${MONTHS[view.month]} ${day}`}
+                className={`flex h-12 flex-col items-center justify-center border text-base text-clw-white ${
+                  isToday ? 'border-clw-white/60' : 'border-clw-white/15'
+                }`}
+              >
+                {day}
+                <span aria-hidden className="mt-1 h-1 w-1 bg-clw-white/70" />
+              </span>
+            )
+          }
+
           return (
             <span
               key={dateStr}
@@ -139,8 +164,9 @@ export function EventsCalendar({ eventDates, todayISO }: { eventDates: string[];
 
       <p className="mt-5 border-t border-clw-white/10 pt-4 text-sm leading-relaxed text-clw-gray">
         {eventDates.length > 0
-          ? 'Gold days have events. Tap one to jump to the details below.'
+          ? 'Gold days have events and practices. Tap one to jump to the details below.'
           : 'Event days will show in gold as dates are added.'}
+        {practiceDates.length > 0 && ' Outlined days are practice days later in the season.'}
       </p>
     </div>
   )

@@ -2,11 +2,13 @@ import { createAdminSupabase } from '@/lib/supabase/admin'
 import type {
   Practice,
   ClubEvent,
+  EventSession,
   PracticeCancellation,
   SeasonPriceTier,
   SeasonRegistration,
 } from '@/types/database'
 import { WEEKDAYS, formatTime, formatPracticeDate } from '@/lib/practice'
+import { formatAgeDivisions } from '@/lib/age-division'
 import { Badge } from '@/components/ui/badge'
 import {
   Table,
@@ -59,10 +61,15 @@ export default async function AdminPracticesPage() {
     supabase.from('season_registrations').select('*').order('registration_open_date', { ascending: false }),
   ])
 
-  const { data: priceTiers } = await supabase
-    .from('season_price_tiers')
-    .select('*')
-    .order('starts_on', { ascending: true })
+  const [{ data: priceTiers }, { data: sessionData }] = await Promise.all([
+    supabase.from('season_price_tiers').select('*').order('starts_on', { ascending: true }),
+    // Missing until the sessions migration is applied; treated as no sessions.
+    supabase.from('event_sessions').select('*').order('sort_order', { ascending: true }),
+  ])
+  const sessionsByEvent = new Map<string, EventSession[]>()
+  for (const session of (sessionData ?? []) as EventSession[]) {
+    sessionsByEvent.set(session.event_id, [...(sessionsByEvent.get(session.event_id) ?? []), session])
+  }
 
   const rows = (practices ?? []) as Practice[]
   const eventRows = (events ?? []) as ClubEvent[]
@@ -210,7 +217,11 @@ export default async function AdminPracticesPage() {
                     <TableRow key={event.id} className="border-clw-gold/10">
                       <TableCell className="font-medium text-clw-white">
                         {event.title}
-                        {!event.active && <span className="ml-2 text-xs text-clw-gray">(inactive)</span>}
+                        {!event.active && (
+                          <Badge variant="outline" className="ml-2 border-clw-gray/40 text-clw-gray">
+                            Hidden
+                          </Badge>
+                        )}
                         {season && <span className="mt-1 block text-xs text-clw-gold">{season.season_label}</span>}
                       </TableCell>
                       <TableCell className="text-clw-gray">{EVENT_TYPE_LABELS[event.event_type]}</TableCell>
@@ -223,7 +234,12 @@ export default async function AdminPracticesPage() {
                         ) : (
                           <>
                             {formatEventDate(event.date)}
-                            {event.start_time ? ` · ${formatTime(event.start_time)}` : ''}
+                            {event.start_time && !sessionsByEvent.has(event.id) ? ` · ${formatTime(event.start_time)}` : ''}
+                            {(sessionsByEvent.get(event.id) ?? []).map((session) => (
+                              <span key={session.id} className="block text-sm text-clw-gray">
+                                {formatTime(session.start_time)} · {formatAgeDivisions(session.age_divisions)}
+                              </span>
+                            ))}
                           </>
                         )}
                       </TableCell>
@@ -234,6 +250,7 @@ export default async function AdminPracticesPage() {
                             event={event}
                             season={season}
                             priceTiers={season ? tiersBySeason.get(season.id) ?? [] : []}
+                            sessions={sessionsByEvent.get(event.id) ?? []}
                           />
                           <DeleteEventButton id={event.id} label={event.title} />
                         </div>

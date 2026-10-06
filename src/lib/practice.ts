@@ -120,3 +120,37 @@ export function nextPractice(
           : formatPracticeDate(chicagoDatePlusDays(best.daysAway, now))
   return { practice: best.practice, label }
 }
+
+export type PracticeDay = { date: string; sessions: Practice[] }
+
+/**
+ * Every date from `from` through `to` (YYYY-MM-DD, inclusive) that has
+ * practice, with that day's practices in start order. Honors each practice's
+ * first and last day and any cancelled occurrence (`${practiceId}|YYYY-MM-DD`).
+ * Read as calendar dates, so no time zone can shift a day.
+ */
+export function practiceDays(
+  practices: Practice[],
+  from: string,
+  to: string,
+  cancelled: Set<string> = new Set()
+): PracticeDay[] {
+  const days: PracticeDay[] = []
+  const live = practices.filter((p) => p.active !== false)
+  if (!live.length) return days
+  for (let day = calendarDays(from); day <= calendarDays(to); day += 1) {
+    const at = new Date(day * 86_400_000)
+    const date = at.toISOString().slice(0, 10)
+    const sessions = live
+      .filter(
+        (p) =>
+          p.weekday === at.getUTCDay() &&
+          (!p.starts_on || p.starts_on <= date) &&
+          (!p.ends_on || p.ends_on >= date) &&
+          !cancelled.has(`${p.id}|${date}`)
+      )
+      .sort((a, b) => startMinutes(a) - startMinutes(b))
+    if (sessions.length) days.push({ date, sessions })
+  }
+  return days
+}

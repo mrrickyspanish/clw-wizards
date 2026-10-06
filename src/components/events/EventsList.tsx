@@ -6,16 +6,19 @@ export type CalendarItem = {
   id: string
   date: string
   title: string
-  kind: 'tournament' | ClubEventType
+  kind: 'tournament' | 'practice' | ClubEventType
   startTime: string | null
   location: string | null
   registerUrl: string | null
   competitionLevel: string | null
   practiceGroup: string | null
+  // Lines shown in place of the single start time, e.g. a practice day's groups and times.
+  details?: string[]
 }
 
 const KIND_LABELS: Record<CalendarItem['kind'], string> = {
   tournament: 'Tournament',
+  practice: 'Practice',
   banquet: 'Banquet',
   parent_night: 'Parent Night',
   fundraiser: 'Fundraiser',
@@ -159,8 +162,16 @@ export function EventsList({ items }: { items: CalendarItem[] }) {
                         {item.title}
                       </h3>
 
+                      {item.details && item.details.length > 0 && (
+                        <ul className="mt-2.5 space-y-1 text-base leading-relaxed text-clw-gray">
+                          {item.details.map((line) => (
+                            <li key={line}>{line}</li>
+                          ))}
+                        </ul>
+                      )}
+
                       <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-base leading-relaxed text-clw-gray">
-                        <span>{time || 'Time TBD'}</span>
+                        {item.details?.length ? null : <span>{time || 'Time TBD'}</span>}
                         {item.location && (
                           <span className="flex min-w-0 items-center gap-1.5">
                             <MapPin className="h-4 w-4 shrink-0 text-clw-gold" />

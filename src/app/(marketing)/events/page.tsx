@@ -5,7 +5,9 @@ import { CalendarDays } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { chicagoDateString } from '@/lib/chicago-time'
-import type { ClubEvent, Tournament } from '@/types/database'
+import { formatTime, practiceDays } from '@/lib/practice'
+import { sessionLine, sessionsByEvent } from '@/lib/event-sessions'
+import type { ClubEvent, EventSession, Practice, Tournament } from '@/types/database'
 import { EventsCalendar } from '@/components/events/EventsCalendar'
 import { EventsList, type CalendarItem } from '@/components/events/EventsList'
 
@@ -19,7 +21,7 @@ export default async function EventsPage() {
   const supabase = await createServerSupabase()
   const today = chicagoDateString()
 
-  const [{ data: tournamentData }, { data: clubEventData }] = await Promise.all([
+  const [{ data: tournamentData }, { data: clubEventData }, { data: practiceData }, { data: cancellationData }] = await Promise.all([
     supabase
       .from('tournaments')
       .select('*')
@@ -32,12 +34,50 @@ export default async function EventsPage() {
       .eq('active', true)
       .gte('date', today)
       .order('date', { ascending: true }),
+    supabase.from('practices').select('*').eq('active', true),
+    supabase.from('practice_cancellations').select('practice_id, date').gte('date', today),
   ])
+  // Split-session events list each session with its divisions.
+  const { data: sessionData } = await supabase.from('event_sessions').select('*')
+  const sessionsFor = sessionsByEvent((sessionData ?? []) as EventSession[])
 
   const tournaments = (tournamentData ?? []) as Tournament[]
   const clubEvents = (clubEventData ?? []) as ClubEvent[]
 
+  // Practices are public so visitors see how busy the club is. Every practice
+  // day through the end of the season is marked on the calendar; the list
+  // spells out the next three weeks of them, one entry per day.
+  const practices = (practiceData ?? []) as Practice[]
+  const cancelled = new Set((cancellationData ?? []).map((c) => `${c.practice_id}|${c.date}`))
+  const seasonEnd = practices.reduce((end, p) => (p.ends_on && p.ends_on > end ? p.ends_on : end), today)
+  const allPracticeDays = practiceDays(practices, today, seasonEnd, cancelled)
+  const listedUntil = allPracticeDays.length
+    ? new Date(Date.parse(`${allPracticeDays[0].date}T00:00:00Z`) + 20 * 86_400_000).toISOString().slice(0, 10)
+    : today
+  const listedPracticeDays = allPracticeDays.filter((d) => d.date <= listedUntil)
+  const practiceItems: CalendarItem[] = listedPracticeDays.map((day) => {
+    const places = [...new Set(day.sessions.map((p) => p.location))]
+    return {
+      id: `p-${day.date}`,
+      date: day.date,
+      title: 'Practice',
+      kind: 'practice' as const,
+      startTime: day.sessions[0].start_time,
+      location: places.length === 1 ? places[0] : null,
+      registerUrl: null,
+      competitionLevel: null,
+      practiceGroup: null,
+      details: day.sessions.map(
+        (p) =>
+          `${p.practice_group} · ${formatTime(p.start_time)}${p.end_time ? ` – ${formatTime(p.end_time)}` : ''}${
+            places.length > 1 ? ` · ${p.location}` : ''
+          }`
+      ),
+    }
+  })
+
   const items: CalendarItem[] = [
+    ...practiceItems,
     ...tournaments.map((t) => ({
       id: `t-${t.id}`,
       date: t.date,
@@ -59,6 +99,7 @@ export default async function EventsPage() {
       registerUrl: e.event_type === 'season_registration' ? '/registration' : null,
       competitionLevel: null,
       practiceGroup: e.practice_group,
+      details: (sessionsFor.get(e.id) ?? []).map(sessionLine),
     })),
   ].sort((a, b) =>
     a.date === b.date ? (a.startTime ?? '99').localeCompare(b.startTime ?? '99') : a.date.localeCompare(b.date),
@@ -83,13 +124,17 @@ export default async function EventsPage() {
             </span>
           </h1>
           <p className="mt-6 max-w-3xl text-xl leading-relaxed text-clw-gray sm:text-2xl sm:leading-relaxed">
-            Every tournament, banquet, and club night in one place.
+            Every practice, tournament, banquet, and club night in one place.
           </p>
         </header>
 
         <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,26rem)_1fr] lg:items-start lg:gap-10">
           <div className="lg:sticky lg:top-32">
-            <EventsCalendar eventDates={items.map((i) => i.date)} todayISO={today} />
+            <EventsCalendar
+              eventDates={items.map((i) => i.date)}
+              practiceDates={allPracticeDays.filter((d) => d.date > listedUntil).map((d) => d.date)}
+              todayISO={today}
+            />
           </div>
           <EventsList items={items} />
         </div>

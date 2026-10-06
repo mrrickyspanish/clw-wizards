@@ -4,7 +4,8 @@ import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { CalendarPlus, Pencil, Plus, Trash2 } from 'lucide-react'
 
-import type { ClubEvent, SeasonPriceTier, SeasonRegistration } from '@/types/database'
+import type { ClubEvent, EventSession, SeasonPriceTier, SeasonRegistration } from '@/types/database'
+import { AGE_DIVISIONS, AGE_DIVISION_LABELS, type AgeDivision } from '@/lib/age-division'
 import { ORG } from '@/config/org.config'
 import { createEvent, updateEvent, type EventInput } from './eventActions'
 import { Button } from '@/components/ui/button'
@@ -47,6 +48,17 @@ type TierDraft = {
   amount: string
 }
 
+type SessionDraft = { key: string; start: string; end: string; divisions: AgeDivision[] }
+
+function toSessionDraft(session: EventSession): SessionDraft {
+  return {
+    key: session.id,
+    start: session.start_time,
+    end: session.end_time ?? '',
+    divisions: AGE_DIVISIONS.filter((d) => session.age_divisions.includes(d)),
+  }
+}
+
 function toDraft(tier: SeasonPriceTier): TierDraft {
   return {
     key: tier.id,
@@ -61,10 +73,12 @@ export function EventDialog({
   event,
   season,
   priceTiers = [],
+  sessions = [],
 }: {
   event?: ClubEvent
   season?: SeasonRegistration
   priceTiers?: SeasonPriceTier[]
+  sessions?: EventSession[]
 }) {
   const router = useRouter()
   const editing = Boolean(event)
@@ -81,6 +95,23 @@ export function EventDialog({
   const [group, setGroup] = useState(event?.practice_group ?? GROUP_ALL)
   const [notes, setNotes] = useState(event?.notes ?? '')
   const [active, setActive] = useState(event?.active ?? true)
+  // Split sessions: two or more start times, each for certain divisions.
+  const [split, setSplit] = useState(sessions.length > 1)
+  const [sessionDrafts, setSessionDrafts] = useState<SessionDraft[]>(() => sessions.map(toSessionDraft))
+
+  function updateSession(key: string, patch: Partial<SessionDraft>) {
+    setSessionDrafts((current) => current.map((s) => (s.key === key ? { ...s, ...patch } : s)))
+  }
+
+  function toggleSplit(on: boolean) {
+    setSplit(on)
+    if (on && sessionDrafts.length < 2) {
+      setSessionDrafts([
+        { key: crypto.randomUUID(), start: startTime, end: endTime, divisions: [] },
+        { key: crypto.randomUUID(), start: '', end: '', divisions: [] },
+      ])
+    }
+  }
 
   const [seasonLabel, setSeasonLabel] = useState(season?.season_label ?? '')
   const [registrationOpen, setRegistrationOpen] = useState(season?.registration_open_date ?? '')
@@ -139,6 +170,19 @@ export function EventDialog({
       return
     }
 
+    if (!isSeason && split) {
+      if (sessionDrafts.some((s) => !s.start)) {
+        setLoading(false)
+        setError('Give every session a start time.')
+        return
+      }
+      if (sessionDrafts.some((s) => s.divisions.length === 0)) {
+        setLoading(false)
+        setError('Pick at least one division for every session.')
+        return
+      }
+    }
+
     const values: EventInput = {
       title,
       event_type: type,
@@ -164,6 +208,10 @@ export function EventDialog({
             amount_cents: Math.round(Number(tier.amount || 0) * 100),
           }))
         : [],
+      sessions:
+        !isSeason && split
+          ? sessionDrafts.map((s) => ({ start_time: s.start, end_time: s.end || null, age_divisions: s.divisions }))
+          : [],
     }
 
     const result = editing ? await updateEvent(event!.id, values) : await createEvent(values)
@@ -238,15 +286,112 @@ export function EventDialog({
 
           {!isSeason && (
             <>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="event_start">Start time</Label>
-                  <Input id="event_start" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+              {!split && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="event_start">Start time</Label>
+                    <Input id="event_start" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="event_end">End time</Label>
+                    <Input id="event_end" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="event_end">End time</Label>
-                  <Input id="event_end" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
-                </div>
+              )}
+
+              <div className="space-y-3 rounded-md border border-clw-gold/15 p-4">
+                <label className="flex items-start gap-2 text-base text-clw-white">
+                  <Checkbox className="mt-1" checked={split} onCheckedChange={(checked) => toggleSplit(checked === true)} />
+                  <span>
+                    Split into sessions
+                    <span className="block text-sm text-clw-gray">
+                      Different start times for different age divisions. Each wrestler is shown the session for their
+                      division.
+                    </span>
+                  </span>
+                </label>
+
+                {split && (
+                  <div className="space-y-4">
+                    {sessionDrafts.map((session, index) => (
+                      <div key={session.key} className="space-y-3 rounded-md bg-clw-black-2 p-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-base font-medium text-clw-white">Session {index + 1}</p>
+                          {sessionDrafts.length > 2 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSessionDrafts((current) => current.filter((s) => s.key !== session.key))}
+                              aria-label={`Remove session ${index + 1}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label htmlFor={`session_start_${session.key}`}>Start</Label>
+                            <Input
+                              id={`session_start_${session.key}`}
+                              type="time"
+                              value={session.start}
+                              onChange={(e) => updateSession(session.key, { start: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label htmlFor={`session_end_${session.key}`}>End</Label>
+                            <Input
+                              id={`session_end_${session.key}`}
+                              type="time"
+                              value={session.end}
+                              onChange={(e) => updateSession(session.key, { end: e.target.value })}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-x-4 gap-y-2">
+                          {AGE_DIVISIONS.map((division) => {
+                            const takenElsewhere = sessionDrafts.some(
+                              (other) => other.key !== session.key && other.divisions.includes(division)
+                            )
+                            return (
+                              <label
+                                key={division}
+                                className={`flex items-center gap-2 text-base ${takenElsewhere ? 'text-clw-gray/50' : 'text-clw-white'}`}
+                              >
+                                <Checkbox
+                                  checked={session.divisions.includes(division)}
+                                  disabled={takenElsewhere}
+                                  onCheckedChange={(checked) =>
+                                    updateSession(session.key, {
+                                      divisions:
+                                        checked === true
+                                          ? AGE_DIVISIONS.filter((d) => d === division || session.divisions.includes(d))
+                                          : session.divisions.filter((d) => d !== division),
+                                    })
+                                  }
+                                />
+                                {AGE_DIVISION_LABELS[division]}
+                              </label>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                    {sessionDrafts.length < 6 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setSessionDrafts((current) => [...current, { key: crypto.randomUUID(), start: '', end: '', divisions: [] }])
+                        }
+                      >
+                        <Plus className="mr-1.5 h-4 w-4" /> Add session
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -459,8 +604,13 @@ export function EventDialog({
 
           <label className="flex items-center gap-2 text-sm text-clw-white">
             <Checkbox checked={active} onCheckedChange={(checked) => setActive(checked === true)} />
-            {isSeason ? 'Published in the parent portal' : 'Active'}
+            {isSeason ? 'Published in the parent portal' : 'Show on website'}
           </label>
+          {!isSeason && (
+            <p className="-mt-3 text-sm text-clw-gray">
+              Unchecked: the event is saved but hidden from parents and the public calendar until you turn it on.
+            </p>
+          )}
 
           <DialogFooter>
             <Button type="submit" disabled={loading}>

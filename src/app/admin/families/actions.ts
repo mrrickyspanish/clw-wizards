@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { AGE_DIVISIONS } from '@/lib/age-division'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { createAdminSupabase } from '@/lib/supabase/admin'
@@ -131,6 +132,9 @@ const athleteSchema = z.object({
     .nullable(),
   // Empty means not set yet: wrestlers added before the question was asked.
   division: z.enum(['boys', 'girls']).or(z.literal('')).optional().nullable(),
+  // IKWF age division override. '' = from the birthday. Left out (undefined)
+  // when the admin did not touch it, so the column is only written on change.
+  age_division: z.enum(AGE_DIVISIONS).or(z.literal('')).optional(),
   weight_class: z.string().trim().optional().nullable(),
   usa_wrestling_card_number: z.string().trim().optional().nullable(),
   shirt_size: z.string().trim().optional().nullable(),
@@ -161,6 +165,7 @@ export async function updateAthlete(id: string, values: AthleteInput): Promise<A
       date_of_birth: parsed.date_of_birth,
       practice_group: parsed.practice_group || null,
       division: parsed.division || null,
+      ...(parsed.age_division !== undefined ? { age_division: parsed.age_division || null } : {}),
       weight_class: parsed.weight_class || null,
       usa_wrestling_card_number: parsed.usa_wrestling_card_number || null,
       shirt_size: parsed.shirt_size || null,

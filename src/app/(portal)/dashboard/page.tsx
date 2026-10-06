@@ -18,7 +18,9 @@ import { chicagoDateString, chicagoHour } from '@/lib/chicago-time'
 import { WEEKDAYS, formatTime, nextPractice, practiceEnded, practiceDateNote } from '@/lib/practice'
 import { resolveFamilyOwnerIds } from '@/lib/family'
 import { ORG } from '@/config/org.config'
-import type { Tournament, TournamentRegistration, Practice, Athlete, ClubEvent } from '@/types/database'
+import type { Tournament, TournamentRegistration, Practice, Athlete, ClubEvent, EventSession } from '@/types/database'
+import { wrestlerAgeDivision } from '@/lib/age-division'
+import { sessionFor, sessionsByEvent } from '@/lib/event-sessions'
 import { SeasonRegistrationCard } from './SeasonRegistrationCard'
 
 function greeting(): string {
@@ -71,7 +73,9 @@ export default async function ParentDashboardPage() {
     { data: clubEvents },
   ] = await Promise.all([
     supabase.from('profiles').select('full_name').eq('id', userId).single(),
-    supabase.from('athletes').select('id, first_name, last_name, weight_class, practice_group').in('parent_id', familyOwnerIds),
+    // '*' rather than a column list: date_of_birth and age_division pick each
+    // wrestler's session at split-session events.
+    supabase.from('athletes').select('*').in('parent_id', familyOwnerIds),
     supabase
       .from('dues_payments')
       .select('amount_cents, amount_paid_cents')
@@ -91,10 +95,7 @@ export default async function ParentDashboardPage() {
   ])
 
   const fullName = profile?.full_name ?? 'Wizard family'
-  const athleteRows = (athletes ?? []) as Pick<
-    Athlete,
-    'id' | 'first_name' | 'last_name' | 'weight_class' | 'practice_group'
-  >[]
+  const athleteRows = (athletes ?? []) as Athlete[]
   const noAthletes = athleteRows.length === 0
   const outstandingCents = (dues ?? []).reduce((sum, d) => sum + (d.amount_cents - d.amount_paid_cents), 0)
 
@@ -129,6 +130,12 @@ export default async function ParentDashboardPage() {
     .filter((ev) => ev.event_type !== 'season_registration')
     .filter((ev) => !ev.practice_group || groups.has(ev.practice_group))
     .slice(0, 4)
+
+  // At a split-session event, each wrestler's own start time.
+  const { data: sessionData } = upcomingEvents.length
+    ? await supabase.from('event_sessions').select('*').in('event_id', upcomingEvents.map((ev) => ev.id))
+    : { data: [] as EventSession[] }
+  const eventSessions = sessionsByEvent((sessionData ?? []) as EventSession[])
 
   type Activity = { label: string; date: string }
   const activity: Activity[] = [
@@ -360,9 +367,24 @@ export default async function ParentDashboardPage() {
                   <span className="block truncate font-medium text-clw-white">{ev.title}</span>
                   <span className="block text-sm text-clw-gray">
                     {shortDate(ev.date)}
-                    {ev.start_time ? ` · ${formatTime(ev.start_time)}` : ''}
+                    {ev.start_time && !eventSessions.has(ev.id) ? ` · ${formatTime(ev.start_time)}` : ''}
                     {ev.location ? ` · ${ev.location}` : ''}
                   </span>
+                  {(() => {
+                    const sessions = eventSessions.get(ev.id)
+                    if (!sessions) return null
+                    return athleteRows.map((athlete) => {
+                      const session = sessionFor(sessions, wrestlerAgeDivision(athlete))
+                      return (
+                        <span key={athlete.id} className="block text-sm text-clw-white">
+                          {athlete.first_name}:{' '}
+                          {session
+                            ? `${formatTime(session.start_time)}${session.end_time ? ` – ${formatTime(session.end_time)}` : ''}`
+                            : 'ask the club which session'}
+                        </span>
+                      )
+                    })
+                  })()}
                 </span>
               </li>
             ))}

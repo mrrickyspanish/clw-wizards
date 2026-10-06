@@ -55,6 +55,9 @@ export type Athlete = {
   practice_group: string | null
   // Boys or girls division. Null for wrestlers added before it was asked.
   division: 'boys' | 'girls' | null
+  // IKWF age division set by an admin to override the one from the birthday
+  // (see src/lib/age-division.ts). Null means "from the birthday".
+  age_division: 'tot' | 'bantam' | 'intermediate' | 'novice' | 'senior' | null
   usa_wrestling_card_number: string | null
   shirt_size: string | null
   // Asked once when the family joins, not re-asked each season.
@@ -353,6 +356,17 @@ export type DisclosureAcceptance = {
   created_at: string
 }
 
+// One time slot of a split-session event, for the IKWF divisions listed.
+export type EventSession = {
+  id: string
+  event_id: string
+  start_time: string
+  end_time: string | null
+  age_divisions: string[]
+  sort_order: number
+  created_at: string
+}
+
 export type PracticeCancellation = {
   id: string
   practice_id: string
@@ -564,6 +578,12 @@ export type Database = {
         Row: AthleteGuardian
         Insert: Partial<AthleteGuardian>
         Update: Partial<AthleteGuardian>
+        Relationships: []
+      }
+      event_sessions: {
+        Row: EventSession
+        Insert: Partial<EventSession>
+        Update: Partial<EventSession>
         Relationships: []
       }
       practice_cancellations: {

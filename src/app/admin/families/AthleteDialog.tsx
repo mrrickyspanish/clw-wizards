@@ -7,6 +7,7 @@ import { Pencil } from 'lucide-react'
 import type { Athlete } from '@/types/database'
 import { ORG } from '@/config/org.config'
 import { DIVISIONS } from '@/lib/registration-schema'
+import { AGE_DIVISIONS, AGE_DIVISION_LABELS, ageDivisionFor, type AgeDivision } from '@/lib/age-division'
 import { updateAthlete, type AthleteInput } from './actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -44,6 +45,8 @@ export function AthleteDialog({ athlete }: { athlete: Athlete }) {
   // staff place them.
   const [group, setGroup] = useState(athlete.practice_group ?? 'none')
   const [division, setDivision] = useState<string>(athlete.division ?? 'none')
+  const [ageDivision, setAgeDivision] = useState<string>(athlete.age_division ?? 'auto')
+  const fromBirthday = ageDivisionFor(dob)
   const [weightClass, setWeightClass] = useState(athlete.weight_class ?? '')
   const [cardNumber, setCardNumber] = useState(athlete.usa_wrestling_card_number ?? '')
   const [shirtSize, setShirtSize] = useState(athlete.shirt_size ?? '')
@@ -60,6 +63,10 @@ export function AthleteDialog({ athlete }: { athlete: Athlete }) {
       date_of_birth: dob,
       practice_group: group === 'none' ? '' : group,
       division: division === 'none' ? '' : (division as 'boys' | 'girls'),
+      // Sent only when changed, so editing a wrestler never depends on it.
+      ...(ageDivision !== (athlete.age_division ?? 'auto')
+        ? { age_division: ageDivision === 'auto' ? ('' as const) : (ageDivision as AgeDivision) }
+        : {}),
       weight_class: weightClass,
       usa_wrestling_card_number: cardNumber,
       shirt_size: shirtSize,
@@ -117,7 +124,29 @@ export function AthleteDialog({ athlete }: { athlete: Athlete }) {
           </div>
 
           <div className="space-y-2">
-            <Label>Division</Label>
+            <Label>Age division (IKWF)</Label>
+            <Select value={ageDivision} onValueChange={setAgeDivision}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">
+                  From birthday: {fromBirthday ? AGE_DIVISION_LABELS[fromBirthday] : 'none (check the birthday)'}
+                </SelectItem>
+                {AGE_DIVISIONS.map((d) => (
+                  <SelectItem key={d} value={d}>
+                    {AGE_DIVISION_LABELS[d]} (set by the club)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-clw-gray">
+              Picks the session this wrestler is shown at split-session events. Change it only to move a wrestler up.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Boys or girls</Label>
             <Select value={division} onValueChange={setDivision}>
               <SelectTrigger>
                 <SelectValue />

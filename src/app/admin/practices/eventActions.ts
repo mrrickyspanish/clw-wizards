@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
 import { createServerSupabase } from '@/lib/supabase/server'
+import { AGE_DIVISIONS, AGE_DIVISION_LABELS } from '@/lib/age-division'
 
 // One-off dated club events (banquet, parent night, fundraiser…). A season
 // registration is created in the same familiar editor, with a companion record
@@ -39,8 +40,39 @@ const eventSchema = z
         })
       )
       .optional(),
+    // Split sessions: two or more start times, each for certain IKWF age
+    // divisions. Empty means one session for everyone at start_time.
+    sessions: z
+      .array(
+        z.object({
+          start_time: z.string().regex(/^\d{1,2}:\d{2}$/, 'Every session needs a start time.'),
+          end_time: z.string().regex(/^\d{1,2}:\d{2}$/).optional().nullable().or(z.literal('')),
+          age_divisions: z.array(z.enum(AGE_DIVISIONS)).min(1, 'Pick at least one division for every session.'),
+        })
+      )
+      .max(6)
+      .optional(),
   })
   .superRefine((values, ctx) => {
+    const sessions = values.sessions ?? []
+    if (sessions.length === 1) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['sessions'], message: 'A split event needs at least two sessions.' })
+    }
+    // Each division in one session only, so every wrestler has one time.
+    const seen = new Map<string, number>()
+    sessions.forEach((session, index) => {
+      for (const division of session.age_divisions) {
+        if (seen.has(division)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['sessions', index, 'age_divisions'],
+            message: `${AGE_DIVISION_LABELS[division]} is in two sessions. Put each division in one session.`,
+          })
+        }
+        seen.set(division, index)
+      }
+    })
+
     if (values.event_type !== 'season_registration') return
 
     if (!values.season_label) {
@@ -99,13 +131,29 @@ const eventSchema = z
 export type EventInput = z.input<typeof eventSchema>
 export type ActionResult = { ok: true } | { ok: false; error: string }
 
+// Sessions in start order. A split event's own start and end are its first
+// session's start and its last session's end, so lists and reminders that
+// only know one time still show the right span.
+function orderedSessions(values: z.output<typeof eventSchema>) {
+  if (values.event_type === 'season_registration') return []
+  return [...(values.sessions ?? [])].sort((a, b) => a.start_time.padStart(5, '0').localeCompare(b.start_time.padStart(5, '0')))
+}
+
 function normalizeEvent(values: z.output<typeof eventSchema>) {
+  const sessions = orderedSessions(values)
+  const ends = sessions.map((s) => s.end_time).filter((t): t is string => Boolean(t))
   return {
     title: values.title,
     event_type: values.event_type,
     date: values.date,
-    start_time: values.event_type === 'season_registration' ? null : values.start_time || null,
-    end_time: values.event_type === 'season_registration' ? null : values.end_time || null,
+    start_time:
+      values.event_type === 'season_registration' ? null : sessions[0]?.start_time ?? (values.start_time || null),
+    end_time:
+      values.event_type === 'season_registration'
+        ? null
+        : sessions.length
+          ? ends.sort((a, b) => a.padStart(5, '0').localeCompare(b.padStart(5, '0'))).at(-1) ?? null
+          : values.end_time || null,
     location: values.location || null,
     notes: values.notes || null,
     practice_group: values.event_type === 'season_registration' ? null : values.practice_group || null,
@@ -156,6 +204,30 @@ async function replacePriceTiers(
   return error?.message ?? null
 }
 
+/** Replaces an event's sessions with the ones given (none = a single session). */
+async function replaceSessions(
+  supabase: Awaited<ReturnType<typeof createServerSupabase>>,
+  eventId: string,
+  values: z.output<typeof eventSchema>
+): Promise<string | null> {
+  const sessions = orderedSessions(values)
+  const { error: clearError } = await supabase.from('event_sessions').delete().eq('event_id', eventId)
+  // Before the sessions migration is applied the table is missing; an event
+  // without sessions must still save.
+  if (clearError && !(clearError.code === '42P01' && !sessions.length)) return clearError.message
+  if (!sessions.length) return null
+  const { error } = await supabase.from('event_sessions').insert(
+    sessions.map((session, index) => ({
+      event_id: eventId,
+      start_time: session.start_time,
+      end_time: session.end_time || null,
+      age_divisions: session.age_divisions,
+      sort_order: index,
+    }))
+  )
+  return error?.message ?? null
+}
+
 function parse(values: EventInput): z.output<typeof eventSchema> | ActionResult {
   const result = eventSchema.safeParse(values)
   if (!result.success) return { ok: false, error: result.error.issues[0]?.message ?? 'Invalid input' }
@@ -183,6 +255,12 @@ export async function createEvent(values: EventInput): Promise<ActionResult> {
     .single()
 
   if (error || !event) return { ok: false, error: error?.message ?? 'Unable to create event.' }
+
+  const sessionError = await replaceSessions(supabase, event.id, parsed)
+  if (sessionError) {
+    await supabase.from('club_events').delete().eq('id', event.id)
+    return { ok: false, error: sessionError }
+  }
 
   if (parsed.event_type === 'season_registration') {
     const { data: season, error: seasonError } = await supabase
@@ -232,6 +310,9 @@ export async function updateEvent(id: string, values: EventInput): Promise<Actio
 
   const { error } = await supabase.from('club_events').update(normalizeEvent(parsed)).eq('id', id)
   if (error) return { ok: false, error: error.message }
+
+  const sessionError = await replaceSessions(supabase, id, parsed)
+  if (sessionError) return { ok: false, error: sessionError }
 
   if (parsed.event_type === 'season_registration') {
     const { data: season, error: seasonError } = await supabase

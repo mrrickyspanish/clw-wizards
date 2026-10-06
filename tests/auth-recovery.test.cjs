@@ -1633,3 +1633,92 @@ test('a normal reply is forwarded to the coach with who sent it, but never the c
   await h.post({ From: '+12244658887', Body: 'HELP' })
   assert.equal(h.forwarded.length, 1)
 })
+
+// --- IKWF divisions, split sessions, practices on the public calendar -------
+const ageDivision = load('src/lib/age-division.ts', { '@/lib/practice': practiceLib })
+const eventSessionsLib = load('src/lib/event-sessions.ts', { '@/lib/practice': practiceLib, '@/lib/age-division': ageDivision })
+
+test('IKWF division by age on Dec 31, the younger division where the bands overlap', () => {
+  const d = (dob) => ageDivision.ageDivisionFor(dob, 2026)
+  assert.equal(d('2018-01-08'), 'bantam') // TJ: 8, Bantam not Intermediate
+  assert.equal(d('2020-06-04'), 'tot')
+  assert.equal(d('2019-02-14'), 'bantam')
+  assert.equal(d('2016-11-16'), 'intermediate')
+  assert.equal(d('2014-08-21'), 'novice')
+  assert.equal(d('2013-10-04'), 'senior')
+  assert.equal(d('2012-05-01'), 'senior')
+  assert.equal(d('2011-10-01'), 'senior') // born Sep-Dec 2011: still Senior for club events
+  assert.equal(d('2011-03-01'), null)
+  assert.equal(d('1977-08-29'), null) // a parent's birthday typed by mistake
+  assert.equal(d('1015-08-14'), null)
+  assert.equal(ageDivision.wrestlerAgeDivision({ date_of_birth: '2018-01-08', age_division: 'intermediate' }, 2026), 'intermediate')
+  assert.equal(ageDivision.formatAgeDivisions(['novice', 'tot']), 'Tot, Novice')
+})
+
+test('each wrestler finds the session that lists their division', () => {
+  const sessions = [
+    { event_id: 'e', sort_order: 1, start_time: '11:00', end_time: null, age_divisions: ['novice', 'senior'] },
+    { event_id: 'e', sort_order: 0, start_time: '09:00', end_time: '10:30', age_divisions: ['tot', 'bantam'] },
+  ]
+  const grouped = eventSessionsLib.sessionsByEvent(sessions).get('e')
+  assert.equal(grouped[0].start_time, '09:00')
+  assert.equal(eventSessionsLib.sessionFor(grouped, 'bantam').start_time, '09:00')
+  assert.equal(eventSessionsLib.sessionFor(grouped, 'intermediate'), null)
+  assert.equal(eventSessionsLib.sessionLine(grouped[0]), 'Tot, Bantam · 9:00 AM – 10:30 AM')
+})
+
+test('practice days honor the weekday, the season dates and cancelled days', () => {
+  const p = (id, weekday, start_time, extra = {}) => ({ id, weekday, start_time, end_time: null, practice_group: id, location: 'Wizards Facility', active: true, starts_on: '2026-11-01', ends_on: '2027-03-15', ...extra })
+  const practices = [p('g1-mon', 1, '17:30'), p('g3-mon', 1, '19:00'), p('g2-tue', 2, '17:30'), p('old', 3, '17:30', { active: false })]
+  const days = practiceLib.practiceDays(practices, '2026-10-26', '2026-11-10', new Set(['g2-tue|2026-11-03']))
+  assert.deepEqual(plain(days.map((d) => [d.date, d.sessions.map((s) => s.id)])), [
+    ['2026-11-02', ['g1-mon', 'g3-mon']],
+    ['2026-11-09', ['g1-mon', 'g3-mon']],
+    ['2026-11-10', ['g2-tue']],
+  ])
+})
+
+function eventActionsHarness() {
+  const writes = []
+  const client = {
+    from: (table) => {
+      const q = {
+        insert: (rows) => { writes.push({ table, op: 'insert', rows }); return { select: () => ({ single: async () => ({ data: { id: 'ev1' }, error: null }) }), then: (r) => r({ error: null }) } },
+        delete: () => ({ eq: async () => { writes.push({ table, op: 'delete' }); return { error: null } } }),
+      }
+      return q
+    },
+  }
+  const actions = load('src/app/admin/practices/eventActions.ts', {
+    'next/cache': { revalidatePath: () => {} },
+    '@/lib/supabase/server': { createServerSupabase: async () => client },
+    '@/lib/age-division': ageDivision,
+  })
+  return { actions, writes }
+}
+const splitEvent = (sessions) => ({ title: 'Club tournament', event_type: 'event', date: '2026-12-05', active: true, sessions })
+
+test('a split event saves its sessions in time order and takes its times from them', async () => {
+  const h = eventActionsHarness()
+  const result = await h.actions.createEvent(splitEvent([
+    { start_time: '11:00', end_time: '13:00', age_divisions: ['novice', 'senior'] },
+    { start_time: '09:00', end_time: '10:30', age_divisions: ['tot', 'bantam', 'intermediate'] },
+  ]))
+  assert.equal(result.ok, true)
+  const event = h.writes.find((w) => w.table === 'club_events').rows
+  assert.equal(event.start_time, '09:00')
+  assert.equal(event.end_time, '13:00')
+  const sessions = h.writes.find((w) => w.table === 'event_sessions' && w.op === 'insert').rows
+  assert.deepEqual(plain(sessions.map((s) => [s.start_time, s.sort_order])), [['09:00', 0], ['11:00', 1]])
+})
+
+test('a split event refuses a division in two sessions, or only one session', async () => {
+  const twice = await eventActionsHarness().actions.createEvent(splitEvent([
+    { start_time: '09:00', age_divisions: ['bantam'] },
+    { start_time: '11:00', age_divisions: ['bantam', 'novice'] },
+  ]))
+  assert.equal(twice.ok, false)
+  assert.match(twice.error, /Bantam is in two sessions/)
+  const one = await eventActionsHarness().actions.createEvent(splitEvent([{ start_time: '09:00', age_divisions: ['bantam'] }]))
+  assert.match(one.error, /at least two sessions/)
+})
