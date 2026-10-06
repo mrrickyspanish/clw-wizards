@@ -7,6 +7,7 @@ import { Check, ChevronsUpDown, X } from 'lucide-react'
 import { previewRecipients, type PreviewRecipient } from './actions'
 import type { CommTarget, MissingDocument } from '@/lib/comms/recipients'
 import type { CommType } from '@/types/database'
+import { clubSms, smsSegments } from '@/lib/twilio/format'
 import { eventMessage, formatEventDate, type EventOption } from '@/lib/comms/event-message'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -107,6 +108,10 @@ function buildTarget(
   return null
 }
 
+type Channel = 'email' | 'sms' | 'both'
+
+const CHANNEL_LABELS: Record<Channel, string> = { email: 'Email', sms: 'Text', both: 'Email + text' }
+
 function toggle<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value]
 }
@@ -123,6 +128,7 @@ export function ComposeForm({
   parents,
   queueReady,
   queueMissing,
+  smsReady,
 }: {
   practiceGroups: readonly string[]
   tournaments: TournamentOption[]
@@ -131,7 +137,14 @@ export function ComposeForm({
   parents: ParentOption[]
   queueReady: boolean
   queueMissing: string[]
+  // Twilio credentials and a sender are set. Until then only email is offered.
+  smsReady: boolean
 }) {
+  const [channel, setChannel] = useState<Channel>('email')
+  const [smsText, setSmsText] = useState('')
+  const wantsEmail = channel !== 'sms'
+  const wantsSms = channel !== 'email'
+  const smsFinal = smsText.trim() ? clubSms(smsText) : ''
   const [audience, setAudience] = useState<AudienceKind>('all')
   const [selectedGroups, setSelectedGroups] = useState<string[]>([])
   const [documents, setDocuments] = useState<MissingDocument[]>([])
@@ -142,7 +155,7 @@ export function ComposeForm({
   const [message, setMessage] = useState('')
 
   const [eventId, setEventId] = useState('')
-  const [preview, setPreview] = useState<{ count: number; wrestlerCount: number; recipients: PreviewRecipient[] } | null>(null)
+  const [preview, setPreview] = useState<{ count: number; wrestlerCount: number; smsCount: number; recipients: PreviewRecipient[] } | null>(null)
   const [previewing, setPreviewing] = useState(false)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -191,7 +204,7 @@ export function ComposeForm({
       setError(result.error)
       return
     }
-    setPreview({ count: result.count, wrestlerCount: result.wrestlerCount, recipients: result.recipients })
+    setPreview({ count: result.count, wrestlerCount: result.wrestlerCount, smsCount: result.smsCount, recipients: result.recipients })
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -208,12 +221,16 @@ export function ComposeForm({
       setError('Choose at least one option for this audience first.')
       return
     }
-    if (!subject.trim()) {
+    if (wantsEmail && !subject.trim()) {
       setError('Subject is required.')
       return
     }
-    if (!message.trim()) {
+    if (wantsEmail && !message.trim()) {
       setError('Message body is required.')
+      return
+    }
+    if (wantsSms && !smsText.trim()) {
+      setError('Write the text message.')
       return
     }
 
@@ -227,10 +244,12 @@ export function ComposeForm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           target,
-          channel: 'email',
+          channel,
           commType,
-          subject: subject.trim(),
-          message: textToHtml(message),
+          subject: wantsEmail ? subject.trim() : undefined,
+          // A text-only send carries the text as its message, for the board copy.
+          message: wantsEmail ? textToHtml(message) : smsText.trim(),
+          smsMessage: wantsSms ? smsText.trim() : undefined,
         }),
       })
 
@@ -244,12 +263,14 @@ export function ComposeForm({
         return
       }
 
-      setSent({ subject: subject.trim(), families: counted?.ok ? counted.count : null })
+      const smsLabel = smsText.trim().length > 50 ? `${smsText.trim().slice(0, 50)}…` : smsText.trim()
+      setSent({ subject: wantsEmail ? subject.trim() : `Text: ${smsLabel}`, families: counted?.ok ? counted.count : null })
       // Clear the whole form so it is plain the message has gone. The audience
       // type stays, but its picks are cleared, so a second send cannot reach
       // the same people again (or everyone) by accident: it asks for a pick.
       setSubject('')
       setMessage('')
+      setSmsText('')
       setEventId('')
       setPreview(null)
       setSelectedGroups([])
@@ -482,7 +503,8 @@ export function ComposeForm({
           {preview && (
             <p className="text-base text-clw-white">
               {preview.wrestlerCount} wrestler{preview.wrestlerCount === 1 ? '' : 's'} · {preview.count} famil
-              {preview.count === 1 ? 'y' : 'ies'} emailed
+              {preview.count === 1 ? 'y' : 'ies'}
+              {wantsSms && ` · ${preview.smsCount} get the text`}
             </p>
           )}
         </div>
@@ -525,22 +547,90 @@ export function ComposeForm({
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="subject">Subject</Label>
-        <Input id="subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
+        <Label>Send as</Label>
+        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Send as">
+          {(Object.keys(CHANNEL_LABELS) as Channel[]).map((option) => {
+            const disabled = option !== 'email' && !smsReady
+            return (
+              <button
+                key={option}
+                type="button"
+                role="radio"
+                aria-checked={channel === option}
+                disabled={disabled}
+                onClick={() => {
+                  setChannel(option)
+                  resetFeedback()
+                }}
+                className={cn(
+                  'rounded-md border px-4 py-2 text-base transition-colors',
+                  channel === option
+                    ? 'border-clw-gold bg-clw-gold/15 text-clw-gold'
+                    : 'border-clw-gold/20 text-clw-gray hover:border-clw-gold/50',
+                  disabled && 'cursor-not-allowed opacity-50 hover:border-clw-gold/20'
+                )}
+              >
+                {CHANNEL_LABELS[option]}
+              </button>
+            )
+          })}
+        </div>
+        <p className="text-sm text-clw-gray">
+          {smsReady
+            ? 'Texts go only to parents who opted in to texts and have a mobile number on file.'
+            : 'Texting turns on once the club’s text number is approved.'}
+        </p>
       </div>
 
+      {wantsSms && (
+        <div className="space-y-2">
+          <Label htmlFor="smsText">Text message</Label>
+          <Textarea
+            id="smsText"
+            rows={4}
+            value={smsText}
+            onChange={(e) => setSmsText(e.target.value)}
+            placeholder="Short and to the point, e.g. Practice is canceled tonight. Regular schedule resumes Wednesday."
+          />
+          {smsFinal && (
+            <div className="rounded-md border border-clw-gold/20 bg-clw-black/40 p-3">
+              <p className="text-sm text-clw-gray">Parents receive:</p>
+              <p className="mt-1 whitespace-pre-wrap text-base text-clw-white">{smsFinal}</p>
+              <p className={cn('mt-2 text-sm', smsSegments(smsFinal) > 2 ? 'text-amber-300' : 'text-clw-gray')}>
+                {[...smsFinal].length} characters · counts as {smsSegments(smsFinal)} text
+                {smsSegments(smsFinal) === 1 ? '' : 's'} per family
+                {smsSegments(smsFinal) > 2 ? '. Shorter is cheaper and easier to read.' : ''}
+              </p>
+            </div>
+          )}
+          <p className="text-sm text-clw-gray">
+            &ldquo;CLW Wizards:&rdquo; and &ldquo;Reply STOP to opt out.&rdquo; are added automatically.
+          </p>
+        </div>
+      )}
+
+      {wantsEmail && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="subject">Subject</Label>
+            <Input id="subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="message">Email message</Label>
+            <Textarea
+              id="message"
+              rows={10}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Write your message to parents…"
+            />
+            <p className="text-sm text-clw-gray">Only parents with a valid email receive it.</p>
+          </div>
+        </>
+      )}
+
       <div className="space-y-2">
-        <Label htmlFor="message">Message</Label>
-        <Textarea
-          id="message"
-          rows={10}
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="Write your message to parents…"
-        />
-        <p className="text-sm text-clw-gray">
-          Sends by email. SMS is a planned fast-follow. Only parents with a valid email receive it.
-        </p>
         <p className="text-sm text-clw-gray">
           {boardNames.length > 0
             ? `Board copy: ${boardNames.join(', ')} each get one copy of this message. Change the list on the Board copy tab.`
@@ -549,7 +639,7 @@ export function ComposeForm({
       </div>
 
       <Button type="submit" disabled={sending || !queueReady}>
-        {sending ? 'Sending…' : 'Send email'}
+        {sending ? 'Sending…' : channel === 'email' ? 'Send email' : channel === 'sms' ? 'Send text' : 'Send email + text'}
       </Button>
     </form>
   )

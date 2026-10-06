@@ -5,12 +5,14 @@ import { z } from 'zod'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { recipientWrestlers, resolveRecipients, type CommTarget } from '@/lib/comms/recipients'
+import { toE164 } from '@/lib/phone'
 
 // One family on a send: the wrestlers it is about, then the parent the email goes to.
 export type PreviewRecipient = { wrestlers: string[]; parent: string; email: string | null }
 
 export type PreviewResult =
-  | { ok: true; count: number; wrestlerCount: number; recipients: PreviewRecipient[] }
+  // smsCount: families who would get a text -- opted in, with a dialable mobile number.
+  | { ok: true; count: number; wrestlerCount: number; smsCount: number; recipients: PreviewRecipient[] }
   | { ok: false; error: string }
 
 // Lets an admin see how many parents a target resolves to before they hit send.
@@ -48,7 +50,8 @@ export async function previewRecipients(target: CommTarget): Promise<PreviewResu
   rows.sort((a, b) => a.sortKey.localeCompare(b.sortKey, 'en', { sensitivity: 'base' }))
   const recipients = rows.map((row) => row.recipient)
   const wrestlerCount = recipients.reduce((sum, r) => sum + r.wrestlers.length, 0)
-  return { ok: true, count: recipients.length, wrestlerCount, recipients }
+  const smsCount = profiles.filter((p) => p.sms_opt_in && toE164(p.phone)).length
+  return { ok: true, count: recipients.length, wrestlerCount, smsCount, recipients }
 }
 
 export type BoardActionResult = { ok: true } | { ok: false; error: string }

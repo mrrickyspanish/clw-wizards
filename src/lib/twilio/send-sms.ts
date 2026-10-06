@@ -1,4 +1,5 @@
 import { getTwilioClient } from './client'
+import { twilioSender } from './sender'
 import { toE164 } from '@/lib/phone'
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import type { CommType } from '@/types/database'
@@ -35,9 +36,9 @@ export async function sendSms({
   blastId,
 }: SendSmsParams): Promise<SendSmsResult> {
   const supabase = createAdminSupabase()
-  const fromNumber = process.env.TWILIO_PHONE_NUMBER
+  const sender = twilioSender()
 
-  if (!fromNumber) {
+  if (!sender) {
     await supabase.from('communication_log').insert({
       channel: 'sms',
       comm_type: commType,
@@ -48,7 +49,7 @@ export async function sendSms({
       status: 'failed',
       blast_id: blastId ?? null,
     })
-    return { ok: false, errorMessage: 'TWILIO_PHONE_NUMBER is not configured.' }
+    return { ok: false, errorMessage: 'No text sender: set TWILIO_MESSAGING_SERVICE_SID or TWILIO_PHONE_NUMBER.' }
   }
 
   // Twilio wants E.164. A number that cannot be turned into one is logged as a
@@ -69,7 +70,7 @@ export async function sendSms({
   }
 
   try {
-    const message = await getTwilioClient().messages.create({ to: dialable, from: fromNumber, body })
+    const message = await getTwilioClient().messages.create({ to: dialable, body, ...sender })
 
     await supabase.from('communication_log').insert({
       channel: 'sms',

@@ -4,6 +4,7 @@ import { verifyQstashSignature } from '@/lib/qstash'
 import { resolveRecipients } from '@/lib/comms/recipients'
 import { sendCommEmail } from '@/lib/comms/send-email'
 import { sendSms } from '@/lib/twilio/send-sms'
+import { clubSms } from '@/lib/twilio/format'
 import { sendBoardCopies } from '@/lib/comms/board-copy'
 import type { BlastRequestBody } from '@/app/api/comms/blast/route'
 
@@ -63,6 +64,8 @@ export async function POST(request: Request) {
 
   const wantsEmail = payload.channel === 'email' || payload.channel === 'both'
   const wantsSms = payload.channel === 'sms' || payload.channel === 'both'
+  // Every text names the club and says how to stop (see clubSms).
+  const smsBody = clubSms(payload.smsMessage ?? payload.message)
 
   // Requests are started on a fixed cadence but not awaited in sequence: a
   // slow response delays that recipient, never the ones behind it.
@@ -94,7 +97,7 @@ export async function POST(request: Request) {
           const result = await sendSms({
             profileId: profile.id,
             to: profile.phone,
-            body: payload.message,
+            body: smsBody,
             commType: payload.commType,
             tournamentId,
             blastId,

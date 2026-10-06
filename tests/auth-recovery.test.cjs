@@ -1282,6 +1282,7 @@ function blastJobHarness({ boardThrows = false } = {}) {
     ] },
     '@/lib/comms/send-email': { sendCommEmail: async (args) => { captured.familySends.push(args.to); return { ok: args.to !== 'two@example.org' } } },
     '@/lib/twilio/send-sms': { sendSms: async () => ({ ok: true }) },
+    '@/lib/twilio/format': load('src/lib/twilio/format.ts', {}),
     '@/lib/comms/board-copy': { sendBoardCopies: async (args) => {
       captured.board = args
       if (boardThrows) throw new Error('board list unavailable')
@@ -1544,4 +1545,91 @@ test('a wrestler approved without the card check is not on the missing-card list
   })
   const recipients = await lib.resolveRecipients({ type: 'missing_document', documents: ['usa_wrestling_card'] })
   assert.deepEqual(recipients.map((r) => r.id), ['p-other'])
+})
+
+// --- Texting --------------------------------------------------------------
+const smsFormat = load('src/lib/twilio/format.ts', {})
+
+test('every club text names the club and carries the STOP line, without doubling either', () => {
+  assert.equal(smsFormat.clubSms('Practice is canceled tonight.'), 'CLW Wizards: Practice is canceled tonight. Reply STOP to opt out.')
+  assert.equal(smsFormat.clubSms('CLW Wizards: Weigh-ins Friday. Reply STOP to opt out.'), 'CLW Wizards: Weigh-ins Friday. Reply STOP to opt out.')
+  assert.equal(smsFormat.smsSegments('x'.repeat(160)), 1)
+  assert.equal(smsFormat.smsSegments('x'.repeat(161)), 2)
+  assert.equal(smsFormat.smsSegments('It’s on'.padEnd(71, '.')), 2)
+})
+
+test('texts go through the Messaging Service when one is set, else the number', () => {
+  const both = load('src/lib/twilio/sender.ts', {}, { TWILIO_MESSAGING_SERVICE_SID: 'MG1', TWILIO_PHONE_NUMBER: '+18888529750' })
+  assert.deepEqual(plain(both.twilioSender()), { messagingServiceSid: 'MG1' })
+  const numberOnly = load('src/lib/twilio/sender.ts', {}, { TWILIO_PHONE_NUMBER: '+18888529750', TWILIO_ACCOUNT_SID: 'AC1', TWILIO_AUTH_TOKEN: 't' })
+  assert.deepEqual(plain(numberOnly.twilioSender()), { from: '+18888529750' })
+  assert.equal(numberOnly.smsReady(), true)
+  assert.equal(load('src/lib/twilio/sender.ts', {}, { TWILIO_ACCOUNT_SID: 'AC1', TWILIO_AUTH_TOKEN: 't' }).smsReady(), false)
+})
+
+function twilioWebhookHarness({ valid = true, profiles = [], env = {} } = {}) {
+  const updates = []
+  const forwarded = []
+  const client = {
+    from: () => {
+      const q = {
+        select: () => q, not: () => q,
+        update: (values) => ({ in: async (_col, ids) => { updates.push({ values, ids }); return { error: null } } }),
+        then: (resolve) => resolve({ data: profiles, error: null }),
+      }
+      return q
+    },
+  }
+  const route = load('src/app/api/webhooks/twilio/route.ts', {
+    twilio: { default: { validateRequest: () => valid } },
+    '@/lib/supabase/admin': { createAdminSupabase: () => client },
+    '@/lib/twilio/client': { getTwilioClient: () => ({ messages: { create: async (m) => { forwarded.push(m); return { sid: 'SM1' } } } }) },
+    '@/lib/twilio/sender': { twilioSender: () => ({ messagingServiceSid: 'MG1' }) },
+    '@/lib/qstash': { siteUrl: () => 'https://www.clwizards.com' },
+  }, { TWILIO_AUTH_TOKEN: 'token', TWILIO_FORWARD_TO: '815-555-0000', ...env })
+  const post = (fields, signature = 'sig') =>
+    route.POST(new Request('https://www.clwizards.com/api/webhooks/twilio', {
+      method: 'POST',
+      headers: signature ? { 'x-twilio-signature': signature, 'content-type': 'application/x-www-form-urlencoded' } : {},
+      body: new URLSearchParams(fields).toString(),
+    }))
+  return { post, updates, forwarded }
+}
+const parent = { id: 'p1', full_name: 'Summer Aranda', phone: '(224) 465-8887', consent_text: 'consent' }
+
+test('the text webhook refuses anything Twilio did not sign', async () => {
+  const forged = twilioWebhookHarness({ valid: false, profiles: [parent] })
+  assert.equal((await forged.post({ From: '+12244658887', Body: 'STOP' })).status, 403)
+  const unsigned = twilioWebhookHarness({ profiles: [parent] })
+  assert.equal((await unsigned.post({ From: '+12244658887', Body: 'STOP' }, null)).status, 403)
+  assert.equal(forged.updates.length + unsigned.updates.length, 0)
+})
+
+test('a parent who texts STOP is opted out on the site, and START opts them back in', async () => {
+  const h = twilioWebhookHarness({ profiles: [parent] })
+  const stop = await h.post({ From: '+12244658887', Body: ' stop ' })
+  assert.equal(stop.status, 200)
+  assert.match(await stop.text(), /<Response><\/Response>/)
+  assert.deepEqual(plain(h.updates[0]), { values: { sms_opt_in: false }, ids: ['p1'] })
+  await h.post({ From: '+12244658887', Body: 'START' })
+  assert.equal(h.updates[1].values.sms_opt_in, true)
+  assert.equal(h.forwarded.length, 0)
+})
+
+test('START does not opt in a number that never agreed to texts on the site', async () => {
+  const h = twilioWebhookHarness({ profiles: [{ ...parent, consent_text: null }] })
+  await h.post({ From: '+12244658887', Body: 'START' })
+  assert.equal(h.updates.length, 0)
+})
+
+test('a normal reply is forwarded to the coach with who sent it, but never the coach\'s own texts', async () => {
+  const h = twilioWebhookHarness({ profiles: [parent] })
+  await h.post({ From: '+12244658887', Body: 'Is practice still on?' })
+  assert.equal(h.forwarded.length, 1)
+  assert.equal(h.forwarded[0].to, '+18155550000')
+  assert.equal(h.forwarded[0].messagingServiceSid, 'MG1')
+  assert.equal(h.forwarded[0].body, 'CLW reply from Summer Aranda (224) 465-8887: Is practice still on?')
+  await h.post({ From: '+18155550000', Body: 'thanks' })
+  await h.post({ From: '+12244658887', Body: 'HELP' })
+  assert.equal(h.forwarded.length, 1)
 })

@@ -2,6 +2,7 @@ import { createServerSupabase } from '@/lib/supabase/server'
 import { chicagoDateString } from '@/lib/chicago-time'
 import { ORG } from '@/config/org.config'
 import { commsQueueStatus } from '@/lib/qstash'
+import { smsReady } from '@/lib/twilio/sender'
 import { ComposeForm } from './ComposeForm'
 import { CommsHistory } from './CommsHistory'
 import { BoardCopyManager } from './BoardCopyManager'
@@ -60,6 +61,7 @@ export default async function AdminCommunicationsPage({ searchParams }: { search
             parents={parents ?? []}
             queueReady={queue.ready}
             queueMissing={queue.missing}
+            smsReady={smsReady()}
           />
         </TabsContent>
 

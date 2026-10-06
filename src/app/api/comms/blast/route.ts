@@ -9,6 +9,7 @@ import {
   QstashNotConfiguredError,
 } from '@/lib/qstash'
 import { readCredential } from '@/lib/env'
+import { smsReady } from '@/lib/twilio/sender'
 import type { CommTarget } from '@/lib/comms/recipients'
 import type { CommType } from '@/types/database'
 
@@ -18,6 +19,9 @@ export interface BlastRequestBody {
   commType: CommType
   subject?: string // required when channel includes email
   message: string
+  // The text-message version, plain text. Required when channel includes sms;
+  // the email body (message) is HTML and is not sent as a text.
+  smsMessage?: string
 }
 
 export async function POST(request: Request) {
@@ -40,6 +44,17 @@ export async function POST(request: Request) {
   }
   if (body.channel !== 'sms' && !body.subject) {
     return NextResponse.json({ error: 'Subject is required for email sends.' }, { status: 400 })
+  }
+  if (body.channel !== 'email') {
+    if (!body.smsMessage?.trim()) {
+      return NextResponse.json({ error: 'Write the text message before sending.' }, { status: 400 })
+    }
+    if (!smsReady()) {
+      return NextResponse.json(
+        { error: 'Texting is not set up on this site yet, so nothing was sent. Send by email for now.' },
+        { status: 503 }
+      )
+    }
   }
 
   // QStash calls /api/comms/blast-job back over the public internet, and that
