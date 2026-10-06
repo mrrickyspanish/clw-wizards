@@ -53,8 +53,16 @@ export function ContactPrefsForm({
           checked={smsOptIn}
           onCheckedChange={(checked) => setSmsOptIn(checked === true)}
         />
-        <Label htmlFor="smsOptIn" className="text-xs font-normal leading-relaxed text-clw-gray">
-          {SMS_CONSENT_TEXT}
+        <Label htmlFor="smsOptIn" className="text-sm font-normal leading-relaxed text-clw-gray">
+          {SMS_CONSENT_TEXT} See our{' '}
+          <a href="/sms-terms" target="_blank" className="underline">
+            SMS Terms
+          </a>{' '}
+          and{' '}
+          <a href="/privacy" target="_blank" className="underline">
+            Privacy Policy
+          </a>
+          .
         </Label>
       </div>
       <div className="flex items-center gap-3">

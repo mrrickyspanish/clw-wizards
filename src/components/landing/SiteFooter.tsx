@@ -108,6 +108,14 @@ export function SiteFooter() {
               501(c)(3) nonprofit · EIN {ORG.ein} ·{' '}
               <Link href="/terms" className="transition hover:text-clw-gold">
                 Terms &amp; Agreements
+              </Link>{' '}
+              ·{' '}
+              <Link href="/privacy" className="transition hover:text-clw-gold">
+                Privacy
+              </Link>{' '}
+              ·{' '}
+              <Link href="/sms-terms" className="transition hover:text-clw-gold">
+                SMS Terms
               </Link>
             </span>
           </p>

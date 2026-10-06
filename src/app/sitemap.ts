@@ -20,6 +20,8 @@ const PUBLIC_ROUTES: Array<{ path: string; priority: number; changeFrequency: Me
   { path: '/sponsorship/volunteer', priority: 0.55, changeFrequency: 'monthly' },
   { path: '/golf-outing', priority: 0.6, changeFrequency: 'yearly' },
   { path: '/faq', priority: 0.5, changeFrequency: 'monthly' },
+  { path: '/privacy', priority: 0.3, changeFrequency: 'yearly' },
+  { path: '/sms-terms', priority: 0.3, changeFrequency: 'yearly' },
 ]
 
 export default function sitemap(): MetadataRoute.Sitemap {

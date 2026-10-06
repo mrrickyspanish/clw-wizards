@@ -1,9 +1,12 @@
 import { createAdminSupabase } from '@/lib/supabase/admin'
 
+// Shown beside the opt-in checkbox, saved with each opt-in, and published on
+// /sms-terms. Carriers compare it with the registered use case, so the topics
+// listed here must match what the club texts about.
 export const SMS_CONSENT_TEXT =
   'By checking this box, you agree to receive SMS text messages from Crystal Lake Wizards Wrestling Club ' +
-  'about tournaments, weigh-ins, and dues reminders. Message frequency varies. Message and data rates may ' +
-  'apply. Reply STOP to opt out at any time, HELP for help.'
+  'about practice updates, tournaments, weigh-ins, and dues reminders. Message frequency varies. Message and ' +
+  'data rates may apply. Reply STOP to opt out at any time, HELP for help.'
 
 export async function handleOptIn(profileId: string) {
   const supabase = createAdminSupabase()
