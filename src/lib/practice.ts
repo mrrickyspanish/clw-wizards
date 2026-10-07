@@ -124,6 +124,20 @@ export function nextPractice(
 export type PracticeDay = { date: string; sessions: Practice[] }
 
 /**
+ * Who practices on a day, for a calendar title: "Group 1", "Groups 1 & 3",
+ * "Groups 1, 2 & 4". Groups not named "Group N" are listed as they are.
+ */
+export function practiceGroupsTitle(groups: string[]): string {
+  const unique = [...new Set(groups.map((g) => g.trim()).filter(Boolean))]
+  if (unique.length === 0) return 'Practice'
+  if (unique.length === 1) return unique[0]
+  const numbered = unique.map((g) => /^Group\s+(\S+)$/i.exec(g)?.[1])
+  const parts = numbered.every(Boolean) ? (numbered as string[]) : unique
+  const list = `${parts.slice(0, -1).join(', ')} & ${parts.at(-1)}`
+  return numbered.every(Boolean) ? `Groups ${list}` : list
+}
+
+/**
  * Every date from `from` through `to` (YYYY-MM-DD, inclusive) that has
  * practice, with that day's practices in start order. Honors each practice's
  * first and last day and any cancelled occurrence (`${practiceId}|YYYY-MM-DD`).

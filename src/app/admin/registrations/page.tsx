@@ -367,7 +367,11 @@ export default async function AdminRegistrationsPage({ searchParams }: { searchP
           const card = enrollment.usa_card_document_id
             ? documentById.get(enrollment.usa_card_document_id)
             : undefined
-          const documentReady = !season?.require_usa_card || Boolean(card?.verified)
+          // An approval without the card check already confirmed the membership,
+          // so the card counts as done (as in recipients.ts). Only while approved:
+          // re-approving still needs a verified card or a fresh override.
+          const cardClearedByClub = enrollment.status === 'approved' && Boolean(enrollment.card_override_at)
+          const documentReady = !season?.require_usa_card || Boolean(card?.verified) || cardClearedByClub
           const paymentReady =
             !season || season.dues_amount_cents === 0 || dues?.status === 'paid' || dues?.status === 'waived'
 

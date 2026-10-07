@@ -1678,6 +1678,15 @@ test('practice days honor the weekday, the season dates and cancelled days', () 
   ])
 })
 
+test('a practice day is titled by the groups training, not "Practice" twice', () => {
+  const t = practiceLib.practiceGroupsTitle
+  assert.equal(t(['Group 1']), 'Group 1')
+  assert.equal(t(['Group 1', 'Group 3']), 'Groups 1 & 3')
+  assert.equal(t(['Group 1', 'Group 2', 'Group 4', 'Group 2']), 'Groups 1, 2 & 4')
+  assert.equal(t(['Group 1', 'Elite']), 'Group 1 & Elite')
+  assert.equal(t([]), 'Practice')
+})
+
 function eventActionsHarness() {
   const writes = []
   const client = {

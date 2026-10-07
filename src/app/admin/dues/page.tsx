@@ -74,11 +74,12 @@ export default async function AdminDuesPage({ searchParams }: { searchParams: Pr
     })
     .sort((a, b) => sortKey(a).localeCompare(sortKey(b), 'en', { sensitivity: 'base' }))
 
+  // The totals follow the search, so "Smith" shows what the Smiths owe.
   // Waived rows are intentionally excluded from billed/outstanding totals —
   // they're money the club chose not to collect, not money still owed.
-  const billable = allRows.filter((d) => d.status !== 'waived')
+  const billable = rows.filter((d) => d.status !== 'waived')
   const totalBilled = billable.reduce((sum, d) => sum + d.amount_cents, 0)
-  const totalCollected = allRows.reduce((sum, d) => sum + d.amount_paid_cents, 0)
+  const totalCollected = rows.reduce((sum, d) => sum + d.amount_paid_cents, 0)
   const totalOutstanding = billable.reduce((sum, d) => sum + (d.amount_cents - d.amount_paid_cents), 0)
 
   return (
@@ -93,6 +94,15 @@ export default async function AdminDuesPage({ searchParams }: { searchParams: Pr
         </div>
         <AdminSearch initial={query} basePath="/admin/dues" placeholder="Search wrestler, parent, email…" />
       </div>
+
+      {query && (
+        <p className="mb-3 text-base text-clw-gray">
+          Totals for the {rows.length} {rows.length === 1 ? 'row' : 'rows'} matching “{query}”.{' '}
+          <Link href="/admin/dues" className="text-clw-gold hover:underline">
+            Show the whole club
+          </Link>
+        </p>
+      )}
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card className="border-clw-gold/10 bg-clw-black">

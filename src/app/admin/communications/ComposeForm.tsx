@@ -633,7 +633,7 @@ export function ComposeForm({
       <div className="space-y-2">
         <p className="text-sm text-clw-gray">
           {boardNames.length > 0
-            ? `Board copy: ${boardNames.join(', ')} each get one copy of this message. Change the list on the Board copy tab.`
+            ? `Board copy: ${boardNames.join(', ')} ${boardNames.length === 1 ? 'gets' : 'each get'} one copy of this message. Change the list on the Board copy tab.`
             : 'Nobody is on the board copy list yet. Add people on the Board copy tab.'}
         </p>
       </div>

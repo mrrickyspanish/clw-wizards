@@ -42,7 +42,7 @@ export default async function AdminCommunicationsPage({ searchParams }: { search
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-display text-clw-gold">Communications</h1>
-        <p className="text-base text-clw-gray">Compose and send an email to parents.</p>
+        <p className="text-base text-clw-gray">Send families an email or a text, and see what went out.</p>
       </div>
 
       <Tabs key={openTab} defaultValue={openTab}>

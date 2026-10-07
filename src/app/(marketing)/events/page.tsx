@@ -5,7 +5,7 @@ import { CalendarDays } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { chicagoDateString } from '@/lib/chicago-time'
-import { formatTime, practiceDays } from '@/lib/practice'
+import { formatTime, practiceDays, practiceGroupsTitle } from '@/lib/practice'
 import { sessionLine, sessionsByEvent } from '@/lib/event-sessions'
 import type { ClubEvent, EventSession, Practice, Tournament } from '@/types/database'
 import { EventsCalendar } from '@/components/events/EventsCalendar'
@@ -60,7 +60,8 @@ export default async function EventsPage() {
     return {
       id: `p-${day.date}`,
       date: day.date,
-      title: 'Practice',
+      // The badge already says Practice; the title says who trains that day.
+      title: practiceGroupsTitle(day.sessions.map((p) => p.practice_group)),
       kind: 'practice' as const,
       startTime: day.sessions[0].start_time,
       location: places.length === 1 ? places[0] : null,
