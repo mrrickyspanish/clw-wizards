@@ -139,7 +139,11 @@ async function main() {
       // whether it drew any real text.
       result.textLength = bodyText.length
       const finalPath = new URL(page.url()).pathname
-      if (['/login', '/signup', '/forgot-password'].includes(finalPath)) {
+      if (finalPath === '/signup' && bodyText.includes('Sign-ups are paused')) {
+        // While the club has sign-ups closed, /signup is a notice with a way
+        // to sign in instead of a form. Healthy means that notice drew fully.
+        result.hasContent = await page.locator('a[href="/login"]').first().isVisible()
+      } else if (['/login', '/signup', '/forgot-password'].includes(finalPath)) {
         // Auth cards are intentionally short. Assert real controls instead of
         // falsely treating a healthy 135-character login form as a blank page.
         result.hasContent = await page.locator('input[type="email"]').isVisible() &&
