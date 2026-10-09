@@ -1547,6 +1547,23 @@ test('a wrestler approved without the card check is not on the missing-card list
   assert.deepEqual(recipients.map((r) => r.id), ['p-other'])
 })
 
+test('a wrestler with a card number on file is not on the missing-card list', async () => {
+  const lib = recipientsHarness({
+    athletes: [
+      { id: 'numbered', parent_id: 'p-numbered', first_name: 'Has', last_name: 'Number', birth_certificate_on_file: false, usa_wrestling_card_number: '1234567890' },
+      { id: 'blank', parent_id: 'p-blank', first_name: 'Blank', last_name: 'Number', birth_certificate_on_file: false, usa_wrestling_card_number: '  ' },
+      { id: 'none', parent_id: 'p-none', first_name: 'No', last_name: 'Number', birth_certificate_on_file: false, usa_wrestling_card_number: null },
+    ],
+    docs: [],
+    enrollments: [],
+  })
+  const recipients = await lib.resolveRecipients({ type: 'missing_document', documents: ['usa_wrestling_card'] })
+  assert.deepEqual(recipients.map((r) => r.id).sort(), ['p-blank', 'p-none'])
+  // A card number says nothing about the birth certificate.
+  const bc = await lib.resolveRecipients({ type: 'missing_document', documents: ['birth_certificate'] })
+  assert.deepEqual(bc.map((r) => r.id).sort(), ['p-blank', 'p-none', 'p-numbered'])
+})
+
 // --- Texting --------------------------------------------------------------
 const smsFormat = load('src/lib/twilio/format.ts', {})
 

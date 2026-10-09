@@ -99,12 +99,19 @@ export async function resolveRecipients(target: CommTarget): Promise<Profile[]> 
 // columns are never filled in, so checking them matched every family. A birth
 // certificate counts if one was uploaded or staff marked it on file; a USA
 // Wrestling card counts if it was verified (those carry over), uploaded since
-// the newest season opened (the same rule registration uses), or an admin
+// the newest season opened (the same rule registration uses), an admin
 // approved this season's registration without the card check -- the club has
-// already confirmed that wrestler's membership another way.
+// already confirmed that wrestler's membership another way -- or the
+// wrestler's card number is on file, which is how the club tracks cards.
+// (Every number on file was entered this season; a number carried into next
+// season would also count, so the roster work planned for then should tie
+// card numbers to a season.)
 async function athletesMissingDocuments(supabase: AdminClient, documents: MissingDocument[]): Promise<WrestlerRow[]> {
   const [{ data: athletes }, { data: docs }, { data: season }] = await Promise.all([
-    supabase.from('athletes').select('id, parent_id, first_name, last_name, birth_certificate_on_file').eq('active', true),
+    supabase
+      .from('athletes')
+      .select('id, parent_id, first_name, last_name, birth_certificate_on_file, usa_wrestling_card_number')
+      .eq('active', true),
     supabase.from('athlete_documents').select('athlete_id, doc_type, verified, uploaded_at'),
     supabase
       .from('season_registrations')
@@ -121,6 +128,9 @@ async function athletesMissingDocuments(supabase: AdminClient, documents: Missin
   const hasCard = new Set<string>()
   for (const enrollment of enrollments ?? []) {
     if (enrollment.card_override_at) hasCard.add(enrollment.athlete_id)
+  }
+  for (const athlete of athletes ?? []) {
+    if (athlete.usa_wrestling_card_number?.trim()) hasCard.add(athlete.id)
   }
   for (const doc of docs ?? []) {
     if (doc.doc_type === 'birth_certificate') hasBirthCertificate.add(doc.athlete_id)
