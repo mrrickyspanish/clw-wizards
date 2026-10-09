@@ -445,7 +445,9 @@ export default async function AdminRegistrationsPage({ searchParams }: { searchP
                       {!season?.require_usa_card
                         ? 'Not required'
                         : !card
-                          ? 'Current-season card missing'
+                          ? athlete?.usa_wrestling_card_number?.trim()
+                            ? `No upload · Card #${athlete.usa_wrestling_card_number.trim()} on file`
+                            : 'Current-season card missing'
                           : card.verified
                             ? `Verified · ${card.file_name}`
                             : `Awaiting verification · ${card.file_name}`}

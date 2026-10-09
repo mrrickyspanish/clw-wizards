@@ -390,17 +390,28 @@ export default async function RegistrationPage({
                             <FileCheck2 className="h-4 w-4 text-clw-gold-ink" /> USA Wrestling card
                           </p>
                           <p className="mt-1 text-sm text-clw-gray">
+                            {/* A registered wrestler has no upload button (canEditCard), so
+                                never tell that family to upload: the club confirmed the
+                                card, has the number, or will check it. */}
                             {!season.require_usa_card
                               ? 'Not required for this season'
-                              : !isOpen && !card
-                                ? `Upload available ${formatDate(season.registration_open_date)}`
-                                : !card
-                                  ? 'Upload the card to register'
-                                  : card.verified
-                                    ? 'Verified by the club, carries over to this season'
-                                    : enrollment?.status === 'submitted'
-                                      ? 'Submitted with this registration, awaiting review'
-                                      : 'Uploaded, awaiting club review'}
+                              : enrollment?.status === 'approved' && enrollment.card_override_at && !card?.verified
+                                ? 'Confirmed by the club'
+                                : !card && enrollment && !resubmitting
+                                  ? athlete.usa_wrestling_card_number?.trim()
+                                    ? `Card #${athlete.usa_wrestling_card_number.trim()} on file`
+                                    : 'The club will confirm the card'
+                                  : isUpcoming && !card
+                                    ? `Upload available ${formatDate(season.registration_open_date)}`
+                                    : !card
+                                      ? isOpen
+                                        ? 'Upload the card to register'
+                                        : 'Registration is closed'
+                                      : card.verified
+                                        ? 'Verified by the club, carries over to this season'
+                                        : enrollment?.status === 'submitted'
+                                          ? 'Submitted with this registration, awaiting review'
+                                          : 'Uploaded, awaiting club review'}
                           </p>
                         </div>
                         {season.require_usa_card && canEditCard && (
@@ -474,7 +485,9 @@ export default async function RegistrationPage({
                       <div>
                         <p className="font-medium text-blue-200">Submitted for club review</p>
                         <p className="mt-1 text-sm text-blue-100/70">
-                          The submitted card is locked while the club reviews it. Payment can still be completed above.
+                          {card
+                            ? 'The submitted card is locked while the club reviews it. Payment can still be completed above.'
+                            : 'The club is reviewing this registration. Payment can still be completed above.'}
                         </p>
                       </div>
                     </div>

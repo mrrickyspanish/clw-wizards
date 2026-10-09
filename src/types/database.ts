@@ -451,6 +451,24 @@ export type ParentAuthIncident = {
   message_id: string | null; lease_until: string | null
 }
 
+// One family or wrestler removed from the site, written by database triggers
+// (see supabase/migrations/20261009000001_deletion_log.sql). Admin-read only.
+export type DeletionLogEntry = {
+  id: string
+  deleted_at: string
+  kind: 'family' | 'wrestler'
+  profile_id: string | null
+  family_name: string | null
+  family_email: string | null
+  wrestlers: { name: string; dob: string | null; registered: boolean; status: string | null }[]
+  had_registration: boolean
+  deleted_by: string | null
+  deleted_by_name: string | null
+  // 'site', 'admin', 'parent', or the database role behind a dashboard/SQL removal.
+  via: string
+  note: string | null
+}
+
 export type Database = {
   public: {
     Tables: {
@@ -584,6 +602,12 @@ export type Database = {
         Row: EventSession
         Insert: Partial<EventSession>
         Update: Partial<EventSession>
+        Relationships: []
+      }
+      deletion_log: {
+        Row: DeletionLogEntry
+        Insert: Partial<DeletionLogEntry>
+        Update: Partial<DeletionLogEntry>
         Relationships: []
       }
       practice_cancellations: {

@@ -352,6 +352,27 @@ export async function deleteFamilyPermanently(
   const { error: deleteError } = await admin.auth.admin.deleteUser(parentId)
   if (deleteError) return { ok: false, error: deleteError.message }
 
+  // The database logged the removal (deletion_log) but cannot see who ran it:
+  // this runs as the service role. Name the admin on that entry. A failure
+  // here never fails a deletion that already happened.
+  try {
+    const supabase = await createServerSupabase()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user) {
+      const { data: me } = await supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle()
+      await admin
+        .from('deletion_log')
+        .update({ deleted_by: user.id, deleted_by_name: me?.full_name ?? user.email ?? null, via: 'site' })
+        .eq('profile_id', parentId)
+        .is('deleted_by', null)
+        .gte('deleted_at', new Date(Date.now() - 10 * 60_000).toISOString())
+    }
+  } catch (err) {
+    console.error('Could not record who deleted the family:', err)
+  }
+
   revalidatePath('/admin/families')
   revalidatePath('/admin/registrations')
   revalidatePath('/admin/dues')
