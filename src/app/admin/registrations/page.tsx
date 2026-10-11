@@ -231,12 +231,12 @@ export default async function AdminRegistrationsPage({ searchParams }: { searchP
                 href={rosterSheetUrl()!}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-sm text-clw-gold hover:text-clw-gold-l"
+                className="inline-flex min-h-11 items-center gap-1 text-sm text-clw-gold hover:text-clw-gold-l"
               >
                 Club roster sheet <ExternalLink className="h-3.5 w-3.5" />
               </a>
             )}
-            <Link href="/admin/communications" className="text-sm text-clw-gold hover:text-clw-gold-l">
+            <Link href="/admin/communications" className="inline-flex min-h-11 items-center text-sm text-clw-gold hover:text-clw-gold-l">
               Send registration reminder
             </Link>
           </div>
@@ -325,7 +325,7 @@ export default async function AdminRegistrationsPage({ searchParams }: { searchP
                   </div>
                   <Link
                     href={`/admin/families/${athlete.parent_id}`}
-                    className="text-sm text-clw-gold hover:text-clw-gold-l"
+                    className="inline-flex min-h-11 shrink-0 items-center text-sm text-clw-gold hover:text-clw-gold-l"
                   >
                     Open family
                   </Link>
@@ -422,14 +422,14 @@ export default async function AdminRegistrationsPage({ searchParams }: { searchP
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-clw-gold/10 bg-clw-black-2 p-3">
                   <div>
                     <p className="text-sm font-medium text-clw-white">Family record</p>
-                    <p className="text-xs text-clw-gray">These are the same parent and wrestler records used in Families.</p>
+                    <p className="text-sm text-clw-gray">These are the same parent and wrestler records used in Families.</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-1">
                     {parent && <ParentDialog parent={parent} familyId={parent.id} />}
                     {athlete && <AthleteDialog athlete={athlete} />}
                     <Link
                       href={`/admin/families/${enrollment.parent_id}`}
-                      className="px-2 text-sm text-clw-gold hover:text-clw-gold-l"
+                      className="inline-flex min-h-11 items-center px-2 text-sm text-clw-gold hover:text-clw-gold-l"
                     >
                       Open family
                     </Link>

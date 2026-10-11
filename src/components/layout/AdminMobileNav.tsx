@@ -112,7 +112,7 @@ export function AdminMobileNav({
             <div className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-clw-black-2 px-4 py-3">
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-clw-white">{userName ?? 'Admin user'}</p>
-                <p className="text-xs capitalize text-clw-gray">{role ?? 'admin'}</p>
+                <p className="text-sm capitalize text-clw-gray">{role ?? 'admin'}</p>
               </div>
               <ThemeToggle />
             </div>
@@ -128,9 +128,9 @@ export function AdminMobileNav({
         </SheetContent>
       </Sheet>
 
-      <Link href="/admin" className="font-display text-2xl tracking-wide text-clw-gold">
+      <Link href="/admin" className="inline-flex min-h-11 items-center font-display text-2xl tracking-wide text-clw-gold">
         {ORG.shortName}
-        <span className="ml-2 font-body text-xs uppercase tracking-[0.2em] text-clw-gray">Admin</span>
+        <span className="ml-2 font-body text-sm uppercase tracking-[0.2em] text-clw-gray">Admin</span>
       </Link>
 
       <div className="h-10 w-10" aria-hidden />

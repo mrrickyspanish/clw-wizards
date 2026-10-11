@@ -35,8 +35,8 @@ function CharCounter({ value, limit }: { value: string; limit: { min: number; ma
   const color = over || under ? 'text-red-400' : near ? 'text-clw-gold' : 'text-clw-gray/60'
   return (
     <div className="flex items-center justify-end gap-3">
-      {under && <span className="text-xs text-red-400">At least {limit.min} characters</span>}
-      <span className={`text-xs tabular-nums ${color}`}>
+      {under && <span className="text-sm text-red-400">At least {limit.min} characters</span>}
+      <span className={`text-sm tabular-nums ${color}`}>
         {len} / {limit.max}
       </span>
     </div>
@@ -138,7 +138,7 @@ export function ContentEditor({ initial }: { initial: Record<string, string> }) 
                       <button
                         type="button"
                         onClick={() => setValue(field.key, CONTENT_DEFAULTS[field.key])}
-                        className="inline-flex items-center gap-1 text-xs text-clw-gray hover:text-clw-gold"
+                        className="inline-flex items-center gap-1 text-sm text-clw-gray hover:text-clw-gold"
                       >
                         <RotateCcw className="h-3 w-3" /> Reset to default
                       </button>

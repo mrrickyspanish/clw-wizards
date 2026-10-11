@@ -80,13 +80,13 @@ export default async function AdminTournamentsPage() {
                   <TableCell className="font-medium text-clw-white">
                     {t.name}
                     {t.competition_level && (
-                      <span className="block text-xs font-normal text-clw-gold/80">{t.competition_level}</span>
+                      <span className="block text-sm font-normal text-clw-gold/80">{t.competition_level}</span>
                     )}
                   </TableCell>
                   <TableCell className="text-clw-gray">{formatDate(t.date)}</TableCell>
                   <TableCell className="text-clw-gray">
                     {t.location}
-                    <span className="block text-xs text-clw-gray/70">
+                    <span className="block text-sm text-clw-gray/70">
                       {t.city}, {t.state}
                     </span>
                   </TableCell>

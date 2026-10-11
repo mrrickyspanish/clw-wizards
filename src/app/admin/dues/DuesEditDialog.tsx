@@ -156,7 +156,7 @@ export function DuesEditDialog({
             </div>
           </div>
 
-          <p className="text-xs leading-relaxed text-clw-gray">
+          <p className="text-sm leading-relaxed text-clw-gray">
             Recorded paid can also be used for cash, check, or another offline payment. Paid and partial statuses are
             calculated from these two amounts.
           </p>
@@ -183,7 +183,7 @@ export function DuesEditDialog({
                 <SelectItem value="waived">Waive balance</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs leading-relaxed text-clw-gray">
+            <p className="text-sm leading-relaxed text-clw-gray">
               Standard becomes pending, partial, or paid automatically based on the recorded payment.
             </p>
           </div>

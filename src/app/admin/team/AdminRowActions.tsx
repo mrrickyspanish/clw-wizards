@@ -38,7 +38,7 @@ export function AdminRowActions({
   // A full admin can't act on their own row — that's how we prevent someone
   // locking themselves out or demoting the last full admin by accident.
   if (isSelf) {
-    return <span className="text-xs text-clw-gray/60">You</span>
+    return <span className="text-sm text-clw-gray/60">You</span>
   }
 
   async function run(fn: () => Promise<{ ok: boolean; error?: string }>) {
@@ -102,7 +102,7 @@ export function AdminRowActions({
           </Button>
         )}
       </div>
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-sm text-red-400">{error}</p>}
     </div>
   )
 }

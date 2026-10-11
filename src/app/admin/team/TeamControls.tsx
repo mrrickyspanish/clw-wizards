@@ -77,7 +77,7 @@ export function TeamControls({ invites }: { invites: AdminInvite[] }) {
         </Button>
       </div>
 
-      <p className="mb-4 text-xs text-clw-gray/70">
+      <p className="mb-4 text-sm text-clw-gray/70">
         {scope === 'full'
           ? 'Full access can also edit the public website (copy, photos, FAQ).'
           : 'Limited access covers everything except editing the public website.'}

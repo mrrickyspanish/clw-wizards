@@ -222,14 +222,14 @@ export default async function AdminPracticesPage() {
                             Hidden
                           </Badge>
                         )}
-                        {season && <span className="mt-1 block text-xs text-clw-gold">{season.season_label}</span>}
+                        {season && <span className="mt-1 block text-sm text-clw-gold">{season.season_label}</span>}
                       </TableCell>
                       <TableCell className="text-clw-gray">{EVENT_TYPE_LABELS[event.event_type]}</TableCell>
                       <TableCell className="text-clw-gray">
                         {season ? (
                           <>
                             <span className="block">Opens {shortDate(season.registration_open_date)}</span>
-                            <span className="block text-xs text-clw-gray/70">Closes {shortDate(season.registration_close_date)}</span>
+                            <span className="block text-sm text-clw-gray/70">Closes {shortDate(season.registration_close_date)}</span>
                           </>
                         ) : (
                           <>

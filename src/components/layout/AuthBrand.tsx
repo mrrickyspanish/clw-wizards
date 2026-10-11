@@ -8,7 +8,7 @@ export function AuthBrand() {
   return (
     <Link href="/" className="mb-8 block text-center">
       <span className="font-display text-4xl tracking-wide text-clw-gold">{ORG.shortName}</span>
-      <span className="mt-1 block font-cond text-xs uppercase tracking-[0.3em] text-clw-gray">
+      <span className="mt-1 block font-cond text-sm uppercase tracking-[0.3em] text-clw-gray">
         Wrestling Club
       </span>
     </Link>

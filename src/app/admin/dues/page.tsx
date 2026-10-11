@@ -174,7 +174,7 @@ export default async function AdminDuesPage({ searchParams }: { searchParams: Pr
                       >
                         {parent?.full_name ?? 'Unknown parent'}
                       </Link>
-                      <span className="block text-xs text-clw-gray/70">{parent?.email ?? '—'}</span>
+                      <span className="block text-sm text-clw-gray/70">{parent?.email ?? '—'}</span>
                     </TableCell>
                     <TableCell className="text-clw-gray">{d.season}</TableCell>
                     <TableCell className="text-clw-white">{money(d.amount_cents)}</TableCell>

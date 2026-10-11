@@ -247,7 +247,7 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
               value={weighInLocation}
               onChange={(e) => setWeighInLocation(e.target.value)}
             />
-            <p className="text-xs text-clw-gray">
+            <p className="text-sm text-clw-gray">
               Sometimes the club facility, sometimes the event site. Shows as a linked weigh-in on parents&apos; calendars.
             </p>
           </div>
@@ -295,7 +295,7 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
 
           <div className="space-y-2">
             <Label>Eligible practice groups</Label>
-            <p className="text-xs text-clw-gray">Leave all unchecked to make it open to every group.</p>
+            <p className="text-sm text-clw-gray">Leave all unchecked to make it open to every group.</p>
             <div className="grid grid-cols-2 gap-2">
               {ORG.practiceGroups.map((group) => (
                 <label key={group} className="flex items-center gap-2 text-sm">
@@ -323,7 +323,7 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
               <option value="Competitive" />
               <option value="Elite / Invite-only" />
             </datalist>
-            <p className="text-xs text-clw-gray">
+            <p className="text-sm text-clw-gray">
               A difficulty grade so parents can judge readiness — every eligible group can still sign up.
             </p>
           </div>
@@ -347,7 +347,7 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
                   <img src={imageUrl} alt="Flyer preview" className="h-10 w-10 rounded object-cover" />
                   <button
                     type="button"
-                    className="text-xs text-clw-gray underline hover:text-clw-gold"
+                    className="text-sm text-clw-gray underline hover:text-clw-gold"
                     onClick={() => setImageUrl('')}
                   >
                     Remove
@@ -363,7 +363,7 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
             />
-            <p className="text-xs text-clw-gray">Upload a flyer or paste a URL — shown as the event&apos;s homepage preview.</p>
+            <p className="text-sm text-clw-gray">Upload a flyer or paste a URL — shown as the event&apos;s homepage preview.</p>
           </div>
 
           <div className="space-y-2">

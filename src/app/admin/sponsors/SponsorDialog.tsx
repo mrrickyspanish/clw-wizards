@@ -253,7 +253,7 @@ export function SponsorDialog({ sponsor, tiers }: { sponsor?: Sponsor; tiers: Sp
                   <img src={logoUrl} alt="Logo preview" className="h-10 w-10 rounded object-contain" />
                   <button
                     type="button"
-                    className="text-xs text-clw-gray underline hover:text-clw-gold"
+                    className="text-sm text-clw-gray underline hover:text-clw-gold"
                     onClick={() => setLogoUrl('')}
                   >
                     Remove
@@ -269,7 +269,7 @@ export function SponsorDialog({ sponsor, tiers }: { sponsor?: Sponsor; tiers: Sp
               value={logoUrl}
               onChange={(e) => setLogoUrl(e.target.value)}
             />
-            <p className="text-xs text-clw-gray">Shown in the sponsor marquee. Without a logo, the name is shown instead.</p>
+            <p className="text-sm text-clw-gray">Shown in the sponsor marquee. Without a logo, the name is shown instead.</p>
             <label className="flex items-center gap-2 text-sm text-clw-white">
               <Checkbox checked={logoDarkBackdrop} onCheckedChange={(c) => setLogoDarkBackdrop(c === true)} />
               Logo needs a dark background (white or light-colored logo)

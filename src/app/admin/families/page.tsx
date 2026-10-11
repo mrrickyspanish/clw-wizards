@@ -145,10 +145,10 @@ export default async function AdminFamiliesPage({
                 return (
                   <TableRow key={family.id} className="border-clw-gold/10">
                     <TableCell>
-                      <Link href={`/admin/families/${family.id}`} className="font-medium text-clw-white hover:text-clw-gold">
+                      <Link href={`/admin/families/${family.id}`} className="inline-block py-1 font-medium text-clw-white hover:text-clw-gold">
                         {family.full_name ?? 'Unnamed parent'}
                       </Link>
-                      <span className="block text-xs text-clw-gray/70">{family.email ?? '—'}</span>
+                      <span className="block text-sm text-clw-gray/70">{family.email ?? '—'}</span>
                     </TableCell>
                     <TableCell className="text-clw-gray">{family.phone ?? '—'}</TableCell>
                     <TableCell className="text-clw-gray">
@@ -176,7 +176,7 @@ export default async function AdminFamiliesPage({
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Link href={`/admin/families/${family.id}`} className="text-clw-gray hover:text-clw-gold">
+                      <Link href={`/admin/families/${family.id}`} className="-m-2 inline-flex h-11 w-11 items-center justify-center text-clw-gray hover:text-clw-gold">
                         <ChevronRight className="h-4 w-4" />
                         <span className="sr-only">View {family.full_name}</span>
                       </Link>
@@ -198,8 +198,8 @@ function FilterLink({ href, active, children }: { href: string; active: boolean;
       href={href}
       className={
         active
-          ? 'rounded-full border border-clw-gold/40 bg-clw-gold/10 px-3 py-1 text-sm text-clw-gold'
-          : 'rounded-full border border-clw-gold/10 px-3 py-1 text-sm text-clw-gray hover:text-clw-gold'
+          ? 'inline-flex min-h-11 items-center rounded-full border border-clw-gold/40 bg-clw-gold/10 px-4 text-sm text-clw-gold'
+          : 'inline-flex min-h-11 items-center rounded-full border border-clw-gold/10 px-4 text-sm text-clw-gray hover:text-clw-gold'
       }
     >
       {children}
@@ -256,7 +256,9 @@ function RemovedList({ entries }: { entries: DeletionLogEntry[] }) {
               : 'No wrestlers on the account'}
           </p>
           <p className="mt-1 text-sm text-clw-gray">
-            By {entry.deleted_by_name ?? 'unknown'} · {VIA_LABELS[entry.via] ?? 'Outside the site (Supabase dashboard or SQL)'}
+            {entry.via === 'unknown'
+              ? 'Who removed it was not recorded.'
+              : `By ${entry.deleted_by_name ?? 'unknown'} · ${VIA_LABELS[entry.via] ?? 'Outside the site (Supabase dashboard or SQL)'}`}
           </p>
           {entry.note && <p className="mt-1 text-sm text-clw-gray/70">{entry.note}</p>}
         </li>

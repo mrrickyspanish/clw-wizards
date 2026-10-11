@@ -100,7 +100,7 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
     <div>
       <Link
         href="/admin/families"
-        className="mb-4 inline-flex items-center gap-1 text-sm text-clw-gray hover:text-clw-gold"
+        className="mb-4 inline-flex min-h-11 items-center gap-1 text-base text-clw-gray hover:text-clw-gold"
       >
         <ArrowLeft className="h-4 w-4" /> Back to families
       </Link>
@@ -206,7 +206,7 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
                   <CardTitle className="text-clw-white">
                     {athlete.first_name} {athlete.last_name}
                   </CardTitle>
-                  <p className="mt-1 text-xs text-clw-gray">Born {formatDate(athlete.date_of_birth)}</p>
+                  <p className="mt-1 text-sm text-clw-gray">Born {formatDate(athlete.date_of_birth)}</p>
                 </div>
                 <Badge
                   variant="outline"
