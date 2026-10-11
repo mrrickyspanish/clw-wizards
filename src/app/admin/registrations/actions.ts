@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { Resend } from 'resend'
 import { z } from 'zod'
+import { registrationCard } from '@/lib/registration-card'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { createAdminSupabase } from '@/lib/supabase/admin'
@@ -134,19 +135,23 @@ export async function reviewSeasonEnrollment(values: z.input<typeof reviewSchema
     return { ok: false, error: 'Approved registrations are locked. Contact a full administrator for a manual correction.' }
   }
 
-  const [{ data: season }, { data: athlete }, { data: parent }, { data: dues }, { data: card }] = await Promise.all([
+  const [{ data: season }, { data: athlete }, { data: parent }, { data: dues }, { data: athleteCards }] = await Promise.all([
     admin.from('season_registrations').select('*').eq('id', enrollment.season_registration_id).single(),
     admin.from('athletes').select('first_name, last_name').eq('id', enrollment.athlete_id).single(),
     admin.from('profiles').select('full_name, email').eq('id', enrollment.parent_id).single(),
     enrollment.dues_payment_id
       ? admin.from('dues_payments').select('status').eq('id', enrollment.dues_payment_id).single()
       : Promise.resolve({ data: null, error: null }),
-    enrollment.usa_card_document_id
-      ? admin.from('athlete_documents').select('id, verified').eq('id', enrollment.usa_card_document_id).single()
-      : Promise.resolve({ data: null, error: null }),
+    admin
+      .from('athlete_documents')
+      .select('id, athlete_id, verified, uploaded_at')
+      .eq('athlete_id', enrollment.athlete_id)
+      .eq('doc_type', 'usa_wrestling_card'),
   ])
 
   if (!season || !athlete) return { ok: false, error: 'Registration details are incomplete.' }
+  // Same card the Registrations page shows: the bound one, else this season's newest upload.
+  const card = registrationCard(enrollment.usa_card_document_id, athleteCards ?? [], season.registration_open_date)
 
   const overrideCard = parsed.data.status === 'approved' && parsed.data.overrideCard === true
 
@@ -189,6 +194,8 @@ export async function reviewSeasonEnrollment(values: z.input<typeof reviewSchema
       admin_note: parsed.data.note || null,
       reviewed_by: auth.userId,
       reviewed_at: reviewedAt,
+      // Record which card an approval was based on, for an upload that was never bound.
+      ...(parsed.data.status === 'approved' && card && !enrollment.usa_card_document_id ? { usa_card_document_id: card.id } : {}),
       ...(overrideCard
         ? { card_override_by: auth.userId, card_override_at: reviewedAt, card_override_note: parsed.data.overrideNote || null }
         : {}),

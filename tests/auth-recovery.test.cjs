@@ -850,17 +850,18 @@ test('family setup skips a child already on file under different punctuation', a
 // Registrations: an admin may approve without the USA Wrestling card check.
 // The override is recorded with who and when; the note is optional; dues and
 // the waiver are still required.
-function reviewHarness({ card = null, duesStatus = 'paid', signed = true } = {}) {
+function reviewHarness({ card = null, duesStatus = 'paid', signed = true, bound = true } = {}) {
   const updates = []
   const tableData = {
-    season_enrollments: { id: 'enr-1', status: 'submitted', season_registration_id: 'season-1', athlete_id: 'ath-1', parent_id: 'par-1', dues_payment_id: 'dues-1', usa_card_document_id: card ? 'card-1' : null },
-    season_registrations: { id: 'season-1', require_usa_card: true, dues_amount_cents: 30000, season_label: '26-27' },
+    season_enrollments: { id: 'enr-1', status: 'submitted', season_registration_id: 'season-1', athlete_id: 'ath-1', parent_id: 'par-1', dues_payment_id: 'dues-1', usa_card_document_id: card && bound ? 'card-1' : null },
+    season_registrations: { id: 'season-1', require_usa_card: true, dues_amount_cents: 30000, season_label: '26-27', registration_open_date: '2026-08-01' },
     athletes: { first_name: 'Sam', last_name: 'Ortiz' },
     profiles: { full_name: 'Pat Ortiz', email: null },
     dues_payments: { status: duesStatus },
-    athlete_documents: card,
   }
   const listData = {
+    // The wrestler's USA cards (the approval looks them up by wrestler).
+    athlete_documents: card ? [{ id: 'card-1', athlete_id: 'ath-1', uploaded_at: '2026-10-09T19:20:00Z', ...card }] : [],
     disclosures: [{ id: 'waiver', title: 'Program waiver' }],
     disclosure_acceptances: signed ? [{ disclosure_id: 'waiver' }] : [],
   }
@@ -884,6 +885,7 @@ function reviewHarness({ card = null, duesStatus = 'paid', signed = true } = {})
     '@/lib/supabase/server': { createServerSupabase: async () => server },
     '@/lib/supabase/admin': { createAdminSupabase: () => ({ from: chain }) },
     '@/config/org.config': { ORG: { domain: 'example.org', shortName: 'CLW', name: 'Club' } },
+    '@/lib/registration-card': load('src/lib/registration-card.ts', {}),
   })
   return { actions, updates }
 }
@@ -1881,4 +1883,31 @@ test('a failing payment notice never fails the payment', async () => {
   const res = await h.post()
   assert.equal(res.status, 200)
   assert.equal(h.tables.dues_payments[0].status, 'paid')
+})
+
+test('a card uploaded after the registration existed can be verified and approved, and is attached on approval', async () => {
+  const unverified = reviewHarness({ card: { verified: false }, bound: false })
+  const r1 = await unverified.actions.reviewSeasonEnrollment({ enrollmentId: '11111111-1111-4111-a111-111111111111', status: 'approved' })
+  assert.equal(r1.ok, false)
+  assert.match(r1.error, /Verify the current-season USA Wrestling card/)
+
+  const verified = reviewHarness({ card: { verified: true }, bound: false })
+  const r2 = await verified.actions.reviewSeasonEnrollment({ enrollmentId: '11111111-1111-4111-a111-111111111111', status: 'approved' })
+  assert.equal(r2.ok, true)
+  const { values } = verified.updates.find((u) => u.table === 'season_enrollments')
+  assert.equal(values.usa_card_document_id, 'card-1')
+  assert.equal(values.card_override_at, undefined)
+})
+
+test('registrationCard: the bound card, else the newest upload this season, else a verified older card', () => {
+  const { registrationCard } = load('src/lib/registration-card.ts', {})
+  const old = { id: 'old', athlete_id: 'a', verified: false, uploaded_at: '2026-03-01T00:00:00Z' }
+  const oldVerified = { ...old, id: 'oldv', verified: true }
+  const fresh = { id: 'fresh', athlete_id: 'a', verified: false, uploaded_at: '2026-10-09T00:00:00Z' }
+  const fresher = { ...fresh, id: 'fresher', uploaded_at: '2026-10-10T00:00:00Z' }
+  assert.equal(registrationCard('fresh', [fresh, fresher], '2026-08-01').id, 'fresh')
+  assert.equal(registrationCard(null, [old, fresh, fresher], '2026-08-01').id, 'fresher')
+  assert.equal(registrationCard(null, [old], '2026-08-01'), undefined)
+  assert.equal(registrationCard(null, [oldVerified], '2026-08-01').id, 'oldv')
+  assert.equal(registrationCard('gone', [fresh], '2026-08-01').id, 'fresh')
 })

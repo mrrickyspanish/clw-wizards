@@ -5,6 +5,7 @@ import { createAdminSupabase } from '@/lib/supabase/admin'
 import { formatCents } from '@/lib/format/money'
 import { WRESTLER_SOURCE_LABELS, wrestlerSource } from '@/lib/registration-source'
 import { matchesSearch } from '@/lib/search'
+import { registrationCard } from '@/lib/registration-card'
 import type {
   Athlete,
   AthleteDocument,
@@ -71,7 +72,6 @@ export default async function AdminRegistrationsPage({ searchParams }: { searchP
   const athleteIds = [...new Set(enrollments.map((row) => row.athlete_id))]
   const parentIds = [...new Set(enrollments.map((row) => row.parent_id))]
   const duesIds = [...new Set(enrollments.map((row) => row.dues_payment_id).filter(Boolean))] as string[]
-  const documentIds = [...new Set(enrollments.map((row) => row.usa_card_document_id).filter(Boolean))] as string[]
 
   const [{ data: seasonData }, { data: athleteData }, { data: parentData }, { data: duesData }, { data: documentData }] =
     await Promise.all([
@@ -87,8 +87,10 @@ export default async function AdminRegistrationsPage({ searchParams }: { searchP
       duesIds.length
         ? supabase.from('dues_payments').select('*').in('id', duesIds)
         : Promise.resolve({ data: [] as DuesPayment[] }),
-      documentIds.length
-        ? supabase.from('athlete_documents').select('*').in('id', documentIds)
+      // Every USA card for these wrestlers, not only the ones bound to a
+      // registration: see registrationCard.
+      athleteIds.length
+        ? supabase.from('athlete_documents').select('*').eq('doc_type', 'usa_wrestling_card').in('athlete_id', athleteIds)
         : Promise.resolve({ data: [] as AthleteDocument[] }),
     ])
 
@@ -176,7 +178,10 @@ export default async function AdminRegistrationsPage({ searchParams }: { searchP
     [...((parentData ?? []) as Profile[]), ...((notRegisteredParentData ?? []) as Profile[])].map((parent) => [parent.id, parent])
   )
   const duesById = new Map(((duesData ?? []) as DuesPayment[]).map((dues) => [dues.id, dues]))
-  const documentById = new Map(((documentData ?? []) as AthleteDocument[]).map((document) => [document.id, document]))
+  const cardsByAthlete = new Map<string, AthleteDocument[]>()
+  for (const document of (documentData ?? []) as AthleteDocument[]) {
+    cardsByAthlete.set(document.athlete_id, [...(cardsByAthlete.get(document.athlete_id) ?? []), document])
+  }
 
   const submittedCount = enrollments.filter((row) => row.status === 'submitted').length
   const attentionCount = enrollments.filter((row) => row.status === 'changes_requested').length
@@ -364,9 +369,11 @@ export default async function AdminRegistrationsPage({ searchParams }: { searchP
           const athlete = athleteById.get(enrollment.athlete_id)
           const parent = parentById.get(enrollment.parent_id)
           const dues = enrollment.dues_payment_id ? duesById.get(enrollment.dues_payment_id) : undefined
-          const card = enrollment.usa_card_document_id
-            ? documentById.get(enrollment.usa_card_document_id)
-            : undefined
+          const card = registrationCard(
+            enrollment.usa_card_document_id,
+            cardsByAthlete.get(enrollment.athlete_id) ?? [],
+            season?.registration_open_date
+          )
           // An approval without the card check already confirmed the membership,
           // so the card counts as done (as in recipients.ts). Only while approved:
           // re-approving still needs a verified card or a fresh override.
