@@ -395,6 +395,15 @@ export type BoardCopyRecipient = {
   created_at: string
 }
 
+// Who gets an email each time money moves through Stripe (dues, donations,
+// sponsorships, refunds, disputes). Managed in Admin -> Communications.
+export type PaymentNoticeRecipient = {
+  id: string
+  name: string
+  email: string
+  created_at: string
+}
+
 export type FamilyInvite = {
   id: string
   code: string
@@ -602,6 +611,12 @@ export type Database = {
         Row: EventSession
         Insert: Partial<EventSession>
         Update: Partial<EventSession>
+        Relationships: []
+      }
+      payment_notice_recipients: {
+        Row: PaymentNoticeRecipient
+        Insert: Partial<PaymentNoticeRecipient>
+        Update: Partial<PaymentNoticeRecipient>
         Relationships: []
       }
       deletion_log: {

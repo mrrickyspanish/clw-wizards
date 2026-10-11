@@ -100,3 +100,31 @@ export async function removeBoardRecipient(id: string): Promise<BoardActionResul
   revalidatePath('/admin/communications')
   return { ok: true }
 }
+
+/** Add someone to the payment notice list: they get an email each time money moves through Stripe. */
+export async function addPaymentNoticeRecipient(values: z.input<typeof boardSchema>): Promise<BoardActionResult> {
+  const auth = await requireAdmin()
+  if (!auth.ok) return auth
+  const parsed = boardSchema.safeParse(values)
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
+
+  const supabase = await createServerSupabase()
+  const { error } = await supabase.from('payment_notice_recipients').insert(parsed.data)
+  if (error) {
+    return { ok: false, error: error.code === '23505' ? 'That email is already on the payment notice list.' : error.message }
+  }
+  revalidatePath('/admin/communications')
+  return { ok: true }
+}
+
+export async function removePaymentNoticeRecipient(id: string): Promise<BoardActionResult> {
+  const auth = await requireAdmin()
+  if (!auth.ok) return auth
+  if (!z.string().uuid().safeParse(id).success) return { ok: false, error: 'Invalid person' }
+
+  const supabase = await createServerSupabase()
+  const { error } = await supabase.from('payment_notice_recipients').delete().eq('id', id)
+  if (error) return { ok: false, error: error.message }
+  revalidatePath('/admin/communications')
+  return { ok: true }
+}

@@ -1748,3 +1748,137 @@ test('a split event refuses a division in two sessions, or only one session', as
   const one = await eventActionsHarness().actions.createEvent(splitEvent([{ start_time: '09:00', age_divisions: ['bantam'] }]))
   assert.match(one.error, /at least two sessions/)
 })
+
+// --- Payment notices -------------------------------------------------------
+function paymentNoticeHarness({ list = [{ email: 'tony@example.com' }, { email: 'sabrina@example.com' }], listError = null, key = 're_test' } = {}) {
+  const sends = []
+  class Resend { constructor() { this.emails = { send: async (message) => { sends.push(message); return { error: null } } } } }
+  const client = { from: () => ({ select: async () => (listError ? { data: null, error: listError } : { data: list, error: null }) }) }
+  const lib = load('src/lib/payments/notice.ts', {
+    resend: { Resend },
+    '@/lib/supabase/admin': { createAdminSupabase: () => client },
+    '@/config/org.config': { ORG: { contactEmail: 'club@example.com', shortName: 'CLW', domain: 'clwizards.com' } },
+    '@/lib/format/money': { formatCents: (cents) => `$${(cents / 100).toFixed(2)}` },
+  }, key ? { RESEND_API_KEY: key } : {})
+  return { lib, sends }
+}
+
+test('dues notice: who paid, for which wrestler, what is left, and the season count', () => {
+  const { lib } = paymentNoticeHarness()
+  const rows = [
+    { status: 'paid', amount_cents: 35000, amount_paid_cents: 35000 },
+    { status: 'partial', amount_cents: 35000, amount_paid_cents: 15000 },
+    { status: 'pending', amount_cents: 35000, amount_paid_cents: 0 },
+    { status: 'waived', amount_cents: 35000, amount_paid_cents: 0 },
+  ]
+  const full = lib.duesPaymentNotice({ parentName: 'Pat Parent', wrestlerName: 'Tommy Parent', paidNowCents: 35000, paidTotalCents: 35000, amountCents: 35000, season: '2026-27', seasonRows: rows })
+  assert.equal(full.subject, 'Dues paid: Tommy Parent ($350.00)')
+  assert.match(full.lines.join('\n'), /Pat Parent paid \$350\.00 in season dues for Tommy Parent\.\nPaid in full\./)
+  assert.match(full.lines.join('\n'), /2026-27: 2 of 4 wrestlers paid in full, \$500\.00 collected\./)
+  const part = lib.duesPaymentNotice({ parentName: null, wrestlerName: 'Max', paidNowCents: 15000, paidTotalCents: 15000, amountCents: 35000, season: 's', seasonRows: rows })
+  assert.match(part.lines.join('\n'), /A family paid \$150\.00.*\n\$150\.00 paid of \$350\.00, \$200\.00 left\./)
+})
+
+test('gift and money-out notices say what happened in plain words', () => {
+  const { lib } = paymentNoticeHarness()
+  assert.equal(lib.giftNotice({ kind: 'donation', name: 'Ann', email: 'ann@x.com', amountCents: 5000, recurring: false }).subject, 'Donation: Ann ($50.00)')
+  assert.equal(lib.giftNotice({ kind: 'sponsorship', name: 'Acme', email: null, amountCents: 100000, recurring: true, tier: 'Gold' }).subject, 'New sponsor: Acme ($1000.00)')
+  assert.match(lib.giftNotice({ kind: 'donation', name: 'Ann', email: null, amountCents: 2500, recurring: true, renewal: true }).lines[0], /Ann's recurring donation renewed: \$25\.00/)
+  assert.equal(lib.moneyOutNotice({ kind: 'refund', who: 'Pat', amountCents: 35000 }).subject, 'Refund: $350.00 to Pat')
+  assert.match(lib.moneyOutNotice({ kind: 'dispute', who: null, amountCents: 35000 }).lines[0], /disputed a \$350\.00 payment.*Stripe dashboard/)
+  assert.match(lib.moneyOutNotice({ kind: 'failed', who: 'Acme', amountCents: 100000 }).subject, /Recurring payment failed: Acme/)
+})
+
+test('payment notices go to everyone on the list in one email, with a link to Dues', async () => {
+  const { lib, sends } = paymentNoticeHarness({ list: [{ email: 'tony@example.com' }, { email: 'Sabrina@example.com ' }, { email: 'tony@example.com' }] })
+  await lib.sendPaymentNotice({ subject: 'Dues paid: X ($1.00)', lines: ['a', null, 'b'] })
+  assert.equal(sends.length, 1)
+  assert.deepEqual(plain(sends[0].to), ['tony@example.com', 'Sabrina@example.com'])
+  assert.match(sends[0].text, /^a\nb\n\nDues: https:\/\/clwizards\.com\/admin\/dues$/)
+})
+
+test('an empty or unreadable list falls back to the club contact; no key sends nothing; errors never throw', async () => {
+  for (const opts of [{ list: [] }, { listError: new Error('no table') }]) {
+    const { lib, sends } = paymentNoticeHarness(opts)
+    await lib.sendPaymentNotice({ subject: 's', lines: ['x'] })
+    assert.deepEqual(plain(sends[0].to), ['club@example.com'])
+  }
+  const off = paymentNoticeHarness({ key: null })
+  await off.lib.sendPaymentNotice({ subject: 's', lines: ['x'] })
+  assert.equal(off.sends.length, 0)
+})
+
+function stripeWebhookHarness({ duesRow, noticeThrows = false } = {}) {
+  const notices = []
+  const writes = []
+  const tables = {
+    dues_payments: [{ id: 'dues-1', amount_cents: 35000, amount_paid_cents: 0, parent_id: 'p1', athlete_id: 'k1', season: '2026-27', stripe_checkout_session_id: null, status: 'pending', ...duesRow }],
+    profiles: [{ id: 'p1', full_name: 'Pat Parent' }],
+    athletes: [{ id: 'k1', first_name: 'Tommy', last_name: 'Parent' }],
+  }
+  const query = (table) => {
+    const filters = []
+    let update = null
+    const rows = () => tables[table].filter((row) => filters.every(([k, v]) => (v === null ? row[k] == null : row[k] === v)))
+    const q = {
+      select: () => q,
+      eq: (k, v) => { filters.push([k, v]); return q },
+      is: (k, v) => { filters.push([k, v]); return q },
+      update: (values) => { update = values; return q },
+      single: async () => ({ data: rows()[0] ?? null, error: rows()[0] ? null : { message: 'none' } }),
+      maybeSingle: async () => {
+        const found = rows()[0] ?? null
+        if (update && found) { Object.assign(found, update); writes.push({ table, update }) }
+        return { data: found, error: null }
+      },
+      then: (resolve) => resolve({ data: rows(), error: null }),
+    }
+    return q
+  }
+  class Resend { constructor() { this.emails = { send: async () => ({ error: null }) } } }
+  const route = load('src/app/api/webhooks/stripe/route.ts', {
+    'next/server': require('next/server'),
+    resend: { Resend },
+    '@/lib/stripe': { getStripeClient: () => ({ webhooks: { constructEvent: (body) => JSON.parse(body) } }) },
+    '@/lib/alerts': { sendAlert: async () => {} },
+    '@/lib/supabase/admin': { createAdminSupabase: () => ({ from: query }) },
+    '@/lib/format/money': { formatCents: (cents) => `$${(cents / 100).toFixed(2)}` },
+    '@/config/org.config': { ORG: { contactEmail: 'club@example.com', shortName: 'CLW', domain: 'clwizards.com' } },
+    '@/lib/payments/notice': {
+      sendPaymentNotice: async (n) => { if (noticeThrows) throw new Error('resend down'); notices.push(n) },
+      duesPaymentNotice: (facts) => ({ subject: 'dues', facts }),
+      giftNotice: (f) => ({ subject: 'gift', f }),
+      moneyOutNotice: (f) => ({ subject: 'out', f }),
+    },
+  }, { STRIPE_WEBHOOK_SECRET: 'whsec_test', RESEND_API_KEY: 're_test' })
+  const post = (session) => route.POST(new Request('https://x/api/webhooks/stripe', {
+    method: 'POST',
+    headers: { 'stripe-signature': 'sig' },
+    body: JSON.stringify({ id: 'evt', type: 'checkout.session.completed', data: { object: { id: 'cs_1', amount_total: 35000, payment_intent: 'pi_1', customer_details: { email: 'pat@x.com' }, metadata: { flow: 'dues', dues_id: 'dues-1' }, ...session } } }),
+  }))
+  return { post, notices, writes, tables }
+}
+
+test('a dues payment marks the dues paid and sends one payment notice; a Stripe redelivery sends none', async () => {
+  const h = stripeWebhookHarness()
+  const res = await h.post()
+  assert.equal(res.status, 200)
+  assert.equal(h.tables.dues_payments[0].status, 'paid')
+  assert.equal(h.notices.length, 1)
+  const f = h.notices[0].facts
+  assert.equal(f.parentName, 'Pat Parent')
+  assert.equal(f.wrestlerName, 'Tommy Parent')
+  assert.equal(f.paidNowCents, 35000)
+  assert.equal(f.paidTotalCents, 35000)
+  assert.equal(f.season, '2026-27')
+  const again = await h.post()
+  assert.equal(again.status, 200)
+  assert.equal(h.notices.length, 1, 'redelivered event must not notify twice')
+})
+
+test('a failing payment notice never fails the payment', async () => {
+  const h = stripeWebhookHarness({ noticeThrows: true })
+  const res = await h.post()
+  assert.equal(res.status, 200)
+  assert.equal(h.tables.dues_payments[0].status, 'paid')
+})

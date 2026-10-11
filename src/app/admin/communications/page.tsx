@@ -12,9 +12,9 @@ import type { BoardCopyRecipient } from '@/types/database'
 export default async function AdminCommunicationsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   // ?tab=history opens History, e.g. from the link shown after a send.
   const { tab } = await searchParams
-  const openTab = tab === 'history' || tab === 'board' ? tab : 'compose'
+  const openTab = tab === 'history' || tab === 'board' || tab === 'payments' ? tab : 'compose'
   const supabase = await createServerSupabase()
-  const [{ data: tournaments }, { data: events }, { data: parents }, { data: boardRows }] = await Promise.all([
+  const [{ data: tournaments }, { data: events }, { data: parents }, { data: boardRows }, { data: paymentRows }] = await Promise.all([
     supabase.from('tournaments').select('id, name').order('date', { ascending: false }),
     // Upcoming club events (not the season registration itself) for the
     // "About an event" picker.
@@ -33,6 +33,7 @@ export default async function AdminCommunicationsPage({ searchParams }: { search
       .order('last_name', { ascending: true })
       .order('first_name', { ascending: true }),
     supabase.from('board_copy_recipients').select('id, name, email, created_at').order('name', { ascending: true }),
+    supabase.from('payment_notice_recipients').select('id, name, email').order('name', { ascending: true }),
   ])
   const board = (boardRows ?? []) as BoardCopyRecipient[]
 
@@ -50,6 +51,7 @@ export default async function AdminCommunicationsPage({ searchParams }: { search
           <TabsTrigger value="compose">Compose</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
           <TabsTrigger value="board">Board copy</TabsTrigger>
+          <TabsTrigger value="payments">Payment notices</TabsTrigger>
         </TabsList>
 
         <TabsContent value="compose" className="mt-6">
@@ -71,6 +73,10 @@ export default async function AdminCommunicationsPage({ searchParams }: { search
 
         <TabsContent value="board" className="mt-6">
           <BoardCopyManager recipients={board} />
+        </TabsContent>
+
+        <TabsContent value="payments" className="mt-6">
+          <BoardCopyManager list="payments" recipients={paymentRows ?? []} />
         </TabsContent>
       </Tabs>
     </div>

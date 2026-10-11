@@ -7,6 +7,7 @@ import { sendAlert } from '@/lib/alerts'
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { formatCents } from '@/lib/format/money'
 import { ORG } from '@/config/org.config'
+import { duesPaymentNotice, giftNotice, moneyOutNotice, sendPaymentNotice } from '@/lib/payments/notice'
 
 const ADMIN_EMAIL = process.env.ALERT_EMAIL ?? ORG.contactEmail
 
@@ -113,7 +114,7 @@ async function handleDuesFlow(session: Stripe.Checkout.Session) {
 
   const { data: dues, error: fetchError } = await supabase
     .from('dues_payments')
-    .select('amount_cents, amount_paid_cents, parent_id, stripe_checkout_session_id')
+    .select('amount_cents, amount_paid_cents, parent_id, athlete_id, season, stripe_checkout_session_id')
     .eq('id', duesId)
     .single()
 
@@ -145,6 +146,15 @@ async function handleDuesFlow(session: Stripe.Checkout.Session) {
   const { data: updated, error: updateError } = await updateQuery.select('id').maybeSingle()
   if (updateError) throw updateError
   if (!updated) throw new Error(`Dues record ${duesId} changed while Stripe event ${session.id} was processing.`)
+
+  await noticeDuesPayment({
+    parentId: dues.parent_id,
+    athleteId: dues.athlete_id,
+    season: dues.season,
+    amountCents: dues.amount_cents,
+    paidNowCents: amountPaidCents,
+    paidTotalCents: newAmountPaid,
+  })
 
   const customerEmail = session.customer_details?.email ?? session.customer_email
   if (customerEmail) {
@@ -193,6 +203,8 @@ async function handleDonationFlow(session: Stripe.Checkout.Session) {
 
   if (error) throw error
 
+  await sendPaymentNotice(giftNotice({ kind: 'donation', name: customerName, email: customerEmail, amountCents, recurring }))
+
   if (customerEmail) {
     await sendDonationThankYouEmail({ to: customerEmail, name: customerName, amountCents, recurring })
   }
@@ -224,6 +236,17 @@ async function handleSponsorFlow(session: Stripe.Checkout.Session) {
   if (updateError || !sponsor) {
     throw new Error(`Sponsor record not found for ${sponsorId}: ${updateError?.message ?? 'unknown error'}`)
   }
+
+  await sendPaymentNotice(
+    giftNotice({
+      kind: 'sponsorship',
+      name: sponsor.name,
+      email: sponsor.contact_email,
+      amountCents: sponsor.amount_cents ?? session.amount_total ?? 0,
+      recurring: Boolean(subscriptionId),
+      tier: sponsor.tier === 'yellow' ? 'Gold' : sponsor.tier,
+    })
+  )
 
   await sendSponsorThankYouLetter({
     sponsorName: sponsor.name,
@@ -280,6 +303,10 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
     })
     if (error) throw error
 
+    await sendPaymentNotice(
+      giftNotice({ kind: 'donation', name: invoice.customer_name ?? null, email: invoice.customer_email ?? null, amountCents, recurring: true, renewal: true })
+    )
+
     // The first receipt tells a monthly giver they will get one of these each
     // month, so every renewal has to actually send it.
     if (invoice.customer_email) {
@@ -300,6 +327,9 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
     .maybeSingle()
 
   if (sponsor) {
+    await sendPaymentNotice(
+      giftNotice({ kind: 'sponsorship', name: sponsor.name, email: null, amountCents, recurring: true, renewal: true })
+    )
     // Sponsors have no payment ledger table -- surface renewals as an alert
     // rather than inventing a schema change for it.
     await sendAlert('Recurring sponsorship payment received', {
@@ -345,6 +375,9 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
         amountCents,
       })
     }
+    await sendPaymentNotice(
+      moneyOutNotice({ kind: 'failed', who: invoice.customer_name ?? donation.donor_name ?? invoice.customer_email ?? null, amountCents, detail: 'Recurring donation.' })
+    )
     await sendAlert('Recurring donation payment failed', {
       donor: invoice.customer_email ?? donation.donor_name ?? 'unknown',
       amount: formatCents(amountCents),
@@ -363,6 +396,9 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
     // Sponsor relationships are handled personally, same as a cancellation in
     // handleSubscriptionDeleted -- alert admin to follow up directly rather
     // than send an automated dunning email to a paying sponsor.
+    await sendPaymentNotice(
+      moneyOutNotice({ kind: 'failed', who: sponsor.name, amountCents, detail: 'Recurring sponsorship. Reach out to the sponsor directly.' })
+    )
     await sendAlert('Recurring sponsorship payment failed', {
       sponsor: sponsor.name,
       contactEmail: sponsor.contact_email,
@@ -406,7 +442,7 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
 
   const { data: dues } = await supabase
     .from('dues_payments')
-    .select('id, amount_cents')
+    .select('id, amount_cents, amount_paid_cents, parent_id, athlete_id')
     .eq('stripe_payment_intent_id', paymentIntentId)
     .maybeSingle()
 
@@ -417,8 +453,24 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
       .update({ amount_paid_cents: stillPaidCents, status })
       .eq('id', dues.id)
     if (error) throw error
+    // Stripe can redeliver this event; only a refund that changed the balance is news.
+    if (stillPaidCents < dues.amount_paid_cents) {
+      const names = await familyNames(dues.parent_id, dues.athlete_id)
+      await sendPaymentNotice(
+        moneyOutNotice({
+          kind: 'refund',
+          who: names.parent,
+          amountCents: dues.amount_paid_cents - stillPaidCents,
+          detail: `Season dues for ${names.wrestler ?? 'their wrestler'}. Now ${formatCents(stillPaidCents)} paid of ${formatCents(dues.amount_cents)}.`,
+        })
+      )
+    }
     return
   }
+
+  await sendPaymentNotice(
+    moneyOutNotice({ kind: 'refund', who: charge.billing_details?.name ?? charge.receipt_email ?? null, amountCents: charge.amount_refunded, detail: 'A donation or sponsorship (not dues). Check the Stripe dashboard.' })
+  )
 
   // Donations are an append-only gift log (tax receipts may already reference
   // them) and sponsors have no stored payment_intent -- flag both for a human
@@ -434,11 +486,58 @@ async function handleDisputeCreated(dispute: Stripe.Dispute) {
   const paymentIntentId =
     typeof dispute.payment_intent === 'string' ? dispute.payment_intent : dispute.payment_intent?.id ?? null
 
+  await sendPaymentNotice(
+    moneyOutNotice({ kind: 'dispute', who: null, amountCents: dispute.amount, detail: dispute.reason ? `Reason given: ${dispute.reason.replace(/_/g, ' ')}.` : null })
+  )
   await sendAlert('Stripe payment disputed', {
     paymentIntentId,
     amount: formatCents(dispute.amount),
     reason: dispute.reason,
   })
+}
+
+async function familyNames(parentId: string | null, athleteId: string | null) {
+  const supabase = createAdminSupabase()
+  const [{ data: parent }, { data: athlete }] = await Promise.all([
+    parentId ? supabase.from('profiles').select('full_name').eq('id', parentId).maybeSingle() : Promise.resolve({ data: null }),
+    athleteId
+      ? supabase.from('athletes').select('first_name, last_name').eq('id', athleteId).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ])
+  return {
+    parent: (parent?.full_name as string | null | undefined) ?? null,
+    wrestler: athlete ? `${athlete.first_name} ${athlete.last_name}` : null,
+  }
+}
+
+/** Tells the payment-notice list about a dues payment, with the season's running count. Never throws. */
+async function noticeDuesPayment(p: {
+  parentId: string
+  athleteId: string | null
+  season: string
+  amountCents: number
+  paidNowCents: number
+  paidTotalCents: number
+}) {
+  try {
+    const [names, { data: seasonRows }] = await Promise.all([
+      familyNames(p.parentId, p.athleteId),
+      createAdminSupabase().from('dues_payments').select('status, amount_cents, amount_paid_cents').eq('season', p.season),
+    ])
+    await sendPaymentNotice(
+      duesPaymentNotice({
+        parentName: names.parent,
+        wrestlerName: names.wrestler,
+        paidNowCents: p.paidNowCents,
+        paidTotalCents: p.paidTotalCents,
+        amountCents: p.amountCents,
+        season: p.season,
+        seasonRows: (seasonRows ?? []) as { status: string; amount_cents: number; amount_paid_cents: number }[],
+      })
+    )
+  } catch (err) {
+    console.error('Dues payment notice failed:', err)
+  }
 }
 
 function getResend() {
