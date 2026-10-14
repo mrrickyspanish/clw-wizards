@@ -1,6 +1,6 @@
 ---
 name: wizards-request
-description: Handle a CLW Wizards club request end to end. Use whenever Ricky pastes or screenshots a message from Tony (Anthony Fontanetta), Tyler, Sabrina, a parent, or a vendor (Resend, Twilio, Stripe) about the clwizards.com site — Google Form adds, "I paid but it says I didn't", co-parent access, name or contact fixes, deletes, USA card list questions, failed emails, vendor notices, or a bug Tony found. Looks up the live record first, acts within the rules below, verifies as the family would see it, logs it to Admin → Requests, and drafts the reply.
+description: Handle a CLW Wizards club request end to end. Use whenever Ricky pastes or screenshots a message from Tony (Anthony Fontanetta), Tyler, Sabrina, a parent, or a vendor (Resend, Twilio, Stripe) about the clwizards.com site — Google Form adds, "I paid but it says I didn't", co-parent access, name or contact fixes, deletes, USA card list questions, failed emails, vendor notices, or a bug Tony found. Looks up the live record first, acts within the rules below, verifies as the family would see it, logs it to Ricky's private Support Log, and drafts the reply.
 ---
 
 # Wizards request
@@ -64,18 +64,16 @@ rollback;
 
 ## 5. Log it, then reply
 
-**Log** every request in `public.request_log` (shows in Admin → Requests, which
-Tony reads):
+**Log** every request in Ricky's private Support Log, never anywhere the club can
+see. The log does three jobs: nothing pending gets forgotten, there's a dated
+record of the value delivered (support is part of the club's $4,000 build), and
+every proven fix stays on file. Each entry: date received, who asked, what was
+asked, what was done, status (Done / Waiting / Open), who it's waiting on, date
+closed, and how the fix was verified. When a waiting item resolves, update that
+entry rather than adding a new one.
 
-```sql
-insert into public.request_log (received_at, from_name, title, outcome, status, waiting_on, people)
-values ('<when it was sent, America/Chicago offset>', 'Tony', '<what was asked, one line>',
-  '<what was done, plain words Tony understands>', 'done' | 'waiting' | 'open',
-  '<if waiting: "Name: next step">', '{<families and wrestlers involved>}');
-```
-
-When a waiting item resolves later, `update` that row (status, outcome,
-`updated_at = now()`) rather than adding a new one.
+At the start of each request, check the log for open items and mention any that
+have been waiting a while.
 
 **Reply** — draft it, Ricky sends it:
 
@@ -101,6 +99,11 @@ When a waiting item resolves later, `update` that row (status, outcome,
 | Failed emails | `communication_log` (status, subject, sent_at). Check whether a later send covered the same families before re-sending. |
 | Vendor notice (Resend, Twilio, Stripe) | Find the root cause on our side first (e.g. Twilio 30508 was the public SMS Terms example showing a checked box). Console steps go to Ricky; never ask for or handle vendor passwords or API keys in chat. |
 | Bug / edge case from Tony | Reproduce against real data, fix, add a test, wait for "ship it". |
+
+## Ownership
+
+This playbook belongs to Ricky (Creative Eye), not the club. If the repo is ever
+handed over, follow [HANDOFF.md](HANDOFF.md) first.
 
 ## Never
 

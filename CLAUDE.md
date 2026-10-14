@@ -24,3 +24,10 @@ section, or copy overhaul — do not wait to be told.
 Before considering a new page or copy overhaul done, scan the diff for
 `text-xs` and `text-sm` and confirm each instance is on genuinely secondary
 text (per the floors above), not on body copy, headings, or CTAs.
+
+## Ownership transfer
+
+The `.claude/skills/wizards-request` support system belongs to Ricky (Creative
+Eye), not the club. If this repo is ever handed over, follow
+`.claude/skills/wizards-request/HANDOFF.md` first: the club gets a clean copy
+with the support system removed from the files and the history.
