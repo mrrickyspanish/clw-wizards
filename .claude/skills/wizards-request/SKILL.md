@@ -65,15 +65,27 @@ rollback;
 ## 5. Log it, then reply
 
 **Log** every request in Ricky's private Support Log, never anywhere the club can
-see. The log does three jobs: nothing pending gets forgotten, there's a dated
-record of the value delivered (support is part of the club's $4,000 build), and
-every proven fix stays on file. Each entry: date received, who asked, what was
-asked, what was done, status (Done / Waiting / Open), who it's waiting on, date
-closed, and how the fix was verified. When a waiting item resolves, update that
-entry rather than adding a new one.
+see: Google Sheet **CLW Wizards Support Log**
+(`1K9MYyuh8LdKdyG13AZvYNoZ9YUChUeSBYh8oPgPingo`, owned by
+ricky@creativeeyemultimedia.com; the Sheets connector edits it as
+rjlbarnes92@gmail.com). It does three jobs: nothing pending is forgotten, there's a
+dated record of the value delivered (support is part of the club's $4,000 build),
+and every proven fix stays on file.
 
-At the start of each request, check the log for open items and mention any that
-have been waiting a while.
+- **Requests** tab, columns A to I: Received, From, Request, Type, What was done,
+  How it was checked, Status (Done / Waiting / Open), Waiting on, Closed. Type is
+  one of Form add, Payment, Account access, Data fix, Site fix, Enhancement,
+  Email, Vendor.
+- **Changes** tab, columns A to E: Went live, What changed, Why, Requested by,
+  Commit. One row per commit that reaches `main`, written in plain words.
+
+How: read `Requests!A:I` first (open items), then `append_values` a new row.
+Dates as `YYYY-MM-DD` so they stay real dates; prefix commit ids with `'`. When a
+waiting item resolves, `update_values` that same row (status, outcome, Closed
+date) rather than adding a new one. Read back after writing. Wording follows the
+reply rules: plain, short, no jargon.
+
+At the start of each request, mention open items that have been waiting a while.
 
 **Reply** — draft it, Ricky sends it:
 
