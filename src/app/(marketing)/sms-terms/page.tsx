@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Check } from 'lucide-react'
 
 import { pageMetadata } from '@/lib/page-metadata'
 import { ORG } from '@/config/org.config'
@@ -45,19 +44,16 @@ export default function SmsTermsPage() {
           </p>
           <div className="rounded-md border border-clw-gold/25 bg-clw-black-2 p-5">
             <p className="text-sm uppercase tracking-[0.18em] text-clw-gold">The opt-in, as parents see it</p>
+            {/* Drawn empty on purpose: carriers reject an opt-in shown pre-checked (Twilio 30508). */}
             <div className="mt-4 flex items-start gap-3">
-              <span
-                aria-hidden
-                className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded border border-clw-gold bg-clw-gold text-clw-black"
-              >
-                <Check className="h-4 w-4" />
-              </span>
+              <span aria-hidden className="mt-1 h-5 w-5 shrink-0 rounded border-2 border-clw-gray bg-transparent" />
               <p className="text-base leading-relaxed text-clw-white">
                 {SMS_CONSENT_TEXT} See our SMS Terms and Privacy Policy.
               </p>
             </div>
             <p className="mt-4 text-sm text-clw-gray">
-              The box starts unchecked. Each opt-in is recorded with the date and the exact wording agreed to.
+              The box is unchecked by default and is never pre-selected. A parent must check it themselves to receive
+              texts. Each opt-in is recorded with the date and the exact wording agreed to.
             </p>
           </div>
         </PolicySection>
