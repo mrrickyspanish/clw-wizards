@@ -8,7 +8,6 @@ import {
   FileText,
   HandCoins,
   Handshake,
-  Inbox,
   LayoutDashboard,
   LogOut,
   Megaphone,
@@ -42,7 +41,6 @@ const ADMIN_ITEMS = [
   { href: '/admin/sponsors', label: 'Sponsors', icon: Handshake },
   { href: '/admin/content', label: 'Website content', icon: FileText, fullOnly: true },
   { href: '/admin/communications', label: 'Communications', icon: Megaphone },
-  { href: '/admin/requests', label: 'Requests', icon: Inbox },
   { href: '/admin/team', label: 'Admin team', icon: ShieldCheck, fullOnly: true },
 ]
 
