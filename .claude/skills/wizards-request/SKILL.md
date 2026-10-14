@@ -1,14 +1,35 @@
 ---
 name: wizards-request
 description: Handle a CLW Wizards club request end to end. Use whenever Ricky pastes or screenshots a message from Tony (Anthony Fontanetta), Tyler, Sabrina, a parent, or a vendor (Resend, Twilio, Stripe) about the clwizards.com site — Google Form adds, "I paid but it says I didn't", co-parent access, name or contact fixes, deletes, USA card list questions, failed emails, vendor notices, or a bug Tony found. Looks up the live record first, acts within the rules below, verifies as the family would see it, logs it to Ricky's private Support Log, and drafts the reply.
+when_to_use: Any screenshot or pasted email or text about the CLW Wizards, wrestlers, families, dues, registrations, Google Form sign-ups, USA cards, the clwizards.com site, Resend, Twilio or Stripe, even with no other words. Also "what's open", "what have we done for the club", or any question about the Support Log.
+effort: max
 ---
 
 # Wizards request
 
-Ricky pastes a request. Work it through these five steps every time. Write for
+Ricky pastes a request. Work it through these steps every time. Write for
 "wrestling guys": short, plain, no jargon.
 
+## 0. Preflight: stop if a tool is missing
+
+Before touching the request, confirm all three are reachable in this session:
+
+1. **Club database:** a read-only `execute_sql` on project `nerrrzuocgaohrzurnny`
+   (e.g. `select count(*) from season_enrollments`).
+2. **Support Log:** `get_values` on `Requests!A:I` of sheet
+   `1K9MYyuh8LdKdyG13AZvYNoZ9YUChUeSBYh8oPgPingo`. This also gives the open items
+   for step 1.
+3. **Repo on `main` and up to date:** `git fetch origin main` and `git status`.
+
+If any fails, say exactly which one and how to fix it (e.g. "Google Sheets
+connector is off in this chat: turn it on in the chat's connector settings"), and
+stop. Never do the work and skip the log, and never answer from memory instead of
+the database.
+
 ## 1. Read it, name it
+
+Open with any Support Log item that's been Waiting more than 2 days, with who it's
+waiting on.
 
 Say in one line who is asking and what kind of request it is (table below). If a
 screenshot is cut off, work from what is visible and say what is missing.

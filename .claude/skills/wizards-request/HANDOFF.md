@@ -4,18 +4,18 @@ The clw-wizards repo belongs to Ricky (Creative Eye). If the site is ever handed
 to the club or another developer, the club gets the website, **not the support
 system**. Before any transfer, hand off a clean copy:
 
-1. Clone the repo fresh into a separate folder. Never work on the original.
-2. Remove the support system from the files **and from the history**, so it can't
-   be recovered from old commits:
+1. Export the current files with no history, so nothing can be recovered from old
+   versions:
    ```
-   git filter-repo --invert-paths --path .claude/skills/wizards-request
+   git clone <repo url> handoff-src && cd handoff-src
+   git archive --format=tar main | (mkdir ../clw-wizards-handoff && tar -x -C ../clw-wizards-handoff)
+   cd ../clw-wizards-handoff
+   rm -rf .claude/skills/wizards-request
    ```
-   (`pip install git-filter-repo` if needed.) Then delete the "Ownership transfer"
-   section from `CLAUDE.md`, and commit.
-3. Check that it's gone: `git log --all -- .claude/skills/wizards-request` prints
-   nothing, and `grep -ri "wizards-request" .` finds nothing.
-4. Hand over that clean copy (new GitHub repo or a transfer of the copy). Keep the
-   original.
+2. Delete the "Club requests" and "Ownership transfer" sections from `CLAUDE.md`.
+3. Check that it's gone: `grep -ri "wizards-request\|Support Log" .` finds nothing.
+4. `git init`, commit everything as one fresh commit, and push that to a new repo
+   for the club. Keep the original repo and its history.
 
 Not in the repo, so it never transfers: Ricky's Support Log (Google Drive) and
 anything in the scratchpad. The database `data_fix_backups` schema holds club data

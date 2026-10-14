@@ -25,6 +25,14 @@ Before considering a new page or copy overhaul done, scan the diff for
 `text-xs` and `text-sm` and confirm each instance is on genuinely secondary
 text (per the floors above), not on body copy, headings, or CTAs.
 
+## Club requests
+
+Any message about the club (a screenshot or pasted email or text from Tony, Tyler,
+Sabrina, a parent, or Resend/Twilio/Stripe, even with no other words) is a club
+request: handle it with the `wizards-request` playbook
+(`.claude/skills/wizards-request/SKILL.md`), starting with its preflight. Never
+handle one from memory or skip its Support Log entry.
+
 ## Ownership transfer
 
 The `.claude/skills/wizards-request` support system belongs to Ricky (Creative
