@@ -5,6 +5,7 @@ import {
   FileText,
   HandCoins,
   Handshake,
+  Inbox,
   LayoutDashboard,
   Megaphone,
   ShieldCheck,
@@ -32,6 +33,7 @@ const ADMIN_NAV: AdminNavItem[] = [
   { href: '/admin/sponsors', label: 'Sponsors', icon: <Handshake className="w-4 h-4" /> },
   { href: '/admin/content', label: 'Website content', icon: <FileText className="w-4 h-4" />, fullOnly: true },
   { href: '/admin/communications', label: 'Communications', icon: <Megaphone className="w-4 h-4" /> },
+  { href: '/admin/requests', label: 'Requests', icon: <Inbox className="w-4 h-4" /> },
   { href: '/admin/team', label: 'Admin team', icon: <ShieldCheck className="w-4 h-4" />, fullOnly: true },
 ]
 

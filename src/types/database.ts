@@ -478,6 +478,21 @@ export type DeletionLogEntry = {
   note: string | null
 }
 
+// One club request and what was done about it (see
+// supabase/migrations/20261014000001_request_log.sql). Admin-read only.
+export type RequestLogEntry = {
+  id: string
+  received_at: string
+  from_name: string
+  title: string
+  outcome: string | null
+  status: 'done' | 'waiting' | 'open'
+  waiting_on: string | null
+  people: string[]
+  handled_at: string
+  updated_at: string
+}
+
 export type Database = {
   public: {
     Tables: {
@@ -623,6 +638,12 @@ export type Database = {
         Row: DeletionLogEntry
         Insert: Partial<DeletionLogEntry>
         Update: Partial<DeletionLogEntry>
+        Relationships: []
+      }
+      request_log: {
+        Row: RequestLogEntry
+        Insert: Partial<RequestLogEntry>
+        Update: Partial<RequestLogEntry>
         Relationships: []
       }
       practice_cancellations: {
