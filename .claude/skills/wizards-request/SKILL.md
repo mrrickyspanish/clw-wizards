@@ -17,8 +17,8 @@ screenshot is cut off, work from what is visible and say what is missing.
 
 Query the live database before saying anything about a family. Never answer from
 memory or from the request alone: the parent's story and the record often differ
-(Jameson "Mozal" was already on as Jameson Coulman; Lauren Lancer's "paid" had no
-payment behind it).
+(a "new" sign-up already on the site under the other parent's last name; a "paid"
+with no payment behind it).
 
 - Supabase project `nerrrzuocgaohrzurnny` (`execute_sql`; DDL via `apply_migration`).
 - Current season `6bbe3a94-a1ac-425f-8de3-2cd8ffe82cb8`, waiver (disclosure)
@@ -81,7 +81,7 @@ When a waiting item resolves later, `update` that row (status, outcome,
 
 - Very short. Lead with the answer. No headers or bullets unless listing names.
 - Never take a position of authority over Tony or the board. Ask, don't instruct:
-  "Was it paid offline? Let me know and I can flip the switch and have it updated."
+  "Was it a manual payment offline and do we just need to mark her? Let me know and I can flip the switch and have it updated."
 - Don't hand work back to them that we can do ourselves.
 - Signature:
   - Drafted for Ricky to send: sign **Ricky**.

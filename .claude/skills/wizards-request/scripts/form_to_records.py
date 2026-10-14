@@ -1,6 +1,6 @@
 """Turn chosen rows of the Google Form CSV into import records.
 
-    python3 -I form_to_records.py <form.csv> <records.json> "Kevin Pett" "Finley Sarno"
+    python3 -I form_to_records.py <form.csv> <records.json> "Sam Sample" "Riley Roe"
 
 Names match the form's First Name + Last Name, ignoring case and extra spaces.
 Keep the CSV and the JSON in the scratchpad: they hold family details.
@@ -8,9 +8,9 @@ Prints each record so it can be checked against the site before importing.
 """
 import csv, datetime, json, re, sys
 
+if len(sys.argv) < 4:
+    sys.exit(__doc__)
 src, out, wanted = sys.argv[1], sys.argv[2], sys.argv[3:]
-if not wanted:
-    sys.exit('Name at least one wrestler, e.g. "Kevin Pett".')
 
 
 def clean(v):
@@ -72,7 +72,7 @@ def guardians(row, last):
         if not name or name.lower() in ('n/a', 'na', 'none'):
             continue
         relationship = clean(row[start + 1])
-        # A last name typed into the relationship box ("Joseph" / "Mozal").
+        # A last name typed into the relationship box ("Joe" / "Sample").
         if relationship and ' ' not in name and relationship.lower() not in KNOWN_RELATIONSHIPS:
             name = f'{name} {relationship}'
             relationship = 'Father' if relationship.lower() == last.lower() else ''
