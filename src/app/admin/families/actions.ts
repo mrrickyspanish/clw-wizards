@@ -9,6 +9,7 @@ import { createAdminSupabase } from '@/lib/supabase/admin'
 import { SMS_CONSENT_TEXT } from '@/lib/twilio/opt-in'
 import { ORG } from '@/config/org.config'
 import { normalizeUsPhone } from '@/lib/phone'
+import { duesToRemoveWithWrestler, hasMoney } from '@/lib/wrestler-removal'
 
 export type ActionResult = { ok: true } | { ok: false; error: string }
 
@@ -200,7 +201,7 @@ async function assertFullAdmin(): Promise<ActionResult> {
     .single()
 
   if (profile?.role !== 'admin' || profile?.admin_scope !== 'full') {
-    return { ok: false, error: 'Full admin access is required to delete a family.' }
+    return { ok: false, error: 'Full admin access is required to delete permanently.' }
   }
   return { ok: true }
 }
@@ -374,6 +375,148 @@ export async function deleteFamilyPermanently(
   }
 
   revalidatePath('/admin/families')
+  revalidatePath('/admin/registrations')
+  revalidatePath('/admin/dues')
+  return { ok: true }
+}
+
+export type WrestlerDeletionPreview = {
+  athleteName: string
+  parentId: string
+  parentName: string
+  registrations: number
+  /** Dues rows with no payment: removed with the wrestler so no unnamed balance is left owed. */
+  unpaidDues: number
+  /** Dues rows that carry a payment: kept as the club's payment history. */
+  paidDues: number
+  documents: number
+  tournamentEntries: number
+  /** The family has no other wrestler, so the account will be left empty. */
+  onlyWrestler: boolean
+}
+
+/**
+ * What removing one wrestler would take with it. Families can hold several
+ * wrestlers, and Delete permanently removes the whole account, so a single
+ * wrestler who stops wrestling needs their own path.
+ */
+export async function getWrestlerDeletionPreview(
+  athleteId: string
+): Promise<{ ok: true; preview: WrestlerDeletionPreview } | { ok: false; error: string }> {
+  const auth = await assertFullAdmin()
+  if (!auth.ok) return auth
+  if (!athleteId) return { ok: false, error: 'Missing wrestler id' }
+
+  const admin = createAdminSupabase()
+  const { data: athlete, error } = await admin
+    .from('athletes')
+    .select('id, first_name, last_name, parent_id')
+    .eq('id', athleteId)
+    .maybeSingle()
+  if (error) return { ok: false, error: error.message }
+  if (!athlete) return { ok: false, error: 'Wrestler not found.' }
+
+  const [parent, siblings, enrollments, dues, documents, tournaments] = await Promise.all([
+    admin.from('profiles').select('full_name').eq('id', athlete.parent_id).maybeSingle(),
+    admin.from('athletes').select('id', { count: 'exact', head: true }).eq('parent_id', athlete.parent_id),
+    admin.from('season_enrollments').select('id', { count: 'exact', head: true }).eq('athlete_id', athleteId),
+    admin.from('dues_payments').select('id, amount_paid_cents, stripe_payment_intent_id').eq('athlete_id', athleteId),
+    admin.from('athlete_documents').select('id', { count: 'exact', head: true }).eq('athlete_id', athleteId),
+    admin.from('tournament_registrations').select('id', { count: 'exact', head: true }).eq('athlete_id', athleteId),
+  ])
+  const duesRows = dues.data ?? []
+
+  return {
+    ok: true,
+    preview: {
+      athleteName: `${athlete.first_name} ${athlete.last_name}`,
+      parentId: athlete.parent_id,
+      parentName: parent.data?.full_name ?? 'Unnamed parent',
+      registrations: enrollments.count ?? 0,
+      unpaidDues: duesRows.filter((row) => !hasMoney(row)).length,
+      paidDues: duesRows.filter(hasMoney).length,
+      documents: documents.count ?? 0,
+      tournamentEntries: tournaments.count ?? 0,
+      onlyWrestler: (siblings.count ?? 0) <= 1,
+    },
+  }
+}
+
+/**
+ * Permanently removes one wrestler and leaves the rest of the family alone:
+ * their registrations, signed waivers, emergency contacts, documents and
+ * tournament entries cascade with the wrestler row, and dues with no payment
+ * are removed so the family is not left owing a balance with no name on it.
+ * Paid dues stay as payment history. The database records the removal in
+ * deletion_log; this names the admin who did it.
+ */
+export async function deleteWrestlerPermanently(athleteId: string, typedConfirmation: string): Promise<ActionResult> {
+  const auth = await assertFullAdmin()
+  if (!auth.ok) return auth
+
+  const previewResult = await getWrestlerDeletionPreview(athleteId)
+  if (!previewResult.ok) return previewResult
+  const { preview } = previewResult
+
+  if (typedConfirmation.trim().toLowerCase() !== preview.athleteName.trim().toLowerCase()) {
+    return { ok: false, error: 'The name you typed does not match this wrestler.' }
+  }
+
+  const admin = createAdminSupabase()
+
+  // Stored files are not covered by any cascade, so they would outlive the rows
+  // that point at them.
+  const { data: documents } = await admin.from('athlete_documents').select('file_url').eq('athlete_id', athleteId)
+  const paths = (documents ?? []).map((row) => row.file_url as string).filter(Boolean)
+  if (paths.length) {
+    const { error: storageError } = await admin.storage.from('athlete-documents').remove(paths)
+    if (storageError) console.warn('Could not remove wrestler documents from storage:', storageError.message)
+  }
+
+  const { data: duesRows, error: duesReadError } = await admin
+    .from('dues_payments')
+    .select('id, amount_paid_cents, stripe_payment_intent_id')
+    .eq('athlete_id', athleteId)
+  if (duesReadError) return { ok: false, error: duesReadError.message }
+
+  const { error: deleteError } = await admin.from('athletes').delete().eq('id', athleteId)
+  if (deleteError) return { ok: false, error: deleteError.message }
+
+  // After the wrestler row: the unpaid rows are now unlinked (athlete_id SET
+  // NULL), and the extra filters keep a payment that landed in between.
+  const unpaidIds = duesToRemoveWithWrestler(duesRows ?? [])
+  if (unpaidIds.length) {
+    const { error: duesError } = await admin
+      .from('dues_payments')
+      .delete()
+      .in('id', unpaidIds)
+      .eq('amount_paid_cents', 0)
+      .is('stripe_payment_intent_id', null)
+    if (duesError) console.error('Could not remove unpaid dues for a removed wrestler:', duesError.message)
+  }
+
+  // A failure here never fails a removal that already happened.
+  try {
+    const supabase = await createServerSupabase()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user) {
+      const { data: me } = await supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle()
+      await admin
+        .from('deletion_log')
+        .update({ deleted_by: user.id, deleted_by_name: me?.full_name ?? user.email ?? null, via: 'site' })
+        .eq('kind', 'wrestler')
+        .eq('profile_id', preview.parentId)
+        .is('deleted_by', null)
+        .gte('deleted_at', new Date(Date.now() - 10 * 60_000).toISOString())
+    }
+  } catch (err) {
+    console.error('Could not record who removed the wrestler:', err)
+  }
+
+  revalidatePath('/admin/families')
+  revalidatePath(`/admin/families/${preview.parentId}`)
   revalidatePath('/admin/registrations')
   revalidatePath('/admin/dues')
   return { ok: true }

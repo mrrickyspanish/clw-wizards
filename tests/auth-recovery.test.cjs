@@ -1911,3 +1911,113 @@ test('registrationCard: the bound card, else the newest upload this season, else
   assert.equal(registrationCard(null, [oldVerified], '2026-08-01').id, 'oldv')
   assert.equal(registrationCard('gone', [fresh], '2026-08-01').id, 'fresh')
 })
+
+// Removing one wrestler (Admin -> Families -> a family -> Remove wrestler), with
+// the database mocked. Recorded calls show exactly what was deleted.
+const wrestlerRemoval = load('src/lib/wrestler-removal.ts', {})
+
+test('removing a wrestler takes the unpaid dues with them and keeps any dues that carry a payment', () => {
+  const rows = [
+    { id: 'unpaid', amount_paid_cents: 0, stripe_payment_intent_id: null },
+    { id: 'partial', amount_paid_cents: 5000, stripe_payment_intent_id: null },
+    { id: 'stripe', amount_paid_cents: 0, stripe_payment_intent_id: 'pi_1' },
+  ]
+  assert.deepEqual(plain(wrestlerRemoval.duesToRemoveWithWrestler(rows)), ['unpaid'])
+})
+
+function wrestlerDeleteHarness({ dues, siblings = 2, scope = 'full' }) {
+  const calls = []
+  function answer(q, single) {
+    if (q.op !== 'select') return { error: null }
+    if (q.table === 'athletes' && single) return { data: { id: 'kid-1', first_name: 'Cain', last_name: 'Velazquez', parent_id: 'fam-1' }, error: null }
+    if (q.table === 'athletes') return { count: siblings }
+    if (q.table === 'profiles') return { data: { full_name: 'Heather Velazquez' } }
+    if (q.table === 'dues_payments') return { data: dues, error: null }
+    if (q.table === 'athlete_documents' && !q.head) return { data: [{ file_url: 'kid-1/card.png' }] }
+    return { count: 1, data: [] }
+  }
+  const admin = {
+    from: (table) => {
+      const q = { table, op: 'select', filters: [], head: false }
+      const b = {
+        select: (_cols, opts) => { if (opts && opts.head) q.head = true; return b },
+        update: (values) => { q.op = 'update'; q.values = values; return b },
+        delete: () => { q.op = 'delete'; return b },
+        eq: (k, v) => { q.filters.push(['eq', k, v]); return b },
+        in: (k, v) => { q.filters.push(['in', k, v]); return b },
+        is: (k, v) => { q.filters.push(['is', k, v]); return b },
+        gte: (k, v) => { q.filters.push(['gte', k, v]); return b },
+        maybeSingle: async () => { calls.push(q); return answer(q, true) },
+        then: (resolve, reject) => { calls.push(q); return Promise.resolve(answer(q, false)).then(resolve, reject) },
+      }
+      return b
+    },
+    storage: { from: () => ({ remove: async (paths) => { calls.push({ table: 'storage', op: 'remove', paths }); return { error: null } } }) },
+  }
+  const server = {
+    auth: { getUser: async () => ({ data: { user: { id: 'tony', email: 'tony@example.com' } } }) },
+    from: () => ({ select: () => ({ eq: () => ({
+      single: async () => ({ data: { role: 'admin', admin_scope: scope } }),
+      maybeSingle: async () => ({ data: { full_name: 'Anthony Fontanetta' } }),
+    }) }) }),
+  }
+  const actions = load('src/app/admin/families/actions.ts', {
+    'next/cache': { revalidatePath: () => {} },
+    '@/lib/supabase/server': { createServerSupabase: async () => server },
+    '@/lib/supabase/admin': { createAdminSupabase: () => admin },
+    '@/lib/twilio/opt-in': { SMS_CONSENT_TEXT: 'consent' },
+    '@/config/org.config': { ORG: { name: 'Club' } },
+    '@/lib/age-division': { AGE_DIVISIONS: ['tot', 'bantam', 'intermediate', 'novice', 'senior'] },
+    '@/lib/wrestler-removal': wrestlerRemoval,
+  })
+  const writes = () => calls.filter((c) => c.op !== 'select')
+  return { actions, calls, writes }
+}
+const cainDues = [
+  { id: 'dues-unpaid', amount_paid_cents: 0, stripe_payment_intent_id: null },
+  { id: 'dues-paid', amount_paid_cents: 27500, stripe_payment_intent_id: 'pi_1' },
+]
+
+test('a wrestler is removed only when their name is typed, and nothing is written otherwise', async () => {
+  const h = wrestlerDeleteHarness({ dues: cainDues })
+  const result = await h.actions.deleteWrestlerPermanently('kid-1', 'Nevin Velazquez')
+  assert.equal(result.ok, false)
+  assert.match(result.error, /does not match this wrestler/)
+  assert.deepEqual(h.writes(), [])
+})
+
+test('removing a wrestler deletes that wrestler, their files and unpaid dues, keeps paid dues, and names the admin', async () => {
+  const h = wrestlerDeleteHarness({ dues: cainDues })
+  const result = await h.actions.deleteWrestlerPermanently('kid-1', 'cain velazquez ')
+  assert.equal(result.ok, true)
+  const w = h.writes()
+  assert.deepEqual(plain(w.find((c) => c.table === 'storage').paths), ['kid-1/card.png'])
+  const athleteDelete = w.find((c) => c.table === 'athletes' && c.op === 'delete')
+  assert.deepEqual(plain(athleteDelete.filters), [['eq', 'id', 'kid-1']])
+  const duesDelete = w.find((c) => c.table === 'dues_payments' && c.op === 'delete')
+  assert.deepEqual(plain(duesDelete.filters[0]), ['in', 'id', ['dues-unpaid']])
+  assert.ok(w.indexOf(athleteDelete) < w.indexOf(duesDelete), 'dues go after the wrestler row unlinks them')
+  const stamp = w.find((c) => c.table === 'deletion_log')
+  assert.equal(stamp.values.deleted_by_name, 'Anthony Fontanetta')
+  assert.equal(stamp.values.via, 'site')
+  assert.ok(stamp.filters.some(([op, k, v]) => op === 'eq' && k === 'kind' && v === 'wrestler'))
+  assert.ok(stamp.filters.some(([op, k, v]) => op === 'eq' && k === 'profile_id' && v === 'fam-1'))
+})
+
+test('only a full admin can remove a wrestler', async () => {
+  const h = wrestlerDeleteHarness({ dues: cainDues, scope: 'limited' })
+  const result = await h.actions.deleteWrestlerPermanently('kid-1', 'Cain Velazquez')
+  assert.equal(result.ok, false)
+  assert.match(result.error, /Full admin access/)
+  assert.deepEqual(h.writes(), [])
+})
+
+test('the preview warns when the wrestler is the family\'s only one', async () => {
+  const h = wrestlerDeleteHarness({ dues: cainDues, siblings: 1 })
+  const result = await h.actions.getWrestlerDeletionPreview('kid-1')
+  assert.equal(result.ok, true)
+  assert.equal(result.preview.onlyWrestler, true)
+  assert.equal(result.preview.unpaidDues, 1)
+  assert.equal(result.preview.paidDues, 1)
+  assert.equal(result.preview.athleteName, 'Cain Velazquez')
+})

@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { AthleteDialog } from '../AthleteDialog'
 import { BirthCertificateToggle } from '../../registrations/BirthCertificateToggle'
 import { DeleteFamilyButton } from '../DeleteFamilyButton'
+import { DeleteWrestlerButton } from '../DeleteWrestlerButton'
 import { FamilyActiveToggle } from '../FamilyActiveToggle'
 import { ParentDialog } from '../ParentDialog'
 import { COMM_TYPE_LABELS } from '@/lib/comms/labels'
@@ -252,8 +253,9 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
                     recordedAt={athlete.birth_certificate_on_file_at}
                   />
                 </div>
-                <div className="pt-2">
+                <div className="flex flex-wrap items-center gap-2 pt-2">
                   <AthleteDialog athlete={athlete} />
+                  {viewerIsFullAdmin && <DeleteWrestlerButton athleteId={athlete.id} />}
                 </div>
               </CardContent>
             </Card>
