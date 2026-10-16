@@ -77,20 +77,31 @@ export function DocumentControls({
     if (message) setError(message)
   }
 
+  // On a phone the buttons fill their row: labels only when there are three,
+  // so they fit side by side; a lone Upload stretches full width.
+  const shared = existingPath ? 'max-sm:flex-1 max-sm:px-2 max-sm:[&_svg]:hidden' : 'max-sm:w-full'
+
   return (
-    <div className="flex flex-col items-end gap-1">
-      <div className="flex flex-wrap items-center justify-end gap-2">
+    <div className="flex flex-col gap-1 max-sm:w-full sm:items-end">
+      <div className="flex items-center gap-2 sm:justify-end">
         {existingPath && (
-          <Button type="button" variant="ghost" size="sm" onClick={handleView}>
+          <Button type="button" variant="ghost" size="sm" className={shared} onClick={handleView}>
             <Eye className="mr-1.5 h-4 w-4" /> View
           </Button>
         )}
         {existingPath && (
-          <Button type="button" variant="ghost" size="sm" onClick={handleDownload}>
+          <Button type="button" variant="ghost" size="sm" className={shared} onClick={handleDownload}>
             <Download className="mr-1.5 h-4 w-4" /> Download
           </Button>
         )}
-        <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => inputRef.current?.click()}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className={shared}
+          disabled={busy}
+          onClick={() => inputRef.current?.click()}
+        >
           <Upload className="mr-1.5 h-4 w-4" />
           {busy ? 'Uploading…' : existingPath ? 'Replace' : 'Upload'}
         </Button>
@@ -102,7 +113,7 @@ export function DocumentControls({
           onChange={handleFile}
         />
       </div>
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-base text-red-400">{error}</p>}
     </div>
   )
 }

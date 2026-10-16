@@ -133,7 +133,7 @@ export default async function DocumentsPage() {
                       key={req.type}
                       className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-clw-black px-4 py-3"
                     >
-                      <span className="text-sm text-clw-white">{req.label}</span>
+                      <span className="text-base text-clw-white">{req.label}</span>
                       <Badge variant="outline" className={STATUS_STYLES.verified}>
                         {req.type === 'usa_wrestling_card' ? 'confirmed by the club' : 'on file with the club'}
                       </Badge>
@@ -145,24 +145,25 @@ export default async function DocumentsPage() {
                 return (
                   <div
                     key={req.type}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-clw-black px-4 py-3"
+                    className="flex flex-col gap-3 rounded-xl bg-clw-black px-4 py-3 sm:flex-row sm:items-center"
                   >
-                    <div className="min-w-0">
-                      <span className="text-sm text-clw-white">{req.label}</span>
-                      {doc && <span className="block truncate text-xs text-clw-gray/70">{doc.file_name}</span>}
-                    </div>
-                    <div className="flex flex-wrap items-center justify-end gap-3">
-                      <Badge variant="outline" className={STATUS_STYLES[status]}>
+                    {/* Name and status on one line; on a phone the buttons get their own full-width row below. */}
+                    <div className="flex min-w-0 items-start justify-between gap-3 sm:flex-1 sm:items-center">
+                      <div className="min-w-0">
+                        <span className="text-base text-clw-white">{req.label}</span>
+                        {doc && <span className="block truncate text-sm text-clw-gray">{doc.file_name}</span>}
+                      </div>
+                      <Badge variant="outline" className={`shrink-0 ${STATUS_STYLES[status]}`}>
                         {STATUS_LABELS[status]}
                       </Badge>
-                      <DocumentControls
-                        userId={userId}
-                        athleteId={a.id}
-                        docType={req.type}
-                        existingPath={doc?.file_url ?? null}
-                        existingName={doc?.file_name ?? null}
-                      />
                     </div>
+                    <DocumentControls
+                      userId={userId}
+                      athleteId={a.id}
+                      docType={req.type}
+                      existingPath={doc?.file_url ?? null}
+                      existingName={doc?.file_name ?? null}
+                    />
                   </div>
                 )
               })}
@@ -172,7 +173,7 @@ export default async function DocumentsPage() {
       </div>
 
       {athleteRows.length > 0 && (
-        <p className="text-xs text-clw-gray/70">
+        <p className="text-sm text-clw-gray">
           Accepted files: images or PDF, up to 10MB. A club admin reviews and verifies each document.
         </p>
       )}

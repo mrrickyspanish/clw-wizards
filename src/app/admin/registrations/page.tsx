@@ -477,7 +477,7 @@ export default async function AdminRegistrationsPage({ searchParams }: { searchP
                   {athlete && (
                     <div className="rounded-md border border-clw-gold/10 bg-clw-black-2 p-4 sm:col-span-2">
                       <p className="text-sm font-medium text-clw-white">Birth certificate</p>
-                      <p className="mb-3 mt-1 text-sm text-clw-gray">
+                      <p className="mb-3 mt-1 text-base text-clw-gray">
                         {athlete.birth_certificate_on_file
                           ? 'On file with the club. The family is not asked for it.'
                           : birthCertificate

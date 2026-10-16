@@ -41,7 +41,7 @@ export function BirthCertificateToggle({
     <div className="space-y-1">
       <label className="flex cursor-pointer items-center gap-3">
         <Switch checked={onFile} disabled={pending} onCheckedChange={change} />
-        <span className="text-sm text-clw-white">Returning wrestler: birth certificate on file</span>
+        <span className="text-base text-clw-white">Returning wrestler: birth certificate on file</span>
       </label>
       {onFile && recordedAt && (
         <p className="text-sm text-clw-gray">

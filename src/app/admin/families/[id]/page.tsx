@@ -214,7 +214,7 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
           <p className="text-clw-gray">This family hasn’t added any athletes yet.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           {athletes.map((athlete) => (
             <Card key={athlete.id} className="border-clw-gold/10 bg-clw-black">
               <CardHeader className="flex flex-row items-start justify-between space-y-0">
