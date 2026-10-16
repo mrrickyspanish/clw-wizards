@@ -151,7 +151,7 @@ export default async function DocumentsPage() {
                       <span className="text-sm text-clw-white">{req.label}</span>
                       {doc && <span className="block truncate text-xs text-clw-gray/70">{doc.file_name}</span>}
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center justify-end gap-3">
                       <Badge variant="outline" className={STATUS_STYLES[status]}>
                         {STATUS_LABELS[status]}
                       </Badge>
@@ -160,6 +160,7 @@ export default async function DocumentsPage() {
                         athleteId={a.id}
                         docType={req.type}
                         existingPath={doc?.file_url ?? null}
+                        existingName={doc?.file_name ?? null}
                       />
                     </div>
                   </div>

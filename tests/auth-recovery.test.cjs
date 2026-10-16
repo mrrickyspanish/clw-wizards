@@ -2124,3 +2124,122 @@ test('View opens the file in the same tab when the browser refuses a new one', a
   assert.equal(await lib.openDocument(async () => ({ ok: true, url: 'https://files.example/card.png' })), null)
   assert.equal(win.location.href, 'https://files.example/card.png')
 })
+
+// Download buttons: no new tab, the link saves the file and the page stays put.
+test('Download fetches the save link and points this tab at it without opening a new one', async () => {
+  const { win, events } = fakeWindow()
+  win.location.assign = (url) => { events.push('assign'); win.location.href = url }
+  const lib = load('src/lib/open-document.ts', {}, {}, [], fetch, { window: win })
+  const message = await lib.downloadDocument(async () => { events.push('fetch'); return { ok: true, url: 'https://files.example/bc.pdf?download=bc.pdf' } })
+  assert.equal(message, null)
+  assert.deepEqual(events, ['fetch', 'assign'])
+  assert.equal(win.location.href, 'https://files.example/bc.pdf?download=bc.pdf')
+})
+
+test('Download reports the error and stays on the page when the link fails', async () => {
+  const { win, events } = fakeWindow()
+  win.location.assign = () => events.push('assign')
+  const lib = load('src/lib/open-document.ts', {}, {}, [], fetch, { window: win })
+  assert.equal(await lib.downloadDocument(async () => ({ ok: false, error: 'Could not download file' })), 'Could not download file')
+  assert.deepEqual(events, [])
+})
+
+// Admin download, upload and replace of a birth certificate, database and storage mocked.
+function adminDocHarness({ role = 'admin', prior = ['old-1', 'old-2'] } = {}) {
+  const calls = []
+  const admin = {
+    from: (table) => {
+      const q = { table, filters: [] }
+      const b = {
+        select: () => b,
+        insert: (values) => { q.op = 'insert'; q.values = values; calls.push(q); return Promise.resolve({ error: null }) },
+        delete: () => { q.op = 'delete'; calls.push(q); return b },
+        eq: (k, v) => { q.filters.push(['eq', k, v]); return b },
+        in: (k, v) => { q.filters.push(['in', k, v]); return q.op === 'delete' ? Promise.resolve({ error: null }) : b },
+        maybeSingle: async () => {
+          if (table === 'athletes') return { data: { id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa', parent_id: 'fam-1' }, error: null }
+          if (table === 'athlete_documents') return { data: { file_url: 'fam-1/kid/birth_certificate-1-bc.pdf', file_name: 'Jo BC.pdf' }, error: null }
+          return { data: null, error: null }
+        },
+        then: (resolve) => resolve({ data: prior.map((id) => ({ id })), error: null }),
+      }
+      return b
+    },
+    storage: {
+      from: () => ({
+        createSignedUrl: async (p, ttl, opts) => { calls.push({ op: 'sign', path: p, opts }); return { data: { signedUrl: `https://files.example/${p}` }, error: null } },
+        createSignedUploadUrl: async (p) => { calls.push({ op: 'signUpload', path: p }); return { data: { path: p, token: 'tok' }, error: null } },
+      }),
+    },
+  }
+  const server = {
+    auth: { getUser: async () => ({ data: { user: { id: 'tony' } } }) },
+    from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: { role } }) }) }) }),
+  }
+  const actions = load('src/app/admin/registrations/actions.ts', {
+    'next/cache': { revalidatePath: () => {} },
+    resend: { Resend: class {} },
+    '@/lib/supabase/server': { createServerSupabase: async () => server },
+    '@/lib/supabase/admin': { createAdminSupabase: () => admin },
+    '@/config/org.config': { ORG: { domain: 'example.org', shortName: 'CLW', name: 'Club' } },
+    '@/lib/registration-card': load('src/lib/registration-card.ts', {}),
+  })
+  return { actions, calls }
+}
+const kidId = 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa'
+
+test('admin Download asks storage for a save link under the uploaded file name', async () => {
+  const h = adminDocHarness()
+  const result = await h.actions.getAdminDocumentDownloadUrl(docId)
+  assert.equal(result.ok, true)
+  const sign = h.calls.find((c) => c.op === 'sign')
+  assert.equal(sign.path, 'fam-1/kid/birth_certificate-1-bc.pdf')
+  assert.equal(sign.opts.download, 'Jo BC.pdf')
+})
+
+test('admin upload goes into the family\'s own folder for that wrestler', async () => {
+  const h = adminDocHarness()
+  const ticket = await h.actions.prepareAdminBirthCertificateUpload({ athleteId: kidId, fileName: 'Jo birth cert.pdf', fileSize: 2048 })
+  assert.equal(ticket.ok, true)
+  assert.match(ticket.path, new RegExp(`^fam-1/${kidId}/birth_certificate-\\d+-Jo_birth_cert\\.pdf$`))
+  assert.equal(ticket.token, 'tok')
+})
+
+test('admin upload refuses files over 10MB before anything is stored', async () => {
+  const h = adminDocHarness()
+  const ticket = await h.actions.prepareAdminBirthCertificateUpload({ athleteId: kidId, fileName: 'big.pdf', fileSize: 11 * 1024 * 1024 })
+  assert.equal(ticket.ok, false)
+  assert.match(ticket.error, /10MB/)
+  assert.equal(h.calls.length, 0)
+})
+
+test('admin Replace saves the new birth certificate on the family, unverified, then removes the old ones', async () => {
+  const h = adminDocHarness()
+  const result = await h.actions.recordAdminBirthCertificate({ athleteId: kidId, path: `fam-1/${kidId}/birth_certificate-9-new.pdf`, fileName: 'new.pdf' })
+  assert.equal(result.ok, true)
+  const ops = h.calls.filter((c) => c.op).map((c) => c.op)
+  assert.deepEqual(ops, ['insert', 'delete'])
+  const insert = h.calls.find((c) => c.op === 'insert')
+  assert.equal(insert.values.parent_id, 'fam-1')
+  assert.equal(insert.values.doc_type, 'birth_certificate')
+  assert.equal(insert.values.verified, undefined)
+  const del = h.calls.find((c) => c.op === 'delete')
+  assert.ok(del.filters.some(([op, k, v]) => op === 'in' && k === 'id' && v.join() === 'old-1,old-2'))
+})
+
+test('admin Replace rejects a file path that is not this wrestler\'s birth certificate', async () => {
+  const h = adminDocHarness()
+  for (const bad of [`fam-2/${kidId}/birth_certificate-9-x.pdf`, `fam-1/${kidId}/usa_wrestling_card-9-x.pdf`, `fam-1/${kidId}/birth_certificate-9/../x.pdf`]) {
+    const result = await h.actions.recordAdminBirthCertificate({ athleteId: kidId, path: bad, fileName: 'x.pdf' })
+    assert.equal(result.ok, false)
+  }
+  assert.equal(h.calls.filter((c) => c.op === 'insert' || c.op === 'delete').length, 0)
+})
+
+test('only an admin can download, upload or replace from admin', async () => {
+  const h = adminDocHarness({ role: 'parent' })
+  assert.equal((await h.actions.getAdminDocumentDownloadUrl(docId)).ok, false)
+  assert.equal((await h.actions.prepareAdminBirthCertificateUpload({ athleteId: kidId, fileName: 'a.pdf', fileSize: 10 })).ok, false)
+  assert.equal((await h.actions.recordAdminBirthCertificate({ athleteId: kidId, path: `fam-1/${kidId}/birth_certificate-1-a.pdf`, fileName: 'a.pdf' })).ok, false)
+  assert.equal(h.calls.length, 0)
+})

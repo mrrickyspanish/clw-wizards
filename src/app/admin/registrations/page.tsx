@@ -486,11 +486,9 @@ export default async function AdminRegistrationsPage({ searchParams }: { searchP
                               : 'Uploaded, not yet verified.'
                             : 'Not uploaded. Needed only the first time a wrestler registers.'}
                       </p>
-                      {birthCertificate && (
-                        <div className="mb-3">
-                          <BirthCertificateDocument documentId={birthCertificate.id} verified={birthCertificate.verified} />
-                        </div>
-                      )}
+                      <div className="mb-3">
+                        <BirthCertificateDocument athleteId={athlete.id} document={birthCertificate ?? null} />
+                      </div>
                       <BirthCertificateToggle
                         athleteId={athlete.id}
                         onFile={athlete.birth_certificate_on_file}

@@ -108,6 +108,127 @@ export async function getAdminDocumentUrl(documentId: string): Promise<SignedUrl
   return { ok: true, url: data.signedUrl }
 }
 
+export async function getAdminDocumentDownloadUrl(documentId: string): Promise<SignedUrlResult> {
+  const auth = await requireAdmin()
+  if (!auth.ok) return auth
+  if (!z.string().uuid().safeParse(documentId).success) return { ok: false, error: 'Invalid document.' }
+
+  const admin = createAdminSupabase()
+  const { data: document, error } = await admin
+    .from('athlete_documents')
+    .select('file_url, file_name')
+    .eq('id', documentId)
+    .maybeSingle()
+
+  if (error || !document) return { ok: false, error: error?.message ?? 'Document not found.' }
+
+  const { data, error: urlError } = await admin.storage
+    .from('athlete-documents')
+    .createSignedUrl(document.file_url, 120, { download: document.file_name || true })
+  if (urlError || !data) return { ok: false, error: urlError?.message ?? 'Could not download document.' }
+  return { ok: true, url: data.signedUrl }
+}
+
+// Admin upload or replace of a wrestler's birth certificate, for a family that
+// sends it to the club instead of uploading it. Two steps so the file goes
+// straight from the browser to storage (it can be up to 10MB, too big to pass
+// through a server action): prepare hands back a one-time upload link in the
+// family's own folder, then record saves the row once the file is in.
+
+const ADMIN_UPLOAD_MAX_BYTES = 10 * 1024 * 1024
+
+function storageSafeName(name: string) {
+  return name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-80)
+}
+
+const prepareUploadSchema = z.object({
+  athleteId: z.string().uuid(),
+  fileName: z.string().trim().min(1).max(200),
+  fileSize: z.number().int().positive().max(ADMIN_UPLOAD_MAX_BYTES, 'File must be under 10MB.'),
+})
+
+export type AdminUploadTicket = { ok: true; path: string; token: string } | { ok: false; error: string }
+
+export async function prepareAdminBirthCertificateUpload(
+  values: z.input<typeof prepareUploadSchema>
+): Promise<AdminUploadTicket> {
+  const auth = await requireAdmin()
+  if (!auth.ok) return auth
+  const parsed = prepareUploadSchema.safeParse(values)
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid file.' }
+
+  const admin = createAdminSupabase()
+  const { data: athlete, error } = await admin
+    .from('athletes')
+    .select('id, parent_id')
+    .eq('id', parsed.data.athleteId)
+    .maybeSingle()
+  if (error) return { ok: false, error: error.message }
+  if (!athlete) return { ok: false, error: 'Wrestler not found.' }
+
+  // Same folder the family's own uploads use, so the family can open it too.
+  const path = `${athlete.parent_id}/${athlete.id}/birth_certificate-${Date.now()}-${storageSafeName(parsed.data.fileName)}`
+  const { data, error: urlError } = await admin.storage.from('athlete-documents').createSignedUploadUrl(path)
+  if (urlError || !data) return { ok: false, error: urlError?.message ?? 'Could not start the upload.' }
+  return { ok: true, path: data.path, token: data.token }
+}
+
+const recordUploadSchema = z.object({
+  athleteId: z.string().uuid(),
+  path: z.string().min(1).max(500),
+  fileName: z.string().trim().min(1).max(200),
+})
+
+export async function recordAdminBirthCertificate(values: z.input<typeof recordUploadSchema>): Promise<ActionResult> {
+  const auth = await requireAdmin()
+  if (!auth.ok) return auth
+  const parsed = recordUploadSchema.safeParse(values)
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid file.' }
+
+  const admin = createAdminSupabase()
+  const { data: athlete, error: athleteError } = await admin
+    .from('athletes')
+    .select('id, parent_id')
+    .eq('id', parsed.data.athleteId)
+    .maybeSingle()
+  if (athleteError) return { ok: false, error: athleteError.message }
+  if (!athlete) return { ok: false, error: 'Wrestler not found.' }
+
+  // Only a path prepare handed out for this wrestler is accepted.
+  const folder = `${athlete.parent_id}/${athlete.id}/`
+  const fileOnly = parsed.data.path.slice(folder.length)
+  if (!parsed.data.path.startsWith(folder) || !fileOnly.startsWith('birth_certificate-') || fileOnly.includes('/')) {
+    return { ok: false, error: 'That upload does not belong to this wrestler.' }
+  }
+
+  // Replace in place, the same way a family's Replace works: save the new row
+  // first so a failure never empties the slot, then remove the older rows. The
+  // new file starts unverified, so it gets a look before it counts.
+  const { data: prior } = await admin
+    .from('athlete_documents')
+    .select('id')
+    .eq('athlete_id', athlete.id)
+    .eq('doc_type', 'birth_certificate')
+
+  const { error } = await admin.from('athlete_documents').insert({
+    athlete_id: athlete.id,
+    parent_id: athlete.parent_id,
+    doc_type: 'birth_certificate',
+    file_url: parsed.data.path,
+    file_name: parsed.data.fileName,
+  })
+  if (error) return { ok: false, error: error.message }
+
+  const priorIds = (prior ?? []).map((row) => row.id)
+  if (priorIds.length) {
+    await admin.from('athlete_documents').delete().in('id', priorIds)
+  }
+
+  revalidateRegistrationSurfaces()
+  revalidatePath('/admin/families', 'layout')
+  return { ok: true }
+}
+
 const reviewSchema = z.object({
   enrollmentId: z.string().uuid(),
   status: z.enum(['changes_requested', 'approved', 'withdrawn']),

@@ -262,19 +262,19 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
                 </div>
                 <div className="pt-2">
                   <p className="text-clw-gray/70">Birth certificate</p>
-                  {birthCertificateByAthlete.get(athlete.id) ? (
-                    <div className="mt-1">
-                      <p className="mb-2 text-clw-white">
-                        {birthCertificateByAthlete.get(athlete.id)!.verified ? 'Uploaded and verified' : 'Uploaded, not yet verified'}
-                      </p>
-                      <BirthCertificateDocument
-                        documentId={birthCertificateByAthlete.get(athlete.id)!.id}
-                        verified={birthCertificateByAthlete.get(athlete.id)!.verified}
-                      />
-                    </div>
-                  ) : (
-                    <p className="text-clw-white">Not uploaded</p>
-                  )}
+                  <div className="mt-1">
+                    <p className="mb-2 text-clw-white">
+                      {birthCertificateByAthlete.get(athlete.id)
+                        ? birthCertificateByAthlete.get(athlete.id)!.verified
+                          ? 'Uploaded and verified'
+                          : 'Uploaded, not yet verified'
+                        : 'Not uploaded'}
+                    </p>
+                    <BirthCertificateDocument
+                      athleteId={athlete.id}
+                      document={birthCertificateByAthlete.get(athlete.id) ?? null}
+                    />
+                  </div>
                 </div>
                 <div className="pt-2">
                   <BirthCertificateToggle

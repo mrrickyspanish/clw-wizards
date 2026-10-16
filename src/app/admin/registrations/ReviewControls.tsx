@@ -2,10 +2,10 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2, Eye, FileCheck2, RotateCcw } from 'lucide-react'
+import { CheckCircle2, Download, Eye, FileCheck2, RotateCcw } from 'lucide-react'
 
-import { getAdminDocumentUrl, reviewSeasonEnrollment, setDocumentVerified } from './actions'
-import { openDocument } from '@/lib/open-document'
+import { getAdminDocumentDownloadUrl, getAdminDocumentUrl, reviewSeasonEnrollment, setDocumentVerified } from './actions'
+import { downloadDocument, openDocument } from '@/lib/open-document'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -66,6 +66,14 @@ export function ReviewControls({
     })
   }
 
+  function downloadCard() {
+    if (!documentId) return
+    setError(null)
+    void downloadDocument(() => getAdminDocumentDownloadUrl(documentId)).then((message) => {
+      if (message) setError(message)
+    })
+  }
+
   function requestChanges() {
     run(
       () => reviewSeasonEnrollment({ enrollmentId, status: 'changes_requested', note }),
@@ -99,6 +107,11 @@ export function ReviewControls({
         {documentId && (
           <Button type="button" variant="ghost" size="sm" disabled={pending} onClick={viewDocument}>
             <Eye className="mr-1.5 h-4 w-4" /> View card
+          </Button>
+        )}
+        {documentId && (
+          <Button type="button" variant="ghost" size="sm" disabled={pending} onClick={downloadCard}>
+            <Download className="mr-1.5 h-4 w-4" /> Download card
           </Button>
         )}
 

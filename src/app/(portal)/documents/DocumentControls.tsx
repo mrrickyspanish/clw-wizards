@@ -2,11 +2,11 @@
 
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Upload, Eye } from 'lucide-react'
+import { Download, Upload, Eye } from 'lucide-react'
 
 import { createBrowserSupabase } from '@/lib/supabase/browser'
-import { recordDocument, getDocumentUrl } from './actions'
-import { openDocument } from '@/lib/open-document'
+import { recordDocument, getDocumentUrl, getDocumentDownloadUrl } from './actions'
+import { downloadDocument, openDocument } from '@/lib/open-document'
 import { Button } from '@/components/ui/button'
 
 type DocType = 'birth_certificate' | 'usa_wrestling_card' | 'other'
@@ -21,11 +21,13 @@ export function DocumentControls({
   athleteId,
   docType,
   existingPath,
+  existingName,
 }: {
   userId: string
   athleteId: string
   docType: DocType
   existingPath: string | null
+  existingName?: string | null
 }) {
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -68,12 +70,24 @@ export function DocumentControls({
     if (message) setError(message)
   }
 
+  async function handleDownload() {
+    if (!existingPath) return
+    setError(null)
+    const message = await downloadDocument(() => getDocumentDownloadUrl(existingPath, existingName ?? ''))
+    if (message) setError(message)
+  }
+
   return (
     <div className="flex flex-col items-end gap-1">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         {existingPath && (
           <Button type="button" variant="ghost" size="sm" onClick={handleView}>
             <Eye className="mr-1.5 h-4 w-4" /> View
+          </Button>
+        )}
+        {existingPath && (
+          <Button type="button" variant="ghost" size="sm" onClick={handleDownload}>
+            <Download className="mr-1.5 h-4 w-4" /> Download
           </Button>
         )}
         <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => inputRef.current?.click()}>
@@ -88,7 +102,7 @@ export function DocumentControls({
           onChange={handleFile}
         />
       </div>
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-sm text-red-400">{error}</p>}
     </div>
   )
 }

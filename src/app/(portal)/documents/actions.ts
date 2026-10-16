@@ -84,3 +84,15 @@ export async function getDocumentUrl(path: string): Promise<SignedUrlResult> {
   if (error || !data) return { ok: false, error: error?.message ?? 'Could not open file' }
   return { ok: true, url: data.signedUrl }
 }
+
+// Same link, marked to save the file under its uploaded name instead of
+// opening it in the browser.
+export async function getDocumentDownloadUrl(path: string, fileName: string): Promise<SignedUrlResult> {
+  if (!path) return { ok: false, error: 'Missing file' }
+  const supabase = await createServerSupabase()
+  const { data, error } = await supabase.storage
+    .from('athlete-documents')
+    .createSignedUrl(path, 60, { download: fileName || true })
+  if (error || !data) return { ok: false, error: error?.message ?? 'Could not download file' }
+  return { ok: true, url: data.signedUrl }
+}
