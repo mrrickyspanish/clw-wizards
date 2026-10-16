@@ -66,6 +66,7 @@ const tables = {
   disclosure_acceptances: [],
   athlete_guardians: [],
   athlete_documents: [
+    { id: id('d', 2), athlete_id: id('k', 2), parent_id: PARENT, doc_type: 'usa_wrestling_card', file_url: PARENT + '/' + id('k', 2) + '/usa_wrestling_card-1-card.png', file_name: 'card.png', verified: false, verified_by: null, verified_at: null, uploaded_at: '2026-10-02T15:00:00Z' },
     { id: id('d', 1), athlete_id: id('k', 1), parent_id: PARENT, doc_type: 'birth_certificate', file_url: PARENT + '/' + id('k', 1) + '/birth_certificate-1-bc.pdf', file_name: 'bc.pdf', verified: false, verified_by: null, verified_at: null, uploaded_at: '2026-10-10T15:00:00Z', created_at: T },
   ],
   practices: [[1, 'Group 1', '17:30', '18:30'], [1, 'Group 3', '19:00', '20:30'], [2, 'Group 2', '17:30', '18:45'], [2, 'Group 4', '19:00', '20:30'], [3, 'Group 3', '17:30', '18:45'], [4, 'Group 1', '17:30', '18:30'], [5, 'Group 2', '17:30', '18:45']]

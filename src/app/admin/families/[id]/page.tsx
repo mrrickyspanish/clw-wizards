@@ -5,13 +5,26 @@ import { ArrowLeft, ChevronDown } from 'lucide-react'
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { isFullAdmin } from '@/lib/auth/admin'
-import type { Athlete, CommunicationLogRow, Profile } from '@/types/database'
+import type {
+  Athlete,
+  AthleteDocument,
+  CommunicationLogRow,
+  Disclosure,
+  DisclosureAcceptance,
+  DuesPayment,
+  Profile,
+  SeasonEnrollment,
+  SeasonRegistration,
+} from '@/types/database'
+import { formatCents } from '@/lib/format/money'
+import { registrationCard } from '@/lib/registration-card'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { AthleteDialog } from '../AthleteDialog'
 import { BirthCertificateToggle } from '../../registrations/BirthCertificateToggle'
 import { BirthCertificateDocument } from '../../registrations/BirthCertificateDocument'
+import { DocumentLinks } from '../../registrations/DocumentLinks'
 import { DeleteFamilyButton } from '../DeleteFamilyButton'
 import { DeleteWrestlerButton } from '../DeleteWrestlerButton'
 import { FamilyActiveToggle } from '../FamilyActiveToggle'
@@ -38,6 +51,21 @@ function formatDate(value: string) {
     day: 'numeric',
     year: 'numeric',
   })
+}
+
+// Same labels and colors as Registrations, so a status reads the same on both pages.
+const ENROLLMENT_STYLES: Record<SeasonEnrollment['status'], string> = {
+  submitted: 'border-blue-500/40 bg-blue-500/10 text-blue-400',
+  changes_requested: 'border-amber-500/40 bg-amber-500/10 text-amber-400',
+  approved: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400',
+  withdrawn: 'border-clw-gray/40 bg-clw-gray/10 text-clw-gray',
+}
+
+const ENROLLMENT_LABELS: Record<SeasonEnrollment['status'], string> = {
+  submitted: 'submitted',
+  changes_requested: 'changes requested',
+  approved: 'approved',
+  withdrawn: 'withdrawn',
 }
 
 type GuardianRow = Pick<Profile, 'id' | 'full_name' | 'email' | 'phone' | 'sms_opt_in' | 'is_active'>
@@ -79,6 +107,49 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
   for (const row of birthCertificateRows ?? []) {
     const known = birthCertificateByAthlete.get(row.athlete_id)
     if (!known || row.uploaded_at > known.uploaded_at) birthCertificateByAthlete.set(row.athlete_id, row)
+  }
+
+  // This season's registration for each wrestler: status, dues, agreements and
+  // USA card, worked out the same way Registrations does (current season = the
+  // one closing last; card = registrationCard).
+  const athleteIds = athletes.map((a) => a.id)
+  const { data: currentSeasonData } = await supabase
+    .from('season_registrations')
+    .select('*')
+    .order('registration_close_date', { ascending: false })
+    .limit(1)
+  const season = ((currentSeasonData ?? []) as SeasonRegistration[])[0]
+  const [{ data: enrollmentRows }, { data: cardRows }, { data: disclosureRows }, { data: acceptanceRows }] =
+    await Promise.all([
+      season && athleteIds.length
+        ? supabase.from('season_enrollments').select('*').eq('season_registration_id', season.id).in('athlete_id', athleteIds)
+        : Promise.resolve({ data: [] as SeasonEnrollment[] }),
+      athleteIds.length
+        ? supabase.from('athlete_documents').select('*').eq('doc_type', 'usa_wrestling_card').in('athlete_id', athleteIds)
+        : Promise.resolve({ data: [] as AthleteDocument[] }),
+      supabase.from('disclosures').select('*').eq('active', true).eq('required', true),
+      season && athleteIds.length
+        ? supabase
+            .from('disclosure_acceptances')
+            .select('*')
+            .eq('season_registration_id', season.id)
+            .in('athlete_id', athleteIds)
+        : Promise.resolve({ data: [] as DisclosureAcceptance[] }),
+    ])
+  const enrollmentByAthlete = new Map(((enrollmentRows ?? []) as SeasonEnrollment[]).map((e) => [e.athlete_id, e]))
+  const duesIds = [...enrollmentByAthlete.values()].map((e) => e.dues_payment_id).filter(Boolean) as string[]
+  const { data: duesRows } = duesIds.length
+    ? await supabase.from('dues_payments').select('*').in('id', duesIds)
+    : { data: [] as DuesPayment[] }
+  const duesById = new Map(((duesRows ?? []) as DuesPayment[]).map((d) => [d.id, d]))
+  const cardsByAthlete = new Map<string, AthleteDocument[]>()
+  for (const card of (cardRows ?? []) as AthleteDocument[]) {
+    cardsByAthlete.set(card.athlete_id, [...(cardsByAthlete.get(card.athlete_id) ?? []), card])
+  }
+  const requiredDisclosures = (disclosureRows ?? []) as Disclosure[]
+  const signedByAthlete = new Map<string, Set<string>>()
+  for (const a of (acceptanceRows ?? []) as DisclosureAcceptance[]) {
+    signedByAthlete.set(a.athlete_id, (signedByAthlete.get(a.athlete_id) ?? new Set()).add(a.disclosure_id))
   }
 
   // Co-guardians who have joined this family via an invite code.
@@ -254,6 +325,19 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
                     <p className="text-clw-white">{athlete.usa_wrestling_card_number ?? '—'}</p>
                   </div>
                 </div>
+                {season && (
+                  <SeasonSummary
+                    season={season}
+                    athlete={athlete}
+                    enrollment={enrollmentByAthlete.get(athlete.id)}
+                    dues={(() => {
+                      const id = enrollmentByAthlete.get(athlete.id)?.dues_payment_id
+                      return id ? duesById.get(id) : undefined
+                    })()}
+                    cards={cardsByAthlete.get(athlete.id) ?? []}
+                    missingAgreements={requiredDisclosures.filter((d) => !signedByAthlete.get(athlete.id)?.has(d.id))}
+                  />
+                )}
                 <div className="pt-2">
                   <p className="text-clw-gray/70">Birth certificate</p>
                   <div className="mt-1">
@@ -363,6 +447,114 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
           {viewerIsFullAdmin && <DeleteFamilyButton parentId={parent.id} fullWidth />}
         </div>
       </section>
+    </div>
+  )
+}
+
+/**
+ * One wrestler's current-season registration, at a glance: status, dues,
+ * agreements and USA card. Read-only here; approving, requesting an update and
+ * verifying the card happen in Registrations (linked).
+ */
+function SeasonSummary({
+  season,
+  athlete,
+  enrollment,
+  dues,
+  cards,
+  missingAgreements,
+}: {
+  season: SeasonRegistration
+  athlete: Athlete
+  enrollment: SeasonEnrollment | undefined
+  dues: DuesPayment | undefined
+  cards: AthleteDocument[]
+  missingAgreements: Disclosure[]
+}) {
+  const name = `${athlete.first_name} ${athlete.last_name}`
+  const registrationsHref = `/admin/registrations?q=${encodeURIComponent(name)}`
+
+  if (!enrollment) {
+    return (
+      <div className="mt-2 space-y-2 rounded-md border border-amber-500/20 bg-clw-black-2 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-base font-medium text-clw-white">{season.season_label}</p>
+          <Badge variant="outline" className="whitespace-nowrap border-amber-500/40 bg-amber-500/10 text-amber-400">
+            not registered
+          </Badge>
+        </div>
+        <p className="text-base text-clw-gray">
+          The family hasn&apos;t completed this season&apos;s registration, so there&apos;s no waiver, dues or review yet.
+        </p>
+      </div>
+    )
+  }
+
+  const card = registrationCard(enrollment.usa_card_document_id, cards, season.registration_open_date)
+  const cardClearedByClub = enrollment.status === 'approved' && Boolean(enrollment.card_override_at)
+  const cardLine = !season.require_usa_card
+    ? 'Not required'
+    : card
+      ? card.verified
+        ? 'Uploaded and verified'
+        : 'Uploaded, not yet verified'
+      : cardClearedByClub
+        ? 'Confirmed by the club without an upload'
+        : athlete.usa_wrestling_card_number?.trim()
+          ? `Not uploaded · card #${athlete.usa_wrestling_card_number.trim()} on file`
+          : 'Not uploaded'
+  const duesLine =
+    season.dues_amount_cents === 0
+      ? 'No dues required'
+      : !dues
+        ? 'No dues record'
+        : `${formatCents(dues.amount_paid_cents)} of ${formatCents(dues.amount_cents)} · ${dues.status}`
+
+  return (
+    <div className="mt-2 space-y-3 rounded-md border border-clw-gold/10 bg-clw-black-2 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-base font-medium text-clw-white">{season.season_label}</p>
+        <Badge variant="outline" className={`whitespace-nowrap ${ENROLLMENT_STYLES[enrollment.status]}`}>
+          {ENROLLMENT_LABELS[enrollment.status]}
+        </Badge>
+      </div>
+
+      <div>
+        <p className="text-clw-gray/70">Dues</p>
+        <p className="text-base text-clw-white">{duesLine}</p>
+      </div>
+
+      <div>
+        <p className="text-clw-gray/70">Agreements</p>
+        {missingAgreements.length === 0 ? (
+          <p className="text-base text-clw-white">Signed</p>
+        ) : (
+          <p className="text-base text-amber-300">Not signed: {missingAgreements.map((d) => d.title).join(', ')}</p>
+        )}
+      </div>
+
+      <div>
+        <p className="text-clw-gray/70">USA Wrestling card</p>
+        <p className="text-base text-clw-white">{cardLine}</p>
+        {card && (
+          <div className="mt-2">
+            <DocumentLinks documentId={card.id} />
+          </div>
+        )}
+      </div>
+
+      {enrollment.admin_note && (
+        <p className="rounded-md border border-amber-500/20 bg-amber-500/5 p-3 text-base text-amber-200">
+          Club note: {enrollment.admin_note}
+        </p>
+      )}
+
+      <Link
+        href={registrationsHref}
+        className="inline-flex min-h-11 items-center text-base text-clw-gold hover:text-clw-gold-l"
+      >
+        Review in Registrations
+      </Link>
     </div>
   )
 }

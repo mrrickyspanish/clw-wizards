@@ -4,7 +4,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_PATH || '/opt/node22/lib/nod
 const b = (s) => Buffer.from(s).toString('base64url'), exp = 4102444800
 const cookieFor = (sub) => 'base64-' + b(JSON.stringify({ access_token: [b('{}'), b(JSON.stringify({ sub, exp })), 's'].join('.'), token_type: 'bearer', expires_in: 3600, expires_at: exp, refresh_token: 'r', user: { id: sub } }))
 const FAM = '00000000-0000-4000-8000-620000000001', KID = '00000000-0000-4000-8000-6b0000000001'
-const ADMIN = ['/admin', '/admin/communications', '/admin/content', '/admin/dues', '/admin/families', `/admin/families/${FAM}`, '/admin/practices', '/admin/registrations', '/admin/sponsors', '/admin/team', '/admin/tournaments']
+const ADMIN = ['/admin', '/admin/communications', '/admin/content', '/admin/dues', '/admin/families', `/admin/families/${FAM}`, '/admin/families/00000000-0000-4000-8000-620000000003', '/admin/registrations?q=Tina%20Parent', '/admin/practices', '/admin/registrations', '/admin/sponsors', '/admin/team', '/admin/tournaments']
 const PARENT = ['/dashboard', '/athletes', '/athletes/new', '/documents', '/dues', '/events', '/family', '/profile', '/registration', `/registration/${KID}`, '/tournaments', '/onboarding']
 const PUBLIC = ['/', '/about', '/coaches', '/faq', '/golf-outing', '/join', '/login', '/signup', '/forgot-password', '/partners', '/privacy', '/program', '/schedule', '/sms-terms', '/sponsorship', '/sponsorship/boosters', '/sponsorship/donate', '/sponsorship/sponsor', '/sponsorship/thank-you', '/sponsorship/volunteer', '/staff', '/terms', '/admin-signup']
 const widths = (process.argv[3] || '320,360,390,768').split(',').map(Number)

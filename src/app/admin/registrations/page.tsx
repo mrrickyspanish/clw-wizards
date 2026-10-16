@@ -402,6 +402,8 @@ export default async function AdminRegistrationsPage({ searchParams }: { searchP
           return (
             <details
               key={enrollment.id}
+              // A search that lands on one wrestler (e.g. "Review in Registrations" from Families) opens it.
+              open={Boolean(query) && shownEnrollments.length === 1}
               className="group rounded-lg border border-clw-gold/10 bg-clw-black text-card-foreground shadow-sm"
             >
               <summary className="flex cursor-pointer list-none flex-row flex-wrap items-start justify-between gap-4 p-6 [&::-webkit-details-marker]:hidden">
