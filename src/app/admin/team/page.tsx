@@ -62,20 +62,26 @@ export default async function AdminTeamPage() {
             <p className="text-sm text-clw-gray">No admins yet.</p>
           ) : (
             adminRows.map((a) => (
-              <div key={a.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-clw-black-3 px-4 py-3">
+              <div
+                key={a.id}
+                className="flex flex-col gap-3 rounded-xl bg-clw-black-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+              >
                 <div className="min-w-0">
                   <p className="truncate font-medium text-clw-white">{a.full_name ?? 'Unnamed admin'}</p>
                   <p className="truncate text-sm text-clw-gray">{a.email ?? '—'}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  {!a.is_active && (
-                    <Badge variant="outline" className="border-clw-gray/40 bg-clw-gray/10 text-clw-gray">
-                      inactive
+                {/* On a phone: badges on one line, then the actions as a full-width row. */}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {!a.is_active && (
+                      <Badge variant="outline" className="whitespace-nowrap border-clw-gray/40 bg-clw-gray/10 text-clw-gray">
+                        inactive
+                      </Badge>
+                    )}
+                    <Badge variant="outline" className={`whitespace-nowrap ${SCOPE_STYLES[a.admin_scope ?? 'limited']}`}>
+                      {a.admin_scope === 'full' ? 'Full access' : 'Limited access'}
                     </Badge>
-                  )}
-                  <Badge variant="outline" className={SCOPE_STYLES[a.admin_scope ?? 'limited']}>
-                    {a.admin_scope === 'full' ? 'Full access' : 'Limited access'}
-                  </Badge>
+                  </div>
                   <AdminRowActions
                     id={a.id}
                     name={a.full_name ?? a.email ?? 'this admin'}

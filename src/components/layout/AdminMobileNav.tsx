@@ -73,7 +73,7 @@ export function AdminMobileNav({
           <button
             type="button"
             aria-label="Open admin navigation"
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-clw-gold/20 text-clw-white transition-colors hover:border-clw-gold/50 hover:text-clw-gold"
+            className="flex h-11 w-11 items-center justify-center rounded-lg border border-clw-gold/20 text-clw-white transition-colors hover:border-clw-gold/50 hover:text-clw-gold"
           >
             <Menu className="h-5 w-5" />
           </button>

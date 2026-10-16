@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, ChevronDown } from 'lucide-react'
 
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { createServerSupabase } from '@/lib/supabase/server'
@@ -121,15 +121,9 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
         <ArrowLeft className="h-4 w-4" /> Back to families
       </Link>
 
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-display text-clw-gold">{parent.full_name ?? 'Unnamed parent'}</h1>
-          <p className="text-sm text-clw-gray">{parent.email ?? '—'}</p>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <FamilyActiveToggle parentId={parent.id} isActive={parent.is_active} familyId={parent.id} />
-          {viewerIsFullAdmin && <DeleteFamilyButton parentId={parent.id} />}
-        </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-display text-clw-gold">{parent.full_name ?? 'Unnamed parent'}</h1>
+        <p className="text-sm text-clw-gray">{parent.email ?? '—'}</p>
       </div>
 
       <Card className="mb-6 border-clw-gold/10 bg-clw-black">
@@ -294,57 +288,81 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
         </div>
       )}
 
-      <h2 className="mb-3 mt-8 text-lg font-display text-clw-white">
-        Message history <span className="text-sm text-clw-gray">({messages.length})</span>
-      </h2>
+      {/* Collapsed by default: it's reference, not the reason an admin opens a family. */}
+      <details className="group mt-8 rounded-md border border-clw-gold/10 bg-clw-black open:border-clw-gold/30">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 p-4 [&::-webkit-details-marker]:hidden">
+          <span className="flex items-center gap-3">
+            <ChevronDown className="h-4 w-4 shrink-0 text-clw-gold transition-transform duration-200 group-open:rotate-180" />
+            <span className="text-lg font-display text-clw-white">
+              Message history <span className="text-sm text-clw-gray">({messages.length})</span>
+            </span>
+          </span>
+          {messages[0] && (
+            <span className="text-sm text-clw-gray">Last sent {formatDateTime(messages[0].sent_at)}</span>
+          )}
+        </summary>
+        <div className="border-t border-clw-gold/10">
+          {messages.length === 0 ? (
+            <div className="p-8 text-center">
+              <p className="text-base text-clw-gray">
+                No emails or texts have been sent to this family yet.
+              </p>
+            </div>
+          ) : (
+            <div>
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-clw-gold/10 hover:bg-transparent">
+                    <TableHead className="text-clw-gray">Sent</TableHead>
+                    <TableHead className="text-clw-gray">To</TableHead>
+                    <TableHead className="text-clw-gray">Type</TableHead>
+                    <TableHead className="text-clw-gray">Channel</TableHead>
+                    <TableHead className="text-clw-gray">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {messages.map((m) => (
+                    <TableRow key={m.id} className="border-clw-gold/10">
+                      <TableCell className="text-clw-gray">{formatDateTime(m.sent_at)}</TableCell>
+                      <TableCell className="text-clw-white">
+                        {(m.recipient_id && nameById.get(m.recipient_id)) || m.recipient_email || m.recipient_phone || '—'}
+                      </TableCell>
+                      <TableCell className="text-clw-white">
+                        {m.subject || COMM_TYPE_LABELS[m.comm_type]}
+                      </TableCell>
+                      <TableCell className="text-clw-gray">{m.channel}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={
+                            m.status === 'sent'
+                              ? 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold'
+                              : 'border-destructive/40 bg-destructive/10 text-destructive'
+                          }
+                        >
+                          {m.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+      </details>
 
-      {messages.length === 0 ? (
-        <div className="rounded-md border border-clw-gold/10 bg-clw-black p-8 text-center">
-          <p className="text-base text-clw-gray">
-            No emails or texts have been sent to this family yet.
-          </p>
+      {/* Account actions live at the bottom, away from everyday edits. */}
+      <section className="mt-10 border-t border-clw-gold/10 pt-6">
+        <h2 className="text-lg font-display text-clw-white">Account</h2>
+        <p className="mb-4 mt-1 text-base text-clw-gray">
+          Deactivating can be undone. Deleting permanently cannot.
+        </p>
+        <div className="flex flex-col gap-3 sm:max-w-md">
+          <FamilyActiveToggle parentId={parent.id} isActive={parent.is_active} familyId={parent.id} fullWidth />
+          {viewerIsFullAdmin && <DeleteFamilyButton parentId={parent.id} fullWidth />}
         </div>
-      ) : (
-        <div className="rounded-md border border-clw-gold/10 bg-clw-black">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-clw-gold/10 hover:bg-transparent">
-                <TableHead className="text-clw-gray">Sent</TableHead>
-                <TableHead className="text-clw-gray">To</TableHead>
-                <TableHead className="text-clw-gray">Type</TableHead>
-                <TableHead className="text-clw-gray">Channel</TableHead>
-                <TableHead className="text-clw-gray">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {messages.map((m) => (
-                <TableRow key={m.id} className="border-clw-gold/10">
-                  <TableCell className="text-clw-gray">{formatDateTime(m.sent_at)}</TableCell>
-                  <TableCell className="text-clw-white">
-                    {(m.recipient_id && nameById.get(m.recipient_id)) || m.recipient_email || m.recipient_phone || '—'}
-                  </TableCell>
-                  <TableCell className="text-clw-white">
-                    {m.subject || COMM_TYPE_LABELS[m.comm_type]}
-                  </TableCell>
-                  <TableCell className="text-clw-gray">{m.channel}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={
-                        m.status === 'sent'
-                          ? 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold'
-                          : 'border-destructive/40 bg-destructive/10 text-destructive'
-                      }
-                    >
-                      {m.status}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+      </section>
     </div>
   )
 }

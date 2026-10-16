@@ -13,7 +13,7 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
       type="button"
       onClick={toggle}
       aria-label={toLight ? 'Switch to light mode' : 'Switch to dark mode'}
-      className={`flex h-9 w-9 items-center justify-center rounded-full border border-clw-gold/20 text-clw-gold-ink transition-colors hover:bg-clw-gold/10 ${className}`}
+      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-clw-gold/20 text-clw-gold-ink transition-colors hover:bg-clw-gold/10 ${className}`}
     >
       {toLight ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
     </button>

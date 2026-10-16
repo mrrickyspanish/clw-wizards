@@ -79,7 +79,7 @@ export function EventsCalendar({
           onClick={() => shiftMonth(-1)}
           disabled={!canPrev}
           aria-label="Previous month"
-          className="flex h-11 w-11 items-center justify-center border border-clw-gold/30 text-clw-gold transition hover:border-clw-gold hover:bg-clw-gold/10 disabled:cursor-not-allowed disabled:border-clw-white/10 disabled:text-clw-white/25"
+          className="flex h-11 w-11 shrink-0 items-center justify-center border border-clw-gold/30 text-clw-gold transition hover:border-clw-gold hover:bg-clw-gold/10 disabled:cursor-not-allowed disabled:border-clw-white/10 disabled:text-clw-white/25"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
@@ -91,7 +91,7 @@ export function EventsCalendar({
           onClick={() => shiftMonth(1)}
           disabled={!canNext}
           aria-label="Next month"
-          className="flex h-11 w-11 items-center justify-center border border-clw-gold/30 text-clw-gold transition hover:border-clw-gold hover:bg-clw-gold/10 disabled:cursor-not-allowed disabled:border-clw-white/10 disabled:text-clw-white/25"
+          className="flex h-11 w-11 shrink-0 items-center justify-center border border-clw-gold/30 text-clw-gold transition hover:border-clw-gold hover:bg-clw-gold/10 disabled:cursor-not-allowed disabled:border-clw-white/10 disabled:text-clw-white/25"
         >
           <ChevronRight className="h-5 w-5" />
         </button>

@@ -126,7 +126,7 @@ export async function Hero() {
           <p className="mb-4 hidden items-center gap-2.5 font-cond text-base font-semibold uppercase tracking-[0.28em] text-clw-gold lg:flex">
             {eyebrow}
           </p>
-          <h1 className="font-impact text-[5rem] font-black uppercase leading-[0.83] tracking-[-0.02em] text-clw-white sm:text-[6.1rem] lg:max-w-none lg:text-[6.625rem] lg:tracking-normal xl:text-[8.125rem] 2xl:text-[9.5rem]">
+          <h1 className="font-impact text-[5rem] max-[359px]:text-[4.5rem] font-black uppercase leading-[0.83] tracking-[-0.02em] text-clw-white sm:text-[6.1rem] lg:max-w-none lg:text-[6.625rem] lg:tracking-normal xl:text-[8.125rem] 2xl:text-[9.5rem]">
             <span className="block">{line1}</span>
             <span className="block">{line2}</span>
             <span className="block text-clw-gold">{line3}</span>

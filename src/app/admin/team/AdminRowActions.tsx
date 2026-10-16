@@ -56,14 +56,14 @@ export function AdminRowActions({
   const nextScope: AdminScope = scope === 'full' ? 'limited' : 'full'
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-1 sm:items-end">
+      <div className="flex flex-wrap gap-2 sm:flex-nowrap sm:items-center">
         <Button
           variant="ghost"
           size="sm"
           disabled={loading}
           onClick={() => run(() => setAdminScope(id, nextScope))}
-          className="text-clw-gray hover:text-clw-gold-ink"
+          className="text-clw-gray hover:text-clw-gold-ink max-sm:flex-1 max-sm:border max-sm:border-clw-gold/20 max-sm:px-3"
         >
           {scope === 'full' ? 'Make limited' : 'Make full'}
         </Button>
@@ -71,7 +71,12 @@ export function AdminRowActions({
         {isActive ? (
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="sm" disabled={loading} className="text-clw-gray hover:text-red-400">
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={loading}
+                className="text-clw-gray hover:text-red-400 max-sm:flex-1 max-sm:border max-sm:border-clw-gold/20 max-sm:px-3"
+              >
                 Remove access
               </Button>
             </AlertDialogTrigger>
@@ -95,6 +100,7 @@ export function AdminRowActions({
           <Button
             variant="outline"
             size="sm"
+            className="max-sm:flex-1 max-sm:px-3"
             disabled={loading}
             onClick={() => run(() => setAdminActive(id, true))}
           >

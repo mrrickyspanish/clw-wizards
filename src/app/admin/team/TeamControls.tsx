@@ -62,7 +62,7 @@ export function TeamControls({ invites }: { invites: AdminInvite[] }) {
             key={s}
             type="button"
             onClick={() => setScope(s)}
-            className={`rounded-full border px-4 py-1.5 text-sm transition-colors ${
+            className={`min-h-11 rounded-full border px-4 py-1.5 text-sm transition-colors ${
               scope === s
                 ? 'border-clw-gold/50 bg-clw-gold/15 text-clw-gold-ink'
                 : 'border-clw-gold/15 text-clw-gray hover:text-clw-white'

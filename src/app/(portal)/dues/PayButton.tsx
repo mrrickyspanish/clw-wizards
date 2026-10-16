@@ -30,8 +30,8 @@ export function PayButton({
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      <Button type="button" size="sm" onClick={handlePay} disabled={loading}>
+    <div className="flex flex-col gap-1 max-sm:w-full sm:items-end">
+      <Button type="button" size="sm" className="max-sm:w-full" onClick={handlePay} disabled={loading}>
         {loading ? 'Starting checkout…' : label}
       </Button>
       {error && <p className="text-sm text-red-400">{error}</p>}

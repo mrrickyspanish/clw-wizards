@@ -104,7 +104,7 @@ export default async function DuesPage({
           const dueDate = formatDate(d.due_date)
           return (
             <Card key={d.id} className="border-clw-gold/10 bg-clw-black-3">
-              <CardContent className="flex items-center justify-between gap-4 py-4">
+              <CardContent className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-clw-white">{d.season} dues</span>

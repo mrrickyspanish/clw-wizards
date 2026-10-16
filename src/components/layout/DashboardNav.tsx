@@ -74,7 +74,7 @@ export function DashboardNav({ title, items, userName, role }: DashboardNavProps
             <ThemeToggle />
             <button
               onClick={handleSignOut}
-              className="text-clw-white/60 hover:text-clw-gold-ink transition-colors"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-clw-white/60 transition-colors hover:text-clw-gold-ink"
               aria-label="Sign out"
             >
               <LogOut className="w-4 h-4" />

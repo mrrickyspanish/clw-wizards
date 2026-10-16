@@ -72,6 +72,11 @@ and `npm run test:auth`, commit, and push to `main` only when Ricky says
 
 ## 4. Verify as the family sees it
 
+**Any change to what a page looks like:** run the layout sweep in
+[qa/README.md](qa/README.md) at all six widths before asking to ship. Only
+`TABLE` lines may remain. Checking a screenshot or two is not enough: on Oct 16
+the Admin team page cut off "Remove access" on phones and nothing caught it.
+
 After a change, check it the way the person will experience it, e.g. query as the
 parent under RLS inside a rolled-back transaction:
 

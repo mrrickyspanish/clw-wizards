@@ -23,7 +23,7 @@ import {
  * before the confirmation is typed, and the destructive button stays disabled
  * until the typed name matches. Rendered only for full admins.
  */
-export function DeleteFamilyButton({ parentId }: { parentId: string }) {
+export function DeleteFamilyButton({ parentId, fullWidth = false }: { parentId: string; fullWidth?: boolean }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [preview, setPreview] = useState<FamilyDeletionPreview | null>(null)
@@ -83,9 +83,9 @@ export function DeleteFamilyButton({ parentId }: { parentId: string }) {
     <>
       <Button
         variant="outline"
-        size="sm"
+        size={fullWidth ? 'default' : 'sm'}
         onClick={() => handleOpenChange(true)}
-        className="border-red-500/40 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+        className={`border-red-500/40 text-red-400 hover:bg-red-500/10 hover:text-red-300 ${fullWidth ? 'w-full' : ''}`}
       >
         <Trash2 className="mr-2 h-4 w-4" /> Delete permanently
       </Button>

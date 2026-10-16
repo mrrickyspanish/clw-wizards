@@ -193,7 +193,7 @@ export function SiteHeader({ extraLink = null }: { extraLink?: ExtraNavLink | nu
               <button
                 type="button"
                 onClick={openSearch}
-                className="flex h-8 w-8 items-center justify-center text-clw-white/65 transition-colors hover:text-clw-gold min-[1180px]:w-44 min-[1180px]:justify-between min-[1180px]:border min-[1180px]:border-clw-white/15 min-[1180px]:bg-clw-white/[0.03] min-[1180px]:px-3 min-[1180px]:font-cond min-[1180px]:text-sm min-[1180px]:uppercase min-[1180px]:tracking-[0.12em] xl:w-48"
+                className="flex h-11 w-11 items-center justify-center text-clw-white/65 transition-colors hover:text-clw-gold min-[1180px]:w-44 min-[1180px]:justify-between min-[1180px]:border min-[1180px]:border-clw-white/15 min-[1180px]:bg-clw-white/[0.03] min-[1180px]:px-3 min-[1180px]:font-cond min-[1180px]:text-sm min-[1180px]:uppercase min-[1180px]:tracking-[0.12em] xl:w-48"
                 aria-label="Open site search"
               >
                 <span className="sr-only min-[1180px]:not-sr-only">Search</span>

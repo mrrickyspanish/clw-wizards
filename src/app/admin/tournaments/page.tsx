@@ -40,7 +40,7 @@ export default async function AdminTournamentsPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-display text-clw-gold">Tournaments</h1>
           <p className="text-sm text-clw-gray">Manage the club tournament schedule.</p>

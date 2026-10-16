@@ -132,7 +132,17 @@ export function BirthCertificateDocument({
             onClick={() => inputRef.current?.click()}
           >
             <Upload className="mr-1.5 h-4 w-4" />
-            {uploading ? 'Uploading…' : document ? 'Replace' : 'Upload birth certificate'}
+            {uploading ? (
+              'Uploading…'
+            ) : document ? (
+              'Replace'
+            ) : (
+              <>
+                {/* The box is already titled Birth certificate; the long label can't fit a small phone. */}
+                <span className="sm:hidden">Upload</span>
+                <span className="max-sm:hidden">Upload birth certificate</span>
+              </>
+            )}
           </Button>
           <input
             ref={inputRef}
