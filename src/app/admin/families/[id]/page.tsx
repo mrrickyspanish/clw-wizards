@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { AthleteDialog } from '../AthleteDialog'
 import { BirthCertificateToggle } from '../../registrations/BirthCertificateToggle'
+import { BirthCertificateDocument } from '../../registrations/BirthCertificateDocument'
 import { DeleteFamilyButton } from '../DeleteFamilyButton'
 import { DeleteWrestlerButton } from '../DeleteWrestlerButton'
 import { FamilyActiveToggle } from '../FamilyActiveToggle'
@@ -65,6 +66,20 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
     .eq('parent_id', id)
     .order('first_name', { ascending: true })
   const athletes = (athleteRows ?? []) as Athlete[]
+
+  // Each wrestler's newest uploaded birth certificate, to view and verify here.
+  const { data: birthCertificateRows } = athletes.length
+    ? await supabase
+        .from('athlete_documents')
+        .select('id, athlete_id, verified, uploaded_at')
+        .eq('doc_type', 'birth_certificate')
+        .in('athlete_id', athletes.map((a) => a.id))
+    : { data: [] as { id: string; athlete_id: string; verified: boolean; uploaded_at: string }[] }
+  const birthCertificateByAthlete = new Map<string, { id: string; verified: boolean; uploaded_at: string }>()
+  for (const row of birthCertificateRows ?? []) {
+    const known = birthCertificateByAthlete.get(row.athlete_id)
+    if (!known || row.uploaded_at > known.uploaded_at) birthCertificateByAthlete.set(row.athlete_id, row)
+  }
 
   // Co-guardians who have joined this family via an invite code.
   const { data: guardianLinks } = await supabase.from('family_guardians').select('guardian_id').eq('owner_id', id)
@@ -244,6 +259,22 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
                     <p className="text-clw-gray/70">USAW card</p>
                     <p className="text-clw-white">{athlete.usa_wrestling_card_number ?? '—'}</p>
                   </div>
+                </div>
+                <div className="pt-2">
+                  <p className="text-clw-gray/70">Birth certificate</p>
+                  {birthCertificateByAthlete.get(athlete.id) ? (
+                    <div className="mt-1">
+                      <p className="mb-2 text-clw-white">
+                        {birthCertificateByAthlete.get(athlete.id)!.verified ? 'Uploaded and verified' : 'Uploaded, not yet verified'}
+                      </p>
+                      <BirthCertificateDocument
+                        documentId={birthCertificateByAthlete.get(athlete.id)!.id}
+                        verified={birthCertificateByAthlete.get(athlete.id)!.verified}
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-clw-white">Not uploaded</p>
+                  )}
                 </div>
                 <div className="pt-2">
                   <BirthCertificateToggle

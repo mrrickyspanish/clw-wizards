@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { CheckCircle2, Eye, FileCheck2, RotateCcw } from 'lucide-react'
 
 import { getAdminDocumentUrl, reviewSeasonEnrollment, setDocumentVerified } from './actions'
+import { openDocument } from '@/lib/open-document'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -59,13 +60,9 @@ export function ReviewControls({
   function viewDocument() {
     if (!documentId) return
     setError(null)
-    startTransition(async () => {
-      const result = await getAdminDocumentUrl(documentId)
-      if (!result.ok) {
-        setError(result.error)
-        return
-      }
-      window.open(result.url, '_blank', 'noopener,noreferrer')
+    // Not in a transition: the new tab must open during the tap (see openDocument).
+    void openDocument(() => getAdminDocumentUrl(documentId)).then((message) => {
+      if (message) setError(message)
     })
   }
 

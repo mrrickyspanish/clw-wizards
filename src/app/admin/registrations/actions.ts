@@ -30,6 +30,9 @@ function revalidateRegistrationSurfaces() {
 
 const documentSchema = z.object({ documentId: z.string().uuid(), verified: z.boolean() })
 
+// The documents an admin opens and verifies from Registrations and Families.
+const REVIEWABLE_DOCUMENTS: ('usa_wrestling_card' | 'birth_certificate')[] = ['usa_wrestling_card', 'birth_certificate']
+
 export async function setDocumentVerified(values: z.input<typeof documentSchema>): Promise<ActionResult> {
   const auth = await requireAdmin()
   if (!auth.ok) return auth
@@ -44,11 +47,13 @@ export async function setDocumentVerified(values: z.input<typeof documentSchema>
     .maybeSingle()
 
   if (documentError) return { ok: false, error: documentError.message }
-  if (!document || document.doc_type !== 'usa_wrestling_card') {
-    return { ok: false, error: 'USA Wrestling card not found.' }
+  if (!document || !(REVIEWABLE_DOCUMENTS as string[]).includes(document.doc_type)) {
+    return { ok: false, error: 'Document not found.' }
   }
 
-  if (!parsed.data.verified) {
+  // An approval rests on its bound card, so that card stays verified. Birth
+  // certificates are not bound to a registration and can be unverified freely.
+  if (!parsed.data.verified && document.doc_type === 'usa_wrestling_card') {
     const { data: approvedEnrollment } = await admin
       .from('season_enrollments')
       .select('id')
@@ -70,7 +75,7 @@ export async function setDocumentVerified(values: z.input<typeof documentSchema>
       verified_at: parsed.data.verified ? new Date().toISOString() : null,
     })
     .eq('id', parsed.data.documentId)
-    .eq('doc_type', 'usa_wrestling_card')
+    .in('doc_type', REVIEWABLE_DOCUMENTS)
     .select('id')
     .maybeSingle()
 
@@ -78,6 +83,7 @@ export async function setDocumentVerified(values: z.input<typeof documentSchema>
   if (!data) return { ok: false, error: 'Document not found.' }
 
   revalidateRegistrationSurfaces()
+  revalidatePath('/admin/families', 'layout')
   return { ok: true }
 }
 

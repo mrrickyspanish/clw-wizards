@@ -2021,3 +2021,106 @@ test('the preview warns when the wrestler is the family\'s only one', async () =
   assert.equal(result.preview.paidDues, 1)
   assert.equal(result.preview.athleteName, 'Cain Velazquez')
 })
+
+// Verifying documents from admin (Registrations and Families), with the database mocked.
+function verifyHarness(docType, { approvedWithCard = false } = {}) {
+  const writes = []
+  const admin = {
+    from: (table) => {
+      const q = { table, filters: [] }
+      const b = {
+        select: () => b,
+        update: (values) => { q.values = values; return b },
+        eq: (k, v) => { q.filters.push(['eq', k, v]); return b },
+        in: (k, v) => { q.filters.push(['in', k, v]); return b },
+        limit: () => b,
+        maybeSingle: async () => {
+          if (q.values) { writes.push(q); return { data: { id: 'doc-1' }, error: null } }
+          if (table === 'athlete_documents') return { data: docType ? { id: 'doc-1', doc_type: docType } : null, error: null }
+          if (table === 'season_enrollments') return { data: approvedWithCard ? { id: 'enr-1' } : null }
+          return { data: null }
+        },
+      }
+      return b
+    },
+  }
+  const server = {
+    auth: { getUser: async () => ({ data: { user: { id: 'tony' } } }) },
+    from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: { role: 'admin' } }) }) }) }),
+  }
+  const actions = load('src/app/admin/registrations/actions.ts', {
+    'next/cache': { revalidatePath: () => {} },
+    resend: { Resend: class {} },
+    '@/lib/supabase/server': { createServerSupabase: async () => server },
+    '@/lib/supabase/admin': { createAdminSupabase: () => admin },
+    '@/config/org.config': { ORG: { domain: 'example.org', shortName: 'CLW', name: 'Club' } },
+    '@/lib/registration-card': load('src/lib/registration-card.ts', {}),
+  })
+  return { actions, writes }
+}
+const docId = '22222222-2222-4222-a222-222222222222'
+
+test('an admin can verify and unverify a birth certificate, not only a USA card', async () => {
+  const h = verifyHarness('birth_certificate', { approvedWithCard: true })
+  assert.equal((await h.actions.setDocumentVerified({ documentId: docId, verified: true })).ok, true)
+  assert.equal(h.writes[0].values.verified, true)
+  assert.equal(h.writes[0].values.verified_by, 'tony')
+  // The "card behind an approval stays verified" rule is about USA cards only.
+  assert.equal((await h.actions.setDocumentVerified({ documentId: docId, verified: false })).ok, true)
+  assert.equal(h.writes[1].values.verified, false)
+})
+
+test('the card behind an approved registration still cannot be unverified', async () => {
+  const h = verifyHarness('usa_wrestling_card', { approvedWithCard: true })
+  const result = await h.actions.setDocumentVerified({ documentId: docId, verified: false })
+  assert.equal(result.ok, false)
+  assert.match(result.error, /approved registration/)
+  assert.equal(h.writes.length, 0)
+})
+
+test('documents other than a birth certificate or USA card are not verified from admin', async () => {
+  const h = verifyHarness('other')
+  const result = await h.actions.setDocumentVerified({ documentId: docId, verified: true })
+  assert.equal(result.ok, false)
+  assert.equal(h.writes.length, 0)
+})
+
+// View buttons: the tab must open during the tap, before the file's link comes
+// back, or Safari on iPhone and iPad blocks it.
+function fakeWindow({ allowTabs = true } = {}) {
+  const events = []
+  const win = { location: { href: 'https://www.clwizards.com/documents' } }
+  win.open = () => {
+    events.push('open')
+    if (!allowTabs) return null
+    const tab = { opener: win, location: { href: '' }, close: () => events.push('close') }
+    win.tab = tab
+    return tab
+  }
+  return { win, events }
+}
+
+test('View opens the tab before fetching the file link, then sends it to the file', async () => {
+  const { win, events } = fakeWindow()
+  const lib = load('src/lib/open-document.ts', {}, {}, [], fetch, { window: win })
+  const message = await lib.openDocument(async () => { events.push('fetch'); return { ok: true, url: 'https://files.example/bc.pdf' } })
+  assert.equal(message, null)
+  assert.deepEqual(events, ['open', 'fetch'])
+  assert.equal(win.tab.location.href, 'https://files.example/bc.pdf')
+  assert.equal(win.tab.opener, null)
+})
+
+test('View closes the empty tab and reports the error when the link fails', async () => {
+  const { win, events } = fakeWindow()
+  const lib = load('src/lib/open-document.ts', {}, {}, [], fetch, { window: win })
+  const message = await lib.openDocument(async () => ({ ok: false, error: 'Could not open file' }))
+  assert.equal(message, 'Could not open file')
+  assert.deepEqual(events, ['open', 'close'])
+})
+
+test('View opens the file in the same tab when the browser refuses a new one', async () => {
+  const { win } = fakeWindow({ allowTabs: false })
+  const lib = load('src/lib/open-document.ts', {}, {}, [], fetch, { window: win })
+  assert.equal(await lib.openDocument(async () => ({ ok: true, url: 'https://files.example/card.png' })), null)
+  assert.equal(win.location.href, 'https://files.example/card.png')
+})

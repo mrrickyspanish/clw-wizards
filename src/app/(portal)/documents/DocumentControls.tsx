@@ -6,6 +6,7 @@ import { Upload, Eye } from 'lucide-react'
 
 import { createBrowserSupabase } from '@/lib/supabase/browser'
 import { recordDocument, getDocumentUrl } from './actions'
+import { openDocument } from '@/lib/open-document'
 import { Button } from '@/components/ui/button'
 
 type DocType = 'birth_certificate' | 'usa_wrestling_card' | 'other'
@@ -63,12 +64,8 @@ export function DocumentControls({
   async function handleView() {
     if (!existingPath) return
     setError(null)
-    const result = await getDocumentUrl(existingPath)
-    if (!result.ok) {
-      setError(result.error)
-      return
-    }
-    window.open(result.url, '_blank', 'noopener,noreferrer')
+    const message = await openDocument(() => getDocumentUrl(existingPath))
+    if (message) setError(message)
   }
 
   return (

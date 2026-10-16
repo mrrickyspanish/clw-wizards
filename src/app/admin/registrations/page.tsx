@@ -23,6 +23,7 @@ import { AthleteDialog } from '../families/AthleteDialog'
 import { ParentDialog } from '../families/ParentDialog'
 import { DuesEditDialog } from '../dues/DuesEditDialog'
 import { ReviewControls } from './ReviewControls'
+import { BirthCertificateDocument } from './BirthCertificateDocument'
 import { BirthCertificateToggle } from './BirthCertificateToggle'
 import { AdminSearch } from '../AdminSearch'
 
@@ -130,16 +131,21 @@ export default async function AdminRegistrationsPage({ searchParams }: { searchP
   ] as string[]
   const [{ data: birthCertificateData }, { data: deciderData }] = await Promise.all([
     athleteIds.length
-      ? supabase.from('athlete_documents').select('athlete_id, verified').eq('doc_type', 'birth_certificate').in('athlete_id', athleteIds)
-      : Promise.resolve({ data: [] as { athlete_id: string; verified: boolean }[] }),
+      ? supabase
+          .from('athlete_documents')
+          .select('id, athlete_id, verified, uploaded_at')
+          .eq('doc_type', 'birth_certificate')
+          .in('athlete_id', athleteIds)
+      : Promise.resolve({ data: [] as { id: string; athlete_id: string; verified: boolean; uploaded_at: string }[] }),
     deciderIds.length
       ? supabase.from('profiles').select('id, full_name, email').in('id', deciderIds)
       : Promise.resolve({ data: [] as { id: string; full_name: string | null; email: string | null }[] }),
   ])
-  const birthCertificateByAthlete = new Map<string, { verified: boolean }>()
+  // The newest upload per wrestler is the one an admin opens and verifies.
+  const birthCertificateByAthlete = new Map<string, { id: string; verified: boolean; uploaded_at: string }>()
   for (const row of birthCertificateData ?? []) {
     const known = birthCertificateByAthlete.get(row.athlete_id)
-    birthCertificateByAthlete.set(row.athlete_id, { verified: Boolean(known?.verified || row.verified) })
+    if (!known || row.uploaded_at > known.uploaded_at) birthCertificateByAthlete.set(row.athlete_id, row)
   }
   const deciderName = new Map((deciderData ?? []).map((p) => [p.id, p.full_name || p.email || 'an admin']))
   const stamp = (iso: string) =>
@@ -480,6 +486,11 @@ export default async function AdminRegistrationsPage({ searchParams }: { searchP
                               : 'Uploaded, not yet verified.'
                             : 'Not uploaded. Needed only the first time a wrestler registers.'}
                       </p>
+                      {birthCertificate && (
+                        <div className="mb-3">
+                          <BirthCertificateDocument documentId={birthCertificate.id} verified={birthCertificate.verified} />
+                        </div>
+                      )}
                       <BirthCertificateToggle
                         athleteId={athlete.id}
                         onFile={athlete.birth_certificate_on_file}
