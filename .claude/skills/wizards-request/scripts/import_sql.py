@@ -22,6 +22,16 @@ out, mode = sys.argv[2], sys.argv[3]
 assert mode in ('dry', 'commit'), 'mode is dry or commit'
 data = json.dumps(recs, separators=(',', ':'), ensure_ascii=False)
 assert '$json$' not in data
+# A birth year the form mangled ("11/13/0017") still parses as a real date, so
+# check it here: a club wrestler is 3 to 19. Fix the record, then rebuild.
+import datetime
+this_year = datetime.date.today().year
+for r in recs:
+    if r.get('athlete_id'):
+        continue
+    year = int((r.get('dob') or '0').split('-')[0] or 0)
+    if not this_year - 19 <= year <= this_year - 3:
+        sys.exit(f"{r['first']} {r['last']}: birth date {r.get('dob')!r} can't be right. Check the form's age and grade, fix the record, rebuild.")
 expect_new = sum(1 for r in recs if not r.get('athlete_id'))
 expect_existing = len(recs) - expect_new
 finish = (

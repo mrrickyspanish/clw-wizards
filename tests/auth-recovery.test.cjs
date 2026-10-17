@@ -2243,3 +2243,24 @@ test('only an admin can download, upload or replace from admin', async () => {
   assert.equal((await h.actions.recordAdminBirthCertificate({ athleteId: kidId, path: `fam-1/${kidId}/birth_certificate-1-a.pdf`, fileName: 'a.pdf' })).ok, false)
   assert.equal(h.calls.length, 0)
 })
+
+// Co-parents: their wrestlers belong to the other parent's account, so admin
+// pages list them through the link (Brenda Bishop on Robert Meyer's family).
+test('a co-parent link covers only the wrestlers it lists, on the owner family', () => {
+  const lib = load('src/lib/family.ts', {})
+  const athletes = [
+    { id: 'conrad', parent_id: 'robert' },
+    { id: 'robert-jr', parent_id: 'robert' },
+    { id: 'half-sister', parent_id: 'robert' },
+    { id: 'other-kid', parent_id: 'someone-else' },
+  ]
+  const covered = lib.coveredWrestlers({ guardian_id: 'brenda', owner_id: 'robert', athlete_ids: ['conrad', 'robert-jr', 'other-kid'] }, athletes)
+  assert.deepEqual(covered.map((a) => a.id), ['conrad', 'robert-jr'])
+})
+
+test('a co-parent link with no list covers every wrestler on the owner family', () => {
+  const lib = load('src/lib/family.ts', {})
+  const athletes = [{ id: 'a', parent_id: 'owner' }, { id: 'b', parent_id: 'owner' }, { id: 'c', parent_id: 'other' }]
+  const covered = lib.coveredWrestlers({ guardian_id: 'g', owner_id: 'owner', athlete_ids: null }, athletes)
+  assert.deepEqual(covered.map((a) => a.id), ['a', 'b'])
+})

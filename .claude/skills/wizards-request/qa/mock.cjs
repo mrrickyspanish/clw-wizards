@@ -33,6 +33,8 @@ const tables = {
     profile(PARENT, 'Pat Parent', 'pat@example.com'),
     profile(PARENT2, 'Sam Sample', 'sam@example.com', { sms_opt_in: false }),
     profile(PARENT3, 'Robin Roe', 'robin@example.com', { created_at: '2026-10-05T12:00:00Z' }),
+    // A co-parent with no wrestlers of their own, linked (club-locked) to one of Pat Parent's kids.
+    profile(id('b', 4), 'Casey Coparent', 'casey@example.com', { created_at: '2026-10-13T12:00:00Z' }),
   ],
   athletes: [
     ['Tommy', 'Parent', '2018-01-08', PARENT, null],
@@ -87,7 +89,7 @@ const tables = {
     { id: id('w', 1), received_at: '2026-10-13T16:03:00Z', from_name: 'Terry', title: 'Add Google Form sign-ups: Kid One, Kid Two', outcome: 'Both added and registered ($325 dues each).', status: 'done', waiting_on: null, people: ['Kid One', 'Kid Two'], handled_at: T, updated_at: T },
     { id: id('w', 2), received_at: '2026-10-12T02:02:00Z', from_name: 'Terry', title: 'Parent says dues are paid', outcome: 'No online payment on record. Asked Terry whether it was paid offline.', status: 'waiting', waiting_on: 'Terry: confirm how the parent paid', people: ['Pat Parent'], handled_at: T, updated_at: T },
   ],
-  family_guardians: [], family_invites: [], coaches: [], admin_invites: [], sponsors: [], sponsor_tiers: [], donations: [],
+  family_guardians: [{ id: id('g', 1), owner_id: PARENT, guardian_id: id('b', 4), athlete_ids: [id('k', 1)], locked: true, created_at: T }], family_invites: [], coaches: [], admin_invites: [], sponsors: [], sponsor_tiers: [], donations: [],
   faq_items: [], page_content: [], parent_auth_incidents: [],
 }
 // Registrations: Tommy approved & paid, Max submitted (card cleared), Lily submitted, Tina and Owen not registered.

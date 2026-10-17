@@ -66,6 +66,12 @@ guards so a surprise aborts with "Nothing changed", backup rows in
 `data_fix_backups.*`, and conditional `where` clauses (`... and last_name = 'Old'`)
 so a stale id cannot hit the wrong row. Templates: [playbooks.md](playbooks.md).
 
+**The real change runs alone, in its own `execute_sql` call.** Never add a check
+with `begin; … rollback;` to the same call: the rollback undoes the change too,
+and the check still "passes" because it runs before the rollback. That is how
+Erin Green's account (Oct 15) was reported done but never saved. Then confirm it
+saved with a plain `select` in a new call before logging it as Done.
+
 Code changes: work on the session branch, run `npx tsc --noEmit`, `npm run lint`
 and `npm run test:auth`, commit, and push to `main` only when Ricky says
 **"ship it"**. Then confirm the Vercel production deploy is READY.
@@ -78,7 +84,8 @@ and `npm run test:auth`, commit, and push to `main` only when Ricky says
 the Admin team page cut off "Remove access" on phones and nothing caught it.
 
 After a change, check it the way the person will experience it, e.g. query as the
-parent under RLS inside a rolled-back transaction:
+parent under RLS inside a rolled-back transaction. This is a separate call from
+the change, and it only reads:
 
 ```sql
 begin;

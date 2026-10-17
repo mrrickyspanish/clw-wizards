@@ -18,6 +18,7 @@ import type {
 } from '@/types/database'
 import { formatCents } from '@/lib/format/money'
 import { registrationCard } from '@/lib/registration-card'
+import { coveredWrestlers, type CoParentLink } from '@/lib/family'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -153,8 +154,52 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
   }
 
   // Co-guardians who have joined this family via an invite code.
-  const { data: guardianLinks } = await supabase.from('family_guardians').select('guardian_id').eq('owner_id', id)
+  const { data: guardianLinks } = await supabase
+    .from('family_guardians')
+    .select('guardian_id, owner_id, athlete_ids, locked')
+    .eq('owner_id', id)
   const guardianIds = (guardianLinks ?? []).map((g) => g.guardian_id)
+  const coveredByGuardian = new Map(
+    ((guardianLinks ?? []) as CoParentLink[]).map((link) => [
+      link.guardian_id,
+      { locked: Boolean(link.locked), all: link.athlete_ids === null, wrestlers: coveredWrestlers(link, athletes) },
+    ])
+  )
+
+  // The other side: families this account is a co-parent on. Their wrestlers
+  // belong to the other parent's account, so without this a co-parent's own page
+  // read "0 athletes" (Brenda Bishop, co-parent on Robert Meyer's family).
+  const { data: coParentLinkRows } = await supabase
+    .from('family_guardians')
+    .select('guardian_id, owner_id, athlete_ids, locked')
+    .eq('guardian_id', id)
+  const coParentLinks = (coParentLinkRows ?? []) as CoParentLink[]
+  const coParentOwnerIds = [...new Set(coParentLinks.map((l) => l.owner_id))]
+  const [{ data: coOwnerRows }, { data: coAthleteRows }] = coParentOwnerIds.length
+    ? await Promise.all([
+        supabase.from('profiles').select('id, full_name, email').in('id', coParentOwnerIds),
+        supabase.from('athletes').select('*').in('parent_id', coParentOwnerIds).order('first_name', { ascending: true }),
+      ])
+    : [{ data: [] as Pick<Profile, 'id' | 'full_name' | 'email'>[] }, { data: [] as Athlete[] }]
+  const coParentWrestlerIds = coParentLinks.flatMap((l) => coveredWrestlers(l, (coAthleteRows ?? []) as Athlete[]).map((a) => a.id))
+  const { data: coEnrollmentRows } =
+    season && coParentWrestlerIds.length
+      ? await supabase
+          .from('season_enrollments')
+          .select('athlete_id, status')
+          .eq('season_registration_id', season.id)
+          .in('athlete_id', coParentWrestlerIds)
+      : { data: [] as Pick<SeasonEnrollment, 'athlete_id' | 'status'>[] }
+  const coStatusByAthlete = new Map((coEnrollmentRows ?? []).map((e) => [e.athlete_id, e.status as SeasonEnrollment['status']]))
+  const coParentFamilies = coParentLinks.map((link) => {
+    const owner = (coOwnerRows ?? []).find((o) => o.id === link.owner_id)
+    return {
+      ownerId: link.owner_id,
+      ownerName: owner?.full_name || owner?.email || 'another family',
+      locked: Boolean(link.locked),
+      wrestlers: coveredWrestlers(link, (coAthleteRows ?? []) as Athlete[]),
+    }
+  })
   let guardians: GuardianRow[] = []
   if (guardianIds.length) {
     const { data } = await supabase
@@ -245,6 +290,20 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
                   </Badge>
                 </div>
 
+                {coveredByGuardian.get(guardian.id) && (
+                  <p className="mt-3 text-base text-clw-gray">
+                    {coveredByGuardian.get(guardian.id)!.all
+                      ? 'Co-parent for every wrestler on this family'
+                      : coveredByGuardian.get(guardian.id)!.wrestlers.length === 0
+                        ? 'Co-parent, but none of the wrestlers they were linked to are on this family now'
+                        : `Co-parent for ${coveredByGuardian
+                            .get(guardian.id)!
+                            .wrestlers.map((a) => `${a.first_name} ${a.last_name}`)
+                            .join(', ')}`}
+                    {coveredByGuardian.get(guardian.id)!.locked ? '. Set up by the club, so neither parent can remove the other.' : '.'}
+                  </p>
+                )}
+
                 <div className="mt-4 grid grid-cols-1 gap-3 border-t border-clw-gold/10 pt-4 text-sm sm:grid-cols-2">
                   <div>
                     <p className="text-clw-gray/70">Phone</p>
@@ -270,13 +329,72 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
         </Card>
       )}
 
+      {coParentFamilies.length > 0 && (
+        <Card className="mb-6 border-clw-gold/20 bg-clw-black">
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-clw-gray">Co-parent on another family</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {coParentFamilies.map((family) => (
+              <div key={family.ownerId} className="space-y-3 rounded-md border border-clw-gold/10 bg-clw-black-2 p-4">
+                <p className="text-base text-clw-gray">
+                  {parent.first_name || parent.full_name || 'This parent'} can see these wrestlers on{' '}
+                  <span className="text-clw-white">{family.ownerName}</span>&apos;s family
+                  {family.locked
+                    ? ', pay their dues and upload their documents. Set up by the club, so neither parent can remove the other.'
+                    : ', and help manage them.'}
+                </p>
+                {family.wrestlers.length === 0 ? (
+                  <p className="text-base text-clw-gray">No wrestlers on that family right now.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {family.wrestlers.map((wrestler) => {
+                      const status = coStatusByAthlete.get(wrestler.id)
+                      return (
+                        <li key={wrestler.id} className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-base text-clw-white">
+                            {wrestler.first_name} {wrestler.last_name}
+                          </span>
+                          {season && (
+                            <Badge
+                              variant="outline"
+                              className={`whitespace-nowrap ${
+                                status
+                                  ? ENROLLMENT_STYLES[status]
+                                  : 'border-amber-500/40 bg-amber-500/10 text-amber-400'
+                              }`}
+                            >
+                              {status ? ENROLLMENT_LABELS[status] : 'not registered'}
+                            </Badge>
+                          )}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+                <Link
+                  href={`/admin/families/${family.ownerId}`}
+                  className="inline-flex min-h-11 items-center text-base text-clw-gold hover:text-clw-gold-l"
+                >
+                  Open {family.ownerName}&apos;s family
+                </Link>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       <h2 className="mb-3 text-lg font-display text-clw-white">
         Athletes <span className="text-sm text-clw-gray">({athletes.length})</span>
       </h2>
 
       {athletes.length === 0 ? (
         <div className="rounded-md border border-clw-gold/10 bg-clw-black p-8 text-center">
-          <p className="text-clw-gray">This family hasn’t added any athletes yet.</p>
+          <p className="text-base text-clw-gray">
+            {coParentFamilies.length > 0
+              ? 'No wrestlers on this account itself. The wrestlers above are on the other parent’s family.'
+              : 'This family hasn’t added any athletes yet.'}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">

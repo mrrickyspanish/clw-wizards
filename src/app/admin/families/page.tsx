@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/table'
 import { AdminSearch } from '../AdminSearch'
 import { matchesSearch } from '@/lib/search'
+import { coveredWrestlers, type CoParentLink } from '@/lib/family'
 
 export default async function AdminFamiliesPage({
   searchParams,
@@ -27,7 +28,7 @@ export default async function AdminFamiliesPage({
 
   const supabase = createAdminSupabase()
 
-  const [{ data: families, error }, { data: athletes }] = await Promise.all([
+  const [{ data: families, error }, { data: athletes }, { data: linkData }] = await Promise.all([
     supabase
       .from('profiles')
       .select('id, full_name, email, phone, is_active, sms_opt_in')
@@ -35,6 +36,7 @@ export default async function AdminFamiliesPage({
       .order('last_name', { ascending: true })
       .order('first_name', { ascending: true }),
     supabase.from('athletes').select('id, parent_id, active, first_name, last_name'),
+    supabase.from('family_guardians').select('guardian_id, owner_id, athlete_ids'),
   ])
   // Families and wrestlers removed from the site, newest first. Missing table
   // (migration not applied yet) reads as an empty history.
@@ -57,15 +59,31 @@ export default async function AdminFamiliesPage({
     wrestlerNamesByParent.set(a.parent_id, [...(wrestlerNamesByParent.get(a.parent_id) ?? []), `${a.first_name} ${a.last_name}`])
   }
 
+  // A co-parent's wrestlers belong to the other parent's account, so list them
+  // under the co-parent too: otherwise the account reads as empty.
+  const allAthletes = (athletes ?? []) as Pick<Athlete, 'id' | 'parent_id' | 'active' | 'first_name' | 'last_name'>[]
+  const coParentNames = new Map<string, string[]>()
+  for (const link of (linkData ?? []) as CoParentLink[]) {
+    const names = coveredWrestlers(link, allAthletes).map((a) => `${a.first_name} ${a.last_name}`)
+    if (names.length) coParentNames.set(link.guardian_id, [...(coParentNames.get(link.guardian_id) ?? []), ...names])
+  }
+
   type FamilyRow = Pick<Profile, 'id' | 'full_name' | 'email' | 'phone' | 'is_active' | 'sms_opt_in'>
   const allFamilies = (families ?? []) as FamilyRow[]
-  const hasNoWrestlers = (family: FamilyRow) => (countsByParent.get(family.id)?.total ?? 0) === 0
+  const hasNoWrestlers = (family: FamilyRow) =>
+    (countsByParent.get(family.id)?.total ?? 0) === 0 && !coParentNames.has(family.id)
   const emptyCount = allFamilies.filter(hasNoWrestlers).length
   // Search covers the parent and their wrestlers, so a child's name finds the family.
   const rows = allFamilies.filter(
     (family) =>
       (!emptyOnly || hasNoWrestlers(family)) &&
-      matchesSearch(query, [family.full_name, family.email, family.phone, ...(wrestlerNamesByParent.get(family.id) ?? [])])
+      matchesSearch(query, [
+        family.full_name,
+        family.email,
+        family.phone,
+        ...(wrestlerNamesByParent.get(family.id) ?? []),
+        ...(coParentNames.get(family.id) ?? []),
+      ])
   )
 
   return (
@@ -142,6 +160,7 @@ export default async function AdminFamiliesPage({
             <TableBody>
               {rows.map((family) => {
                 const counts = countsByParent.get(family.id) ?? { total: 0, active: 0 }
+                const coParentOf = coParentNames.get(family.id) ?? []
                 return (
                   <TableRow key={family.id} className="border-clw-gold/10">
                     <TableCell>
@@ -152,7 +171,14 @@ export default async function AdminFamiliesPage({
                     </TableCell>
                     <TableCell className="text-clw-gray">{family.phone ?? '—'}</TableCell>
                     <TableCell className="text-clw-gray">
-                      {counts.total === 0 ? '—' : `${counts.active} active / ${counts.total} total`}
+                      {counts.total > 0
+                        ? `${counts.active} active / ${counts.total} total`
+                        : coParentOf.length === 0
+                          ? '—'
+                          : null}
+                      {coParentOf.length > 0 && (
+                        <span className="block text-sm text-clw-gray">Co-parent: {coParentOf.join(', ')}</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {family.sms_opt_in ? (
