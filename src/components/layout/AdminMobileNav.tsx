@@ -8,6 +8,7 @@ import {
   FileText,
   HandCoins,
   Handshake,
+  Inbox,
   LayoutDashboard,
   LogOut,
   Megaphone,
@@ -35,6 +36,7 @@ const ADMIN_ITEMS = [
   { href: '/admin', label: 'Overview', icon: LayoutDashboard },
   { href: '/admin/families', label: 'Families', icon: Users },
   { href: '/admin/registrations', label: 'Registrations', icon: ClipboardCheck },
+  { href: '/admin/review', label: 'To review', icon: Inbox },
   { href: '/admin/tournaments', label: 'Tournaments', icon: Trophy },
   { href: '/admin/practices', label: 'Practices & Events', icon: CalendarClock },
   { href: '/admin/dues', label: 'Dues', icon: HandCoins },
@@ -48,10 +50,13 @@ export function AdminMobileNav({
   userName,
   role,
   isFullAdmin,
+  reviewCount = 0,
 }: {
   userName: string | null
   role: string | null
   isFullAdmin: boolean
+  /** Uploads waiting on the To review page, shown as a badge. */
+  reviewCount?: number
 }) {
   const pathname = usePathname()
   const router = useRouter()
@@ -102,6 +107,11 @@ export function AdminMobileNav({
                   >
                     <Icon className="h-5 w-5 shrink-0" />
                     {item.label}
+                    {item.href === '/admin/review' && reviewCount > 0 && (
+                      <span className="ml-auto rounded-full bg-clw-gold/15 px-2.5 text-base font-semibold text-clw-gold-ink">
+                        {reviewCount}
+                      </span>
+                    )}
                   </Link>
                 </SheetClose>
               )

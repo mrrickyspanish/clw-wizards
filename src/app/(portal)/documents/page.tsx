@@ -3,7 +3,7 @@ import { Plus, UserPlus } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { resolveFamilyOwnerIds } from '@/lib/family'
-import type { Athlete, AthleteDocument } from '@/types/database'
+import type { Athlete, AthleteDocument, DocumentRejection } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,10 +15,10 @@ const REQUIRED_DOCS: { type: AthleteDocument['doc_type']; label: string }[] = [
   { type: 'usa_wrestling_card', label: 'USA Wrestling card' },
 ]
 
-type DocStatus = 'verified' | 'pending' | 'missing'
+type DocStatus = 'verified' | 'pending' | 'missing' | 'rejected'
 
-function statusFor(doc: AthleteDocument | undefined): DocStatus {
-  if (!doc) return 'missing'
+function statusFor(doc: AthleteDocument | undefined, rejection: DocumentRejection | undefined): DocStatus {
+  if (!doc) return rejection ? 'rejected' : 'missing'
   return doc.verified ? 'verified' : 'pending'
 }
 
@@ -26,12 +26,14 @@ const STATUS_STYLES: Record<DocStatus, string> = {
   verified: 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold-ink',
   pending: 'border-blue-500/40 bg-blue-500/10 text-blue-400',
   missing: 'border-clw-gray/40 bg-clw-gray/10 text-clw-gray',
+  rejected: 'border-amber-500/40 bg-amber-500/10 text-amber-300',
 }
 
 const STATUS_LABELS: Record<DocStatus, string> = {
   verified: 'verified',
   pending: 'pending review',
   missing: 'not uploaded',
+  rejected: 'upload a new one',
 }
 
 export default async function DocumentsPage() {
@@ -79,6 +81,21 @@ export default async function DocumentsPage() {
   for (const d of (docs ?? []) as AthleteDocument[]) {
     const key = `${d.athlete_id}:${d.doc_type}`
     if (!docByKey.has(key)) docByKey.set(key, d)
+  }
+
+  // The club's latest rejection per slot, shown until a newer upload replaces it.
+  const { data: rejectionRows } = athleteIds.length
+    ? await supabase
+        .from('document_rejections')
+        .select('*')
+        .in('athlete_id', athleteIds)
+        .order('rejected_at', { ascending: false })
+    : { data: [] as DocumentRejection[] }
+  const rejectionByKey = new Map<string, DocumentRejection>()
+  for (const r of (rejectionRows ?? []) as DocumentRejection[]) {
+    const key = `${r.athlete_id}:${r.doc_type}`
+    const current = docByKey.get(key)
+    if (!rejectionByKey.has(key) && (!current || current.uploaded_at < r.rejected_at)) rejectionByKey.set(key, r)
   }
 
   return (
@@ -141,14 +158,15 @@ export default async function DocumentsPage() {
                   )
                 }
                 const doc = docByKey.get(`${a.id}:${req.type}`)
-                const status = statusFor(doc)
+                const rejection = doc ? undefined : rejectionByKey.get(`${a.id}:${req.type}`)
+                const status = statusFor(doc, rejection)
                 return (
                   <div
                     key={req.type}
                     className="flex flex-col gap-3 rounded-xl bg-clw-black px-4 py-3 sm:flex-row sm:items-center"
                   >
                     {/* Name and status on one line; on a phone the buttons get their own full-width row below. */}
-                    <div className="flex min-w-0 items-start justify-between gap-3 sm:flex-1 sm:items-center">
+                    <div className="flex min-w-0 flex-wrap items-start justify-between gap-x-3 gap-y-1 sm:flex-1 sm:items-center">
                       <div className="min-w-0">
                         <span className="text-base text-clw-white">{req.label}</span>
                         {doc && <span className="block truncate text-sm text-clw-gray">{doc.file_name}</span>}
@@ -156,6 +174,11 @@ export default async function DocumentsPage() {
                       <Badge variant="outline" className={`shrink-0 ${STATUS_STYLES[status]}`}>
                         {STATUS_LABELS[status]}
                       </Badge>
+                      {rejection && (
+                        <p className="basis-full text-base text-amber-300">
+                          The club couldn&apos;t use the last upload: {rejection.reason}
+                        </p>
+                      )}
                     </div>
                     <DocumentControls
                       userId={userId}

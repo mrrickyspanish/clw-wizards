@@ -404,6 +404,24 @@ export type PaymentNoticeRecipient = {
   created_at: string
 }
 
+// Who gets an email when a family uploads a USA card or birth certificate.
+export type UploadNoticeRecipient = PaymentNoticeRecipient
+
+// An upload the club rejected. The athlete_documents row is removed on reject,
+// so the wrestler reads as missing everywhere; this keeps what and why.
+export type DocumentRejection = {
+  id: string
+  athlete_id: string
+  parent_id: string
+  doc_type: 'birth_certificate' | 'usa_wrestling_card'
+  reason: string
+  file_name: string | null
+  file_url: string | null
+  uploaded_at: string | null
+  rejected_by: string | null
+  rejected_at: string
+}
+
 export type FamilyInvite = {
   id: string
   code: string
@@ -617,6 +635,18 @@ export type Database = {
         Row: PaymentNoticeRecipient
         Insert: Partial<PaymentNoticeRecipient>
         Update: Partial<PaymentNoticeRecipient>
+        Relationships: []
+      }
+      upload_notice_recipients: {
+        Row: UploadNoticeRecipient
+        Insert: Partial<UploadNoticeRecipient>
+        Update: Partial<UploadNoticeRecipient>
+        Relationships: []
+      }
+      document_rejections: {
+        Row: DocumentRejection
+        Insert: Partial<DocumentRejection>
+        Update: Partial<DocumentRejection>
         Relationships: []
       }
       deletion_log: {

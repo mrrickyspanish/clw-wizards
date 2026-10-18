@@ -2264,3 +2264,210 @@ test('a co-parent link with no list covers every wrestler on the owner family', 
   const covered = lib.coveredWrestlers({ guardian_id: 'g', owner_id: 'owner', athlete_ids: null }, athletes)
   assert.deepEqual(covered.map((a) => a.id), ['a', 'b'])
 })
+
+// ---- Document review: upload alerts, To review, Reject (Tony, Oct 18) ----
+
+// A chainable stand-in for the Supabase query builder. Every finished query is
+// recorded; `answer(q)` decides what it returns from its table, operation and filters.
+function fakeDb(answer) {
+  const calls = []
+  const from = (table) => {
+    const q = { table, op: 'select', filters: [], values: null, wantsRow: false }
+    const finish = () => { calls.push(q); return Promise.resolve(answer(q) ?? { data: null, error: null }) }
+    const b = {
+      select: () => { if (q.op === 'select') q.op = 'select'; q.selected = true; return b },
+      insert: (values) => { q.op = 'insert'; q.values = values; return b },
+      update: (values) => { q.op = 'update'; q.values = values; return b },
+      delete: () => { q.op = 'delete'; return b },
+      eq: (k, v) => { q.filters.push(['eq', k, v]); return b },
+      in: (k, v) => { q.filters.push(['in', k, v]); return b },
+      order: () => b,
+      limit: () => b,
+      maybeSingle: () => { q.wantsRow = true; return finish() },
+      single: () => { q.wantsRow = true; return finish() },
+      then: (resolve, reject) => finish().then(resolve, reject),
+    }
+    return b
+  }
+  return { client: { from }, calls }
+}
+const has = (q, op, k, v) => q.filters.some(([o, key, val]) => o === op && key === k && (v === undefined || JSON.stringify(val) === JSON.stringify(v)))
+const docUuid = '33333333-3333-4333-a333-333333333333'
+
+test('the upload email names the wrestler and the parent and links straight to the upload', () => {
+  const lib = load('src/lib/documents/upload-notice.ts', { resend: { Resend: class {} }, '@/lib/supabase/admin': {}, '@/config/org.config': { ORG: {} } })
+  const notice = lib.uploadNotice({ docType: 'usa_wrestling_card', documentId: docUuid, wrestlerName: 'River Ungaro', uploaderName: 'Corey Ungaro', siteUrl: 'https://www.clwizards.com/' })
+  assert.equal(notice.subject, 'USA Wrestling card uploaded: River Ungaro')
+  assert.match(notice.text, /^Corey Ungaro uploaded River Ungaro's USA Wrestling card\.\n/)
+  assert.match(notice.text, new RegExp(`Review it: https://www\\.clwizards\\.com/admin/review#doc-${docUuid}$`))
+  const bc = lib.uploadNotice({ docType: 'birth_certificate', documentId: docUuid, wrestlerName: 'Nolan Dahl', uploaderName: null, siteUrl: 'https://x.org' })
+  assert.equal(bc.subject, 'Birth certificate uploaded: Nolan Dahl')
+  assert.match(bc.text, /^A family uploaded Nolan Dahl's birth certificate\./)
+})
+
+function uploadNoticeHarness(emails, env = { RESEND_API_KEY: 'k' }) {
+  const sent = []
+  const db = fakeDb((q) => (q.table === 'upload_notice_recipients' ? { data: emails.map((email) => ({ email })), error: null } : null))
+  const lib = load('src/lib/documents/upload-notice.ts', {
+    resend: { Resend: class { constructor() { this.emails = { send: async (m) => { sent.push(m); return { error: null } } } } } },
+    '@/lib/supabase/admin': { createAdminSupabase: () => db.client },
+    '@/config/org.config': { ORG: { domain: 'clwizards.com', shortName: 'CLW' } },
+  }, env)
+  return { lib, sent }
+}
+
+test('an upload email goes to everyone on the upload notice list, once each', async () => {
+  const h = uploadNoticeHarness(['arfont37@sbcglobal.net', 'ARFONT37@sbcglobal.net ', 'tyler@example.com'])
+  await h.lib.sendUploadNotice({ docType: 'birth_certificate', documentId: docUuid, wrestlerName: 'Nolan Dahl', uploaderName: 'Jarod Dahl' })
+  assert.equal(h.sent.length, 1)
+  assert.deepEqual([...h.sent[0].to], ['arfont37@sbcglobal.net', 'tyler@example.com'])
+  assert.equal(h.sent[0].subject, 'Birth certificate uploaded: Nolan Dahl')
+})
+
+test('an empty upload notice list sends nothing', async () => {
+  const h = uploadNoticeHarness([])
+  await h.lib.sendUploadNotice({ docType: 'birth_certificate', documentId: docUuid, wrestlerName: 'Nolan Dahl', uploaderName: null })
+  assert.equal(h.sent.length, 0)
+})
+
+// The family upload action: the club hears about cards and birth certificates.
+function recordHarness(docType) {
+  const notices = []
+  const later = []
+  const db = fakeDb((q) => {
+    if (q.table === 'family_guardians') return { data: [], error: null }
+    if (q.table === 'athletes') return { data: { id: 'kid', first_name: 'River', last_name: 'Ungaro' }, error: null }
+    if (q.table === 'athlete_documents' && q.op === 'insert') return { data: { id: docUuid }, error: null }
+    if (q.table === 'athlete_documents' && q.op === 'select') return { data: [], error: null }
+    if (q.table === 'profiles') return { data: { full_name: 'Corey Ungaro' }, error: null }
+    return { data: null, error: null }
+  })
+  const server = { ...db.client, auth: { getUser: async () => ({ data: { user: { id: 'corey' } } }) } }
+  const actions = load('src/app/(portal)/documents/actions.ts', {
+    'next/cache': { revalidatePath: () => {} },
+    'next/server': { after: (fn) => later.push(fn) },
+    '@/lib/supabase/server': { createServerSupabase: async () => server },
+    '@/lib/family': { resolveFamilyOwnerIds: async () => ['corey'] },
+    '@/lib/documents/upload-notice': { sendUploadNotice: async (n) => notices.push(n) },
+  })
+  return { actions, notices, later, run: async () => actions.recordDocument({ athleteId: '44444444-4444-4444-a444-444444444444', docType, fileUrl: 'corey/kid/card.png', fileName: 'card.png' }) }
+}
+
+test('a family uploading a USA card emails the club after the upload is saved', async () => {
+  const h = recordHarness('usa_wrestling_card')
+  assert.equal((await h.run()).ok, true)
+  assert.equal(h.notices.length, 0, 'not sent before the response')
+  for (const fn of h.later) await fn()
+  assert.deepEqual(JSON.parse(JSON.stringify(h.notices)), [{ docType: 'usa_wrestling_card', documentId: docUuid, wrestlerName: 'River Ungaro', uploaderName: 'Corey Ungaro' }])
+})
+
+test('other uploads do not email the club', async () => {
+  const h = recordHarness('other')
+  assert.equal((await h.run()).ok, true)
+  assert.equal(h.later.length, 0)
+})
+
+// To review actions, with the database, email and verify step mocked.
+function uploadReviewHarness({ doc, approvedCard = false, deleteFails = false, role = 'admin' } = {}) {
+  const sent = []
+  const verified = []
+  const db = fakeDb((q) => {
+    if (q.table === 'athlete_documents' && q.op === 'select') return { data: doc ?? null, error: null }
+    if (q.table === 'athlete_documents' && q.op === 'delete') return { error: deleteFails ? { message: 'delete failed' } : null }
+    if (q.table === 'season_enrollments') return { data: approvedCard ? { id: 'enr' } : null, error: null }
+    if (q.table === 'document_rejections' && q.op === 'insert') return { data: { id: 'rej-1' }, error: null }
+    if (q.table === 'athletes' && q.op === 'select') return { data: { first_name: 'River', last_name: 'Ungaro', parent_id: 'owner' }, error: null }
+    if (q.table === 'profiles') return { data: [{ email: 'corey@example.com', full_name: 'Corey Ungaro' }], error: null }
+    return { data: null, error: null }
+  })
+  const server = {
+    auth: { getUser: async () => ({ data: { user: { id: 'tony' } } }) },
+    from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: { role } }) }) }) }),
+  }
+  const actions = load('src/app/admin/review/actions.ts', {
+    'next/cache': { revalidatePath: () => {} },
+    resend: { Resend: class { constructor() { this.emails = { send: async (m) => { sent.push(m); return { error: null } } } } } },
+    '@/lib/supabase/server': { createServerSupabase: async () => server },
+    '@/lib/supabase/admin': { createAdminSupabase: () => db.client },
+    '@/config/org.config': { ORG: { domain: 'clwizards.com', shortName: 'CLW', name: 'Crystal Lake Wizards' } },
+    '../registrations/actions': { setDocumentVerified: async (v) => { verified.push(v); return { ok: true } } },
+  }, { RESEND_API_KEY: 'k' })
+  return { actions, calls: db.calls, sent, verified }
+}
+const cardDoc = { id: docUuid, athlete_id: 'kid', parent_id: 'corey', doc_type: 'usa_wrestling_card', file_name: 'card.png', file_url: 'corey/kid/card.png', uploaded_at: '2026-10-14T12:00:00Z', verified: false }
+
+test('rejecting an upload records why, removes it so the wrestler is missing again, and emails the family', async () => {
+  const h = uploadReviewHarness({ doc: cardDoc })
+  const result = await h.actions.rejectUpload({ documentId: docUuid, reason: 'This card is expired. Please upload the current season card.' })
+  assert.equal(result.ok, true)
+  const ops = h.calls.filter((q) => q.op !== 'select').map((q) => `${q.op} ${q.table}`)
+  assert.deepEqual(ops, ['insert document_rejections', 'delete athlete_documents'])
+  const logged = h.calls.find((q) => q.op === 'insert').values
+  assert.equal(logged.reason, 'This card is expired. Please upload the current season card.')
+  assert.equal(logged.rejected_by, 'tony')
+  assert.equal(logged.file_url, 'corey/kid/card.png')
+  assert.ok(has(h.calls.find((q) => q.op === 'delete'), 'eq', 'id', docUuid))
+  assert.equal(h.sent.length, 1)
+  assert.equal(h.sent[0].to, 'corey@example.com')
+  assert.equal(h.sent[0].subject, 'Please upload a new USA Wrestling card for River Ungaro')
+  assert.match(h.sent[0].text, /This card is expired\. Please upload the current season card\.\n\nUpload it here: https:\/\/clwizards\.com\/documents/)
+})
+
+test('a verified upload, or the card behind an approved registration, cannot be rejected', async () => {
+  const verifiedDoc = uploadReviewHarness({ doc: { ...cardDoc, verified: true } })
+  assert.equal((await verifiedDoc.actions.rejectUpload({ documentId: docUuid, reason: 'x' })).ok, false)
+  const approved = uploadReviewHarness({ doc: cardDoc, approvedCard: true })
+  const result = await approved.actions.rejectUpload({ documentId: docUuid, reason: 'x' })
+  assert.equal(result.ok, false)
+  assert.match(result.error, /approved registration/)
+  for (const h of [verifiedDoc, approved]) {
+    assert.equal(h.calls.filter((q) => q.op !== 'select').length, 0)
+    assert.equal(h.sent.length, 0)
+  }
+})
+
+test('if the upload cannot be removed, the rejection is taken back and nobody is emailed', async () => {
+  const h = uploadReviewHarness({ doc: cardDoc, deleteFails: true })
+  const result = await h.actions.rejectUpload({ documentId: docUuid, reason: 'Hard to read.' })
+  assert.equal(result.ok, false)
+  const undo = h.calls.find((q) => q.op === 'delete' && q.table === 'document_rejections')
+  assert.ok(undo && has(undo, 'eq', 'id', 'rej-1'))
+  assert.equal(h.sent.length, 0)
+})
+
+test('verifying a card from To review saves the typed card number, then verifies', async () => {
+  const h = uploadReviewHarness({ doc: cardDoc })
+  assert.equal((await h.actions.verifyUpload({ documentId: docUuid, cardNumber: ' 2696844201 ' })).ok, true)
+  const update = h.calls.find((q) => q.op === 'update' && q.table === 'athletes')
+  assert.equal(update.values.usa_wrestling_card_number, '2696844201')
+  assert.ok(has(update, 'eq', 'id', 'kid'))
+  assert.deepEqual(JSON.parse(JSON.stringify(h.verified)), [{ documentId: docUuid, verified: true }])
+})
+
+test('verifying a birth certificate never touches a card number', async () => {
+  const h = uploadReviewHarness({ doc: { ...cardDoc, doc_type: 'birth_certificate' } })
+  assert.equal((await h.actions.verifyUpload({ documentId: docUuid, cardNumber: '123' })).ok, true)
+  assert.equal(h.calls.filter((q) => q.op === 'update').length, 0)
+  assert.equal(h.verified.length, 1)
+})
+
+test('only admins can verify or reject from To review', async () => {
+  const h = uploadReviewHarness({ doc: cardDoc, role: 'parent' })
+  assert.equal((await h.actions.rejectUpload({ documentId: docUuid, reason: 'x' })).ok, false)
+  assert.equal((await h.actions.verifyUpload({ documentId: docUuid })).ok, false)
+  assert.equal(h.calls.length, 0)
+})
+
+test('the review queue leaves out wrestlers who are no longer active', async () => {
+  const db = fakeDb((q) => {
+    if (q.table === 'athlete_documents') return { data: [{ id: 'd1', athlete_id: 'active-kid' }, { id: 'd2', athlete_id: 'gone-kid' }], error: null }
+    if (q.table === 'athletes') return { data: [{ id: 'active-kid' }], error: null }
+    return null
+  })
+  const lib = load('src/lib/documents/review-queue.ts', {})
+  const queue = await lib.reviewQueue(db.client)
+  assert.deepEqual(queue.map((d) => d.id), ['d1'])
+  const docsQuery = db.calls.find((q) => q.table === 'athlete_documents')
+  assert.ok(has(docsQuery, 'eq', 'verified', false))
+  assert.ok(has(docsQuery, 'in', 'doc_type', ['usa_wrestling_card', 'birth_certificate']))
+})

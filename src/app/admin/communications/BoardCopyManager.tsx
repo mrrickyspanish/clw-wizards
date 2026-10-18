@@ -5,7 +5,14 @@ import { useRouter } from 'next/navigation'
 import { X } from 'lucide-react'
 
 import type { BoardCopyRecipient } from '@/types/database'
-import { addBoardRecipient, addPaymentNoticeRecipient, removeBoardRecipient, removePaymentNoticeRecipient } from './actions'
+import {
+  addBoardRecipient,
+  addPaymentNoticeRecipient,
+  addUploadNoticeRecipient,
+  removeBoardRecipient,
+  removePaymentNoticeRecipient,
+  removeUploadNoticeRecipient,
+} from './actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -40,6 +47,15 @@ const LISTS = {
     addLabel: 'Add to payment notices',
     add: addPaymentNoticeRecipient,
     remove: removePaymentNoticeRecipient,
+  },
+  uploads: {
+    intro:
+      'These people get an email each time a family uploads a USA Wrestling card or a birth certificate, with a link straight to it on the To review page.',
+    empty: 'Nobody is on the list, so no upload emails are sent.',
+    removed: 'will stop getting upload emails.',
+    addLabel: 'Add to upload notices',
+    add: addUploadNoticeRecipient,
+    remove: removeUploadNoticeRecipient,
   },
 } as const
 

@@ -5,6 +5,7 @@ import {
   FileText,
   HandCoins,
   Handshake,
+  Inbox,
   LayoutDashboard,
   Megaphone,
   ShieldCheck,
@@ -13,6 +14,7 @@ import {
 } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
+import { reviewQueue } from '@/lib/documents/review-queue'
 
 export const metadata: Metadata = { robots: { index: false, follow: false } }
 import { DashboardNav, type NavItem } from '@/components/layout/DashboardNav'
@@ -26,6 +28,7 @@ const ADMIN_NAV: AdminNavItem[] = [
   { href: '/admin', label: 'Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
   { href: '/admin/families', label: 'Families', icon: <Users className="w-4 h-4" /> },
   { href: '/admin/registrations', label: 'Registrations', icon: <ClipboardCheck className="w-4 h-4" /> },
+  { href: '/admin/review', label: 'To review', icon: <Inbox className="w-4 h-4" /> },
   { href: '/admin/tournaments', label: 'Tournaments', icon: <Trophy className="w-4 h-4" /> },
   { href: '/admin/practices', label: 'Practices & Events', icon: <CalendarClock className="w-4 h-4" /> },
   { href: '/admin/dues', label: 'Dues', icon: <HandCoins className="w-4 h-4" /> },
@@ -43,17 +46,25 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     : { data: null }
 
   const isFullAdmin = profile?.role === 'admin' && profile?.admin_scope === 'full'
+  // Uploads waiting on To review, for the menu badge.
+  const reviewCount = profile?.role === 'admin' ? (await reviewQueue(supabase)).length : 0
   const navItems: NavItem[] = ADMIN_NAV.filter((item) => isFullAdmin || !item.fullOnly).map((item) => ({
     href: item.href,
     label: item.label,
     icon: item.icon,
+    count: item.href === '/admin/review' ? reviewCount : undefined,
   }))
 
   return (
     <div className="flex min-h-[100dvh] bg-clw-black-2">
       <DashboardNav title="Admin" items={navItems} userName={profile?.full_name ?? null} role={profile?.role ?? null} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <AdminMobileNav userName={profile?.full_name ?? null} role={profile?.role ?? null} isFullAdmin={isFullAdmin} />
+        <AdminMobileNav
+          userName={profile?.full_name ?? null}
+          role={profile?.role ?? null}
+          isFullAdmin={isFullAdmin}
+          reviewCount={reviewCount}
+        />
         <main className="min-w-0 flex-1 p-4 md:p-8">{children}</main>
       </div>
     </div>

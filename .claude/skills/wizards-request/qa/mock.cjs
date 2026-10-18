@@ -89,6 +89,9 @@ const tables = {
     { id: id('w', 1), received_at: '2026-10-13T16:03:00Z', from_name: 'Terry', title: 'Add Google Form sign-ups: Kid One, Kid Two', outcome: 'Both added and registered ($325 dues each).', status: 'done', waiting_on: null, people: ['Kid One', 'Kid Two'], handled_at: T, updated_at: T },
     { id: id('w', 2), received_at: '2026-10-12T02:02:00Z', from_name: 'Terry', title: 'Parent says dues are paid', outcome: 'No online payment on record. Asked Terry whether it was paid offline.', status: 'waiting', waiting_on: 'Terry: confirm how the parent paid', people: ['Pat Parent'], handled_at: T, updated_at: T },
   ],
+  // Tina's birth certificate was rejected; she has no newer upload, so Documents asks for a new one.
+  document_rejections: [{ id: id('r', 1), athlete_id: id('k', 2), parent_id: PARENT, doc_type: 'birth_certificate', reason: 'Hard to read. Please upload a clearer photo.', file_name: 'blurry.jpg', file_url: 'x', uploaded_at: T, rejected_by: ADMIN, rejected_at: '2026-10-18T15:00:00Z' }],
+  upload_notice_recipients: [{ id: id('u', 1), name: 'Terry Coach', email: 'terry@example.com', created_at: T }],
   family_guardians: [{ id: id('g', 1), owner_id: PARENT, guardian_id: id('b', 4), athlete_ids: [id('k', 1)], locked: true, created_at: T }], family_invites: [], coaches: [], admin_invites: [], sponsors: [], sponsor_tiers: [], donations: [],
   faq_items: [], page_content: [], parent_auth_incidents: [],
 }

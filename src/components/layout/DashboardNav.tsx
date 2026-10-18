@@ -14,6 +14,8 @@ export interface NavItem {
   href: string
   label: string
   icon: ReactNode
+  /** Items waiting on the viewer (e.g. uploads to review), shown as a badge. */
+  count?: number
 }
 
 interface DashboardNavProps {
@@ -59,6 +61,11 @@ export function DashboardNav({ title, items, userName, role }: DashboardNavProps
             >
               {item.icon}
               {item.label}
+              {item.count ? (
+                <span className="ml-auto rounded-full bg-clw-gold/15 px-2 text-sm font-semibold text-clw-gold-ink">
+                  {item.count}
+                </span>
+              ) : null}
             </Link>
           )
         })}

@@ -11,6 +11,7 @@ import type {
   AthleteDocument,
   ClubEvent,
   DisclosureAcceptance,
+  DocumentRejection,
   DuesPayment,
   SeasonEnrollment,
   SeasonPriceTier,
@@ -159,6 +160,24 @@ export default async function RegistrationPage({
   const latestCardByAthlete = new Map<string, AthleteDocument>()
   for (const document of (documentData ?? []) as AthleteDocument[]) {
     if (!latestCardByAthlete.has(document.athlete_id)) latestCardByAthlete.set(document.athlete_id, document)
+  }
+
+  // A card the club rejected, until a newer upload replaces it: say why, and
+  // where to upload a new one (the Documents page always has the button).
+  const { data: rejectionData } = athleteIds.length
+    ? await supabase
+        .from('document_rejections')
+        .select('*')
+        .in('athlete_id', athleteIds)
+        .eq('doc_type', 'usa_wrestling_card')
+        .order('rejected_at', { ascending: false })
+    : { data: [] as DocumentRejection[] }
+  const cardRejectionByAthlete = new Map<string, DocumentRejection>()
+  for (const rejection of (rejectionData ?? []) as DocumentRejection[]) {
+    const newer = latestCardByAthlete.get(rejection.athlete_id)
+    if (!cardRejectionByAthlete.has(rejection.athlete_id) && (!newer || newer.uploaded_at < rejection.rejected_at)) {
+      cardRejectionByAthlete.set(rejection.athlete_id, rejection)
+    }
   }
 
   const duesIds = enrollments.map((enrollment) => enrollment.dues_payment_id).filter(Boolean) as string[]
@@ -346,6 +365,7 @@ export default async function RegistrationPage({
               enrollment?.status === 'submitted' || enrollment?.status === 'approved'
                 ? boundCard ?? latestCard
                 : latestCard
+            const cardRejection = card ? undefined : cardRejectionByAthlete.get(athlete.id)
             const canEditCard =
               isOpen &&
               (!enrollment || enrollment.status === 'changes_requested' || enrollment.status === 'withdrawn')
@@ -395,6 +415,8 @@ export default async function RegistrationPage({
                                 card, has the number, or will check it. */}
                             {!season.require_usa_card
                               ? 'Not required for this season'
+                              : cardRejection
+                                ? `The club couldn't use the last upload: ${cardRejection.reason}`
                               : enrollment?.status === 'approved' && enrollment.card_override_at && !card?.verified
                                 ? 'Confirmed by the club'
                                 : !card && enrollment && !resubmitting
@@ -414,6 +436,11 @@ export default async function RegistrationPage({
                                           : 'Uploaded, awaiting club review'}
                           </p>
                         </div>
+                        {season.require_usa_card && cardRejection && !canEditCard && (
+                          <Button asChild size="sm" variant="outline" className="shrink-0">
+                            <Link href="/documents">Upload new</Link>
+                          </Button>
+                        )}
                         {season.require_usa_card && canEditCard && (
                           <DocumentControls
                             userId={userId}

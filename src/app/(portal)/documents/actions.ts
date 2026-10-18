@@ -1,10 +1,12 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { after } from 'next/server'
 import { z } from 'zod'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { resolveFamilyOwnerIds } from '@/lib/family'
+import { sendUploadNotice } from '@/lib/documents/upload-notice'
 
 export type ActionResult = { ok: true } | { ok: false; error: string }
 
@@ -35,7 +37,7 @@ export async function recordDocument(values: z.input<typeof recordSchema>): Prom
   const familyOwnerIds = await resolveFamilyOwnerIds(supabase, user.id)
   const { data: athlete } = await supabase
     .from('athletes')
-    .select('id')
+    .select('id, first_name, last_name')
     .eq('id', athleteId)
     .in('parent_id', familyOwnerIds)
     .maybeSingle()
@@ -55,13 +57,17 @@ export async function recordDocument(values: z.input<typeof recordSchema>): Prom
     .eq('doc_type', docType)
     .eq('parent_id', user.id)
 
-  const { error } = await supabase.from('athlete_documents').insert({
-    athlete_id: athleteId,
-    parent_id: user.id,
-    doc_type: docType,
-    file_url: fileUrl,
-    file_name: fileName,
-  })
+  const { data: inserted, error } = await supabase
+    .from('athlete_documents')
+    .insert({
+      athlete_id: athleteId,
+      parent_id: user.id,
+      doc_type: docType,
+      file_url: fileUrl,
+      file_name: fileName,
+    })
+    .select('id')
+    .single()
   if (error) return { ok: false, error: error.message }
 
   const priorIds = (priorOwn ?? []).map((r) => r.id)
@@ -69,8 +75,23 @@ export async function recordDocument(values: z.input<typeof recordSchema>): Prom
     await supabase.from('athlete_documents').delete().in('id', priorIds)
   }
 
+  // Tell the club a card or birth certificate came in, with a link straight to
+  // it. After the response, so the upload never waits on (or fails with) email.
+  if (inserted && docType !== 'other') {
+    const { data: uploader } = await supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle()
+    after(() =>
+      sendUploadNotice({
+        docType,
+        documentId: inserted.id,
+        wrestlerName: `${athlete.first_name} ${athlete.last_name}`,
+        uploaderName: uploader?.full_name ?? null,
+      })
+    )
+  }
+
   revalidatePath('/documents')
   revalidatePath('/dashboard')
+  revalidatePath('/admin/review')
   return { ok: true }
 }
 
