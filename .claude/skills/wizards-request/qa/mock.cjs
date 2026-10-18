@@ -42,6 +42,8 @@ const tables = {
     ['Max', 'Sample', '2015-03-03', PARENT2, 'senior'],
     ['Lily', 'Sample', '2013-09-09', PARENT2, null],
     ['Owen', 'Roe', '2016-06-06', PARENT3, null],
+    // A long name, for layouts that have to wrap it.
+    ['Maximiliano-Alexander', 'Vandenberghe-Fontaine', '2014-02-02', PARENT3, null],
   ].map(([first_name, last_name, date_of_birth, parent_id, age_division], i) => ({
     ...base, id: id('k', i + 1), parent_id, first_name, last_name, date_of_birth, weight_class: '60', practice_group: i % 2 ? 'Group 2' : 'Group 1',
     division: i === 1 || i === 3 ? 'girls' : 'boys', age_division, usa_wrestling_card_number: null, shirt_size: 'Youth M',
@@ -68,6 +70,7 @@ const tables = {
   disclosure_acceptances: [],
   athlete_guardians: [],
   athlete_documents: [
+    { id: id('d', 3), athlete_id: id('k', 6), parent_id: PARENT3, doc_type: 'usa_wrestling_card', file_name: 'IMG_20261018_093412_USA_Wrestling_membership_card_front_and_back_scan.jpeg', file_url: PARENT3 + '/' + id('k', 6) + '/usa_wrestling_card-3-card.jpeg', verified: false, verified_by: null, verified_at: null, uploaded_at: '2026-10-18T14:30:00Z', ...base },
     { id: id('d', 2), athlete_id: id('k', 2), parent_id: PARENT, doc_type: 'usa_wrestling_card', file_url: PARENT + '/' + id('k', 2) + '/usa_wrestling_card-1-card.png', file_name: 'card.png', verified: false, verified_by: null, verified_at: null, uploaded_at: '2026-10-02T15:00:00Z' },
     { id: id('d', 1), athlete_id: id('k', 1), parent_id: PARENT, doc_type: 'birth_certificate', file_url: PARENT + '/' + id('k', 1) + '/birth_certificate-1-bc.pdf', file_name: 'bc.pdf', verified: false, verified_by: null, verified_at: null, uploaded_at: '2026-10-10T15:00:00Z', created_at: T },
   ],
@@ -90,7 +93,7 @@ const tables = {
     { id: id('w', 2), received_at: '2026-10-12T02:02:00Z', from_name: 'Terry', title: 'Parent says dues are paid', outcome: 'No online payment on record. Asked Terry whether it was paid offline.', status: 'waiting', waiting_on: 'Terry: confirm how the parent paid', people: ['Pat Parent'], handled_at: T, updated_at: T },
   ],
   // Tina's birth certificate was rejected; she has no newer upload, so Documents asks for a new one.
-  document_rejections: [{ id: id('r', 1), athlete_id: id('k', 2), parent_id: PARENT, doc_type: 'birth_certificate', reason: 'Hard to read. Please upload a clearer photo.', file_name: 'blurry.jpg', file_url: 'x', uploaded_at: T, rejected_by: ADMIN, rejected_at: '2026-10-18T15:00:00Z' }],
+  document_rejections: [{ id: id('r', 2), athlete_id: id('k', 4), parent_id: PARENT2, doc_type: 'usa_wrestling_card', reason: 'This card is expired. Please upload the current season card.', file_name: 'old.png', file_url: 'x', uploaded_at: T, rejected_by: ADMIN, rejected_at: '2026-10-18T16:00:00Z' }, { id: id('r', 1), athlete_id: id('k', 2), parent_id: PARENT, doc_type: 'birth_certificate', reason: 'Hard to read. Please upload a clearer photo.', file_name: 'blurry.jpg', file_url: 'x', uploaded_at: T, rejected_by: ADMIN, rejected_at: '2026-10-18T15:00:00Z' }],
   upload_notice_recipients: [{ id: id('u', 1), name: 'Terry Coach', email: 'terry@example.com', created_at: T }],
   family_guardians: [{ id: id('g', 1), owner_id: PARENT, guardian_id: id('b', 4), athlete_ids: [id('k', 1)], locked: true, created_at: T }], family_invites: [], coaches: [], admin_invites: [], sponsors: [], sponsor_tiers: [], donations: [],
   faq_items: [], page_content: [], parent_auth_incidents: [],
@@ -143,6 +146,7 @@ function match(row, key, expr) {
 const RESERVED = new Set(['select', 'order', 'limit', 'offset', 'on_conflict', 'columns'])
 const unknown = new Set()
 const writes = []
+const saved = {}
 
 http.createServer((req, res) => {
   const u = new URL(req.url, 'http://x')
@@ -161,6 +165,9 @@ http.createServer((req, res) => {
     if (u.pathname.startsWith('/auth/v1/')) return res.end('{}')
     if (req.method !== 'GET' && req.method !== 'HEAD') writes.push({ method: req.method, path: u.pathname + u.search, body: body.slice(0, 400) })
     if (u.pathname === '/__writes') return res.end(JSON.stringify(writes))
+    // /__clear?table=athlete_documents empties a table, e.g. to see an empty state.
+    if (u.pathname === '/__clear') { const t = u.searchParams.get('table'); if (t in tables) { saved[t] = saved[t] ?? tables[t]; tables[t] = [] } return res.end('{}') }
+    if (u.pathname === '/__restore') { for (const t of Object.keys(saved)) tables[t] = saved[t]; return res.end('{}') }
     if (u.pathname.startsWith('/storage/v1/object/upload/sign/') && req.method === 'POST') { const p = u.pathname.replace('/storage/v1/object/upload/sign/', ''); return res.end(JSON.stringify({ url: `/object/upload/sign/${p}?token=uptok` })) }
     if (u.pathname.startsWith('/storage/v1/object/upload/sign/') && req.method === 'PUT') { return res.end(JSON.stringify({ Key: u.pathname })) }
     if (u.pathname.startsWith('/storage/v1/object/sign/') && req.method === 'GET') {

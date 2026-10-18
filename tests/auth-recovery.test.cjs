@@ -2471,3 +2471,17 @@ test('the review queue leaves out wrestlers who are no longer active', async () 
   assert.ok(has(docsQuery, 'eq', 'verified', false))
   assert.ok(has(docsQuery, 'in', 'doc_type', ['usa_wrestling_card', 'birth_certificate']))
 })
+
+test('admin pages show the latest rejection per wrestler and document, with why', async () => {
+  const db = fakeDb((q) => (q.table === 'document_rejections'
+    ? { data: [
+        { athlete_id: 'kid', doc_type: 'usa_wrestling_card', reason: 'This card is expired. Please upload the current season card.', rejected_at: '2026-10-18T16:00:00Z' },
+        { athlete_id: 'kid', doc_type: 'usa_wrestling_card', reason: 'Older reason.', rejected_at: '2026-10-10T16:00:00Z' },
+      ], error: null }
+    : null))
+  const lib = load('src/lib/documents/review-queue.ts', {})
+  const byKey = await lib.latestRejections(db.client, ['kid'])
+  assert.equal(byKey.size, 1)
+  assert.equal(lib.rejectionLine(byKey.get('kid:usa_wrestling_card')), 'Rejected Oct 18: This card is expired. Please upload the current season card. Waiting on a new upload.')
+  assert.equal((await lib.latestRejections(db.client, [])).size, 0)
+})

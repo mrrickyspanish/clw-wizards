@@ -19,6 +19,7 @@ import type {
 import { formatCents } from '@/lib/format/money'
 import { registrationCard } from '@/lib/registration-card'
 import { coveredWrestlers, type CoParentLink } from '@/lib/family'
+import { latestRejections, rejectionLine, type LatestRejection } from '@/lib/documents/review-queue'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -148,6 +149,8 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
     cardsByAthlete.set(card.athlete_id, [...(cardsByAthlete.get(card.athlete_id) ?? []), card])
   }
   const requiredDisclosures = (disclosureRows ?? []) as Disclosure[]
+  // Why a document now reads as missing, when the club rejected the upload.
+  const rejectionByKey = await latestRejections(supabase, athleteIds)
   const signedByAthlete = new Map<string, Set<string>>()
   for (const a of (acceptanceRows ?? []) as DisclosureAcceptance[]) {
     signedByAthlete.set(a.athlete_id, (signedByAthlete.get(a.athlete_id) ?? new Set()).add(a.disclosure_id))
@@ -453,6 +456,7 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
                       return id ? duesById.get(id) : undefined
                     })()}
                     cards={cardsByAthlete.get(athlete.id) ?? []}
+                    cardRejection={rejectionByKey.get(`${athlete.id}:usa_wrestling_card`)}
                     missingAgreements={requiredDisclosures.filter((d) => !signedByAthlete.get(athlete.id)?.has(d.id))}
                   />
                 )}
@@ -466,6 +470,11 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
                           : 'Uploaded, not yet verified'
                         : 'Not uploaded'}
                     </p>
+                    {!birthCertificateByAthlete.get(athlete.id) && rejectionByKey.get(`${athlete.id}:birth_certificate`) && (
+                      <p className="mb-2 text-base text-amber-300">
+                        {rejectionLine(rejectionByKey.get(`${athlete.id}:birth_certificate`)!)}
+                      </p>
+                    )}
                     <BirthCertificateDocument
                       athleteId={athlete.id}
                       document={birthCertificateByAthlete.get(athlete.id) ?? null}
@@ -580,6 +589,7 @@ function SeasonSummary({
   enrollment,
   dues,
   cards,
+  cardRejection,
   missingAgreements,
 }: {
   season: SeasonRegistration
@@ -587,6 +597,7 @@ function SeasonSummary({
   enrollment: SeasonEnrollment | undefined
   dues: DuesPayment | undefined
   cards: AthleteDocument[]
+  cardRejection?: LatestRejection
   missingAgreements: Disclosure[]
 }) {
   const name = `${athlete.first_name} ${athlete.last_name}`
@@ -618,6 +629,8 @@ function SeasonSummary({
         : 'Uploaded, not yet verified'
       : cardClearedByClub
         ? 'Confirmed by the club without an upload'
+        : cardRejection
+          ? rejectionLine(cardRejection)
         : athlete.usa_wrestling_card_number?.trim()
           ? `Not uploaded · card #${athlete.usa_wrestling_card_number.trim()} on file`
           : 'Not uploaded'

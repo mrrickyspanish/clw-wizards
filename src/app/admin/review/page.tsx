@@ -89,8 +89,18 @@ export default async function AdminReviewPage({ searchParams }: { searchParams: 
                 id={`doc-${doc.id}`}
                 className="scroll-mt-24 space-y-3 rounded-lg border border-clw-gold/10 bg-clw-black p-4 target:border-clw-gold/60 sm:p-5"
               >
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div className="min-w-0">
+                <div className="min-w-0 space-y-1">
+                  <Badge
+                    variant="outline"
+                    className={`whitespace-nowrap ${
+                      docType === 'usa_wrestling_card'
+                        ? 'border-blue-500/40 bg-blue-500/10 text-blue-400'
+                        : 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold'
+                    }`}
+                  >
+                    {DOC_LABELS[docType]}
+                  </Badge>
+                  <div>
                     {athlete ? (
                       <Link
                         href={`/admin/families/${athlete.parent_id}`}
@@ -106,16 +116,6 @@ export default async function AdminReviewPage({ searchParams }: { searchParams: 
                     </p>
                     <p className="truncate text-sm text-clw-gray">{doc.file_name}</p>
                   </div>
-                  <Badge
-                    variant="outline"
-                    className={`whitespace-nowrap ${
-                      docType === 'usa_wrestling_card'
-                        ? 'border-blue-500/40 bg-blue-500/10 text-blue-400'
-                        : 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold'
-                    }`}
-                  >
-                    {DOC_LABELS[docType]}
-                  </Badge>
                 </div>
                 {docType === 'birth_certificate' && athlete?.birth_certificate_on_file && (
                   <p className="text-base text-clw-gray">The club also has this wrestler marked as on file.</p>

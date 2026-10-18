@@ -24,6 +24,7 @@ import { ParentDialog } from '../families/ParentDialog'
 import { DuesEditDialog } from '../dues/DuesEditDialog'
 import { ReviewControls } from './ReviewControls'
 import { BirthCertificateDocument } from './BirthCertificateDocument'
+import { latestRejections, rejectionLine } from '@/lib/documents/review-queue'
 import { BirthCertificateToggle } from './BirthCertificateToggle'
 import { AdminSearch } from '../AdminSearch'
 
@@ -148,6 +149,8 @@ export default async function AdminRegistrationsPage({ searchParams }: { searchP
     if (!known || row.uploaded_at > known.uploaded_at) birthCertificateByAthlete.set(row.athlete_id, row)
   }
   const deciderName = new Map((deciderData ?? []).map((p) => [p.id, p.full_name || p.email || 'an admin']))
+  // Why a card or birth certificate now reads as missing, when the club rejected the upload.
+  const rejectionByKey = await latestRejections(supabase, athleteIds)
   const stamp = (iso: string) =>
     new Date(iso).toLocaleString('en-US', { timeZone: 'America/Chicago', dateStyle: 'medium', timeStyle: 'short' })
 
@@ -460,7 +463,9 @@ export default async function AdminRegistrationsPage({ searchParams }: { searchP
                       {!season?.require_usa_card
                         ? 'Not required'
                         : !card
-                          ? athlete?.usa_wrestling_card_number?.trim()
+                          ? athlete && rejectionByKey.get(`${athlete.id}:usa_wrestling_card`)
+                            ? rejectionLine(rejectionByKey.get(`${athlete.id}:usa_wrestling_card`)!)
+                            : athlete?.usa_wrestling_card_number?.trim()
                             ? `No upload · Card #${athlete.usa_wrestling_card_number.trim()} on file`
                             : 'Current-season card missing'
                           : card.verified
@@ -486,7 +491,9 @@ export default async function AdminRegistrationsPage({ searchParams }: { searchP
                             ? birthCertificate.verified
                               ? 'Uploaded and verified.'
                               : 'Uploaded, not yet verified.'
-                            : 'Not uploaded. Needed only the first time a wrestler registers.'}
+                            : rejectionByKey.get(`${athlete.id}:birth_certificate`)
+                              ? rejectionLine(rejectionByKey.get(`${athlete.id}:birth_certificate`)!)
+                              : 'Not uploaded. Needed only the first time a wrestler registers.'}
                       </p>
                       <div className="mb-3">
                         <BirthCertificateDocument athleteId={athlete.id} document={birthCertificate ?? null} />

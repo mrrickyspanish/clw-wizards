@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { AthleteDocument, Database } from '@/types/database'
+import type { AthleteDocument, Database, DocumentRejection } from '@/types/database'
 
 // The To review queue: USA cards and birth certificates a family uploaded that
 // nobody has verified yet, for wrestlers still active. Rejecting an upload
@@ -29,4 +29,38 @@ export async function reviewQueue(supabase: SupabaseClient<Database>): Promise<Q
     .in('id', [...new Set(rows.map((d) => d.athlete_id))])
   const activeIds = new Set((active ?? []).map((a) => a.id))
   return rows.filter((d) => activeIds.has(d.athlete_id))
+}
+
+export type LatestRejection = Pick<DocumentRejection, 'athlete_id' | 'doc_type' | 'reason' | 'rejected_at'>
+
+/**
+ * The club's latest rejection per wrestler and document, keyed
+ * `${athlete_id}:${doc_type}`. Pages show it where the document now reads as
+ * missing, so an admin can see why ("Rejected Oct 18: hard to read").
+ */
+export async function latestRejections(
+  supabase: SupabaseClient<Database>,
+  athleteIds: string[]
+): Promise<Map<string, LatestRejection>> {
+  const byKey = new Map<string, LatestRejection>()
+  if (!athleteIds.length) return byKey
+  const { data } = await supabase
+    .from('document_rejections')
+    .select('athlete_id, doc_type, reason, rejected_at')
+    .in('athlete_id', athleteIds)
+    .order('rejected_at', { ascending: false })
+  for (const row of (data ?? []) as LatestRejection[]) {
+    const key = `${row.athlete_id}:${row.doc_type}`
+    if (!byKey.has(key)) byKey.set(key, row)
+  }
+  return byKey
+}
+
+export function rejectionLine(rejection: LatestRejection): string {
+  const day = new Date(rejection.rejected_at).toLocaleDateString('en-US', {
+    timeZone: 'America/Chicago',
+    month: 'short',
+    day: 'numeric',
+  })
+  return `Rejected ${day}: ${rejection.reason} Waiting on a new upload.`
 }
