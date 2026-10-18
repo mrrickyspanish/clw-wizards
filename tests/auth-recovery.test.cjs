@@ -2301,7 +2301,8 @@ test('the upload email names the wrestler and the parent and links straight to t
   const notice = lib.uploadNotice({ docType: 'usa_wrestling_card', documentId: docUuid, wrestlerName: 'River Ungaro', uploaderName: 'Corey Ungaro', siteUrl: 'https://www.clwizards.com/' })
   assert.equal(notice.subject, 'USA Wrestling card uploaded: River Ungaro')
   assert.match(notice.text, /^Corey Ungaro uploaded River Ungaro's USA Wrestling card\.\n/)
-  assert.match(notice.text, new RegExp(`Review it: https://www\\.clwizards\\.com/admin/review#doc-${docUuid}$`))
+  // A ?doc= link, not #doc-: the login redirect keeps the query and drops a hash.
+  assert.match(notice.text, new RegExp(`Review it: https://www\\.clwizards\\.com/admin/review\\?doc=${docUuid}$`))
   const bc = lib.uploadNotice({ docType: 'birth_certificate', documentId: docUuid, wrestlerName: 'Nolan Dahl', uploaderName: null, siteUrl: 'https://x.org' })
   assert.equal(bc.subject, 'Birth certificate uploaded: Nolan Dahl')
   assert.match(bc.text, /^A family uploaded Nolan Dahl's birth certificate\./)
@@ -2333,12 +2334,12 @@ test('an empty upload notice list sends nothing', async () => {
 })
 
 // The family upload action: the club hears about cards and birth certificates.
-function recordHarness(docType) {
+function recordHarness(docType, { active = true } = {}) {
   const notices = []
   const later = []
   const db = fakeDb((q) => {
     if (q.table === 'family_guardians') return { data: [], error: null }
-    if (q.table === 'athletes') return { data: { id: 'kid', first_name: 'River', last_name: 'Ungaro' }, error: null }
+    if (q.table === 'athletes') return { data: { id: 'kid', first_name: 'River', last_name: 'Ungaro', active }, error: null }
     if (q.table === 'athlete_documents' && q.op === 'insert') return { data: { id: docUuid }, error: null }
     if (q.table === 'athlete_documents' && q.op === 'select') return { data: [], error: null }
     if (q.table === 'profiles') return { data: { full_name: 'Corey Ungaro' }, error: null }
@@ -2361,6 +2362,12 @@ test('a family uploading a USA card emails the club after the upload is saved', 
   assert.equal(h.notices.length, 0, 'not sent before the response')
   for (const fn of h.later) await fn()
   assert.deepEqual(JSON.parse(JSON.stringify(h.notices)), [{ docType: 'usa_wrestling_card', documentId: docUuid, wrestlerName: 'River Ungaro', uploaderName: 'Corey Ungaro' }])
+})
+
+test('an upload for an inactive wrestler does not email the club (it is not on To review)', async () => {
+  const h = recordHarness('birth_certificate', { active: false })
+  assert.equal((await h.run()).ok, true)
+  assert.equal(h.later.length, 0)
 })
 
 test('other uploads do not email the club', async () => {

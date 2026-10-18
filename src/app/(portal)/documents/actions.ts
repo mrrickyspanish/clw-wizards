@@ -37,7 +37,7 @@ export async function recordDocument(values: z.input<typeof recordSchema>): Prom
   const familyOwnerIds = await resolveFamilyOwnerIds(supabase, user.id)
   const { data: athlete } = await supabase
     .from('athletes')
-    .select('id, first_name, last_name')
+    .select('id, first_name, last_name, active')
     .eq('id', athleteId)
     .in('parent_id', familyOwnerIds)
     .maybeSingle()
@@ -77,7 +77,7 @@ export async function recordDocument(values: z.input<typeof recordSchema>): Prom
 
   // Tell the club a card or birth certificate came in, with a link straight to
   // it. After the response, so the upload never waits on (or fails with) email.
-  if (inserted && docType !== 'other') {
+  if (inserted && docType !== 'other' && athlete.active) {
     const { data: uploader } = await supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle()
     after(() =>
       sendUploadNotice({

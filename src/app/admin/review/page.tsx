@@ -20,15 +20,42 @@ function formatUploaded(value: string) {
 /**
  * To review: every USA card and birth certificate a family uploaded that
  * nobody has checked yet, newest first, with everything needed to clear it on
- * one screen. Upload emails link straight to a row here (#doc-<id>).
+ * one screen. Upload emails link here with ?doc=<id>: that upload opens at the
+ * top, or the page says it was already handled.
  */
-export default async function AdminReviewPage({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
-  const { type } = await searchParams
+export default async function AdminReviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ type?: string; doc?: string }>
+}) {
+  const { type, doc: focusId } = await searchParams
   const filter = type === 'cards' ? 'usa_wrestling_card' : type === 'birth-certificates' ? 'birth_certificate' : null
 
   const supabase = createAdminSupabase()
   const queue = await reviewQueue(supabase)
-  const shown = filter ? queue.filter((doc) => doc.doc_type === filter) : queue
+  // The upload an email linked to goes first, whatever the filter.
+  const focused = focusId ? queue.find((doc) => doc.id === focusId) : undefined
+  const filtered = filter ? queue.filter((doc) => doc.doc_type === filter) : queue
+  const shown = focused ? [focused, ...filtered.filter((doc) => doc.id !== focused.id)] : filtered
+  // Linked from an email but no longer waiting: say what happened instead of nothing.
+  let handledNote: string | null = null
+  if (focusId && !focused && /^[0-9a-f-]{36}$/i.test(focusId)) {
+    const { data: done } = await supabase
+      .from('athlete_documents')
+      .select('verified, verified_at, verified_by')
+      .eq('id', focusId)
+      .maybeSingle()
+    if (done?.verified) {
+      const { data: who } = done.verified_by
+        ? await supabase.from('profiles').select('full_name').eq('id', done.verified_by).maybeSingle()
+        : { data: null }
+      handledNote = `That upload was already verified${who?.full_name ? ` by ${who.full_name}` : ''}${
+        done.verified_at ? ` on ${formatUploaded(done.verified_at)}` : ''
+      }.`
+    } else {
+      handledNote = 'That upload was already reviewed (rejected or replaced), so it isn’t waiting anymore.'
+    }
+  }
   const cardCount = queue.filter((doc) => doc.doc_type === 'usa_wrestling_card').length
 
   const athleteIds = [...new Set(shown.map((doc) => doc.athlete_id))]
@@ -54,6 +81,12 @@ export default async function AdminReviewPage({ searchParams }: { searchParams: 
           ones that are right. Reject the ones that aren&apos;t, and the family is emailed to upload a new one.
         </p>
       </div>
+
+      {handledNote && (
+        <p role="status" className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-base text-emerald-300">
+          {handledNote}
+        </p>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         <FilterLink href="/admin/review" active={!filter}>
@@ -87,7 +120,9 @@ export default async function AdminReviewPage({ searchParams }: { searchParams: 
               <li
                 key={doc.id}
                 id={`doc-${doc.id}`}
-                className="scroll-mt-24 space-y-3 rounded-lg border border-clw-gold/10 bg-clw-black p-4 target:border-clw-gold/60 sm:p-5"
+                className={`scroll-mt-24 space-y-3 rounded-lg border bg-clw-black p-4 sm:p-5 ${
+                  doc.id === focused?.id ? 'border-clw-gold/70' : 'border-clw-gold/10'
+                }`}
               >
                 <div className="min-w-0 space-y-1">
                   <Badge

@@ -34,7 +34,7 @@ export function uploadNotice(f: {
     text: [
       `${f.uploaderName ?? 'A family'} uploaded ${f.wrestlerName}'s ${f.docType === 'birth_certificate' ? 'birth certificate' : label}.`,
       '',
-      `Review it: ${site}/admin/review#doc-${f.documentId}`,
+      `Review it: ${site}/admin/review?doc=${f.documentId}`,
     ].join('\n'),
   }
 }
