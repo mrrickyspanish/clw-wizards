@@ -96,7 +96,7 @@ export function BirthCertificateDocument({
         setError(result.error)
         return
       }
-      setNotice(document ? 'Replaced. Open it to check, then verify.' : 'Uploaded. Open it to check, then verify.')
+      setNotice(document ? 'Replaced and marked verified.' : 'Uploaded and marked verified.')
       router.refresh()
     } catch {
       setError('Could not upload the file. Try again.')

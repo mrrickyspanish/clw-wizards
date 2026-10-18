@@ -202,8 +202,9 @@ export async function recordAdminBirthCertificate(values: z.input<typeof recordU
   }
 
   // Replace in place, the same way a family's Replace works: save the new row
-  // first so a failure never empties the slot, then remove the older rows. The
-  // new file starts unverified, so it gets a look before it counts.
+  // first so a failure never empties the slot, then remove the older rows. An
+  // admin uploading it has already looked at it, so it counts as verified and
+  // does not wait on To review as if a family had sent it.
   const { data: prior } = await admin
     .from('athlete_documents')
     .select('id')
@@ -216,6 +217,9 @@ export async function recordAdminBirthCertificate(values: z.input<typeof recordU
     doc_type: 'birth_certificate',
     file_url: parsed.data.path,
     file_name: parsed.data.fileName,
+    verified: true,
+    verified_by: auth.userId,
+    verified_at: new Date().toISOString(),
   })
   if (error) return { ok: false, error: error.message }
 

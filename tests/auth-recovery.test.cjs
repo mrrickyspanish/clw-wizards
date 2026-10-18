@@ -2213,7 +2213,7 @@ test('admin upload refuses files over 10MB before anything is stored', async () 
   assert.equal(h.calls.length, 0)
 })
 
-test('admin Replace saves the new birth certificate on the family, unverified, then removes the old ones', async () => {
+test('admin Replace saves the new birth certificate on the family, verified, then removes the old ones', async () => {
   const h = adminDocHarness()
   const result = await h.actions.recordAdminBirthCertificate({ athleteId: kidId, path: `fam-1/${kidId}/birth_certificate-9-new.pdf`, fileName: 'new.pdf' })
   assert.equal(result.ok, true)
@@ -2222,7 +2222,9 @@ test('admin Replace saves the new birth certificate on the family, unverified, t
   const insert = h.calls.find((c) => c.op === 'insert')
   assert.equal(insert.values.parent_id, 'fam-1')
   assert.equal(insert.values.doc_type, 'birth_certificate')
-  assert.equal(insert.values.verified, undefined)
+  // An admin uploading it has looked at it: it counts as verified, not queued for review.
+  assert.equal(insert.values.verified, true)
+  assert.equal(insert.values.verified_by, 'tony')
   const del = h.calls.find((c) => c.op === 'delete')
   assert.ok(del.filters.some(([op, k, v]) => op === 'in' && k === 'id' && v.join() === 'old-1,old-2'))
 })

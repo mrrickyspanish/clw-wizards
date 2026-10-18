@@ -74,15 +74,26 @@ export function AdminMobileNav({
       style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}
     >
       <Sheet>
-        <SheetTrigger asChild>
-          <button
-            type="button"
-            aria-label="Open admin navigation"
-            className="flex h-11 w-11 items-center justify-center rounded-lg border border-clw-gold/20 text-clw-white transition-colors hover:border-clw-gold/50 hover:text-clw-gold"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-        </SheetTrigger>
+        <div className="relative">
+          <SheetTrigger asChild>
+            <button
+              type="button"
+              aria-label={reviewCount > 0 ? `Open admin navigation, ${reviewCount} uploads to review` : 'Open admin navigation'}
+              className="flex h-11 w-11 items-center justify-center rounded-lg border border-clw-gold/20 text-clw-white transition-colors hover:border-clw-gold/50 hover:text-clw-gold"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          </SheetTrigger>
+          {/* Outside the button, so the badge can sit on its corner without widening it. */}
+          {reviewCount > 0 && (
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-2 -top-2 min-w-6 rounded-full bg-clw-gold px-1.5 text-center text-sm font-bold leading-6 text-clw-black"
+            >
+              {reviewCount > 99 ? '99+' : reviewCount}
+            </span>
+          )}
+        </div>
         <SheetContent side="left" className="flex w-[88vw] max-w-sm flex-col border-clw-gold/15 bg-clw-black p-0 text-clw-white">
           <SheetHeader className="border-b border-clw-gold/10 px-5 pb-5 pt-6 text-left">
             <SheetTitle className="font-display text-2xl tracking-wide text-clw-gold">{ORG.shortName} Admin</SheetTitle>
