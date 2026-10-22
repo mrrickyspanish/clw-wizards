@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { verifyQstashSignature } from '@/lib/qstash'
-import { resolveRecipients } from '@/lib/comms/recipients'
+import { familyContactRecipients, resolveRecipients } from '@/lib/comms/recipients'
 import { sendCommEmail } from '@/lib/comms/send-email'
 import { sendSms } from '@/lib/twilio/send-sms'
 import { clubSms } from '@/lib/twilio/format'
@@ -49,6 +49,16 @@ export async function POST(request: Request) {
 
   const payload = JSON.parse(rawBody) as BlastRequestBody
   const recipients = await resolveRecipients(payload.target)
+  const wantsEmail = payload.channel === 'email' || payload.channel === 'both'
+  // Second parents and other family contacts get the email too (never a text:
+  // they have not agreed to club texts themselves). A problem looking them up
+  // never stops the send to the families.
+  const contacts = wantsEmail
+    ? await familyContactRecipients(payload.target, recipients).catch((error) => {
+        console.error('[comms] family contacts lookup failed', error instanceof Error ? error.message : 'unknown error')
+        return []
+      })
+    : []
 
   // Ties every row this run writes to communication_log together, so the
   // admin history view can show "this send: 97 sent, 2 failed" instead of a
@@ -62,7 +72,6 @@ export async function POST(request: Request) {
   let smsSent = 0
   let smsFailed = 0
 
-  const wantsEmail = payload.channel === 'email' || payload.channel === 'both'
   const wantsSms = payload.channel === 'sms' || payload.channel === 'both'
   // Every text names the club and says how to stop (see clubSms).
   const smsBody = clubSms(payload.smsMessage ?? payload.message)
@@ -109,6 +118,29 @@ export async function POST(request: Request) {
     )
   }
 
+  // Logged under the family's account, with the contact's address.
+  for (const contact of contacts) {
+    const waitMs = nextSlotAt - Date.now()
+    if (waitMs > 0) await sleep(waitMs)
+    nextSlotAt = Date.now() + MIN_SEND_INTERVAL_MS
+
+    inFlight.push(
+      (async () => {
+        const result = await sendCommEmail({
+          profileId: contact.ownerId,
+          to: contact.email,
+          subject: payload.subject ?? '',
+          html: payload.message,
+          commType: payload.commType,
+          tournamentId,
+          blastId,
+        })
+        if (result.ok) emailsSent += 1
+        else emailsFailed += 1
+      })()
+    )
+  }
+
   await Promise.all(inFlight)
 
   // The board gets one copy of every send, after the families', and a problem
@@ -123,7 +155,7 @@ export async function POST(request: Request) {
       message: payload.message,
       totalRecipients: recipients.length,
       counts: { emailsSent, emailsFailed, smsSent, smsFailed },
-      familyEmails: wantsEmail ? recipients.flatMap((r) => (r.email ? [r.email] : [])) : [],
+      familyEmails: wantsEmail ? [...recipients.flatMap((r) => (r.email ? [r.email] : [])), ...contacts.map((c) => c.email)] : [],
       blastId,
       tournamentId,
     })
@@ -135,6 +167,7 @@ export async function POST(request: Request) {
     ok: true,
     blastId,
     totalRecipients: recipients.length,
+    contactEmails: contacts.length,
     emailsSent,
     emailsFailed,
     smsSent,

@@ -155,7 +155,13 @@ export function ComposeForm({
   const [message, setMessage] = useState('')
 
   const [eventId, setEventId] = useState('')
-  const [preview, setPreview] = useState<{ count: number; wrestlerCount: number; smsCount: number; recipients: PreviewRecipient[] } | null>(null)
+  const [preview, setPreview] = useState<{
+    count: number
+    wrestlerCount: number
+    smsCount: number
+    contactCount: number
+    recipients: PreviewRecipient[]
+  } | null>(null)
   const [previewing, setPreviewing] = useState(false)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -204,7 +210,13 @@ export function ComposeForm({
       setError(result.error)
       return
     }
-    setPreview({ count: result.count, wrestlerCount: result.wrestlerCount, smsCount: result.smsCount, recipients: result.recipients })
+    setPreview({
+      count: result.count,
+      wrestlerCount: result.wrestlerCount,
+      smsCount: result.smsCount,
+      contactCount: result.contactCount,
+      recipients: result.recipients,
+    })
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -504,6 +516,8 @@ export function ComposeForm({
             <p className="text-base text-clw-white">
               {preview.wrestlerCount} wrestler{preview.wrestlerCount === 1 ? '' : 's'} · {preview.count} famil
               {preview.count === 1 ? 'y' : 'ies'}
+              {wantsEmail && preview.contactCount > 0 &&
+                ` · ${preview.contactCount} second parent${preview.contactCount === 1 ? '' : 's'} copied`}
               {wantsSms && ` · ${preview.smsCount} get the text`}
             </p>
           )}
@@ -521,6 +535,12 @@ export function ComposeForm({
                 <p className={cn('text-sm', r.email ? 'text-clw-gray' : 'text-red-400')}>
                   {r.parent} · {r.email ?? 'No email: will not receive this'}
                 </p>
+                {wantsEmail &&
+                  r.alsoTo.map((contact) => (
+                    <p key={contact} className="break-words text-sm text-clw-gray">
+                      Also: {contact}
+                    </p>
+                  ))}
               </li>
             ))}
           </ul>

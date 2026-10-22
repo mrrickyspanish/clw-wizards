@@ -407,6 +407,24 @@ export type PaymentNoticeRecipient = {
 // Who gets an email when a family uploads a USA card or birth certificate.
 export type UploadNoticeRecipient = PaymentNoticeRecipient
 
+// Someone else who gets a family's club emails, such as a second parent with
+// no login: from the registration form (source 'form'), added by the family on
+// Profile, or by an admin. Removed ones keep their row (removed_at) so a later
+// form does not add them back.
+export type FamilyContact = {
+  id: string
+  owner_id: string
+  name: string | null
+  email: string | null
+  phone: string | null
+  // null: every wrestler on the family. A list: only messages about those.
+  athlete_ids: string[] | null
+  source: 'family' | 'form' | 'admin'
+  removed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
 // An upload the club rejected. The athlete_documents row is removed on reject,
 // so the wrestler reads as missing everywhere; this keeps what and why.
 export type DocumentRejection = {
@@ -659,6 +677,12 @@ export type Database = {
         Row: PracticeCancellation
         Insert: Partial<PracticeCancellation>
         Update: Partial<PracticeCancellation>
+        Relationships: []
+      }
+      family_contacts: {
+        Row: FamilyContact
+        Insert: Partial<FamilyContact>
+        Update: Partial<FamilyContact>
         Relationships: []
       }
       family_guardians: {

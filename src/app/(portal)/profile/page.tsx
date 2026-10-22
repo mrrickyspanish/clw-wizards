@@ -4,6 +4,9 @@ import { FolderOpen, Users, ChevronRight, CalendarDays } from 'lucide-react'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { ContactPrefsForm } from '../dashboard/ContactPrefsForm'
 import { SignOutButton } from '@/components/layout/SignOutButton'
+import { FamilyContactsManager } from '@/components/family/FamilyContactsManager'
+import { contactScopeLabel, listFamilyContacts, MAX_FAMILY_CONTACTS } from '@/lib/family-contacts'
+import { removeMyFamilyContact, saveMyFamilyContact } from './actions'
 
 function initials(name: string | null): string {
   if (!name) return 'CLW'
@@ -31,6 +34,12 @@ export default async function ProfilePage() {
         .eq('id', auth.user.id)
         .single()
     : { data: null }
+  const [contacts, { data: wrestlers }] = auth.user
+    ? await Promise.all([
+        listFamilyContacts(supabase, auth.user.id),
+        supabase.from('athletes').select('id, first_name').eq('parent_id', auth.user.id).eq('active', true),
+      ])
+    : [[], { data: [] }]
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
@@ -74,6 +83,26 @@ export default async function ProfilePage() {
         <h2 className="mb-4 text-sm font-medium text-clw-gray">Contact & SMS preferences</h2>
         <ContactPrefsForm initialPhone={profile?.phone ?? null} initialSmsOptIn={profile?.sms_opt_in ?? false} />
       </div>
+
+      {/* Second parent and others who get the club's emails (Tyler, Oct 22). */}
+      {auth.user && (
+        <div className="rounded-2xl border border-clw-gold/10 bg-clw-black-3 p-5">
+          <h2 className="mb-2 font-display text-xl text-clw-white">Also send club emails to</h2>
+          <FamilyContactsManager
+            audience="family"
+            max={MAX_FAMILY_CONTACTS}
+            save={saveMyFamilyContact}
+            remove={removeMyFamilyContact}
+            contacts={contacts.map((c) => ({
+              id: c.id,
+              name: c.name,
+              email: c.email,
+              phone: c.phone,
+              forWrestlers: contactScopeLabel(c.athlete_ids, wrestlers ?? []),
+            }))}
+          />
+        </div>
+      )}
 
       <SignOutButton />
     </div>

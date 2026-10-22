@@ -10,6 +10,7 @@ import { SMS_CONSENT_TEXT } from '@/lib/twilio/opt-in'
 import { ORG } from '@/config/org.config'
 import { normalizeUsPhone } from '@/lib/phone'
 import { duesToRemoveWithWrestler, hasMoney } from '@/lib/wrestler-removal'
+import { removeFamilyContact, saveFamilyContact, type FamilyContactInput } from '@/lib/family-contacts'
 
 export type ActionResult = { ok: true } | { ok: false; error: string }
 
@@ -547,4 +548,24 @@ export async function setFamilyActive(
   revalidatePath(`/admin/families/${familyId ?? parentId}`)
   if (familyId && familyId !== parentId) revalidatePath(`/admin/families/${parentId}`)
   return { ok: true }
+}
+
+// Family contacts (second parents and others who get the family's emails), on
+// the family's page. Same rules as the parent's Profile page.
+export async function saveFamilyContactAsAdmin(ownerId: string, values: FamilyContactInput): Promise<ActionResult> {
+  const auth = await assertAdmin()
+  if (!auth.ok) return auth
+  if (!z.string().uuid().safeParse(ownerId).success) return { ok: false, error: 'Invalid family' }
+  const result = await saveFamilyContact(createAdminSupabase(), ownerId, values, 'admin')
+  if (result.ok) revalidatePath(`/admin/families/${ownerId}`)
+  return result
+}
+
+export async function removeFamilyContactAsAdmin(ownerId: string, id: string): Promise<ActionResult> {
+  const auth = await assertAdmin()
+  if (!auth.ok) return auth
+  if (!z.string().uuid().safeParse(ownerId).success) return { ok: false, error: 'Invalid family' }
+  const result = await removeFamilyContact(createAdminSupabase(), ownerId, id)
+  if (result.ok) revalidatePath(`/admin/families/${ownerId}`)
+  return result
 }

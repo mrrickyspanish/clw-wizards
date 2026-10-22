@@ -95,6 +95,16 @@ const tables = {
   // Tina's birth certificate was rejected; she has no newer upload, so Documents asks for a new one.
   document_rejections: [{ id: id('r', 2), athlete_id: id('k', 4), parent_id: PARENT2, doc_type: 'usa_wrestling_card', reason: 'This card is expired. Please upload the current season card.', file_name: 'old.png', file_url: 'x', uploaded_at: T, rejected_by: ADMIN, rejected_at: '2026-10-18T16:00:00Z' }, { id: id('r', 1), athlete_id: id('k', 2), parent_id: PARENT, doc_type: 'birth_certificate', reason: 'Hard to read. Please upload a clearer photo.', file_name: 'blurry.jpg', file_url: 'x', uploaded_at: T, rejected_by: ADMIN, rejected_at: '2026-10-18T15:00:00Z' }],
   upload_notice_recipients: [{ id: id('u', 1), name: 'Terry Coach', email: 'terry@example.com', created_at: T }],
+  // Second parents and others who get a family's emails: a long address, one
+  // listed for one wrestler only, and a family at the limit of three.
+  family_contacts: [
+    { ...base, id: id('f', 1), owner_id: PARENT, name: 'Jordan Second-Parent', email: 'jordan.second.parent.with.a.long.address@example.com', phone: '8155550100', athlete_ids: null, source: 'form', removed_at: null },
+    { ...base, id: id('f', 2), owner_id: PARENT, name: 'Grandma Parent', email: 'grandma@example.com', phone: null, athlete_ids: [id('k', 1)], source: 'form', removed_at: null },
+    { ...base, id: id('f', 3), owner_id: PARENT3, name: 'Rae Roe', email: 'rae@example.com', phone: null, athlete_ids: null, source: 'family', removed_at: null },
+    { ...base, id: id('f', 4), owner_id: PARENT3, name: 'Grandpa Roe', email: null, phone: '8155550111', athlete_ids: null, source: 'admin', removed_at: null },
+    { ...base, id: id('f', 5), owner_id: PARENT3, name: 'Aunt Vandenberghe-Fontaine', email: 'aunt.vandenberghe.fontaine@example.com', phone: null, athlete_ids: [id('k', 6)], source: 'form', removed_at: null },
+    { ...base, id: id('f', 6), owner_id: PARENT3, name: 'Removed Person', email: 'removed@example.com', phone: null, athlete_ids: null, source: 'form', removed_at: T },
+  ],
   family_guardians: [{ id: id('g', 1), owner_id: PARENT, guardian_id: id('b', 4), athlete_ids: [id('k', 1)], locked: true, created_at: T }], family_invites: [], coaches: [], admin_invites: [], sponsors: [], sponsor_tiers: [], donations: [],
   faq_items: [], page_content: [], parent_auth_incidents: [],
 }

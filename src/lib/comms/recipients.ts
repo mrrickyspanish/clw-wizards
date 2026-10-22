@@ -1,5 +1,5 @@
 import { createAdminSupabase } from '@/lib/supabase/admin'
-import type { Profile } from '@/types/database'
+import type { FamilyContact, Profile } from '@/types/database'
 
 type AdminClient = ReturnType<typeof createAdminSupabase>
 type WrestlerRow = { id: string; parent_id: string; first_name: string; last_name: string }
@@ -22,6 +22,11 @@ export type CommTarget =
  */
 export async function resolveRecipients(target: CommTarget): Promise<Profile[]> {
   const supabase = createAdminSupabase()
+  const owners = await accountOwners(supabase, target)
+  return withCoParents(supabase, target, owners)
+}
+
+async function accountOwners(supabase: AdminClient, target: CommTarget): Promise<Profile[]> {
 
   if (target.type === 'all') {
     const { data } = await supabase.from('profiles').select('*').eq('role', 'parent').eq('is_active', true)
@@ -152,17 +157,59 @@ export type RecipientWrestler = { first_name: string; last_name: string }
  * recipient preview can name the kids rather than the parents: the wrestler
  * missing the document, in the practice group, entered in the tournament, or
  * with dues outstanding. For "all families" and hand-picked families it is
- * every active wrestler on the account. Used for display only; who receives the
+ * every active wrestler on the account. A co-parent with their own login gets
+ * the wrestlers they are linked to. Used for display only; who receives the
  * email is still decided by resolveRecipients.
  */
 export async function recipientWrestlers(
   target: CommTarget,
   parentIds: string[]
 ): Promise<Map<string, RecipientWrestler[]>> {
-  const byParent = new Map<string, RecipientWrestler[]>()
-  if (!parentIds.length) return byParent
+  const rows = await recipientWrestlerRows(target, parentIds)
+  return new Map(
+    [...rows].map(([id, kids]) => [id, kids.map((k) => ({ first_name: k.first_name, last_name: k.last_name }))])
+  )
+}
+
+/** recipientWrestlers with each wrestler's id, for counting and matching. */
+export async function recipientWrestlerRows(target: CommTarget, profileIds: string[]): Promise<Map<string, WrestlerRow[]>> {
+  const byProfile = new Map<string, WrestlerRow[]>()
+  if (!profileIds.length) return byProfile
   const supabase = createAdminSupabase()
 
+  const { data: linkRows } = await supabase
+    .from('family_guardians')
+    .select('owner_id, guardian_id, athlete_ids')
+    .in('guardian_id', profileIds)
+  const links = (linkRows ?? []) as CoParentLinkRow[]
+  const ownerIds = [...new Set([...profileIds, ...links.map((l) => l.owner_id)])]
+  const wrestlers = await wrestlersOnTarget(supabase, target, ownerIds)
+
+  const add = (profileId: string, w: WrestlerRow) => {
+    const list = byProfile.get(profileId) ?? []
+    if (!list.some((k) => k.id === w.id)) byProfile.set(profileId, [...list, w])
+  }
+  const wanted = new Set(profileIds)
+  for (const w of wrestlers) {
+    if (wanted.has(w.parent_id)) add(w.parent_id, w)
+  }
+  for (const link of links) {
+    for (const w of wrestlers) {
+      if (w.parent_id === link.owner_id && coversWrestler(link, w.id)) add(link.guardian_id, w)
+    }
+  }
+  return byProfile
+}
+
+type CoParentLinkRow = { owner_id: string; guardian_id: string; athlete_ids: string[] | null }
+
+function coversWrestler(link: { athlete_ids: string[] | null }, athleteId: string): boolean {
+  return link.athlete_ids === null || link.athlete_ids.includes(athleteId)
+}
+
+// Active wrestlers on these accounts that put the family on the send's list.
+async function wrestlersOnTarget(supabase: AdminClient, target: CommTarget, parentIds: string[]): Promise<WrestlerRow[]> {
+  if (!parentIds.length) return []
   const activeWrestlers = async (filter?: { ids?: string[]; groups?: string[] }) => {
     let query = supabase.from('athletes').select('id, parent_id, first_name, last_name').eq('active', true).in('parent_id', parentIds)
     if (filter?.ids) query = query.in('id', filter.ids.length ? filter.ids : ['00000000-0000-0000-0000-000000000000'])
@@ -171,33 +218,95 @@ export async function recipientWrestlers(
     return (data ?? []) as WrestlerRow[]
   }
 
-  let wrestlers: WrestlerRow[]
   if (target.type === 'missing_document') {
-    wrestlers = await athletesMissingDocuments(supabase, target.documents)
-  } else if (target.type === 'practice_groups') {
-    wrestlers = await activeWrestlers({ groups: target.practiceGroups })
-  } else if (target.type === 'tournament_registrants') {
+    const wanted = new Set(parentIds)
+    return (await athletesMissingDocuments(supabase, target.documents)).filter((w) => wanted.has(w.parent_id))
+  }
+  if (target.type === 'practice_groups') return activeWrestlers({ groups: target.practiceGroups })
+  if (target.type === 'tournament_registrants') {
     const { data } = await supabase
       .from('tournament_registrations')
       .select('athlete_id')
       .eq('tournament_id', target.tournamentId)
       .in('status', ['registered', 'confirmed'])
-    wrestlers = await activeWrestlers({ ids: (data ?? []).map((r) => r.athlete_id) })
-  } else if (target.type === 'outstanding_dues') {
+    return activeWrestlers({ ids: (data ?? []).map((r) => r.athlete_id) })
+  }
+  if (target.type === 'outstanding_dues') {
     const { data } = await supabase
       .from('dues_payments')
       .select('athlete_id')
       .in('status', ['pending', 'partial', 'overdue'])
       .in('parent_id', parentIds)
-    wrestlers = await activeWrestlers({ ids: (data ?? []).map((d) => d.athlete_id).filter((id): id is string => Boolean(id)) })
-  } else {
-    wrestlers = await activeWrestlers()
+    return activeWrestlers({ ids: (data ?? []).map((d) => d.athlete_id).filter((id): id is string => Boolean(id)) })
   }
+  return activeWrestlers()
+}
 
-  const wanted = new Set(parentIds)
-  for (const w of wrestlers) {
-    if (!wanted.has(w.parent_id)) continue
-    byParent.set(w.parent_id, [...(byParent.get(w.parent_id) ?? []), { first_name: w.first_name, last_name: w.last_name }])
+/**
+ * Co-parents with their own login get what the family gets. "All families"
+ * already includes them (they are parent accounts); every other send is
+ * resolved through the owner's wrestlers, so without this a co-parent like
+ * Brenda Bishop missed practice group, dues and missing-document sends. A link
+ * limited to some wrestlers counts only when one of those put the family on
+ * the list. Hand-picked families bring their co-parents along.
+ */
+async function withCoParents(supabase: AdminClient, target: CommTarget, owners: Profile[]): Promise<Profile[]> {
+  if (target.type === 'all' || !owners.length) return owners
+  const { data: linkRows } = await supabase
+    .from('family_guardians')
+    .select('owner_id, guardian_id, athlete_ids')
+    .in('owner_id', owners.map((o) => o.id))
+  const links = (linkRows ?? []) as CoParentLinkRow[]
+  if (!links.length) return owners
+
+  let keep = links
+  if (target.type !== 'custom') {
+    const wrestlers = await wrestlersOnTarget(supabase, target, [...new Set(links.map((l) => l.owner_id))])
+    keep = links.filter(
+      (l) => l.athlete_ids === null || wrestlers.some((w) => w.parent_id === l.owner_id && coversWrestler(l, w.id))
+    )
   }
-  return byParent
+  const have = new Set(owners.map((o) => o.id))
+  const guardianIds = [...new Set(keep.map((l) => l.guardian_id))].filter((id) => !have.has(id))
+  if (!guardianIds.length) return owners
+  const { data } = await supabase.from('profiles').select('*').eq('is_active', true).in('id', guardianIds)
+  return [...owners, ...((data ?? []) as Profile[])]
+}
+
+export type ContactRecipient = { ownerId: string; name: string | null; email: string }
+
+/**
+ * Family contacts (Profile -> "Also send club emails to") who get this send:
+ * the second parent from the registration form, or anyone the family or an
+ * admin added. A contact listed for some wrestlers only gets sends about those
+ * wrestlers. Each address gets one copy: one already on the send as an account,
+ * or listed by two families, is skipped. Email only; nothing texts a contact.
+ */
+export async function familyContactRecipients(target: CommTarget, profiles: Profile[]): Promise<ContactRecipient[]> {
+  if (!profiles.length) return []
+  const supabase = createAdminSupabase()
+  const { data } = await supabase
+    .from('family_contacts')
+    .select('owner_id, name, email, athlete_ids')
+    .in('owner_id', profiles.map((p) => p.id))
+    .is('removed_at', null)
+    .not('email', 'is', null)
+  const contacts = (data ?? []) as Pick<FamilyContact, 'owner_id' | 'name' | 'email' | 'athlete_ids'>[]
+  if (!contacts.length) return []
+
+  const scoped = contacts.some((c) => c.athlete_ids !== null)
+  const wrestlers = scoped ? await recipientWrestlerRows(target, profiles.map((p) => p.id)) : new Map<string, WrestlerRow[]>()
+  const taken = new Set(profiles.flatMap((p) => (p.email ? [p.email.trim().toLowerCase()] : [])))
+  const out: ContactRecipient[] = []
+  for (const c of contacts) {
+    const email = c.email?.trim().toLowerCase()
+    if (!email || taken.has(email)) continue
+    if (c.athlete_ids !== null) {
+      const ids = c.athlete_ids
+      if (!(wrestlers.get(c.owner_id) ?? []).some((w) => ids.includes(w.id))) continue
+    }
+    taken.add(email)
+    out.push({ ownerId: c.owner_id, name: c.name, email })
+  }
+  return out
 }

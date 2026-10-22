@@ -139,6 +139,7 @@ At the start of each request, mention open items that have been waiting a while.
 | "I paid" | Look at `dues_payments` for the wrestler. No `stripe_checkout_session_id` means no online payment was ever started. Reply asking whether it was paid offline; mark paid only after a yes. |
 | Co-parent access | Parents who share kids but not a household: new account + locked `family_guardians` link limited to those kids. [playbooks.md#co-parent](playbooks.md#co-parent) |
 | Name / contact fix | Conditional update; mention any conflict found between two forms and ask which is right. |
+| Second parent / extra email | `family_contacts`: Admin → Families → the family → "Also gets this family's emails" (parents: Profile). Pre-filled from each registration form's guardians by a trigger, including form imports. Gets Communications emails only, never texts. A removed contact stays removed (`removed_at`). |
 | Delete | If Tony said delete, delete (Admin → Families → Delete permanently records it in the Removed tab). |
 | USA card questions | Missing-card list counts an uploaded card OR a card number on file. Registrations shows the bound card, else the newest card since the season opened. |
 | Failed emails | `communication_log` (status, subject, sent_at). Check whether a later send covered the same families before re-sending. |

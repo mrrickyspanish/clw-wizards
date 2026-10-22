@@ -4,15 +4,17 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
 import { createServerSupabase } from '@/lib/supabase/server'
-import { recipientWrestlers, resolveRecipients, type CommTarget } from '@/lib/comms/recipients'
+import { familyContactRecipients, recipientWrestlerRows, resolveRecipients, type CommTarget } from '@/lib/comms/recipients'
 import { toE164 } from '@/lib/phone'
 
-// One family on a send: the wrestlers it is about, then the parent the email goes to.
-export type PreviewRecipient = { wrestlers: string[]; parent: string; email: string | null }
+// One family on a send: the wrestlers it is about, the parent the email goes
+// to, and anyone else on the family's contacts who gets a copy (a second parent).
+export type PreviewRecipient = { wrestlers: string[]; parent: string; email: string | null; alsoTo: string[] }
 
 export type PreviewResult =
   // smsCount: families who would get a text -- opted in, with a dialable mobile number.
-  | { ok: true; count: number; wrestlerCount: number; smsCount: number; recipients: PreviewRecipient[] }
+  // contactCount: extra emails to second parents and other family contacts.
+  | { ok: true; count: number; wrestlerCount: number; smsCount: number; contactCount: number; recipients: PreviewRecipient[] }
   | { ok: false; error: string }
 
 // Lets an admin see how many parents a target resolves to before they hit send.
@@ -36,22 +38,35 @@ export async function previewRecipients(target: CommTarget): Promise<PreviewResu
   // check exactly who a send reaches before it goes out. Families with no
   // matching wrestler sort to the end by parent name.
   const profiles = await resolveRecipients(target)
-  const wrestlersByParent = await recipientWrestlers(target, profiles.map((p) => p.id))
+  const [wrestlersByParent, contacts] = await Promise.all([
+    recipientWrestlerRows(target, profiles.map((p) => p.id)),
+    familyContactRecipients(target, profiles),
+  ])
+  const contactsByOwner = new Map<string, string[]>()
+  for (const c of contacts) {
+    contactsByOwner.set(c.ownerId, [...(contactsByOwner.get(c.ownerId) ?? []), c.name ? `${c.name} · ${c.email}` : c.email])
+  }
   const rows = profiles.map((p) => {
     const kids = [...(wrestlersByParent.get(p.id) ?? [])].sort(
       (a, b) => a.last_name.localeCompare(b.last_name) || a.first_name.localeCompare(b.first_name)
     )
     const parent = p.full_name || p.email || 'Unnamed parent'
     return {
-      recipient: { wrestlers: kids.map((k) => `${k.first_name} ${k.last_name}`), parent, email: p.email },
+      recipient: {
+        wrestlers: kids.map((k) => `${k.first_name} ${k.last_name}`),
+        parent,
+        email: p.email,
+        alsoTo: contactsByOwner.get(p.id) ?? [],
+      },
       sortKey: kids.length ? `0 ${kids[0].last_name} ${kids[0].first_name}` : `1 ${parent}`,
     }
   })
   rows.sort((a, b) => a.sortKey.localeCompare(b.sortKey, 'en', { sensitivity: 'base' }))
   const recipients = rows.map((row) => row.recipient)
-  const wrestlerCount = recipients.reduce((sum, r) => sum + r.wrestlers.length, 0)
+  // A co-parent's row lists the same wrestlers as the other parent's, so count each wrestler once.
+  const wrestlerCount = new Set([...wrestlersByParent.values()].flat().map((w) => w.id)).size
   const smsCount = profiles.filter((p) => p.sms_opt_in && toE164(p.phone)).length
-  return { ok: true, count: recipients.length, wrestlerCount, smsCount, recipients }
+  return { ok: true, count: recipients.length, wrestlerCount, smsCount, contactCount: contacts.length, recipients }
 }
 
 export type BoardActionResult = { ok: true } | { ok: false; error: string }

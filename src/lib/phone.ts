@@ -24,3 +24,12 @@ export function toE164(raw: string | null | undefined): string | null {
   const normalized = normalizeUsPhone(raw)
   return normalized && /^\d{10}$/.test(normalized) ? `+1${normalized}` : null
 }
+
+/** For display: (815) 555-1234 for a US number, otherwise as stored. */
+export function formatUsPhone(raw: string | null | undefined): string {
+  const normalized = normalizeUsPhone(raw)
+  if (!normalized) return ''
+  return /^\d{10}$/.test(normalized)
+    ? `(${normalized.slice(0, 3)}) ${normalized.slice(3, 6)}-${normalized.slice(6)}`
+    : normalized
+}

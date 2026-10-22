@@ -31,6 +31,9 @@ import { DeleteFamilyButton } from '../DeleteFamilyButton'
 import { DeleteWrestlerButton } from '../DeleteWrestlerButton'
 import { FamilyActiveToggle } from '../FamilyActiveToggle'
 import { ParentDialog } from '../ParentDialog'
+import { removeFamilyContactAsAdmin, saveFamilyContactAsAdmin } from '../actions'
+import { FamilyContactsManager } from '@/components/family/FamilyContactsManager'
+import { contactScopeLabel, listFamilyContacts, MAX_FAMILY_CONTACTS } from '@/lib/family-contacts'
 import { COMM_TYPE_LABELS } from '@/lib/comms/labels'
 
 // How many past messages to show on a family's profile. Older history is
@@ -223,6 +226,13 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
     ...guardians.map((g): [string, string] => [g.id, g.full_name || g.email || 'Co-guardian']),
   ])
 
+  const familyContacts = await listFamilyContacts(supabase, id)
+  const activeWrestlers = athletes.filter((a) => a.active)
+  // A copy sent to a family contact is logged under the family's account; name the contact.
+  const contactNameByEmail = new Map(
+    familyContacts.flatMap((c) => (c.email ? [[c.email.toLowerCase(), c.name || c.email] as [string, string]] : []))
+  )
+
   const { data: messageRows } = await supabase
     .from('communication_log')
     .select('*')
@@ -263,6 +273,29 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
             <p className="text-clw-gray/70">Account</p>
             <p className="text-clw-white">{parent.is_active ? 'Active' : 'Inactive'}</p>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mb-6 border-clw-gold/10 bg-clw-black">
+        <CardHeader>
+          <CardTitle className="text-sm font-medium text-clw-gray">
+            Also gets this family&apos;s emails <span className="text-clw-gray/60">({familyContacts.length})</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <FamilyContactsManager
+            audience="admin"
+            max={MAX_FAMILY_CONTACTS}
+            save={saveFamilyContactAsAdmin.bind(null, id)}
+            remove={removeFamilyContactAsAdmin.bind(null, id)}
+            contacts={familyContacts.map((c) => ({
+              id: c.id,
+              name: c.name,
+              email: c.email,
+              phone: c.phone,
+              forWrestlers: contactScopeLabel(c.athlete_ids, activeWrestlers),
+            }))}
+          />
         </CardContent>
       </Card>
 
@@ -536,7 +569,11 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
                     <TableRow key={m.id} className="border-clw-gold/10">
                       <TableCell className="text-clw-gray">{formatDateTime(m.sent_at)}</TableCell>
                       <TableCell className="text-clw-white">
-                        {(m.recipient_id && nameById.get(m.recipient_id)) || m.recipient_email || m.recipient_phone || '—'}
+                        {(m.recipient_email && contactNameByEmail.get(m.recipient_email.toLowerCase())) ||
+                          (m.recipient_id && nameById.get(m.recipient_id)) ||
+                          m.recipient_email ||
+                          m.recipient_phone ||
+                          '—'}
                       </TableCell>
                       <TableCell className="text-clw-white">
                         {m.subject || COMM_TYPE_LABELS[m.comm_type]}

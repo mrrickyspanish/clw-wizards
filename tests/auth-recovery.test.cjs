@@ -1272,8 +1272,8 @@ test('a tournament reminder names the tournament, and a failed copy is counted, 
 
 // The real job route: the board is copied after the families, and trouble
 // copying the board never turns a delivered send into a failed job.
-function blastJobHarness({ boardThrows = false } = {}) {
-  const captured = { board: null, familySends: [] }
+function blastJobHarness({ boardThrows = false, contacts = [], channel = 'email' } = {}) {
+  const captured = { board: null, familySends: [], sendArgs: [], sms: [] }
   const route = load('src/app/api/comms/blast-job/route.ts', {
     'next/server': require('next/server'),
     '@/lib/qstash': { verifyQstashSignature: async () => true },
@@ -1281,9 +1281,9 @@ function blastJobHarness({ boardThrows = false } = {}) {
       { id: 'p1', email: 'one@example.org', phone: null, sms_opt_in: false },
       { id: 'p2', email: 'two@example.org', phone: null, sms_opt_in: false },
       { id: 'p3', email: null, phone: null, sms_opt_in: false },
-    ] },
-    '@/lib/comms/send-email': { sendCommEmail: async (args) => { captured.familySends.push(args.to); return { ok: args.to !== 'two@example.org' } } },
-    '@/lib/twilio/send-sms': { sendSms: async () => ({ ok: true }) },
+    ], familyContactRecipients: async () => contacts },
+    '@/lib/comms/send-email': { sendCommEmail: async (args) => { captured.familySends.push(args.to); captured.sendArgs.push(args); return { ok: args.to !== 'two@example.org' } } },
+    '@/lib/twilio/send-sms': { sendSms: async (args) => { captured.sms.push(args.to); return { ok: true } } },
     '@/lib/twilio/format': load('src/lib/twilio/format.ts', {}),
     '@/lib/comms/board-copy': { sendBoardCopies: async (args) => {
       captured.board = args
@@ -1293,7 +1293,7 @@ function blastJobHarness({ boardThrows = false } = {}) {
   })
   const post = () => route.POST(new Request('https://example.org/api/comms/blast-job', {
     method: 'POST',
-    body: JSON.stringify({ target: { type: 'all' }, channel: 'email', commType: 'general_blast', subject: 'Hello', message: '<p>Hi</p>' }),
+    body: JSON.stringify({ target: { type: 'all' }, channel, commType: 'general_blast', subject: 'Hello', message: '<p>Hi</p>', smsMessage: 'Hi' }),
   }))
   return { post, captured }
 }
@@ -1969,6 +1969,7 @@ function wrestlerDeleteHarness({ dues, siblings = 2, scope = 'full' }) {
     '@/config/org.config': { ORG: { name: 'Club' } },
     '@/lib/age-division': { AGE_DIVISIONS: ['tot', 'bantam', 'intermediate', 'novice', 'senior'] },
     '@/lib/wrestler-removal': wrestlerRemoval,
+    '@/lib/family-contacts': { saveFamilyContact: async () => ({ ok: true }), removeFamilyContact: async () => ({ ok: true }) },
   })
   const writes = () => calls.filter((c) => c.op !== 'select')
   return { actions, calls, writes }
@@ -2493,4 +2494,150 @@ test('admin pages show the latest rejection per wrestler and document, with why'
   assert.equal(byKey.size, 1)
   assert.equal(lib.rejectionLine(byKey.get('kid:usa_wrestling_card')), 'Rejected Oct 18: This card is expired. Please upload the current season card. Waiting on a new upload.')
   assert.equal((await lib.latestRejections(db.client, [])).size, 0)
+})
+
+// Family contacts (Tyler, Oct 22): second parents get Communications emails,
+// and co-parents with their own login get the sends their wrestlers are on.
+function tableDb(tables) {
+  const writes = []
+  const from = (table) => {
+    const filters = []
+    let op = 'select'
+    let values = null
+    const rows = () => (tables[table] ?? []).filter((r) => filters.every(([o, k, v]) =>
+      o === 'eq' ? r[k] === v : o === 'in' ? v.includes(r[k]) : o === 'is' ? (r[k] ?? null) === v : o === 'notnull' ? r[k] != null : true))
+    const run = () => {
+      if (op === 'insert') {
+        writes.push({ table, op, values })
+        ;(tables[table] ??= []).push({ ...values })
+        return { data: null, error: null }
+      }
+      if (op === 'update') {
+        const hit = rows()
+        hit.forEach((r) => Object.assign(r, values))
+        writes.push({ table, op, values, count: hit.length })
+        return { data: null, error: null }
+      }
+      return { data: rows(), error: null }
+    }
+    const one = async () => { const r = run(); return { data: Array.isArray(r.data) ? r.data[0] ?? null : r.data, error: r.error } }
+    const b = {
+      select: () => b, insert: (v) => { op = 'insert'; values = v; return b }, update: (v) => { op = 'update'; values = v; return b },
+      eq: (k, v) => { filters.push(['eq', k, v]); return b }, in: (k, v) => { filters.push(['in', k, v]); return b },
+      is: (k, v) => { filters.push(['is', k, v]); return b }, not: (k) => { filters.push(['notnull', k]); return b },
+      order: () => b, limit: () => b, maybeSingle: one, single: one,
+      then: (resolve, reject) => Promise.resolve(run()).then(resolve, reject),
+    }
+    return b
+  }
+  return { client: { from }, writes, tables }
+}
+
+function familyTables() {
+  return {
+    profiles: [
+      { id: 'o1', role: 'parent', is_active: true, email: 'owner@example.org' },
+      { id: 'o2', role: 'parent', is_active: true, email: 'other@example.org' },
+      { id: 'g1', role: 'parent', is_active: true, email: 'coparent@example.org' },
+      { id: 'g2', role: 'parent', is_active: true, email: 'stepparent@example.org' },
+    ],
+    athletes: [
+      { id: 'k1', parent_id: 'o1', first_name: 'Ava', last_name: 'Ray', active: true, practice_group: 'Red' },
+      { id: 'k2', parent_id: 'o1', first_name: 'Max', last_name: 'Ray', active: true, practice_group: 'Blue' },
+      { id: 'k3', parent_id: 'o2', first_name: 'Sam', last_name: 'Lee', active: true, practice_group: 'Blue' },
+    ],
+    family_guardians: [
+      { owner_id: 'o1', guardian_id: 'g1', athlete_ids: ['k1'] },
+      { owner_id: 'o1', guardian_id: 'g2', athlete_ids: ['k2'] },
+    ],
+    family_contacts: [
+      { owner_id: 'o1', name: 'Second Parent', email: 'second@example.org', athlete_ids: null, removed_at: null },
+      { owner_id: 'o1', name: 'Max Only', email: 'maxonly@example.org', athlete_ids: ['k2'], removed_at: null },
+      { owner_id: 'o1', name: 'Owner Again', email: 'Owner@Example.org', athlete_ids: null, removed_at: null },
+      { owner_id: 'o1', name: 'Removed', email: 'gone@example.org', athlete_ids: null, removed_at: '2026-10-20T00:00:00Z' },
+      { owner_id: 'o2', name: 'Shared', email: 'second@example.org', athlete_ids: null, removed_at: null },
+      { owner_id: 'o2', name: 'Phone Only', email: null, phone: '8155551234', athlete_ids: null, removed_at: null },
+    ],
+  }
+}
+const recipientsLib = (db) => load('src/lib/comms/recipients.ts', { '@/lib/supabase/admin': { createAdminSupabase: () => db.client } })
+
+test('a co-parent with a login gets a practice group send when their wrestler is in the group, not for a sibling', async () => {
+  const lib = recipientsLib(tableDb(familyTables()))
+  const red = await lib.resolveRecipients({ type: 'practice_groups', practiceGroups: ['Red'] })
+  assert.deepEqual(plain(red.map((p) => p.id)), ['o1', 'g1'])
+  const blue = await lib.resolveRecipients({ type: 'practice_groups', practiceGroups: ['Blue'] })
+  assert.deepEqual(plain(blue.map((p) => p.id).sort()), ['g2', 'o1', 'o2'])
+  // The preview lists the co-parent with the wrestler they cover.
+  const kids = await lib.recipientWrestlers({ type: 'practice_groups', practiceGroups: ['Red'] }, ['o1', 'g1'])
+  assert.deepEqual(plain(kids.get('g1')), [{ first_name: 'Ava', last_name: 'Ray' }])
+})
+
+test('second parents get one copy each, only about their wrestlers, never a removed one or the account email again', async () => {
+  const lib = recipientsLib(tableDb(familyTables()))
+  const red = await lib.resolveRecipients({ type: 'practice_groups', practiceGroups: ['Red'] })
+  const redContacts = await lib.familyContactRecipients({ type: 'practice_groups', practiceGroups: ['Red'] }, red)
+  assert.deepEqual(plain(redContacts), [{ ownerId: 'o1', name: 'Second Parent', email: 'second@example.org' }])
+
+  const all = await lib.resolveRecipients({ type: 'all' })
+  const allContacts = await lib.familyContactRecipients({ type: 'all' }, all)
+  // second@ is on two families but gets one email; the phone-only contact gets none.
+  assert.deepEqual(plain(allContacts.map((c) => c.email)), ['second@example.org', 'maxonly@example.org'])
+})
+
+test('the send emails second parents under the family account and never texts them', async () => {
+  const contacts = [{ ownerId: 'p1', name: 'Second', email: 'second@example.org' }]
+  const h = blastJobHarness({ contacts })
+  const body = await (await h.post()).json()
+  assert.deepEqual(plain(h.captured.familySends), ['one@example.org', 'two@example.org', 'second@example.org'])
+  assert.equal(h.captured.sendArgs[2].profileId, 'p1')
+  assert.equal(body.emailsSent, 2)
+  assert.equal(body.contactEmails, 1)
+  assert.ok(h.captured.board.familyEmails.includes('second@example.org'))
+
+  const textOnly = blastJobHarness({ contacts, channel: 'sms' })
+  await textOnly.post()
+  assert.deepEqual(plain(textOnly.captured.familySends), [])
+  assert.ok(!textOnly.captured.sms.includes('second@example.org'))
+})
+
+function contactsLib() {
+  return load('src/lib/family-contacts.ts', { '@/lib/phone': phoneLib })
+}
+const contactId = '44444444-4444-4444-a444-444444444444'
+
+test('adding a contact checks the details, keeps the account email off it and stops at three', async () => {
+  const lib = contactsLib()
+  const db = tableDb({ profiles: [{ id: 'o1', email: 'owner@example.org' }], family_contacts: [] })
+  assert.equal((await lib.saveFamilyContact(db.client, 'o1', { name: 'Dad', email: '', phone: '' }, 'family')).error, 'Enter an email or a cell number')
+  assert.equal((await lib.saveFamilyContact(db.client, 'o1', { name: 'Dad', phone: '555-12' }, 'family')).error, 'Enter a 10-digit cell number')
+  assert.match((await lib.saveFamilyContact(db.client, 'o1', { name: 'Me', email: 'OWNER@example.org' }, 'family')).error, /account email/)
+  assert.equal(db.writes.length, 0)
+
+  assert.equal((await lib.saveFamilyContact(db.client, 'o1', { name: ' Dad ', email: ' Dad@Example.org ', phone: '(815) 555-1234' }, 'family')).ok, true)
+  assert.deepEqual(plain(db.writes[0].values), { owner_id: 'o1', name: 'Dad', email: 'dad@example.org', phone: '8155551234', source: 'family' })
+
+  db.tables.family_contacts.push({ owner_id: 'o1', id: 'b', removed_at: null }, { owner_id: 'o1', id: 'c', removed_at: null })
+  const full = await lib.saveFamilyContact(db.client, 'o1', { name: 'Grandma', email: 'gma@example.org' }, 'admin')
+  assert.match(full.error, /Up to 3/)
+})
+
+test('removing a contact keeps the row marked removed, so a later form does not add it back', async () => {
+  const lib = contactsLib()
+  const db = tableDb({ family_contacts: [{ id: contactId, owner_id: 'o1', removed_at: null }] })
+  assert.equal((await lib.removeFamilyContact(db.client, 'someone-else', contactId)).ok, true)
+  assert.equal(db.tables.family_contacts[0].removed_at, null)
+  await lib.removeFamilyContact(db.client, 'o1', contactId)
+  assert.ok(db.tables.family_contacts[0].removed_at)
+  assert.equal(db.writes.filter((w) => w.op === 'delete').length, 0)
+})
+
+test('a contact for some wrestlers is labelled with their names', () => {
+  const lib = contactsLib()
+  const kids = [{ id: 'k1', first_name: 'Ava' }, { id: 'k2', first_name: 'Max' }, { id: 'k3', first_name: 'Zoe' }]
+  assert.equal(lib.contactScopeLabel(null, kids), null)
+  assert.equal(lib.contactScopeLabel(['k1', 'k2', 'k3'], kids), null)
+  assert.equal(lib.contactScopeLabel(['k2'], kids), 'Max')
+  assert.equal(lib.contactScopeLabel(['k1', 'k3'], kids), 'Ava and Zoe')
+  assert.equal(lib.contactScopeLabel(['k1'], [kids[0]]), null)
 })
