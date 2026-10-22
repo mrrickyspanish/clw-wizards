@@ -174,7 +174,7 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
 
   // The other side: families this account is a co-parent on. Their wrestlers
   // belong to the other parent's account, so without this a co-parent's own page
-  // read "0 athletes" (Brenda Bishop, co-parent on Robert Meyer's family).
+  // read "0 athletes".
   const { data: coParentLinkRows } = await supabase
     .from('family_guardians')
     .select('guardian_id, owner_id, athlete_ids, locked')

@@ -52,8 +52,8 @@ export type CoParentLink = { guardian_id: string; owner_id: string; athlete_ids:
  * The wrestlers each co-parent link covers: the ones it lists, or every
  * wrestler on the owner's family when it lists none (athlete_ids NULL). Admin
  * pages use this to show a co-parent's wrestlers under their own name too, since
- * the wrestlers belong to the owner's account (Brenda Bishop's boys are on Robert
- * Meyer's family, so her own page used to read "0 athletes").
+ * the wrestlers belong to the owner's account (a co-parent's own page used to
+ * read "0 athletes").
  */
 export function coveredWrestlers<A extends { id: string; parent_id: string }>(link: CoParentLink, athletes: A[]): A[] {
   return athletes.filter(

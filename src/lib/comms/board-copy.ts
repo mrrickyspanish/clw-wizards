@@ -49,6 +49,8 @@ type BoardCopyContent = {
   subject?: string | null
   message: string
   counts: SendCounts
+  // Of the emails, how many went to second parents and other family contacts.
+  contactEmails?: number
   sentAt: Date
 }
 
@@ -59,7 +61,10 @@ export function boardCopySubject(subject: string | null | undefined, channel: Bo
 /** The board's copy: a short "who got this" header, then the message as families saw it. */
 export function boardCopyHtml(c: BoardCopyContent): string {
   const lines = [`<strong>Board copy.</strong> Sent to: ${escapeHtml(c.audience)} (${c.totalRecipients} ${c.totalRecipients === 1 ? 'family' : 'families'}).`]
-  if (c.channel !== 'sms') lines.push(`Emails: ${c.counts.emailsSent} sent, ${c.counts.emailsFailed} failed.`)
+  if (c.channel !== 'sms') {
+    const extra = c.contactEmails ? ` Includes ${c.contactEmails} to second parents and other family contacts.` : ''
+    lines.push(`Emails: ${c.counts.emailsSent} sent, ${c.counts.emailsFailed} failed.${extra}`)
+  }
   if (c.channel !== 'email') lines.push(`Texts: ${c.counts.smsSent} sent, ${c.counts.smsFailed} failed.`)
   lines.push(
     c.sentAt.toLocaleString('en-US', { timeZone: 'America/Chicago', dateStyle: 'medium', timeStyle: 'short' }) + ' Central.'
@@ -100,6 +105,7 @@ export async function sendBoardCopies(params: {
   message: string
   totalRecipients: number
   counts: SendCounts
+  contactEmails?: number
   /** Addresses the family email actually went to. */
   familyEmails: string[]
   blastId: string
@@ -128,6 +134,7 @@ export async function sendBoardCopies(params: {
     subject: params.subject,
     message: params.message,
     counts: params.counts,
+    contactEmails: params.contactEmails,
     sentAt: new Date(),
   })
   const subject = boardCopySubject(params.subject, params.channel)

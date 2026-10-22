@@ -2248,17 +2248,17 @@ test('only an admin can download, upload or replace from admin', async () => {
 })
 
 // Co-parents: their wrestlers belong to the other parent's account, so admin
-// pages list them through the link (Brenda Bishop on Robert Meyer's family).
+// pages list them through the link (a co-parent on the other parent's family).
 test('a co-parent link covers only the wrestlers it lists, on the owner family', () => {
   const lib = load('src/lib/family.ts', {})
   const athletes = [
-    { id: 'conrad', parent_id: 'robert' },
-    { id: 'robert-jr', parent_id: 'robert' },
-    { id: 'half-sister', parent_id: 'robert' },
+    { id: 'kid-1', parent_id: 'owner' },
+    { id: 'kid-2', parent_id: 'owner' },
+    { id: 'half-sister', parent_id: 'owner' },
     { id: 'other-kid', parent_id: 'someone-else' },
   ]
-  const covered = lib.coveredWrestlers({ guardian_id: 'brenda', owner_id: 'robert', athlete_ids: ['conrad', 'robert-jr', 'other-kid'] }, athletes)
-  assert.deepEqual(covered.map((a) => a.id), ['conrad', 'robert-jr'])
+  const covered = lib.coveredWrestlers({ guardian_id: 'coparent', owner_id: 'owner', athlete_ids: ['kid-1', 'kid-2', 'other-kid'] }, athletes)
+  assert.deepEqual(covered.map((a) => a.id), ['kid-1', 'kid-2'])
 })
 
 test('a co-parent link with no list covers every wrestler on the owner family', () => {
@@ -2640,4 +2640,32 @@ test('a contact for some wrestlers is labelled with their names', () => {
   assert.equal(lib.contactScopeLabel(['k2'], kids), 'Max')
   assert.equal(lib.contactScopeLabel(['k1', 'k3'], kids), 'Ava and Zoe')
   assert.equal(lib.contactScopeLabel(['k1'], [kids[0]]), null)
+})
+
+test('a hand-picked send goes to exactly the accounts picked, plus their own contacts', async () => {
+  const lib = recipientsLib(tableDb(familyTables()))
+  const picked = await lib.resolveRecipients({ type: 'custom', profileIds: ['o1'] })
+  assert.deepEqual(plain(picked.map((p) => p.id)), ['o1'])
+  const contacts = await lib.familyContactRecipients({ type: 'custom', profileIds: ['o1'] }, picked)
+  assert.deepEqual(plain(contacts.map((c) => c.email)), ['second@example.org', 'maxonly@example.org'])
+})
+
+test('a deactivated co-parent or family gets nothing', async () => {
+  const tables = familyTables()
+  tables.profiles.find((p) => p.id === 'g1').is_active = false
+  const lib = recipientsLib(tableDb(tables))
+  const red = await lib.resolveRecipients({ type: 'practice_groups', practiceGroups: ['Red'] })
+  assert.deepEqual(plain(red.map((p) => p.id)), ['o1'])
+  tables.profiles.find((p) => p.id === 'o1').is_active = false
+  const none = await lib.resolveRecipients({ type: 'practice_groups', practiceGroups: ['Red'] })
+  assert.deepEqual(plain(none.map((p) => p.id)), [])
+  assert.deepEqual(plain(await lib.familyContactRecipients({ type: 'practice_groups', practiceGroups: ['Red'] }, none)), [])
+})
+
+test('the board copy says how many of the emails went to second parents', () => {
+  const lib = load('src/lib/comms/board-copy.ts', { '@/lib/supabase/admin': {}, '@/lib/comms/send-email': {}, '@/lib/comms/labels': { COMM_TYPE_LABELS: {} } })
+  const html = lib.boardCopyHtml({ audience: 'All families', totalRecipients: 134, channel: 'email', subject: 'Hi', message: '<p>Hi</p>', counts: { emailsSent: 239, emailsFailed: 0, smsSent: 0, smsFailed: 0 }, contactEmails: 105, sentAt: new Date('2026-10-22T15:00:00Z') })
+  assert.match(html, /\(134 families\)/)
+  assert.match(html, /Emails: 239 sent, 0 failed\. Includes 105 to second parents and other family contacts\./)
+  assert.doesNotMatch(html, /@/)
 })

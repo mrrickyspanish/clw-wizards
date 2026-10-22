@@ -245,13 +245,15 @@ async function wrestlersOnTarget(supabase: AdminClient, target: CommTarget, pare
 /**
  * Co-parents with their own login get what the family gets. "All families"
  * already includes them (they are parent accounts); every other send is
- * resolved through the owner's wrestlers, so without this a co-parent like
- * Brenda Bishop missed practice group, dues and missing-document sends. A link
- * limited to some wrestlers counts only when one of those put the family on
- * the list. Hand-picked families bring their co-parents along.
+ * resolved through the owner's wrestlers, so without this a co-parent missed
+ * practice group, dues and missing-document sends. A link limited to some
+ * wrestlers counts only when one of those put the family on the list.
+ * Hand-picked families get exactly the accounts picked: a co-parent is their
+ * own account in the picker, and a message picked for one parent can be
+ * private to them.
  */
 async function withCoParents(supabase: AdminClient, target: CommTarget, owners: Profile[]): Promise<Profile[]> {
-  if (target.type === 'all' || !owners.length) return owners
+  if (target.type === 'all' || target.type === 'custom' || !owners.length) return owners
   const { data: linkRows } = await supabase
     .from('family_guardians')
     .select('owner_id, guardian_id, athlete_ids')
@@ -259,13 +261,10 @@ async function withCoParents(supabase: AdminClient, target: CommTarget, owners: 
   const links = (linkRows ?? []) as CoParentLinkRow[]
   if (!links.length) return owners
 
-  let keep = links
-  if (target.type !== 'custom') {
-    const wrestlers = await wrestlersOnTarget(supabase, target, [...new Set(links.map((l) => l.owner_id))])
-    keep = links.filter(
-      (l) => l.athlete_ids === null || wrestlers.some((w) => w.parent_id === l.owner_id && coversWrestler(l, w.id))
-    )
-  }
+  const wrestlers = await wrestlersOnTarget(supabase, target, [...new Set(links.map((l) => l.owner_id))])
+  const keep = links.filter(
+    (l) => l.athlete_ids === null || wrestlers.some((w) => w.parent_id === l.owner_id && coversWrestler(l, w.id))
+  )
   const have = new Set(owners.map((o) => o.id))
   const guardianIds = [...new Set(keep.map((l) => l.guardian_id))].filter((id) => !have.has(id))
   if (!guardianIds.length) return owners

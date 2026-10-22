@@ -155,6 +155,7 @@ export async function POST(request: Request) {
       message: payload.message,
       totalRecipients: recipients.length,
       counts: { emailsSent, emailsFailed, smsSent, smsFailed },
+      contactEmails: contacts.length,
       familyEmails: wantsEmail ? [...recipients.flatMap((r) => (r.email ? [r.email] : [])), ...contacts.map((c) => c.email)] : [],
       blastId,
       tournamentId,
