@@ -2669,3 +2669,99 @@ test('the board copy says how many of the emails went to second parents', () => 
   assert.match(html, /Emails: 239 sent, 0 failed\. Includes 105 to second parents and other family contacts\./)
   assert.doesNotMatch(html, /@/)
 })
+
+// Shared composer (Communications pictures, Oct 23): the email HTML is built
+// from the composer document with inline styles and only safe markup.
+const composerLib = () => load('src/components/composer/email-html.ts', {})
+
+test('the composer email has inline styles, pictures in place and escaped text', () => {
+  const lib = composerLib()
+  const doc = { type: 'doc', content: [
+    { type: 'paragraph', content: [{ type: 'text', text: 'Practice <moved> & ' }, { type: 'text', text: 'starts at 6', marks: [{ type: 'bold' }] }] },
+    { type: 'image', attrs: { src: 'https://x.supabase.co/storage/v1/object/public/comms-images/2026-10/a.png', alt: 'Open "flyer"' } },
+    { type: 'bulletList', content: [{ type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Bring water' }] }] }] },
+    { type: 'paragraph', content: [{ type: 'text', text: 'Sign up', marks: [{ type: 'italic' }, { type: 'link', attrs: { href: 'https://clwizards.com/join' } }] }] },
+  ] }
+  const html = lib.composerEmailHtml(doc)
+  assert.match(html, /^<p style="[^"]+">Practice &lt;moved&gt; &amp; <strong>starts at 6<\/strong><\/p>/)
+  assert.match(html, /<img src="https:\/\/x\.supabase\.co\/storage\/v1\/object\/public\/comms-images\/2026-10\/a\.png" alt="Open &quot;flyer&quot;" style="display:block;max-width:100%;height:auto;[^"]*">/)
+  assert.match(html, /<ul style="[^"]+"><li style="[^"]+"><p style="margin:0;">Bring water<\/p><\/li><\/ul>/)
+  assert.match(html, /<a href="https:\/\/clwizards\.com\/join" style="[^"]+"><em>Sign up<\/em><\/a>/)
+  assert.ok(html.indexOf('<img') > html.indexOf('starts at 6') && html.indexOf('<img') < html.indexOf('Bring water'))
+})
+
+test('the composer email drops unsafe links, pasted base64 pictures and unknown markup', () => {
+  const lib = composerLib()
+  const html = lib.composerEmailHtml({ type: 'doc', content: [
+    { type: 'paragraph', content: [{ type: 'text', text: 'click', marks: [{ type: 'link', attrs: { href: 'javascript:alert(1)' } }] }] },
+    { type: 'image', attrs: { src: 'data:image/png;base64,AAAA' } },
+    { type: 'image', attrs: { src: 'http://tracker.example.com/p.gif' } },
+    { type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: 'Big <b>' }] },
+  ] })
+  assert.doesNotMatch(html, /javascript|data:|tracker|<h1|<b>/)
+  assert.match(html, /click/)
+  assert.match(html, /Big &lt;b&gt;/)
+})
+
+test('an empty composer cannot be sent, a picture alone can', () => {
+  const lib = composerLib()
+  assert.equal(lib.composerHasContent(null), false)
+  assert.equal(lib.composerHasContent({ type: 'doc', content: [{ type: 'paragraph' }, { type: 'paragraph', content: [{ type: 'text', text: '   ' }] }] }), false)
+  assert.equal(lib.composerHasContent({ type: 'doc', content: [{ type: 'image', attrs: { src: 'https://x.co/a.png' } }] }), true)
+  assert.equal(lib.composerHasContent({ type: 'doc', content: [{ type: 'image', attrs: { src: 'data:image/png;base64,AA' } }] }), false)
+})
+
+test('event details typed as plain text become paragraphs and line breaks', () => {
+  const lib = composerLib()
+  assert.deepEqual(plain(lib.textToComposerContent('Fall Open\nSat 9 AM\n\nSee you there\n\n')), [
+    { type: 'paragraph', content: [{ type: 'text', text: 'Fall Open' }, { type: 'hardBreak' }, { type: 'text', text: 'Sat 9 AM' }] },
+    { type: 'paragraph', content: [{ type: 'text', text: 'See you there' }] },
+  ])
+})
+
+function commsImageHarness(role) {
+  const signed = []
+  const actions = load('src/app/admin/communications/actions.ts', {
+    'next/cache': { revalidatePath: () => {} },
+    '@/lib/supabase/server': { createServerSupabase: async () => ({
+      auth: { getUser: async () => ({ data: { user: role ? { id: 'u1' } : null } }) },
+      from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: { role } }) }) }) }),
+    }) },
+    '@/lib/supabase/admin': { createAdminSupabase: () => ({ storage: { from: (bucket) => ({
+      createSignedUploadUrl: async (path) => { signed.push({ bucket, path }); return { data: { path, token: 'tok' }, error: null } },
+      getPublicUrl: (path) => ({ data: { publicUrl: `https://x.supabase.co/storage/v1/object/public/${bucket}/${path}` } }),
+    }) } }) },
+    '@/lib/comms/recipients': {},
+  })
+  return { actions, signed }
+}
+
+test('only admins and staff get a picture upload slot, at a random path that never uses the file name', async () => {
+  const file = { fileName: 'Smith family roster.png', contentType: 'image/png', size: 2000 }
+  for (const role of [null, 'parent']) {
+    const h = commsImageHarness(role)
+    assert.equal((await h.actions.prepareCommsImageUpload(file)).ok, false)
+    assert.equal(h.signed.length, 0)
+  }
+  const h = commsImageHarness('staff')
+  const ticket = await h.actions.prepareCommsImageUpload(file)
+  assert.equal(ticket.ok, true)
+  assert.equal(h.signed[0].bucket, 'comms-images')
+  assert.match(h.signed[0].path, /^\d{4}-\d{2}\/[0-9a-f-]{36}\.png$/)
+  assert.doesNotMatch(ticket.publicUrl, /Smith|roster/)
+  assert.equal((await h.actions.prepareCommsImageUpload({ ...file, contentType: 'application/pdf' })).ok, false)
+  assert.equal((await h.actions.prepareCommsImageUpload({ ...file, size: 11 * 1024 * 1024 })).ok, false)
+})
+
+test('blank lines at the start and end of a composer message are not sent', () => {
+  const lib = composerLib()
+  const html = lib.composerEmailHtml({ type: 'doc', content: [
+    { type: 'paragraph' },
+    { type: 'paragraph', content: [{ type: 'text', text: 'Hi' }] },
+    { type: 'paragraph' },
+    { type: 'image', attrs: { src: 'https://x.co/a.png' } },
+    { type: 'paragraph', content: [{ type: 'text', text: '  ' }] },
+    { type: 'paragraph' },
+  ] })
+  assert.match(html, /^<p style="[^"]+">Hi<\/p><p style="[^"]+">&nbsp;<\/p><img [^>]+>$/)
+})

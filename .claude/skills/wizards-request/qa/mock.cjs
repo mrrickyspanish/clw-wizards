@@ -2,6 +2,7 @@
 // QA mock of the Supabase REST + auth API with synthetic (fake) club data.
 // Usage: node mock.cjs <port> <as: admin|parent>
 const http = require('http')
+const uploads = {}
 const { URL } = require('url')
 const port = Number(process.argv[2] || 54329)
 let as = process.argv[3] || 'admin'
@@ -160,9 +161,11 @@ const saved = {}
 
 http.createServer((req, res) => {
   const u = new URL(req.url, 'http://x')
-  let body = ''
-  req.on('data', (c) => (body += c))
+  const chunks = []
+  req.on('data', (c) => chunks.push(c))
   req.on('end', () => {
+    const raw = Buffer.concat(chunks)
+    const body = raw.toString()
     res.setHeader('content-type', 'application/json')
     res.setHeader('access-control-allow-origin', req.headers.origin || '*')
     res.setHeader('access-control-allow-headers', req.headers['access-control-request-headers'] || '*')
@@ -179,7 +182,28 @@ http.createServer((req, res) => {
     if (u.pathname === '/__clear') { const t = u.searchParams.get('table'); if (t in tables) { saved[t] = saved[t] ?? tables[t]; tables[t] = [] } return res.end('{}') }
     if (u.pathname === '/__restore') { for (const t of Object.keys(saved)) tables[t] = saved[t]; return res.end('{}') }
     if (u.pathname.startsWith('/storage/v1/object/upload/sign/') && req.method === 'POST') { const p = u.pathname.replace('/storage/v1/object/upload/sign/', ''); return res.end(JSON.stringify({ url: `/object/upload/sign/${p}?token=uptok` })) }
-    if (u.pathname.startsWith('/storage/v1/object/upload/sign/') && req.method === 'PUT') { return res.end(JSON.stringify({ Key: u.pathname })) }
+    if (u.pathname.startsWith('/storage/v1/object/upload/sign/') && req.method === 'PUT') {
+      // Keep the bytes so a public picture (Communications emails) can be shown back.
+      // supabase-js sends a File as multipart form data: keep just the file part.
+      let file = { type: req.headers['content-type'], body: raw }
+      const boundary = /boundary=(.+)$/.exec(req.headers['content-type'] || '')?.[1]
+      if (boundary) {
+        const text = raw.toString('latin1')
+        const part = text.split('--' + boundary).find((p) => /content-type:\s*image\//i.test(p))
+        if (part) {
+          const start = part.indexOf('\r\n\r\n') + 4
+          file = { type: /content-type:\s*([^\r\n]+)/i.exec(part)[1], body: Buffer.from(part.slice(start, part.length - 2), 'latin1') }
+        }
+      }
+      uploads[u.pathname.replace('/storage/v1/object/upload/sign/', '')] = file
+      return res.end(JSON.stringify({ Key: u.pathname }))
+    }
+    if (u.pathname.startsWith('/storage/v1/object/public/')) {
+      const file = uploads[u.pathname.replace('/storage/v1/object/public/', '')]
+      if (!file) { res.statusCode = 404; return res.end('{}') }
+      res.setHeader('content-type', file.type || 'application/octet-stream')
+      return res.end(file.body)
+    }
     if (u.pathname.startsWith('/storage/v1/object/sign/') && req.method === 'GET') {
       res.setHeader('access-control-allow-origin', '*')
       const dl = u.searchParams.get('download')

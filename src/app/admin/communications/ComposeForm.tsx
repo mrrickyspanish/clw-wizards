@@ -1,10 +1,14 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
+import type { JSONContent } from '@tiptap/react'
 import Link from 'next/link'
 import { Check, ChevronsUpDown, X } from 'lucide-react'
 
-import { previewRecipients, type PreviewRecipient } from './actions'
+import { prepareCommsImageUpload, previewRecipients, type PreviewRecipient } from './actions'
+import { Composer, type ComposerHandle } from '@/components/composer/Composer'
+import { composerEmailHtml, composerHasContent } from '@/components/composer/email-html'
+import { createBrowserSupabase } from '@/lib/supabase/browser'
 import type { CommTarget, MissingDocument } from '@/lib/comms/recipients'
 import type { CommType } from '@/types/database'
 import { clubSms, smsSegments } from '@/lib/twilio/format'
@@ -59,14 +63,20 @@ const DOCUMENT_FILTERS: { value: MissingDocument; label: string }[] = [
   { value: 'usa_wrestling_card', label: 'Missing a USA Wrestling card' },
 ]
 
-// Plain text from the textarea is sent to Resend as the email HTML body, so
-// escape it and turn newlines into <br> — admins type plain text, not markup.
-function textToHtml(text: string): string {
-  const escaped = text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-  return escaped.replace(/\n/g, '<br>')
+// A picture in the email: a one-time upload slot from the server, the file
+// straight to storage, and the public address the email links to.
+async function uploadCommsImage(file: File): Promise<string> {
+  const ticket = await prepareCommsImageUpload({
+    fileName: file.name,
+    contentType: file.type as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
+    size: file.size,
+  })
+  if (!ticket.ok) throw new Error(ticket.error)
+  const { error } = await createBrowserSupabase()
+    .storage.from('comms-images')
+    .uploadToSignedUrl(ticket.path, ticket.token, file)
+  if (error) throw new Error('Could not upload the picture. Try again.')
+  return ticket.publicUrl
 }
 
 /**
@@ -152,7 +162,8 @@ export function ComposeForm({
   const [selectedParentIds, setSelectedParentIds] = useState<string[]>([])
   const [parentPickerOpen, setParentPickerOpen] = useState(false)
   const [subject, setSubject] = useState('')
-  const [message, setMessage] = useState('')
+  const [messageDoc, setMessageDoc] = useState<JSONContent | null>(null)
+  const composerRef = useRef<ComposerHandle>(null)
 
   const [eventId, setEventId] = useState('')
   const [preview, setPreview] = useState<{
@@ -189,7 +200,7 @@ export function ComposeForm({
     if (!event) return
     const draft = eventMessage(event)
     if (!subject.trim()) setSubject(draft.subject)
-    setMessage((current) => (current.trim() ? `${draft.body}\n\n${current}` : `${draft.body}\n\n`))
+    composerRef.current?.prependText(draft.body)
   }
 
   function currentTarget(): CommTarget | null {
@@ -237,7 +248,7 @@ export function ComposeForm({
       setError('Subject is required.')
       return
     }
-    if (wantsEmail && !message.trim()) {
+    if (wantsEmail && !composerHasContent(messageDoc)) {
       setError('Message body is required.')
       return
     }
@@ -260,7 +271,7 @@ export function ComposeForm({
           commType,
           subject: wantsEmail ? subject.trim() : undefined,
           // A text-only send carries the text as its message, for the board copy.
-          message: wantsEmail ? textToHtml(message) : smsText.trim(),
+          message: wantsEmail ? composerEmailHtml(messageDoc) : smsText.trim(),
           smsMessage: wantsSms ? smsText.trim() : undefined,
         }),
       })
@@ -281,7 +292,8 @@ export function ComposeForm({
       // type stays, but its picks are cleared, so a second send cannot reach
       // the same people again (or everyone) by accident: it asks for a pick.
       setSubject('')
-      setMessage('')
+      setMessageDoc(null)
+      composerRef.current?.clear()
       setSmsText('')
       setEventId('')
       setPreview(null)
@@ -637,15 +649,18 @@ export function ComposeForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="message">Email message</Label>
-            <Textarea
-              id="message"
-              rows={10}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
+            <Label id="message-label">Email message</Label>
+            <Composer
+              ref={composerRef}
+              ariaLabelledBy="message-label"
               placeholder="Write your message to parents…"
+              uploadImage={uploadCommsImage}
+              onChange={setMessageDoc}
             />
-            <p className="text-sm text-clw-gray">Only parents with a valid email receive it.</p>
+            <p className="text-sm text-clw-gray">
+              Paste a flyer or tap Picture to add one. Everyone on the list sees it, so leave out anything private.
+              Only parents with a valid email receive it.
+            </p>
           </div>
         </>
       )}

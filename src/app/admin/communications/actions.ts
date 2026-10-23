@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
 import { createServerSupabase } from '@/lib/supabase/server'
+import { createAdminSupabase } from '@/lib/supabase/admin'
 import { familyContactRecipients, recipientWrestlerRows, resolveRecipients, type CommTarget } from '@/lib/comms/recipients'
 import { toE164 } from '@/lib/phone'
 
@@ -170,4 +171,63 @@ export async function removeUploadNoticeRecipient(id: string): Promise<BoardActi
   if (error) return { ok: false, error: error.message }
   revalidatePath('/admin/communications')
   return { ok: true }
+}
+
+const commsImageSchema = z.object({
+  fileName: z.string().trim().min(1).max(200),
+  contentType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'image/gif']),
+  size: z
+    .number()
+    .int()
+    .positive()
+    .max(10 * 1024 * 1024, 'Pictures must be under 10 MB.'),
+})
+
+export type CommsImageTicket =
+  | { ok: true; path: string; token: string; publicUrl: string }
+  | { ok: false; error: string }
+
+const IMAGE_EXTENSIONS: Record<z.infer<typeof commsImageSchema>['contentType'], string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+}
+
+/**
+ * A one-time upload slot for a picture in a Communications email. The path is
+ * random (never the file name, which can say who or what it is), and the
+ * returned public address is what the email links to.
+ */
+export async function prepareCommsImageUpload(values: z.input<typeof commsImageSchema>): Promise<CommsImageTicket> {
+  const supabase = await createServerSupabase()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false, error: 'Not authenticated' }
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  if (profile?.role !== 'admin' && profile?.role !== 'staff') return { ok: false, error: 'Admin access required' }
+
+  const parsed = commsImageSchema.safeParse(values)
+  if (!parsed.success)
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? 'Invalid picture.',
+    }
+
+  const month = new Date().toISOString().slice(0, 7)
+  const path = `${month}/${crypto.randomUUID()}.${IMAGE_EXTENSIONS[parsed.data.contentType]}`
+  const storage = createAdminSupabase().storage.from('comms-images')
+  const { data, error } = await storage.createSignedUploadUrl(path)
+  if (error || !data)
+    return {
+      ok: false,
+      error: error?.message ?? 'Could not start the upload.',
+    }
+  return {
+    ok: true,
+    path: data.path,
+    token: data.token,
+    publicUrl: storage.getPublicUrl(data.path).data.publicUrl,
+  }
 }
