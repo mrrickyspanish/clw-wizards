@@ -9,6 +9,7 @@ import { prepareCommsImageUpload, previewRecipients, type PreviewRecipient } fro
 import { Composer, type ComposerHandle } from '@/components/composer/Composer'
 import { composerEmailHtml, composerHasContent } from '@/components/composer/email-html'
 import { createBrowserSupabase } from '@/lib/supabase/browser'
+import { commsImagePrefix } from '@/lib/comms/email-safety'
 import type { CommTarget, MissingDocument } from '@/lib/comms/recipients'
 import type { CommType } from '@/types/database'
 import { clubSms, smsSegments } from '@/lib/twilio/format'
@@ -62,6 +63,9 @@ const DOCUMENT_FILTERS: { value: MissingDocument; label: string }[] = [
   { value: 'birth_certificate', label: 'Missing a birth certificate' },
   { value: 'usa_wrestling_card', label: 'Missing a USA Wrestling card' },
 ]
+
+// Only pictures uploaded to the club's own storage go in an email.
+const IMAGE_PREFIX = commsImagePrefix(process.env.NEXT_PUBLIC_SUPABASE_URL) ?? undefined
 
 // A picture in the email: a one-time upload slot from the server, the file
 // straight to storage, and the public address the email links to.
@@ -248,7 +252,7 @@ export function ComposeForm({
       setError('Subject is required.')
       return
     }
-    if (wantsEmail && !composerHasContent(messageDoc)) {
+    if (wantsEmail && !composerHasContent(messageDoc, { imageSrcPrefix: IMAGE_PREFIX })) {
       setError('Message body is required.')
       return
     }
@@ -271,7 +275,7 @@ export function ComposeForm({
           commType,
           subject: wantsEmail ? subject.trim() : undefined,
           // A text-only send carries the text as its message, for the board copy.
-          message: wantsEmail ? composerEmailHtml(messageDoc) : smsText.trim(),
+          message: wantsEmail ? composerEmailHtml(messageDoc, { imageSrcPrefix: IMAGE_PREFIX }) : smsText.trim(),
           smsMessage: wantsSms ? smsText.trim() : undefined,
         }),
       })

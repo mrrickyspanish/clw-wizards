@@ -11,6 +11,7 @@ import {
 import { readCredential } from '@/lib/env'
 import { smsReady } from '@/lib/twilio/sender'
 import type { CommTarget } from '@/lib/comms/recipients'
+import { commsImagePrefix, emailBodyProblem } from '@/lib/comms/email-safety'
 import type { CommType } from '@/types/database'
 
 export interface BlastRequestBody {
@@ -44,6 +45,10 @@ export async function POST(request: Request) {
   }
   if (body.channel !== 'sms' && !body.subject) {
     return NextResponse.json({ error: 'Subject is required for email sends.' }, { status: 400 })
+  }
+  if (body.channel !== 'sms') {
+    const problem = emailBodyProblem(body.message, commsImagePrefix(process.env.NEXT_PUBLIC_SUPABASE_URL))
+    if (problem) return NextResponse.json({ error: `${problem} Nothing was sent.` }, { status: 400 })
   }
   if (body.channel !== 'email') {
     if (!body.smsMessage?.trim()) {

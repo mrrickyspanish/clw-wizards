@@ -20,7 +20,7 @@ import { Placeholder } from '@tiptap/extensions'
 import type { EditorView } from '@tiptap/pm/view'
 import { Bold, ImagePlus, Italic, Link2, List, ListOrdered } from 'lucide-react'
 
-import { resizeImage } from './resize-image'
+import { prepareImage } from './prepare-image'
 import { textToComposerContent } from './email-html'
 
 export type ComposerFeatures = {
@@ -92,6 +92,10 @@ export const Composer = forwardRef<ComposerHandle, Props>(function Composer(
         class:
           'min-h-[240px] px-3 py-3 text-base leading-relaxed text-clw-white focus:outline-none [&_p]:my-2 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-6 [&_a]:text-clw-gold [&_a]:underline [&_img]:my-3 [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-md [&_img.ProseMirror-selectednode]:outline [&_img.ProseMirror-selectednode]:outline-2 [&_img.ProseMirror-selectednode]:outline-clw-gold [&_p.is-editor-empty:first-child]:before:pointer-events-none [&_p.is-editor-empty:first-child]:before:float-left [&_p.is-editor-empty:first-child]:before:h-0 [&_p.is-editor-empty:first-child]:before:text-clw-gray [&_p.is-editor-empty:first-child]:before:content-[attr(data-placeholder)]',
       },
+      // Pictures inside pasted or dropped web content are removed: they live on
+      // someone else's site, which would see every family who opens the email.
+      // Pictures come in as files (paste, drop, Picture) and are uploaded.
+      transformPastedHTML: (html: string) => html.replace(/<img\b[^>]*>/gi, '').replace(/<picture\b[\s\S]*?<\/picture>/gi, ''),
       handlePaste: (_view: EditorView, event: ClipboardEvent) => {
         const files = imageFiles(event.clipboardData?.files)
         if (!files.length) return false
@@ -129,16 +133,14 @@ export const Composer = forwardRef<ComposerHandle, Props>(function Composer(
         }
         setUploading((n) => n + 1)
         try {
-          const file = await resizeImage(original)
+          const file = await prepareImage(original)
           if (file.size > maxImageMb * 1024 * 1024) {
             setError(`Pictures must be under ${maxImageMb} MB.`)
             continue
           }
           const src = await uploadImage(file)
-          const alt = original.name
-            .replace(/\.[^.]+$/, '')
-            .replace(/[_-]+/g, ' ')
-            .slice(0, 80)
+          // Never the file name: families would see it ("Smith roster.png").
+          const alt = 'Picture'
           const chain = editor.chain().focus()
           ;(typeof at === 'number'
             ? chain.insertContentAt(at, { type: 'image', attrs: { src, alt } })

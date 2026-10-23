@@ -8,6 +8,8 @@ import type { JSONContent } from '@tiptap/core'
  * breaks, bold, italic, links, lists, pictures); anything else keeps its text
  * and drops the markup. Text and attributes are escaped, links must be http(s),
  * mailto or tel, and pictures must be https (pasted base64 data is dropped).
+ * Pass imageSrcPrefix to allow only pictures from your own storage: a picture
+ * hosted anywhere else would tell that site who opened the email.
  *
  * No browser APIs here, so the same function runs in the browser, on the
  * server and in tests. Part of the shared composer (see Composer.tsx).
@@ -16,7 +18,11 @@ import type { JSONContent } from '@tiptap/core'
 export type EmailHtmlOptions = {
   // Link colour; the default reads on white, which is what email apps show.
   linkColor?: string
+  // Only pictures whose address starts with this are kept.
+  imageSrcPrefix?: string
 }
+
+type Resolved = { linkColor: string; imageSrcPrefix: string | null }
 
 const P = 'margin:0 0 14px;font-size:16px;line-height:1.5;'
 const LIST = 'margin:0 0 14px;padding-left:24px;font-size:16px;line-height:1.5;'
@@ -37,14 +43,15 @@ export function safeLinkHref(href: unknown): string | null {
   return /^(https?:\/\/|mailto:|tel:)/i.test(value) ? value : null
 }
 
-export function safeImageSrc(src: unknown): string | null {
+export function safeImageSrc(src: unknown, prefix: string | null = null): string | null {
   if (typeof src !== 'string') return null
   const value = src.trim()
+  if (prefix && !value.startsWith(prefix)) return null
   // https only; plain http is allowed for this computer alone, for local testing.
   return /^https:\/\//i.test(value) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//i.test(value) ? value : null
 }
 
-function renderText(node: JSONContent, options: Required<EmailHtmlOptions>): string {
+function renderText(node: JSONContent, options: Resolved): string {
   let html = escapeText(node.text ?? '')
   // Inner marks first so a link wraps the bold/italic text inside it.
   const marks = [...(node.marks ?? [])].sort((a, b) => (a.type === 'link' ? 1 : 0) - (b.type === 'link' ? 1 : 0))
@@ -60,11 +67,11 @@ function renderText(node: JSONContent, options: Required<EmailHtmlOptions>): str
   return html
 }
 
-function renderChildren(node: JSONContent, options: Required<EmailHtmlOptions>): string {
+function renderChildren(node: JSONContent, options: Resolved): string {
   return (node.content ?? []).map((child) => renderNode(child, options)).join('')
 }
 
-function renderNode(node: JSONContent, options: Required<EmailHtmlOptions>): string {
+function renderNode(node: JSONContent, options: Resolved): string {
   switch (node.type) {
     case 'doc':
       return renderChildren(node, options)
@@ -84,7 +91,7 @@ function renderNode(node: JSONContent, options: Required<EmailHtmlOptions>): str
       // A list item holds paragraphs; drop their bottom margin inside the list.
       return `<li style="${LI}">${renderChildren(node, options).replace(new RegExp(`<p style="${P}">`, 'g'), '<p style="margin:0;">')}</li>`
     case 'image': {
-      const src = safeImageSrc(node.attrs?.src)
+      const src = safeImageSrc(node.attrs?.src, options.imageSrcPrefix)
       if (!src) return ''
       const alt = typeof node.attrs?.alt === 'string' ? node.attrs.alt : ''
       return `<img src="${escapeAttr(src)}" alt="${escapeAttr(alt)}" style="${IMG}">`
@@ -103,15 +110,18 @@ export function composerEmailHtml(doc: JSONContent | null | undefined, options: 
   const content = [...(doc.content ?? [])]
   while (content.length && isBlankParagraph(content[0])) content.shift()
   while (content.length && isBlankParagraph(content[content.length - 1])) content.pop()
-  return renderNode({ ...doc, content }, { linkColor: options.linkColor ?? '#1a56db' })
+  return renderNode(
+    { ...doc, content },
+    { linkColor: options.linkColor ?? '#1a56db', imageSrcPrefix: options.imageSrcPrefix ?? null }
+  )
 }
 
 /** True when the document has any words or a picture: an empty message can't be sent. */
-export function composerHasContent(doc: JSONContent | null | undefined): boolean {
+export function composerHasContent(doc: JSONContent | null | undefined, options: EmailHtmlOptions = {}): boolean {
   if (!doc) return false
   const visit = (node: JSONContent): boolean =>
     (node.type === 'text' && Boolean(node.text?.trim())) ||
-    (node.type === 'image' && safeImageSrc(node.attrs?.src) !== null) ||
+    (node.type === 'image' && safeImageSrc(node.attrs?.src, options.imageSrcPrefix ?? null) !== null) ||
     (node.content ?? []).some(visit)
   return visit(doc)
 }

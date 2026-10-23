@@ -2765,3 +2765,62 @@ test('blank lines at the start and end of a composer message are not sent', () =
   ] })
   assert.match(html, /^<p style="[^"]+">Hi<\/p><p style="[^"]+">&nbsp;<\/p><img [^>]+>$/)
 })
+
+// Picture safety (Oct 23 review): only the club's own pictures go out, and the
+// send route refuses anything that slipped past the composer.
+const PREFIX = 'https://abc.supabase.co/storage/v1/object/public/comms-images/'
+
+test('the composer keeps only pictures from the club storage when told to', () => {
+  const lib = composerLib()
+  const doc = { type: 'doc', content: [
+    { type: 'image', attrs: { src: PREFIX + '2026-10/a.png', alt: 'Picture' } },
+    { type: 'image', attrs: { src: 'https://tracker.example.com/open.gif' } },
+    { type: 'image', attrs: { src: 'https://abc.supabase.co/storage/v1/object/public/athlete-documents/x.png' } },
+  ] }
+  const html = lib.composerEmailHtml(doc, { imageSrcPrefix: PREFIX })
+  assert.equal((html.match(/<img/g) ?? []).length, 1)
+  assert.doesNotMatch(html, /tracker|athlete-documents/)
+  assert.equal(lib.composerHasContent({ type: 'doc', content: [doc.content[1]] }, { imageSrcPrefix: PREFIX }), false)
+})
+
+test('the send route refuses outside pictures, scripts, handlers and script links', () => {
+  const lib = load('src/lib/comms/email-safety.ts', {})
+  assert.equal(lib.commsImagePrefix('https://abc.supabase.co/'), PREFIX)
+  const ok = `<p style="margin:0">Come on time, it's on=time</p><img src="${PREFIX}2026-10/a.png" alt="Picture" style="display:block"><a href="https://clwizards.com">x</a>`
+  assert.equal(lib.emailBodyProblem(ok, PREFIX), null)
+  assert.equal(lib.emailBodyProblem('<p>Plain &lt;script&gt; text</p>', PREFIX), null)
+  for (const bad of [
+    '<img src="https://tracker.example.com/open.gif">',
+    `<img src="${PREFIX.replace('comms-images', 'athlete-documents')}x.png">`,
+    '<img src="data:image/png;base64,AAAA">',
+    '<script>alert(1)</script>',
+    '<p onclick="steal()">hi</p>',
+    '<a href="javascript:alert(1)">x</a>',
+    '<iframe src="https://x.example"></iframe>',
+    '<svg><a href="https://x"/></svg>',
+    '<form action="https://x"><input name="pw"></form>',
+  ]) assert.ok(lib.emailBodyProblem(bad, PREFIX), bad)
+  // No storage address configured: any picture is refused rather than allowed.
+  assert.ok(lib.emailBodyProblem(`<img src="${PREFIX}a.png">`, null))
+})
+
+test('the blast route sends nothing when the email body fails the check', async () => {
+  let published = 0
+  const route = load('src/app/api/comms/blast/route.ts', {
+    'next/server': require('next/server'),
+    '@/lib/supabase/server': { createServerSupabase: async () => ({}) },
+    '@/lib/auth/session': { getSessionRole: async () => ({ role: 'admin' }) },
+    '@/lib/qstash': { getQstashClient: () => ({ publishJSON: async () => { published += 1 } }), siteUrl: () => 'https://example.org', isPubliclyReachableSiteUrl: () => true, QstashNotConfiguredError: class {} },
+    '@/lib/env': { readCredential: () => 'set' },
+    '@/lib/twilio/sender': { smsReady: () => false },
+    '@/lib/comms/email-safety': load('src/lib/comms/email-safety.ts', {}),
+  }, { NEXT_PUBLIC_SUPABASE_URL: 'https://abc.supabase.co' })
+  const post = (message) => route.POST(new Request('https://example.org/api/comms/blast', { method: 'POST', body: JSON.stringify({ target: { type: 'all' }, channel: 'email', commType: 'general_blast', subject: 'Hi', message }) }))
+  const bad = await post('<p>Hi</p><img src="https://tracker.example.com/o.gif">')
+  assert.equal(bad.status, 400)
+  assert.match((await bad.json()).error, /Nothing was sent/)
+  assert.equal(published, 0)
+  const good = await post(`<p>Hi</p><img src="${PREFIX}2026-10/a.png">`)
+  assert.equal(good.status, 200)
+  assert.equal(published, 1)
+})

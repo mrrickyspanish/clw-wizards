@@ -10,7 +10,7 @@ headings, quotes, dividers, video or social embeds. Same TipTap version
 |---|---|---|
 | `Composer.tsx` | The editor: bold, italic, lists, link, pictures (paste, drop or the Picture button) | Colours only (`clw-*` tokens) |
 | `email-html.ts` | Document to email HTML with inline styles and only safe markup; `composerHasContent`, `textToComposerContent` | No |
-| `resize-image.ts` | Shrinks big photos to 1600px wide before upload | No |
+| `prepare-image.ts` | Redraws each picture before upload: drops hidden location and camera data, shrinks big ones to 1600px wide | No |
 
 ## Using it
 
