@@ -96,13 +96,9 @@ export function DuesPayControls({
                 setValue(e.target.value.replace(/\$/g, ''))
                 setError(null)
               }}
-              placeholder={(PAYMENT_PLAN_MIN_CENTS / 100).toString()}
               className="pl-7 text-base"
             />
           </div>
-          <p className="text-sm text-clw-gray">
-            {formatCents(PAYMENT_PLAN_MIN_CENTS)} or more, up to {formatCents(remainingCents)}.
-          </p>
           {error && <p className="text-base text-red-400">{error}</p>}
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button type="button" variant="ghost" size="sm" disabled={loading} onClick={() => setOpen(false)}>
