@@ -5,7 +5,7 @@ import type { DuesPayment, Athlete } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { PayButton } from './PayButton'
+import { DuesPayControls } from './DuesPayControls'
 
 const STATUS_STYLES: Record<DuesPayment['status'], string> = {
   paid: 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold-ink',
@@ -116,11 +116,12 @@ export default async function DuesPage({
                     {athlete ? `${athlete.first_name} ${athlete.last_name} · ` : ''}
                     {money(d.amount_cents)}
                     {d.amount_paid_cents > 0 && ` · ${money(d.amount_paid_cents)} paid`}
+                    {d.amount_paid_cents > 0 && payable && ` · ${money(remaining)} left`}
                     {dueDate && ` · due ${dueDate}`}
                   </p>
                 </div>
                 {payable ? (
-                  <PayButton duesId={d.id} label={`Pay ${money(remaining)}`} />
+                  <DuesPayControls duesId={d.id} remainingCents={remaining} paymentPlan={d.payment_plan} />
                 ) : (
                   <span className="text-sm text-clw-gray/70">
                     {d.status === 'paid' ? 'Paid in full' : d.status === 'waived' ? 'Waived' : '—'}

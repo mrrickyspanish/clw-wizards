@@ -142,6 +142,19 @@ export type DuesPayment = {
   updated_at: string
 }
 
+// One card payment on a dues record. A payment plan family has several.
+export type DuesCharge = {
+  id: string
+  dues_id: string
+  stripe_checkout_session_id: string | null
+  stripe_payment_intent_id: string | null
+  amount_cents: number
+  // What is still kept after refunds.
+  net_cents: number
+  created_at: string
+  updated_at: string
+}
+
 export type Sponsor = {
   id: string
   name: string
@@ -547,6 +560,12 @@ export type Database = {
         Update: Partial<TournamentRegistration>
         Relationships: []
       }
+      dues_charges: {
+        Row: DuesCharge
+        Insert: Partial<DuesCharge>
+        Update: Partial<DuesCharge>
+        Relationships: []
+      }
       dues_payments: {
         Row: DuesPayment
         Insert: Partial<DuesPayment>
@@ -718,6 +737,33 @@ export type Database = {
     }
     Views: { [_ in never]: never }
     Functions: {
+      // Applies one card payment to a dues record, once per checkout session.
+      record_dues_charge: {
+        Args: { _dues: string; _session: string; _intent: string | null; _amount: number }
+        Returns: {
+          applied: boolean
+          parent_id: string
+          athlete_id: string | null
+          season: string
+          amount_cents: number
+          amount_paid_cents: number
+          status: DuesPayment['status']
+        }[]
+      }
+      // Takes a refund off the one payment it was on. _net: what the charge still holds.
+      record_dues_refund: {
+        Args: { _intent: string; _net: number }
+        Returns: {
+          found: boolean
+          changed: boolean
+          dues_id: string | null
+          parent_id: string | null
+          athlete_id: string | null
+          amount_cents: number | null
+          paid_before_cents: number | null
+          amount_paid_cents: number | null
+        }[]
+      }
       record_parent_auth_failure: {
         Args: { p_id: string; p_step: string; p_error: Record<string, unknown>; p_email: string | null; p_email_source: string; p_source_key: string }
         Returns: boolean

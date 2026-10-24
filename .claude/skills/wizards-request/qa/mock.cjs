@@ -120,6 +120,8 @@ enroll(1, id('k', 1), PARENT, 'approved', 35000, { card_override_at: T, card_ove
 enroll(2, id('k', 3), PARENT2, 'submitted', 0, { card_override_at: T, card_override_by: ADMIN })
 enroll(3, id('k', 4), PARENT2, 'submitted', 10000)
 enroll(4, id('k', 2), PARENT, 'submitted', 0)
+// Tina's dues are on a payment plan with $50 paid, so the Pay another amount box shows.
+Object.assign(tables.dues_payments.find((d) => d.id === id('m', 4)), { payment_plan: true, amount_paid_cents: 5000, status: 'partial' })
 tables.athletes.find((a) => a.first_name === 'Tina').usa_wrestling_card_number = '1234567890'
 tables.athletes.find((a) => a.first_name === 'Lily').usa_wrestling_card_number = '5550001112'
 

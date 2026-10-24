@@ -210,7 +210,9 @@ export function DuesEditDialog({
             />
             <span>
               <span className="block font-medium">Payment plan</span>
-              <span className="mt-1 block text-clw-gray">Flag this family as paying the balance over time.</span>
+              <span className="mt-1 block text-clw-gray">
+                The family can pay part of the balance at a time on the site, $25 or more per payment.
+              </span>
             </span>
           </label>
 

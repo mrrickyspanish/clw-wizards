@@ -7,6 +7,7 @@ import { sendAlert } from '@/lib/alerts'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { ORG } from '@/config/org.config'
+import { duesCheckoutAmount } from '@/lib/payments/dues-amount'
 import { DONATIONS_ENABLED, DONATIONS_COMING_SOON_BODY } from '@/config/donations'
 import type { SponsorTier } from '@/types/database'
 
@@ -182,7 +183,7 @@ async function checkoutDues(stripe: Stripe, body: DuesCheckoutBody, siteOrigin: 
   const admin = createAdminSupabase()
   const { data: dues, error } = await admin
     .from('dues_payments')
-    .select('id, parent_id, athlete_id, amount_cents, amount_paid_cents, season')
+    .select('id, parent_id, athlete_id, amount_cents, amount_paid_cents, season, status, payment_plan')
     .eq('id', body.duesId)
     .single()
 
@@ -202,12 +203,20 @@ async function checkoutDues(stripe: Stripe, body: DuesCheckoutBody, siteOrigin: 
     if (!covered) return NextResponse.json({ error: 'Forbidden.' }, { status: 403 })
   }
 
-  const remainingCents = dues.amount_cents - dues.amount_paid_cents
-  if (remainingCents <= 0) {
-    return NextResponse.json({ error: 'These dues are already paid in full.' }, { status: 400 })
+  if (!['pending', 'partial', 'overdue'].includes(dues.status)) {
+    return NextResponse.json(
+      { error: dues.status === 'waived' ? 'These dues were waived.' : 'These dues are already paid in full.' },
+      { status: 400 }
+    )
   }
-
-  const amountCents = Math.min(remainingCents, Math.max(1, body.amountCents ?? remainingCents))
+  // Full balance for everyone; part of it only for a family on a payment plan.
+  const amount = duesCheckoutAmount({
+    remainingCents: dues.amount_cents - dues.amount_paid_cents,
+    paymentPlan: dues.payment_plan,
+    requestedCents: body.amountCents,
+  })
+  if (!amount.ok) return NextResponse.json({ error: amount.error }, { status: 400 })
+  const amountCents = amount.amountCents
   const returnPath = safeReturnPath(body.returnPath, '/dues')
 
   const session = await stripe.checkout.sessions.create({

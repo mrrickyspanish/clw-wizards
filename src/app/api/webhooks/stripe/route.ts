@@ -112,40 +112,23 @@ async function handleDuesFlow(session: Stripe.Checkout.Session) {
     throw new Error(`Stripe dues checkout ${session.id} has an invalid payment amount.`)
   }
 
-  const { data: dues, error: fetchError } = await supabase
-    .from('dues_payments')
-    .select('amount_cents, amount_paid_cents, parent_id, athlete_id, season, stripe_checkout_session_id')
-    .eq('id', duesId)
-    .single()
-
-  if (fetchError || !dues) {
-    throw new Error(`Dues record not found for ${duesId}: ${fetchError?.message ?? 'unknown error'}`)
-  }
-
-  if (dues.stripe_checkout_session_id === session.id) return
-
-  const newAmountPaid = Math.min(dues.amount_cents, dues.amount_paid_cents + amountPaidCents)
-  const status = newAmountPaid >= dues.amount_cents ? 'paid' : 'partial'
   const paymentIntentId =
     typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id ?? null
 
-  let updateQuery = supabase
-    .from('dues_payments')
-    .update({
-      amount_paid_cents: newAmountPaid,
-      status,
-      stripe_payment_intent_id: paymentIntentId,
-      stripe_checkout_session_id: session.id,
-    })
-    .eq('id', duesId)
-
-  updateQuery = dues.stripe_checkout_session_id
-    ? updateQuery.eq('stripe_checkout_session_id', dues.stripe_checkout_session_id)
-    : updateQuery.is('stripe_checkout_session_id', null)
-
-  const { data: updated, error: updateError } = await updateQuery.select('id').maybeSingle()
-  if (updateError) throw updateError
-  if (!updated) throw new Error(`Dues record ${duesId} changed while Stripe event ${session.id} was processing.`)
+  // One step in the database: the payment is kept in dues_charges (once per
+  // checkout, however often Stripe sends this event) and added to the balance.
+  // A family on a payment plan can pay several times, so every payment counts
+  // on its own, not just the latest.
+  const { data: rows, error } = await supabase.rpc('record_dues_charge', {
+    _dues: duesId,
+    _session: session.id,
+    _intent: paymentIntentId,
+    _amount: amountPaidCents,
+  })
+  if (error) throw new Error(`Could not record dues payment ${session.id}: ${error.message}`)
+  const dues = (rows ?? [])[0]
+  if (!dues) throw new Error(`Dues record not found for ${duesId}`)
+  if (!dues.applied) return
 
   await noticeDuesPayment({
     parentId: dues.parent_id,
@@ -153,7 +136,7 @@ async function handleDuesFlow(session: Stripe.Checkout.Session) {
     season: dues.season,
     amountCents: dues.amount_cents,
     paidNowCents: amountPaidCents,
-    paidTotalCents: newAmountPaid,
+    paidTotalCents: dues.amount_paid_cents,
   })
 
   const customerEmail = session.customer_details?.email ?? session.customer_email
@@ -161,7 +144,8 @@ async function handleDuesFlow(session: Stripe.Checkout.Session) {
     await sendDuesConfirmationEmail({
       to: customerEmail,
       amountPaidCents,
-      status,
+      status: dues.status,
+      remainingCents: Math.max(0, dues.amount_cents - dues.amount_paid_cents),
       sessionId: session.id,
     })
   }
@@ -440,6 +424,33 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
   // Stripe redelivers this event.
   const stillPaidCents = Math.max(0, charge.amount - charge.amount_refunded)
 
+  // A dues payment: take off only what this refund changed on that one
+  // payment, so other payments on the same dues stay counted.
+  const { data: refundRows, error: refundError } = await supabase.rpc('record_dues_refund', {
+    _intent: paymentIntentId,
+    _net: stillPaidCents,
+  })
+  if (refundError) throw refundError
+  const refunded = (refundRows ?? [])[0]
+  if (refunded?.found) {
+    // Stripe can redeliver this event; only a refund that changed the balance is news.
+    if (refunded.changed && refunded.parent_id && refunded.amount_cents !== null && refunded.paid_before_cents !== null && refunded.amount_paid_cents !== null) {
+      const names = await familyNames(refunded.parent_id, refunded.athlete_id)
+      await sendPaymentNotice(
+        moneyOutNotice({
+          kind: 'refund',
+          who: names.parent,
+          amountCents: refunded.paid_before_cents - refunded.amount_paid_cents,
+          detail: `Season dues for ${names.wrestler ?? 'their wrestler'}. Now ${formatCents(refunded.amount_paid_cents)} paid of ${formatCents(refunded.amount_cents)}.`,
+        })
+      )
+    }
+    return
+  }
+
+  // A dues payment from before payments were kept one by one (none should be
+  // left: they were all copied in). It was the record's only payment, so what
+  // the charge still holds is what the record has paid.
   const { data: dues } = await supabase
     .from('dues_payments')
     .select('id, amount_cents, amount_paid_cents, parent_id, athlete_id')
@@ -453,7 +464,6 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
       .update({ amount_paid_cents: stillPaidCents, status })
       .eq('id', dues.id)
     if (error) throw error
-    // Stripe can redeliver this event; only a refund that changed the balance is news.
     if (stillPaidCents < dues.amount_paid_cents) {
       const names = await familyNames(dues.parent_id, dues.athlete_id)
       await sendPaymentNotice(
@@ -579,6 +589,7 @@ async function sendDuesConfirmationEmail(params: {
   to: string
   amountPaidCents: number
   status: string
+  remainingCents: number
   sessionId: string
 }) {
   const resend = getResend()
@@ -586,7 +597,9 @@ async function sendDuesConfirmationEmail(params: {
 
   const amount = formatCents(params.amountPaidCents)
   const statusLine =
-    params.status === 'paid' ? 'Your dues are now fully paid.' : 'This payment has been applied to your balance.'
+    params.status === 'paid'
+      ? 'Your dues are now fully paid.'
+      : `This payment has been applied to your balance. ${formatCents(params.remainingCents)} left to pay.`
 
   await sendReceiptEmail(
     () =>

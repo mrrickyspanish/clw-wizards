@@ -22,7 +22,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DocumentControls } from '../documents/DocumentControls'
-import { PayButton } from '../dues/PayButton'
+import { DuesPayControls } from '../dues/DuesPayControls'
 import { EnrollmentControls } from './EnrollmentControls'
 
 function money(cents: number) {
@@ -479,7 +479,12 @@ export default async function RegistrationPage({
                       </p>
                       {enrollment && dues && !paid && remaining > 0 && (
                         <div className="mt-3">
-                          <PayButton duesId={dues.id} label={`Pay ${money(remaining)}`} returnPath="/registration" />
+                          <DuesPayControls
+                            duesId={dues.id}
+                            remainingCents={remaining}
+                            paymentPlan={dues.payment_plan}
+                            returnPath="/registration"
+                          />
                         </div>
                       )}
                     </div>

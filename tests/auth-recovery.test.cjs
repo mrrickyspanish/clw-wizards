@@ -1817,6 +1817,35 @@ function stripeWebhookHarness({ duesRow, noticeThrows = false } = {}) {
     dues_payments: [{ id: 'dues-1', amount_cents: 35000, amount_paid_cents: 0, parent_id: 'p1', athlete_id: 'k1', season: '2026-27', stripe_checkout_session_id: null, status: 'pending', ...duesRow }],
     profiles: [{ id: 'p1', full_name: 'Pat Parent' }],
     athletes: [{ id: 'k1', first_name: 'Tommy', last_name: 'Parent' }],
+    dues_charges: [],
+  }
+  // Same behaviour as the database functions in 20261024000001_dues_charges.sql
+  // (checked against the live database in a dry run).
+  const rpc = async (name, a) => {
+    if (name === 'record_dues_charge') {
+      const d = tables.dues_payments.find((r) => r.id === a._dues)
+      if (!d) return { data: null, error: { message: `Dues record ${a._dues} not found` } }
+      const pick = (applied) => [{ applied, parent_id: d.parent_id, athlete_id: d.athlete_id, season: d.season, amount_cents: d.amount_cents, amount_paid_cents: d.amount_paid_cents, status: d.status }]
+      if (tables.dues_charges.some((c) => c.stripe_checkout_session_id === a._session)) return { data: pick(false), error: null }
+      tables.dues_charges.push({ dues_id: d.id, stripe_checkout_session_id: a._session, stripe_payment_intent_id: a._intent, amount_cents: a._amount, net_cents: a._amount })
+      const total = d.amount_paid_cents + a._amount
+      Object.assign(d, { amount_paid_cents: Math.min(d.amount_cents, total), status: total >= d.amount_cents ? 'paid' : 'partial', stripe_payment_intent_id: a._intent, stripe_checkout_session_id: a._session })
+      return { data: pick(true), error: null }
+    }
+    if (name === 'record_dues_refund') {
+      const c = tables.dues_charges.find((x) => x.stripe_payment_intent_id === a._intent)
+      if (!c) return { data: [{ found: false, changed: false }], error: null }
+      const d = tables.dues_payments.find((r) => r.id === c.dues_id)
+      const before = d.amount_paid_cents
+      const delta = c.net_cents - Math.max(0, a._net)
+      const row = (changed) => [{ found: true, changed, dues_id: d.id, parent_id: d.parent_id, athlete_id: d.athlete_id, amount_cents: d.amount_cents, paid_before_cents: before, amount_paid_cents: d.amount_paid_cents }]
+      if (delta <= 0) return { data: row(false), error: null }
+      c.net_cents = Math.max(0, a._net)
+      const left = d.amount_paid_cents - delta
+      Object.assign(d, { amount_paid_cents: Math.max(0, left), status: d.status === 'waived' ? d.status : left <= 0 ? 'pending' : left < d.amount_cents ? 'partial' : 'paid' })
+      return { data: row(true), error: null }
+    }
+    throw new Error('unexpected rpc ' + name)
   }
   const query = (table) => {
     const filters = []
@@ -1843,7 +1872,7 @@ function stripeWebhookHarness({ duesRow, noticeThrows = false } = {}) {
     resend: { Resend },
     '@/lib/stripe': { getStripeClient: () => ({ webhooks: { constructEvent: (body) => JSON.parse(body) } }) },
     '@/lib/alerts': { sendAlert: async () => {} },
-    '@/lib/supabase/admin': { createAdminSupabase: () => ({ from: query }) },
+    '@/lib/supabase/admin': { createAdminSupabase: () => ({ from: query, rpc }) },
     '@/lib/format/money': { formatCents: (cents) => `$${(cents / 100).toFixed(2)}` },
     '@/config/org.config': { ORG: { contactEmail: 'club@example.com', shortName: 'CLW', domain: 'clwizards.com' } },
     '@/lib/payments/notice': {
@@ -1858,7 +1887,12 @@ function stripeWebhookHarness({ duesRow, noticeThrows = false } = {}) {
     headers: { 'stripe-signature': 'sig' },
     body: JSON.stringify({ id: 'evt', type: 'checkout.session.completed', data: { object: { id: 'cs_1', amount_total: 35000, payment_intent: 'pi_1', customer_details: { email: 'pat@x.com' }, metadata: { flow: 'dues', dues_id: 'dues-1' }, ...session } } }),
   }))
-  return { post, notices, writes, tables }
+  const refund = (charge) => route.POST(new Request('https://x/api/webhooks/stripe', {
+    method: 'POST',
+    headers: { 'stripe-signature': 'sig' },
+    body: JSON.stringify({ id: 'evt_r', type: 'charge.refunded', data: { object: charge } }),
+  }))
+  return { post, refund, notices, writes, tables }
 }
 
 test('a dues payment marks the dues paid and sends one payment notice; a Stripe redelivery sends none', async () => {
@@ -2823,4 +2857,106 @@ test('the blast route sends nothing when the email body fails the check', async 
   const good = await post(`<p>Hi</p><img src="${PREFIX}2026-10/a.png">`)
   assert.equal(good.status, 200)
   assert.equal(published, 1)
+})
+
+
+// Payment plans (Tyler, Oct 24): part payments add up, and a refund of any one
+// of them comes off only that one.
+test('part payments add up, and a repeated Stripe event counts once', async () => {
+  const h = stripeWebhookHarness({ duesRow: { amount_cents: 32500, payment_plan: true } })
+  await h.post({ id: 'cs_a', amount_total: 5000, payment_intent: 'pi_a' })
+  assert.equal(h.tables.dues_payments[0].amount_paid_cents, 5000)
+  assert.equal(h.tables.dues_payments[0].status, 'partial')
+  await h.post({ id: 'cs_b', amount_total: 10000, payment_intent: 'pi_b' })
+  await h.post({ id: 'cs_a', amount_total: 5000, payment_intent: 'pi_a' })
+  assert.equal(h.tables.dues_payments[0].amount_paid_cents, 15000)
+  assert.equal(h.notices.length, 2)
+  assert.equal(h.notices[1].facts.paidNowCents, 10000)
+  assert.equal(h.notices[1].facts.paidTotalCents, 15000)
+  await h.post({ id: 'cs_c', amount_total: 17500, payment_intent: 'pi_c' })
+  assert.equal(h.tables.dues_payments[0].status, 'paid')
+})
+
+test('refunding an earlier part payment takes off only that refund', async () => {
+  const h = stripeWebhookHarness({ duesRow: { amount_cents: 32500, payment_plan: true } })
+  await h.post({ id: 'cs_a', amount_total: 5000, payment_intent: 'pi_a' })
+  await h.post({ id: 'cs_b', amount_total: 10000, payment_intent: 'pi_b' })
+  // $20 back on the first payment, then Stripe sends the same refund again.
+  await h.refund({ payment_intent: 'pi_a', amount: 5000, amount_refunded: 2000 })
+  await h.refund({ payment_intent: 'pi_a', amount: 5000, amount_refunded: 2000 })
+  assert.equal(h.tables.dues_payments[0].amount_paid_cents, 13000)
+  assert.equal(h.tables.dues_payments[0].status, 'partial')
+  const refunds = h.notices.filter((n) => n.subject === 'out')
+  assert.equal(refunds.length, 1)
+  assert.equal(refunds[0].f.amountCents, 2000)
+  assert.match(refunds[0].f.detail, /Now \$130\.00 paid of \$325\.00/)
+  // The rest of the first payment, then all of the second.
+  await h.refund({ payment_intent: 'pi_a', amount: 5000, amount_refunded: 5000 })
+  await h.refund({ payment_intent: 'pi_b', amount: 10000, amount_refunded: 10000 })
+  assert.equal(h.tables.dues_payments[0].amount_paid_cents, 0)
+  assert.equal(h.tables.dues_payments[0].status, 'pending')
+})
+
+test('a payment plan family can pay part of the balance, $25 or more; everyone else pays it all', () => {
+  const lib = load('src/lib/payments/dues-amount.ts', {})
+  const plan = (requestedCents) => lib.duesCheckoutAmount({ remainingCents: 32500, paymentPlan: true, requestedCents })
+  assert.deepEqual(plain(plan(5000)), { ok: true, amountCents: 5000 })
+  assert.deepEqual(plain(plan(undefined)), { ok: true, amountCents: 32500 })
+  assert.deepEqual(plain(plan(2500)), { ok: true, amountCents: 2500 })
+  assert.match(plan(2499).error, /smallest payment is \$25/)
+  assert.match(plan(40000).error, /more than you owe.*\$325/)
+  assert.equal(plan(0).ok, false)
+  assert.equal(plan(12.5).ok, false)
+  // $10 left: the balance is the payment, even under $25.
+  assert.deepEqual(plain(lib.duesCheckoutAmount({ remainingCents: 1000, paymentPlan: true, requestedCents: 1000 })), { ok: true, amountCents: 1000 })
+  const regular = (requestedCents) => lib.duesCheckoutAmount({ remainingCents: 32500, paymentPlan: false, requestedCents })
+  assert.match(regular(5000).error, /full balance of \$325/)
+  assert.deepEqual(plain(regular(32500)), { ok: true, amountCents: 32500 })
+  assert.equal(lib.duesCheckoutAmount({ remainingCents: 0, paymentPlan: true }).ok, false)
+  assert.equal(lib.parseDollars('$1,000.50'), 100050)
+  assert.equal(lib.parseDollars('75.5'), 7550)
+  assert.equal(lib.parseDollars('75.555'), null)
+  assert.equal(lib.parseDollars('abc'), null)
+})
+
+function duesCheckoutHarness(dues, user = { id: 'p1', email: 'pat@x.com' }) {
+  const sessions = []
+  const route = load('src/app/api/checkout/route.ts', {
+    'next/server': require('next/server'),
+    '@/lib/stripe': { getStripeClient: () => ({ checkout: { sessions: { create: async (args) => { sessions.push(args); return { url: 'https://checkout.stripe.com/x' } } } } }) },
+    '@/lib/site-origin': { resolveSiteOrigin: () => ({ ok: true, origin: 'https://clwizards.com' }), siteOriginFixHint: () => '' },
+    '@/lib/alerts': { sendAlert: async () => {} },
+    '@/lib/supabase/server': { createServerSupabase: async () => ({ auth: { getUser: async () => ({ data: { user } }) } }) },
+    '@/lib/supabase/admin': { createAdminSupabase: () => ({ from: () => {
+      const q = { select: () => q, eq: () => q, single: async () => ({ data: dues, error: null }), maybeSingle: async () => ({ data: null, error: null }) }
+      return q
+    } }) },
+    '@/config/org.config': { ORG: { shortName: 'CLW' } },
+    '@/config/donations': { DONATIONS_ENABLED: true, DONATIONS_COMING_SOON_BODY: '' },
+    '@/lib/payments/dues-amount': load('src/lib/payments/dues-amount.ts', {}),
+  }, { STRIPE_SECRET_KEY: 'sk_test' })
+  const pay = (amountCents) => route.POST(new Request('https://clwizards.com/api/checkout', { method: 'POST', body: JSON.stringify({ flow: 'dues', duesId: 'dues-1', amountCents }) }))
+  return { pay, sessions }
+}
+
+test('the checkout charges only what the rules allow, whatever the page sends', async () => {
+  const base = { id: 'dues-1', parent_id: 'p1', athlete_id: 'k1', amount_cents: 32500, amount_paid_cents: 5000, season: '2026-27', status: 'partial' }
+  const plan = duesCheckoutHarness({ ...base, payment_plan: true })
+  assert.equal((await plan.pay(4000)).status, 200)
+  assert.equal(plan.sessions[0].line_items[0].price_data.unit_amount, 4000)
+  assert.equal((await plan.pay(1000)).status, 400)
+  assert.equal((await plan.pay(999999)).status, 400)
+  assert.equal(plan.sessions.length, 1)
+
+  const regular = duesCheckoutHarness({ ...base, payment_plan: false })
+  assert.equal((await regular.pay(4000)).status, 400)
+  assert.equal((await regular.pay(undefined)).status, 200)
+  assert.equal(regular.sessions[0].line_items[0].price_data.unit_amount, 27500)
+
+  const waived = duesCheckoutHarness({ ...base, payment_plan: true, status: 'waived' })
+  assert.equal((await waived.pay(undefined)).status, 400)
+  assert.equal(waived.sessions.length, 0)
+
+  const stranger = duesCheckoutHarness({ ...base, payment_plan: true }, { id: 'someone-else', email: 'x@x.com' })
+  assert.equal((await stranger.pay(4000)).status, 403)
 })
