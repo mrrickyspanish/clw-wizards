@@ -852,14 +852,15 @@ test('family setup skips a child already on file under different punctuation', a
 // Registrations: an admin may approve without the USA Wrestling card check.
 // The override is recorded with who and when; the note is optional; dues and
 // the waiver are still required.
-function reviewHarness({ card = null, duesStatus = 'paid', paymentPlan = false, signed = true, bound = true } = {}) {
+function reviewHarness({ card = null, duesStatus = 'paid', paymentPlan = false, signed = true, bound = true, parentEmail = null, dues = {} } = {}) {
   const updates = []
+  const emails = []
   const tableData = {
     season_enrollments: { id: 'enr-1', status: 'submitted', season_registration_id: 'season-1', athlete_id: 'ath-1', parent_id: 'par-1', dues_payment_id: 'dues-1', usa_card_document_id: card && bound ? 'card-1' : null },
     season_registrations: { id: 'season-1', require_usa_card: true, dues_amount_cents: 30000, season_label: '26-27', registration_open_date: '2026-08-01' },
     athletes: { first_name: 'Sam', last_name: 'Ortiz' },
-    profiles: { full_name: 'Pat Ortiz', email: null },
-    dues_payments: { status: duesStatus, payment_plan: paymentPlan },
+    profiles: { full_name: 'Pat Ortiz', email: parentEmail },
+    dues_payments: { status: duesStatus, payment_plan: paymentPlan, amount_cents: 32500, amount_paid_cents: 0, ...dues },
   }
   const listData = {
     // The wrestler's USA cards (the approval looks them up by wrestler).
@@ -883,13 +884,13 @@ function reviewHarness({ card = null, duesStatus = 'paid', paymentPlan = false, 
   }
   const actions = load('src/app/admin/registrations/actions.ts', {
     'next/cache': { revalidatePath: () => {} },
-    resend: { Resend: class {} },
+    resend: { Resend: class { constructor() { this.emails = { send: async (m) => { emails.push(m); return { error: null } } } } } },
     '@/lib/supabase/server': { createServerSupabase: async () => server },
     '@/lib/supabase/admin': { createAdminSupabase: () => ({ from: chain }) },
     '@/config/org.config': { ORG: { domain: 'example.org', shortName: 'CLW', name: 'Club' } },
     '@/lib/registration-card': load('src/lib/registration-card.ts', {}),
-  })
-  return { actions, updates }
+  }, { RESEND_API_KEY: 'k' })
+  return { actions, updates, emails }
 }
 
 test('approval still requires a verified card unless the admin overrides it', async () => {
@@ -3007,4 +3008,14 @@ test('a payment plan wrestler can be approved while still paying (Tyler, Oct 24)
   assert.equal(lib.duesClearForApproval({ status: 'pending', payment_plan: false }), false)
   assert.equal(lib.duesClearForApproval({ status: 'waived' }), true)
   assert.equal(lib.duesClearForApproval(null), false)
+})
+
+
+test('the approval email tells a payment plan family what is still owed', async () => {
+  const plan = reviewHarness({ card: { id: 'card-1', verified: true }, duesStatus: 'partial', paymentPlan: true, parentEmail: 'pat@x.com', dues: { amount_paid_cents: 7500 } })
+  await plan.actions.reviewSeasonEnrollment({ enrollmentId: '11111111-1111-4111-a111-111111111111', status: 'approved' })
+  assert.match(plan.emails[0].text, /cleared for the season\. You're on a payment plan with \$250\.00 left to pay/)
+  const paid = reviewHarness({ card: { id: 'card-1', verified: true }, duesStatus: 'paid', parentEmail: 'pat@x.com', dues: { amount_paid_cents: 32500 } })
+  await paid.actions.reviewSeasonEnrollment({ enrollmentId: '11111111-1111-4111-a111-111111111111', status: 'approved' })
+  assert.doesNotMatch(paid.emails[0].text, /payment plan|left to pay/)
 })

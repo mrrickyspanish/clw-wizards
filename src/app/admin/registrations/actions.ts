@@ -272,7 +272,7 @@ export async function reviewSeasonEnrollment(values: z.input<typeof reviewSchema
     admin.from('athletes').select('first_name, last_name').eq('id', enrollment.athlete_id).single(),
     admin.from('profiles').select('full_name, email').eq('id', enrollment.parent_id).single(),
     enrollment.dues_payment_id
-      ? admin.from('dues_payments').select('status, payment_plan').eq('id', enrollment.dues_payment_id).single()
+      ? admin.from('dues_payments').select('status, payment_plan, amount_cents, amount_paid_cents').eq('id', enrollment.dues_payment_id).single()
       : Promise.resolve({ data: null, error: null }),
     admin
       .from('athlete_documents')
@@ -345,6 +345,12 @@ export async function reviewSeasonEnrollment(values: z.input<typeof reviewSchema
         seasonLabel: season.season_label,
         status: parsed.data.status,
         note: parsed.data.note || null,
+        // Approved on a payment plan: say what is still owed, so "cleared for
+        // the season" isn't read as "nothing left to pay".
+        balanceCents:
+          dues && dues.status !== 'paid' && dues.status !== 'waived'
+            ? Math.max(0, dues.amount_cents - dues.amount_paid_cents)
+            : 0,
       })
     } catch (error) {
       console.error('Season registration status email failed:', error)
@@ -362,6 +368,7 @@ async function sendStatusEmail(params: {
   seasonLabel: string
   status: 'changes_requested' | 'approved' | 'withdrawn'
   note: string | null
+  balanceCents?: number
 }) {
   const key = process.env.RESEND_API_KEY
   if (!key) return
@@ -377,7 +384,11 @@ async function sendStatusEmail(params: {
 
   const statusCopy =
     params.status === 'approved'
-      ? `The club approved ${params.athleteName}'s registration for ${params.seasonLabel}. The wrestler is cleared for the season.`
+      ? `The club approved ${params.athleteName}'s registration for ${params.seasonLabel}. The wrestler is cleared for the season.${
+          params.balanceCents && params.balanceCents > 0
+            ? ` You're on a payment plan with $${(params.balanceCents / 100).toFixed(2)} left to pay; pay any amount of $25 or more on the Dues page.`
+            : ''
+        }`
       : params.status === 'changes_requested'
         ? `The club reviewed ${params.athleteName}'s registration and needs an update before it can be approved.`
         : `${params.athleteName}'s registration for ${params.seasonLabel} was marked withdrawn.`
