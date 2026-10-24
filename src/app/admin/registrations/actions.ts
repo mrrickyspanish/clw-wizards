@@ -8,6 +8,7 @@ import { registrationCard } from '@/lib/registration-card'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { ORG } from '@/config/org.config'
+import { duesClearForApproval } from '@/lib/payments/dues-amount'
 
 export type ActionResult = { ok: true } | { ok: false; error: string }
 
@@ -271,7 +272,7 @@ export async function reviewSeasonEnrollment(values: z.input<typeof reviewSchema
     admin.from('athletes').select('first_name, last_name').eq('id', enrollment.athlete_id).single(),
     admin.from('profiles').select('full_name, email').eq('id', enrollment.parent_id).single(),
     enrollment.dues_payment_id
-      ? admin.from('dues_payments').select('status').eq('id', enrollment.dues_payment_id).single()
+      ? admin.from('dues_payments').select('status, payment_plan').eq('id', enrollment.dues_payment_id).single()
       : Promise.resolve({ data: null, error: null }),
     admin
       .from('athlete_documents')
@@ -290,8 +291,8 @@ export async function reviewSeasonEnrollment(values: z.input<typeof reviewSchema
     if (season.require_usa_card && !card?.verified && !overrideCard) {
       return { ok: false, error: 'Verify the current-season USA Wrestling card before approving this registration.' }
     }
-    if (season.dues_amount_cents > 0 && dues?.status !== 'paid' && dues?.status !== 'waived') {
-      return { ok: false, error: 'Season dues must be paid or waived before approval.' }
+    if (season.dues_amount_cents > 0 && !duesClearForApproval(dues)) {
+      return { ok: false, error: 'Season dues must be paid, waived or on a payment plan before approval.' }
     }
 
     // The submit RPC already refuses unsigned enrollments, so this should never

@@ -18,6 +18,7 @@ function load(relative, mocks, env = {}, logs = [], fetcher = fetch, globals = {
   if (relative.startsWith('src/app/') || relative === 'src/middleware.ts') mocks['@/lib/safe-path'] ??= safePath
   if (relative.startsWith('src/app/')) mocks['@/lib/phone'] ??= phoneLib
   if (relative.startsWith('src/app/')) mocks['@/lib/child-key'] ??= childKeyLib
+  if (relative.startsWith('src/app/')) mocks['@/lib/payments/dues-amount'] ??= duesAmountLib
   const filename = path.join(__dirname, '..', relative)
   const code = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
@@ -37,6 +38,7 @@ const incidentPolicy = load('src/lib/auth/incident-policy.ts', {})
 const safePath = load('src/lib/safe-path.ts', {})
 const phoneLib = load('src/lib/phone.ts', {})
 const childKeyLib = load('src/lib/child-key.ts', {})
+const duesAmountLib = load('src/lib/payments/dues-amount.ts', {})
 const incidentId = '11111111-1111-4111-a111-111111111111'
 
 test('rejected confirmation/reset callbacks retain one attempt reference through fallback redirects', async () => {
@@ -850,14 +852,14 @@ test('family setup skips a child already on file under different punctuation', a
 // Registrations: an admin may approve without the USA Wrestling card check.
 // The override is recorded with who and when; the note is optional; dues and
 // the waiver are still required.
-function reviewHarness({ card = null, duesStatus = 'paid', signed = true, bound = true } = {}) {
+function reviewHarness({ card = null, duesStatus = 'paid', paymentPlan = false, signed = true, bound = true } = {}) {
   const updates = []
   const tableData = {
     season_enrollments: { id: 'enr-1', status: 'submitted', season_registration_id: 'season-1', athlete_id: 'ath-1', parent_id: 'par-1', dues_payment_id: 'dues-1', usa_card_document_id: card && bound ? 'card-1' : null },
     season_registrations: { id: 'season-1', require_usa_card: true, dues_amount_cents: 30000, season_label: '26-27', registration_open_date: '2026-08-01' },
     athletes: { first_name: 'Sam', last_name: 'Ortiz' },
     profiles: { full_name: 'Pat Ortiz', email: null },
-    dues_payments: { status: duesStatus },
+    dues_payments: { status: duesStatus, payment_plan: paymentPlan },
   }
   const listData = {
     // The wrestler's USA cards (the approval looks them up by wrestler).
@@ -919,7 +921,7 @@ test('the override keeps an optional note and never skips dues or the waiver', a
   const unpaid = reviewHarness({ duesStatus: 'pending' })
   const r1 = await unpaid.actions.reviewSeasonEnrollment({ enrollmentId: '11111111-1111-4111-a111-111111111111', status: 'approved', overrideCard: true })
   assert.equal(r1.ok, false)
-  assert.match(r1.error, /dues must be paid or waived/)
+  assert.match(r1.error, /dues must be paid, waived or on a payment plan/)
 
   const unsigned = reviewHarness({ signed: false })
   const r2 = await unsigned.actions.reviewSeasonEnrollment({ enrollmentId: '11111111-1111-4111-a111-111111111111', status: 'approved', overrideCard: true })
@@ -2990,4 +2992,19 @@ test('a balance under 50 cents is not sent to the card processor', () => {
   const lib = load('src/lib/payments/dues-amount.ts', {})
   assert.match(lib.duesCheckoutAmount({ remainingCents: 30, paymentPlan: false }).error, /Contact the club/)
   assert.equal(lib.duesCheckoutAmount({ remainingCents: 50, paymentPlan: false }).ok, true)
+})
+
+
+test('a payment plan wrestler can be approved while still paying (Tyler, Oct 24)', async () => {
+  const plan = reviewHarness({ card: { id: 'card-1', verified: true }, duesStatus: 'partial', paymentPlan: true })
+  const ok = await plan.actions.reviewSeasonEnrollment({ enrollmentId: '11111111-1111-4111-a111-111111111111', status: 'approved' })
+  assert.equal(ok.ok, true)
+  const notPlan = reviewHarness({ card: { id: 'card-1', verified: true }, duesStatus: 'partial', paymentPlan: false })
+  const refused = await notPlan.actions.reviewSeasonEnrollment({ enrollmentId: '11111111-1111-4111-a111-111111111111', status: 'approved' })
+  assert.equal(refused.ok, false)
+  const lib = load('src/lib/payments/dues-amount.ts', {})
+  assert.equal(lib.duesClearForApproval({ status: 'pending', payment_plan: true }), true)
+  assert.equal(lib.duesClearForApproval({ status: 'pending', payment_plan: false }), false)
+  assert.equal(lib.duesClearForApproval({ status: 'waived' }), true)
+  assert.equal(lib.duesClearForApproval(null), false)
 })

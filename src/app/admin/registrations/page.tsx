@@ -27,6 +27,7 @@ import { BirthCertificateDocument } from './BirthCertificateDocument'
 import { latestRejections, rejectionLine } from '@/lib/documents/review-queue'
 import { BirthCertificateToggle } from './BirthCertificateToggle'
 import { AdminSearch } from '../AdminSearch'
+import { duesClearForApproval } from '@/lib/payments/dues-amount'
 
 // Tony's living roster spreadsheet. Kept in an environment variable rather
 // than in Website content because that table is publicly readable, and this
@@ -388,8 +389,12 @@ export default async function AdminRegistrationsPage({ searchParams }: { searchP
           // re-approving still needs a verified card or a fresh override.
           const cardClearedByClub = enrollment.status === 'approved' && Boolean(enrollment.card_override_at)
           const documentReady = !season?.require_usa_card || Boolean(card?.verified) || cardClearedByClub
-          const paymentReady =
-            !season || season.dues_amount_cents === 0 || dues?.status === 'paid' || dues?.status === 'waived'
+          const paymentReady = !season || season.dues_amount_cents === 0 || duesClearForApproval(dues)
+          // Approvable while paying: say what is still owed.
+          const planBalance =
+            dues?.payment_plan && dues.status !== 'paid' && dues.status !== 'waived'
+              ? Math.max(0, dues.amount_cents - dues.amount_paid_cents)
+              : 0
 
           const acceptances =
             acceptancesByEnrollment.get(`${enrollment.season_registration_id}:${enrollment.athlete_id}`) ?? []
@@ -558,7 +563,9 @@ export default async function AdminRegistrationsPage({ searchParams }: { searchP
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-clw-gold/10 pt-4">
                   <p className="text-sm text-clw-gray">
                     {approvalReady
-                      ? 'Current-season documentation, agreements, and payment are ready for approval.'
+                      ? planBalance > 0
+                        ? `Current-season documentation and agreements are ready for approval. On a payment plan: ${formatCents(planBalance)} left to pay.`
+                        : 'Current-season documentation, agreements, and payment are ready for approval.'
                       : [
                           documentReady
                             ? null

@@ -43,3 +43,14 @@ export function parseDollars(input: string): number | null {
   if (!/^\d+(\.\d{1,2})?$/.test(clean)) return null
   return Math.round(Number(clean) * 100)
 }
+
+/**
+ * Whether dues let a registration be approved: paid, waived, or on a payment
+ * plan (Tyler, Oct 24: payment plan wrestlers are approved while they pay; the
+ * balance and the weekly reminders carry on). Registrations and the approve
+ * action both ask this.
+ */
+export function duesClearForApproval(dues: { status: string; payment_plan?: boolean | null } | null | undefined): boolean {
+  if (!dues) return false
+  return dues.status === 'paid' || dues.status === 'waived' || dues.payment_plan === true
+}
