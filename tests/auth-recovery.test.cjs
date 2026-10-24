@@ -1812,6 +1812,7 @@ test('an empty or unreadable list falls back to the club contact; no key sends n
 
 function stripeWebhookHarness({ duesRow, noticeThrows = false } = {}) {
   const notices = []
+  const alerts = []
   const writes = []
   const tables = {
     dues_payments: [{ id: 'dues-1', amount_cents: 35000, amount_paid_cents: 0, parent_id: 'p1', athlete_id: 'k1', season: '2026-27', stripe_checkout_session_id: null, status: 'pending', ...duesRow }],
@@ -1871,7 +1872,7 @@ function stripeWebhookHarness({ duesRow, noticeThrows = false } = {}) {
     'next/server': require('next/server'),
     resend: { Resend },
     '@/lib/stripe': { getStripeClient: () => ({ webhooks: { constructEvent: (body) => JSON.parse(body) } }) },
-    '@/lib/alerts': { sendAlert: async () => {} },
+    '@/lib/alerts': { sendAlert: async (title, details) => { alerts.push({ title, details }) } },
     '@/lib/supabase/admin': { createAdminSupabase: () => ({ from: query, rpc }) },
     '@/lib/format/money': { formatCents: (cents) => `$${(cents / 100).toFixed(2)}` },
     '@/config/org.config': { ORG: { contactEmail: 'club@example.com', shortName: 'CLW', domain: 'clwizards.com' } },
@@ -1882,17 +1883,17 @@ function stripeWebhookHarness({ duesRow, noticeThrows = false } = {}) {
       moneyOutNotice: (f) => ({ subject: 'out', f }),
     },
   }, { STRIPE_WEBHOOK_SECRET: 'whsec_test', RESEND_API_KEY: 're_test' })
-  const post = (session) => route.POST(new Request('https://x/api/webhooks/stripe', {
+  const post = (session, type = 'checkout.session.completed') => route.POST(new Request('https://x/api/webhooks/stripe', {
     method: 'POST',
     headers: { 'stripe-signature': 'sig' },
-    body: JSON.stringify({ id: 'evt', type: 'checkout.session.completed', data: { object: { id: 'cs_1', amount_total: 35000, payment_intent: 'pi_1', customer_details: { email: 'pat@x.com' }, metadata: { flow: 'dues', dues_id: 'dues-1' }, ...session } } }),
+    body: JSON.stringify({ id: 'evt', type, data: { object: { id: 'cs_1', amount_total: 35000, payment_intent: 'pi_1', payment_status: 'paid', customer_details: { email: 'pat@x.com' }, metadata: { flow: 'dues', dues_id: 'dues-1' }, ...session } } }),
   }))
   const refund = (charge) => route.POST(new Request('https://x/api/webhooks/stripe', {
     method: 'POST',
     headers: { 'stripe-signature': 'sig' },
     body: JSON.stringify({ id: 'evt_r', type: 'charge.refunded', data: { object: charge } }),
   }))
-  return { post, refund, notices, writes, tables }
+  return { post, refund, notices, alerts, writes, tables }
 }
 
 test('a dues payment marks the dues paid and sends one payment notice; a Stripe redelivery sends none', async () => {
@@ -2959,4 +2960,34 @@ test('the checkout charges only what the rules allow, whatever the page sends', 
 
   const stranger = duesCheckoutHarness({ ...base, payment_plan: true }, { id: 'someone-else', email: 'x@x.com' })
   assert.equal((await stranger.pay(4000)).status, 403)
+})
+
+
+// Payment plan review (Oct 24): money counts only once it arrives, and a
+// double payment is flagged for a refund.
+test('a bank payment still clearing is not counted until Stripe says it arrived', async () => {
+  const h = stripeWebhookHarness({ duesRow: { amount_cents: 32500, payment_plan: true } })
+  await h.post({ id: 'cs_bank', amount_total: 5000, payment_intent: 'pi_bank', payment_status: 'unpaid' })
+  assert.equal(h.tables.dues_payments[0].amount_paid_cents, 0)
+  assert.equal(h.notices.length, 0)
+  assert.match(h.alerts[0].title, /not yet received/)
+  await h.post({ id: 'cs_bank', amount_total: 5000, payment_intent: 'pi_bank', payment_status: 'paid' }, 'checkout.session.async_payment_succeeded')
+  assert.equal(h.tables.dues_payments[0].amount_paid_cents, 5000)
+  assert.equal(h.notices.length, 1)
+})
+
+test('two checkouts paid at once are flagged for a refund of the extra', async () => {
+  const h = stripeWebhookHarness({ duesRow: { amount_cents: 32500, payment_plan: true } })
+  await h.post({ id: 'cs_tab1', amount_total: 32500, payment_intent: 'pi_tab1' })
+  assert.equal(h.alerts.length, 0)
+  await h.post({ id: 'cs_tab2', amount_total: 32500, payment_intent: 'pi_tab2' })
+  assert.equal(h.tables.dues_payments[0].amount_paid_cents, 32500)
+  assert.match(h.alerts[0].title, /overpaid/)
+  assert.equal(h.alerts[0].details.paidByCard, '$650.00')
+})
+
+test('a balance under 50 cents is not sent to the card processor', () => {
+  const lib = load('src/lib/payments/dues-amount.ts', {})
+  assert.match(lib.duesCheckoutAmount({ remainingCents: 30, paymentPlan: false }).error, /Contact the club/)
+  assert.equal(lib.duesCheckoutAmount({ remainingCents: 50, paymentPlan: false }).ok, true)
 })

@@ -41,6 +41,20 @@ export async function POST(request: Request) {
 
   try {
     switch (event.type) {
+      // A bank payment (if one is ever turned on in Stripe) completes the
+      // checkout before the money arrives; it is recorded when it clears.
+      case 'checkout.session.async_payment_succeeded': {
+        const session = event.data.object as Stripe.Checkout.Session
+        if (session.metadata?.flow === 'dues') await handleDuesFlow(session)
+        break
+      }
+      case 'checkout.session.async_payment_failed': {
+        const session = event.data.object as Stripe.Checkout.Session
+        if (session.metadata?.flow === 'dues') {
+          await sendAlert('Dues bank payment failed', { sessionId: session.id, duesId: session.metadata?.dues_id })
+        }
+        break
+      }
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
         const flow = session.metadata?.flow
@@ -111,6 +125,18 @@ async function handleDuesFlow(session: Stripe.Checkout.Session) {
   if (amountPaidCents <= 0) {
     throw new Error(`Stripe dues checkout ${session.id} has an invalid payment amount.`)
   }
+  // Only money that has arrived counts toward the balance. A card payment is
+  // 'paid' here; a bank payment is 'unpaid' until it clears, and then
+  // checkout.session.async_payment_succeeded brings it back here.
+  if (session.payment_status !== 'paid') {
+    await sendAlert('Dues payment started but not yet received', {
+      sessionId: session.id,
+      duesId,
+      paymentStatus: session.payment_status,
+      amount: formatCents(amountPaidCents),
+    })
+    return
+  }
 
   const paymentIntentId =
     typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id ?? null
@@ -129,6 +155,19 @@ async function handleDuesFlow(session: Stripe.Checkout.Session) {
   const dues = (rows ?? [])[0]
   if (!dues) throw new Error(`Dues record not found for ${duesId}`)
   if (!dues.applied) return
+
+  // Two checkouts open at once (two tabs, two parents) can both be paid. The
+  // record stops at the amount billed, so say so: the extra needs a refund.
+  const { data: charges } = await supabase.from('dues_charges').select('net_cents').eq('dues_id', duesId)
+  const cardTotal = (charges ?? []).reduce((sum, c) => sum + c.net_cents, 0)
+  if (cardTotal > dues.amount_cents) {
+    await sendAlert('Dues overpaid: refund the extra in Stripe', {
+      duesId,
+      billed: formatCents(dues.amount_cents),
+      paidByCard: formatCents(cardTotal),
+      sessionId: session.id,
+    })
+  }
 
   await noticeDuesPayment({
     parentId: dues.parent_id,

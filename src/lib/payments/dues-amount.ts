@@ -7,6 +7,7 @@
  */
 
 export const PAYMENT_PLAN_MIN_CENTS = 2500
+const STRIPE_MIN_CENTS = 50
 
 export type DuesAmountResult = { ok: true; amountCents: number } | { ok: false; error: string }
 
@@ -21,6 +22,10 @@ export function duesCheckoutAmount(p: {
   if (!(remainingCents > 0)) return { ok: false, error: 'These dues are already paid in full.' }
   const requested = p.requestedCents ?? remainingCents
   if (!Number.isInteger(requested) || requested <= 0) return { ok: false, error: 'Enter an amount to pay.' }
+  // Stripe can't charge less than 50¢; a balance that small needs the club.
+  if (requested === remainingCents && remainingCents < STRIPE_MIN_CENTS) {
+    return { ok: false, error: 'This balance is too small to pay by card. Contact the club to settle it.' }
+  }
   if (requested === remainingCents) return { ok: true, amountCents: remainingCents }
   if (!paymentPlan) return { ok: false, error: `Pay the full balance of ${dollars(remainingCents)}.` }
   if (requested > remainingCents) {
