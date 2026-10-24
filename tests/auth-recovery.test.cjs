@@ -3015,6 +3015,7 @@ test('the approval email tells a payment plan family what is still owed', async 
   const plan = reviewHarness({ card: { id: 'card-1', verified: true }, duesStatus: 'partial', paymentPlan: true, parentEmail: 'pat@x.com', dues: { amount_paid_cents: 7500 } })
   await plan.actions.reviewSeasonEnrollment({ enrollmentId: '11111111-1111-4111-a111-111111111111', status: 'approved' })
   assert.match(plan.emails[0].text, /cleared for the season\. You're on a payment plan with \$250\.00 left to pay/)
+  assert.doesNotMatch(plan.emails[0].text, /\$25 |or more|minimum/)
   const paid = reviewHarness({ card: { id: 'card-1', verified: true }, duesStatus: 'paid', parentEmail: 'pat@x.com', dues: { amount_paid_cents: 32500 } })
   await paid.actions.reviewSeasonEnrollment({ enrollmentId: '11111111-1111-4111-a111-111111111111', status: 'approved' })
   assert.doesNotMatch(paid.emails[0].text, /payment plan|left to pay/)

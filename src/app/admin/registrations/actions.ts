@@ -386,7 +386,7 @@ async function sendStatusEmail(params: {
     params.status === 'approved'
       ? `The club approved ${params.athleteName}'s registration for ${params.seasonLabel}. The wrestler is cleared for the season.${
           params.balanceCents && params.balanceCents > 0
-            ? ` You're on a payment plan with $${(params.balanceCents / 100).toFixed(2)} left to pay; pay any amount of $25 or more on the Dues page.`
+            ? ` You're on a payment plan with $${(params.balanceCents / 100).toFixed(2)} left to pay.`
             : ''
         }`
       : params.status === 'changes_requested'
