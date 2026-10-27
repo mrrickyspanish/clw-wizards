@@ -18,11 +18,18 @@ type AdminClient = ReturnType<typeof createAdminSupabase>
 const escapeHtml = (text: string) =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 
-export const parentLoginSchema = z.object({
-  name: z.string().trim().min(1, 'Enter their name').max(120),
-  email: z.string().trim().toLowerCase().email('Enter a valid email address').max(254),
-  athleteIds: z.array(z.string().uuid()).min(1, 'Pick at least one wrestler').max(20),
-})
+export const parentLoginSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Enter their name').max(120),
+    email: z.string().trim().toLowerCase().email('Enter a valid email address').max(254),
+    // Typed twice: a typo would email a stranger a way into a child's records.
+    emailAgain: z.string().trim().toLowerCase(),
+    athleteIds: z.array(z.string().uuid()).min(1, 'Pick at least one wrestler').max(20),
+    // An email that already has a login is linked only once the admin has seen
+    // whose login it is and said yes.
+    linkExisting: z.boolean().optional(),
+  })
+  .refine((v) => v.email === v.emailAgain, { message: "The two emails don't match.", path: ['emailAgain'] })
 export type ParentLoginInput = z.input<typeof parentLoginSchema>
 
 export type ParentLoginResult =
@@ -30,7 +37,9 @@ export type ParentLoginResult =
   | { ok: true; outcome: 'created'; emailed: boolean; wrestlers: string[] }
   // linked: they already had a parent login, now linked to these wrestlers too.
   | { ok: true; outcome: 'linked'; wrestlers: string[] }
-  | { ok: false; error: string }
+  // existingName: the email already has a parent login under this name; ask
+  // the admin before linking it (send again with linkExisting).
+  | { ok: false; error: string; existingName?: string }
 
 export type SetPasswordEmail = (input: { email: string; name: string; wrestlers: string[] }) => Promise<boolean>
 
@@ -41,7 +50,8 @@ export async function addParentLogin(
   sendEmail: SetPasswordEmail = sendParentLoginEmail
 ): Promise<ParentLoginResult> {
   const parsed = parentLoginSchema.safeParse(values)
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Check the details and try again.' }
+  if (!parsed.success)
+    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Check the details and try again.' }
   const { name, email } = parsed.data
   const athleteIds = [...new Set(parsed.data.athleteIds)]
 
@@ -71,7 +81,7 @@ export async function addParentLogin(
   // Profile emails are stored lowercase, the same as their logins.
   const { data: existing } = await admin
     .from('profiles')
-    .select('id, role, is_active')
+    .select('id, role, is_active, full_name')
     .eq('email', email)
     .maybeSingle()
 
@@ -88,11 +98,15 @@ export async function addParentLogin(
       .eq('owner_id', ownerId)
       .eq('guardian_id', existing.id)
       .maybeSingle()
-    if (link) {
-      const current: string[] | null = link.athlete_ids
-      if (current === null) return { ok: false, error: 'They already see every wrestler on this family.' }
-      const adding = athleteIds.filter((id) => !current.includes(id))
-      if (!adding.length) return { ok: false, error: `They already see ${athleteIds.map(kidName).join(' and ')}.` }
+    const current: string[] | null | undefined = link ? link.athlete_ids : undefined
+    if (current === null) return { ok: false, error: 'They already see every wrestler on this family.' }
+    const adding = current ? athleteIds.filter((id) => !current.includes(id)) : athleteIds
+    if (!adding.length) return { ok: false, error: `They already see ${athleteIds.map(kidName).join(' and ')}.` }
+    if (!parsed.data.linkExisting) {
+      const existingName = existing.full_name || email
+      return { ok: false, existingName, error: `That email already has a login: ${existingName}.` }
+    }
+    if (link && current) {
       const { error } = await admin
         .from('family_guardians')
         .update({ athlete_ids: [...current, ...adding] })
@@ -127,7 +141,12 @@ export async function addParentLogin(
   const [first, ...rest] = name.split(/\s+/)
   const { data: profile } = await admin
     .from('profiles')
-    .update({ full_name: name, first_name: first, last_name: rest.join(' ') || null, onboarding_completed_at: new Date().toISOString() })
+    .update({
+      full_name: name,
+      first_name: first,
+      last_name: rest.join(' ') || null,
+      onboarding_completed_at: new Date().toISOString(),
+    })
     .eq('id', newId)
     .eq('role', 'parent')
     .select('id')

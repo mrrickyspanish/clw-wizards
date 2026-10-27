@@ -3077,7 +3077,7 @@ function loginDb(extra = {}) {
       { id: 'o2', role: 'parent', is_active: true, email: 'other@example.org' },
       { id: 'staff', role: 'admin', is_active: true, email: 'coach@example.org' },
       { id: 'off', role: 'parent', is_active: false, email: 'off@example.org' },
-      { id: 'dad', role: 'parent', is_active: true, email: 'dad@example.org' },
+      { id: 'dad', role: 'parent', is_active: true, email: 'dad@example.org', full_name: 'Dad Ray' },
     ],
     athletes: [
       { id: KA, parent_id: 'o1', first_name: 'Wes', last_name: 'Ray' },
@@ -3113,7 +3113,7 @@ const loginLib = (env = {}, sent = [], admin = null) => load('src/lib/parent-log
 test('a new parent login is linked, locked, to only the wrestlers picked, and emailed', async () => {
   const { db, tables, auth } = loginDb()
   const emails = []
-  const result = await loginLib().addParentLogin(db.client, 'o1', { name: ' Josh  Ray ', email: 'Josh@Example.org ', athleteIds: [KA] }, async (e) => { emails.push(e); return true })
+  const result = await loginLib().addParentLogin(db.client, 'o1', { name: ' Josh  Ray ', email: 'Josh@Example.org ', emailAgain: 'Josh@Example.org ', athleteIds: [KA] }, async (e) => { emails.push(e); return true })
   assert.deepEqual(plain(result), { ok: true, outcome: 'created', emailed: true, wrestlers: ['Wes Ray'] })
   assert.equal(auth.created[0].email, 'josh@example.org')
   assert.equal('password' in auth.created[0], false)
@@ -3126,7 +3126,8 @@ test('a new parent login is linked, locked, to only the wrestlers picked, and em
 test('add parent login refuses the family\'s own email, a staff login, a turned-off login and another family\'s wrestler', async () => {
   const lib = loginLib()
   const send = async () => { throw new Error('no email expected') }
-  for (const [email, ids, message] of [
+  for (const [email, ids, message, again] of [
+    ['new@example.org', [KA], /don't match/, 'new@example.orgx'],
     ['mom@example.org', [KA], /own login/],
     ['coach@example.org', [KA], /staff login/],
     ['off@example.org', [KA], /turned off/],
@@ -3134,7 +3135,7 @@ test('add parent login refuses the family\'s own email, a staff login, a turned-
     ['new@example.org', [], /at least one/],
   ]) {
     const { db, tables, auth } = loginDb()
-    const result = await lib.addParentLogin(db.client, 'o1', { name: 'X Y', email, athleteIds: ids }, send)
+    const result = await lib.addParentLogin(db.client, 'o1', { name: 'X Y', email, emailAgain: again ?? email, athleteIds: ids }, send)
     assert.equal(result.ok, false); assert.match(result.error, message)
     assert.equal(tables.family_guardians.length, 0); assert.equal(auth.created.length, 0)
   }
@@ -3144,19 +3145,23 @@ test('an existing parent login is linked without a new account or email, and onl
   const lib = loginLib()
   const send = async () => { throw new Error('no email expected') }
   let { db, tables, auth } = loginDb()
-  let result = await lib.addParentLogin(db.client, 'o1', { name: 'Dad', email: 'dad@example.org', athleteIds: [KA] }, send)
+  let result = await lib.addParentLogin(db.client, 'o1', { name: 'Dad', email: 'dad@example.org', emailAgain: 'dad@example.org', athleteIds: [KA] }, send)
+  assert.equal(result.ok, false) // asks first, naming whose login it is
+  assert.equal(result.existingName, 'Dad Ray')
+  assert.equal(tables.family_guardians.length, 0)
+  result = await lib.addParentLogin(db.client, 'o1', { name: 'Dad', email: 'dad@example.org', emailAgain: 'dad@example.org', athleteIds: [KA], linkExisting: true }, send)
   assert.deepEqual(plain(result), { ok: true, outcome: 'linked', wrestlers: ['Wes Ray'] })
   assert.equal(auth.created.length, 0)
   assert.deepEqual(plain(tables.family_guardians), [{ owner_id: 'o1', guardian_id: 'dad', athlete_ids: [KA], locked: true }])
   ;({ db, tables } = loginDb({ family_guardians: [{ id: 'l1', owner_id: 'o1', guardian_id: 'dad', athlete_ids: [KA], locked: false }] }))
-  result = await lib.addParentLogin(db.client, 'o1', { name: 'Dad', email: 'dad@example.org', athleteIds: [KA, KB] }, send)
+  result = await lib.addParentLogin(db.client, 'o1', { name: 'Dad', email: 'dad@example.org', emailAgain: 'dad@example.org', athleteIds: [KA, KB], linkExisting: true }, send)
   assert.deepEqual(plain(result), { ok: true, outcome: 'linked', wrestlers: ['Ana Ray'] })
   assert.deepEqual(plain(tables.family_guardians[0].athlete_ids), [KA, KB])
   assert.equal(tables.family_guardians[0].locked, false) // a family's own link keeps its setting
-  result = await lib.addParentLogin(db.client, 'o1', { name: 'Dad', email: 'dad@example.org', athleteIds: [KB] }, send)
+  result = await lib.addParentLogin(db.client, 'o1', { name: 'Dad', email: 'dad@example.org', emailAgain: 'dad@example.org', athleteIds: [KB] }, send)
   assert.equal(result.ok, false); assert.match(result.error, /already see Ana Ray/)
   ;({ db } = loginDb({ family_guardians: [{ id: 'l2', owner_id: 'o1', guardian_id: 'dad', athlete_ids: null, locked: false }] }))
-  result = await lib.addParentLogin(db.client, 'o1', { name: 'Dad', email: 'dad@example.org', athleteIds: [KA] }, send)
+  result = await lib.addParentLogin(db.client, 'o1', { name: 'Dad', email: 'dad@example.org', emailAgain: 'dad@example.org', athleteIds: [KA] }, send)
   assert.match(result.error, /every wrestler/)
 })
 
@@ -3169,10 +3174,10 @@ test('add parent login undoes the new account if the link cannot be saved, and r
     if (table === 'family_guardians') b.insert = () => Promise.resolve({ error: { message: 'boom' } })
     return b
   }
-  const result = await lib.addParentLogin(db.client, 'o1', { name: 'Josh Ray', email: 'josh@example.org', athleteIds: [KA] }, async () => true)
+  const result = await lib.addParentLogin(db.client, 'o1', { name: 'Josh Ray', email: 'josh@example.org', emailAgain: 'josh@example.org', athleteIds: [KA] }, async () => true)
   assert.equal(result.ok, false); assert.deepEqual(plain(auth.deleted), ['new1'])
   const again = loginDb()
-  const sent = await lib.addParentLogin(again.db.client, 'o1', { name: 'Josh Ray', email: 'josh@example.org', athleteIds: [KA] }, async () => { throw new Error('resend down') })
+  const sent = await lib.addParentLogin(again.db.client, 'o1', { name: 'Josh Ray', email: 'josh@example.org', emailAgain: 'josh@example.org', athleteIds: [KA] }, async () => { throw new Error('resend down') })
   assert.deepEqual(plain(sent), { ok: true, outcome: 'created', emailed: false, wrestlers: ['Wes Ray'] })
 })
 
@@ -3204,7 +3209,7 @@ test('last logged in comes from the login itself: a time, or never', async () =>
 
 test('only a full admin can add a parent login', async () => {
   const h = wrestlerDeleteHarness({ dues: cainDues, scope: 'limited' })
-  const result = await h.actions.addParentLoginAsAdmin('00000000-0000-4000-8000-000000000001', { name: 'A B', email: 'a@example.org', athleteIds: [KA] })
+  const result = await h.actions.addParentLoginAsAdmin('00000000-0000-4000-8000-000000000001', { name: 'A B', email: 'a@example.org', emailAgain: 'a@example.org', athleteIds: [KA] })
   assert.equal(result.ok, false)
   assert.match(result.error, /full admin/)
   assert.deepEqual(h.writes(), [])

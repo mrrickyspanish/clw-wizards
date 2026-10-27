@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { UserPlus } from 'lucide-react'
 
@@ -42,30 +42,46 @@ export function AddParentLoginDialog({
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [emailAgain, setEmailAgain] = useState('')
+  // Set when the email already has a login: whose, waiting for a yes.
+  const [existingName, setExistingName] = useState<string | null>(null)
   const [picked, setPicked] = useState<string[]>([athleteId])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState<string | null>(null)
+  // On a phone the answer can sit below the fold of the dialog: bring it up.
+  const answerRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (error || existingName) answerRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [error, existingName])
 
   function handleOpenChange(next: boolean) {
     setOpen(next)
     if (next) {
       setName('')
       setEmail('')
+      setEmailAgain('')
+      setExistingName(null)
       setPicked([athleteId])
       setError(null)
       setDone(null)
     }
   }
 
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault()
+  const emailsMatch = email.trim().toLowerCase() === emailAgain.trim().toLowerCase()
+
+  async function submit(linkExisting: boolean) {
     setError(null)
+    if (!emailsMatch) {
+      setError("The two emails don't match.")
+      return
+    }
     setLoading(true)
-    const result = await addParentLoginAsAdmin(ownerId, { name, email, athleteIds: picked })
+    const result = await addParentLoginAsAdmin(ownerId, { name, email, emailAgain, athleteIds: picked, linkExisting })
     setLoading(false)
     if (!result.ok) {
-      setError(result.error)
+      if (result.existingName) setExistingName(result.existingName)
+      else setError(result.error)
       return
     }
     const kids = listNames(result.wrestlers)
@@ -78,6 +94,11 @@ export function AddParentLoginDialog({
           : `Login made for ${kids}, but the email didn't go out. Ask them to go to the login page, tap Set or reset password and enter ${trimmed}.`
     )
     router.refresh()
+  }
+
+  function handleSubmit(event: FormEvent) {
+    event.preventDefault()
+    void submit(false)
   }
 
   const siblings = wrestlers.length > 1
@@ -109,12 +130,6 @@ export function AddParentLoginDialog({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription className="text-base">{error}</AlertDescription>
-              </Alert>
-            )}
-
             <div className="space-y-2">
               <Label htmlFor={`login_name_${athleteId}`}>Their name</Label>
               <Input
@@ -135,10 +150,32 @@ export function AddParentLoginDialog({
                 required
                 maxLength={254}
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value)
+                  setExistingName(null)
+                }}
                 autoComplete="off"
               />
-              <p className="text-sm text-clw-gray">We email them a link to set their password.</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor={`login_email_again_${athleteId}`}>Their email again</Label>
+              <Input
+                id={`login_email_again_${athleteId}`}
+                type="email"
+                required
+                maxLength={254}
+                value={emailAgain}
+                onChange={(e) => {
+                  setEmailAgain(e.target.value)
+                  setExistingName(null)
+                }}
+                autoComplete="off"
+              />
+              <p className="text-sm text-clw-gray">
+                We email them a link to set their password, so check it twice: whoever gets it sees the wrestler&apos;s
+                records.
+              </p>
             </div>
 
             {siblings && (
@@ -158,11 +195,37 @@ export function AddParentLoginDialog({
               </fieldset>
             )}
 
-            <DialogFooter>
-              <Button type="submit" disabled={loading || picked.length === 0}>
-                {loading ? 'Setting up…' : 'Add login'}
-              </Button>
-            </DialogFooter>
+            <div ref={answerRef} className="space-y-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription className="text-base">{error}</AlertDescription>
+                </Alert>
+              )}
+
+              {existingName ? (
+                <div className="space-y-3 rounded-md border border-clw-gold/30 bg-clw-gold/5 p-4">
+                  <p className="text-base text-clw-white">
+                    {email.trim().toLowerCase()} already has a login:{' '}
+                    <span className="font-medium">{existingName}</span>. Link that login to the wrestlers ticked? No
+                    email is sent.
+                  </p>
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <Button type="button" variant="outline" disabled={loading} onClick={() => setExistingName(null)}>
+                      Cancel
+                    </Button>
+                    <Button type="button" disabled={loading} onClick={() => void submit(true)}>
+                      {loading ? 'Linking…' : 'Link it'}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <DialogFooter>
+                  <Button type="submit" disabled={loading || picked.length === 0}>
+                    {loading ? 'Setting up…' : 'Add login'}
+                  </Button>
+                </DialogFooter>
+              )}
+            </div>
           </form>
         )}
       </DialogContent>
