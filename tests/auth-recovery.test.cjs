@@ -3020,3 +3020,48 @@ test('the approval email tells a payment plan family what is still owed', async 
   await paid.actions.reviewSeasonEnrollment({ enrollmentId: '11111111-1111-4111-a111-111111111111', status: 'approved' })
   assert.doesNotMatch(paid.emails[0].text, /payment plan|left to pay/)
 })
+
+// Coaches (Tyler, Oct 27): admins tick Coach on a parent or second parent and
+// Communications can send to everyone ticked.
+test('a Coaches send goes to the coach parents and coach second parents only, one copy each', async () => {
+  const tables = familyTables()
+  tables.profiles.find((p) => p.id === 'o2').is_coach = true
+  tables.profiles.find((p) => p.id === 'g2').is_coach = true
+  tables.profiles.push({ id: 'old', role: 'parent', is_active: false, email: 'old@example.org', is_coach: true })
+  tables.family_contacts.find((c) => c.email === 'maxonly@example.org').is_coach = true // o1 is not a coach
+  tables.family_contacts.push({ owner_id: 'o2', name: 'Same Person', email: 'Other@Example.org', athlete_ids: null, removed_at: null, is_coach: true })
+  tables.family_contacts.push({ owner_id: 'old', name: 'Gone Family', email: 'gonefam@example.org', athlete_ids: null, removed_at: null, is_coach: true })
+  tables.family_contacts.push({ owner_id: 'o1', name: 'Removed Coach', email: 'removedcoach@example.org', athlete_ids: null, removed_at: '2026-10-20T00:00:00Z', is_coach: true })
+  const lib = recipientsLib(tableDb(tables))
+  const coaches = await lib.resolveRecipients({ type: 'coaches' })
+  assert.deepEqual(plain(coaches.map((p) => p.id).sort()), ['g2', 'o2'])
+  const contacts = await lib.familyContactRecipients({ type: 'coaches' }, coaches)
+  assert.deepEqual(plain(contacts.map((c) => c.email)), ['maxonly@example.org'])
+})
+
+test('only an admin marks a second parent as a coach; the family cannot', async () => {
+  const lib = contactsLib()
+  const db = tableDb({ profiles: [{ id: 'o1', email: 'owner@example.org' }], family_contacts: [] })
+  await lib.saveFamilyContact(db.client, 'o1', { name: 'Dad', email: 'dad@example.org', isCoach: true }, 'family')
+  assert.equal('is_coach' in db.writes[0].values, false)
+  await lib.saveFamilyContact(db.client, 'o1', { name: 'Mom', email: 'mom@example.org', isCoach: true }, 'admin')
+  assert.equal(db.writes[1].values.is_coach, true)
+})
+
+test('interest in coaching comes from the form, matched by email or name', () => {
+  const lib = contactsLib()
+  const match = lib.coachInterestMatcher([
+    { name: 'Lena Abitu', email: 'Lena@Example.com', coach_interest: 'Yes' },
+    { name: 'Frank Abitu', email: 'frank@example.com', coach_interest: 'No' },
+    { name: 'Pat Noemail', email: null, coach_interest: 'yes ' },
+  ])
+  assert.equal(match('lena@example.com', null), true)
+  assert.equal(match('frank@example.com', 'Frank Abitu'), false)
+  assert.equal(match(null, 'pat noemail'), true)
+  assert.equal(match('someone@example.com', 'Someone'), false)
+})
+
+test('the board copy names a Coaches send', () => {
+  const lib = load('src/lib/comms/board-copy.ts', { '@/lib/supabase/admin': {}, '@/lib/comms/send-email': {}, '@/lib/comms/labels': { COMM_TYPE_LABELS: {} } })
+  assert.equal(lib.describeAudience({ type: 'coaches' }), 'Coaches')
+})

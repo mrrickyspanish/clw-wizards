@@ -34,6 +34,8 @@ const parentSchema = z.object({
   email: z.string().trim().email('Enter a valid email').max(254),
   phone: z.string().trim().max(20, 'Phone must be 20 characters or fewer').optional().nullable(),
   sms_opt_in: z.boolean(),
+  // Optional so a caller that doesn't show the box leaves it as it is.
+  is_coach: z.boolean().optional(),
 })
 
 export type ParentInput = z.input<typeof parentSchema>
@@ -99,6 +101,7 @@ export async function updateParent(
       sms_opt_in: parsed.sms_opt_in,
       sms_opt_in_at: enablingSms ? new Date().toISOString() : current.sms_opt_in_at,
       consent_text: enablingSms ? SMS_CONSENT_TEXT : current.consent_text,
+      ...(parsed.is_coach === undefined ? {} : { is_coach: parsed.is_coach }),
     })
     .eq('id', id)
     .eq('role', 'parent')

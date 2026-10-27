@@ -7,6 +7,7 @@ import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { formatUsPhone } from '@/lib/phone'
 import type { FamilyContactInput } from '@/lib/family-contacts'
 
@@ -17,6 +18,9 @@ export type ManagedContact = {
   phone: string | null
   // Set when the contact only gets messages about some of the wrestlers.
   forWrestlers: string | null
+  // Admin page only (coachControls): the Coach box and the form's coaching answer.
+  isCoach?: boolean
+  interestedInCoaching?: boolean
 }
 
 type Result = { ok: true } | { ok: false; error: string }
@@ -32,6 +36,7 @@ export function FamilyContactsManager({
   save,
   remove,
   audience,
+  coachControls = false,
 }: {
   contacts: ManagedContact[]
   max: number
@@ -39,6 +44,8 @@ export function FamilyContactsManager({
   remove: (id: string) => Promise<Result>
   // 'family' on Profile ("you"), 'admin' on the family's page.
   audience: 'family' | 'admin'
+  // Admins: show and edit who is a coach. Never on the family's own Profile.
+  coachControls?: boolean
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
@@ -48,6 +55,7 @@ export function FamilyContactsManager({
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
+  const [isCoach, setIsCoach] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
 
@@ -59,6 +67,7 @@ export function FamilyContactsManager({
     setName(contact?.name ?? '')
     setEmail(contact?.email ?? '')
     setPhone(contact?.phone ?? '')
+    setIsCoach(contact?.isCoach ?? false)
   }
 
   function submit(event: FormEvent) {
@@ -70,6 +79,7 @@ export function FamilyContactsManager({
         name,
         email,
         phone,
+        ...(coachControls ? { isCoach } : {}),
       })
       if (!result.ok) {
         setError(result.error)
@@ -147,6 +157,15 @@ export function FamilyContactsManager({
         />
         <p className="text-sm text-clw-gray">Club texts go to this number only after they agree to get them.</p>
       </div>
+      {coachControls && (
+        <label className="flex items-start gap-3 text-base text-clw-white">
+          <Checkbox className="mt-1" checked={isCoach} onCheckedChange={(checked) => setIsCoach(checked === true)} />
+          <span>
+            <span className="block font-medium">Coach</span>
+            <span className="block text-clw-gray">Gets messages sent to Coaches in Communications.</span>
+          </span>
+        </label>
+      )}
       {error && <p className="text-base text-red-400">{error}</p>}
       <div className="flex flex-col-reverse gap-2 sm:flex-row">
         <Button type="button" variant="outline" disabled={pending} onClick={() => setEditing(null)}>
@@ -187,6 +206,10 @@ export function FamilyContactsManager({
                   </p>
                   {contact.phone && <p className="text-base text-clw-gray">{formatUsPhone(contact.phone)}</p>}
                   {contact.forWrestlers && <p className="text-sm text-clw-gray">For {contact.forWrestlers}</p>}
+                  {coachControls && contact.isCoach && <p className="text-base text-clw-gold">Coach</p>}
+                  {coachControls && contact.interestedInCoaching && (
+                    <p className="text-base text-clw-gray">Expressed interest in coaching on the registration form.</p>
+                  )}
                 </div>
                 {confirmRemove === contact.id ? (
                   <div className="space-y-2">

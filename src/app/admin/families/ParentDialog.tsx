@@ -21,7 +21,8 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 
-type EditableParent = Pick<Profile, 'id' | 'full_name' | 'email' | 'phone' | 'sms_opt_in'>
+// is_coach is passed only where the Coach box should show (the family's page).
+type EditableParent = Pick<Profile, 'id' | 'full_name' | 'email' | 'phone' | 'sms_opt_in'> & { is_coach?: boolean }
 
 type ParentRelationship = 'primary' | 'co-guardian'
 
@@ -43,6 +44,8 @@ export function ParentDialog({
   const [email, setEmail] = useState(parent.email ?? '')
   const [phone, setPhone] = useState(parent.phone ?? '')
   const [smsOptIn, setSmsOptIn] = useState(parent.sms_opt_in)
+  const [isCoach, setIsCoach] = useState(parent.is_coach ?? false)
+  const showCoach = parent.is_coach !== undefined
 
   const isCoGuardian = relationship === 'co-guardian'
 
@@ -56,6 +59,7 @@ export function ParentDialog({
       email,
       phone,
       sms_opt_in: smsOptIn,
+      ...(showCoach ? { is_coach: isCoach } : {}),
     }
 
     const result = await updateParent(parent.id, values, familyId)
@@ -150,6 +154,20 @@ export function ParentDialog({
               </span>
             </label>
           </div>
+
+          {showCoach && (
+            <div className="rounded-md border border-clw-gold/15 bg-clw-black-2 p-4">
+              <label className="flex items-start gap-3 text-base text-clw-white">
+                <Checkbox className="mt-1" checked={isCoach} onCheckedChange={(checked) => setIsCoach(checked === true)} />
+                <span>
+                  <span className="block font-medium">Coach</span>
+                  <span className="mt-1 block leading-relaxed text-clw-gray">
+                    Gets messages sent to Coaches in Communications.
+                  </span>
+                </span>
+              </label>
+            </div>
+          )}
 
           <DialogFooter>
             <Button type="submit" disabled={loading}>

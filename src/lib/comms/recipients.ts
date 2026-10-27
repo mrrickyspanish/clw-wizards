@@ -13,6 +13,8 @@ export type CommTarget =
   | { type: 'outstanding_dues' }
   | { type: 'missing_document'; documents: MissingDocument[] }
   | { type: 'custom'; profileIds: string[] }
+  // Everyone Tony or Tyler ticked as a coach: parents and second parents.
+  | { type: 'coaches' }
 
 /**
  * Hand-typed Database in src/types/database.ts has no FK relationship
@@ -27,6 +29,10 @@ export async function resolveRecipients(target: CommTarget): Promise<Profile[]> 
 }
 
 async function accountOwners(supabase: AdminClient, target: CommTarget): Promise<Profile[]> {
+  if (target.type === 'coaches') {
+    const { data } = await supabase.from('profiles').select('*').eq('is_coach', true).eq('is_active', true)
+    return data ?? []
+  }
 
   if (target.type === 'all') {
     const { data } = await supabase.from('profiles').select('*').eq('role', 'parent').eq('is_active', true)
@@ -253,7 +259,8 @@ async function wrestlersOnTarget(supabase: AdminClient, target: CommTarget, pare
  * private to them.
  */
 async function withCoParents(supabase: AdminClient, target: CommTarget, owners: Profile[]): Promise<Profile[]> {
-  if (target.type === 'all' || target.type === 'custom' || !owners.length) return owners
+  // A coaches send goes to the people ticked, not to their co-parents.
+  if (target.type === 'all' || target.type === 'custom' || target.type === 'coaches' || !owners.length) return owners
   const { data: linkRows } = await supabase
     .from('family_guardians')
     .select('owner_id, guardian_id, athlete_ids')
@@ -282,6 +289,7 @@ export type ContactRecipient = { ownerId: string; name: string | null; email: st
  * or listed by two families, is skipped. Email only; nothing texts a contact.
  */
 export async function familyContactRecipients(target: CommTarget, profiles: Profile[]): Promise<ContactRecipient[]> {
+  if (target.type === 'coaches') return coachContacts(profiles)
   if (!profiles.length) return []
   const supabase = createAdminSupabase()
   const { data } = await supabase
@@ -304,6 +312,35 @@ export async function familyContactRecipients(target: CommTarget, profiles: Prof
       const ids = c.athlete_ids
       if (!(wrestlers.get(c.owner_id) ?? []).some((w) => ids.includes(w.id))) continue
     }
+    taken.add(email)
+    out.push({ ownerId: c.owner_id, name: c.name, email })
+  }
+  return out
+}
+
+// Second parents ticked as coaches, whoever else is on the send, on families
+// that are still active. One copy per address.
+async function coachContacts(profiles: Profile[]): Promise<ContactRecipient[]> {
+  const supabase = createAdminSupabase()
+  const { data } = await supabase
+    .from('family_contacts')
+    .select('owner_id, name, email')
+    .eq('is_coach', true)
+    .is('removed_at', null)
+    .not('email', 'is', null)
+  const contacts = (data ?? []) as Pick<FamilyContact, 'owner_id' | 'name' | 'email'>[]
+  if (!contacts.length) return []
+  const { data: owners } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('is_active', true)
+    .in('id', [...new Set(contacts.map((c) => c.owner_id))])
+  const activeOwners = new Set((owners ?? []).map((o) => o.id))
+  const taken = new Set(profiles.flatMap((p) => (p.email ? [p.email.trim().toLowerCase()] : [])))
+  const out: ContactRecipient[] = []
+  for (const c of contacts) {
+    const email = c.email?.trim().toLowerCase()
+    if (!email || taken.has(email) || !activeOwners.has(c.owner_id)) continue
     taken.add(email)
     out.push({ ownerId: c.owner_id, name: c.name, email })
   }

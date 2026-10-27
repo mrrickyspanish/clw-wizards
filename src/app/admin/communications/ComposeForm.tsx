@@ -49,6 +49,7 @@ type AudienceKind =
   | 'outstanding_dues'
   | 'missing_documents'
   | 'specific_parents'
+  | 'coaches'
 
 const AUDIENCE_LABELS: Record<AudienceKind, string> = {
   all: 'All active parents',
@@ -57,6 +58,7 @@ const AUDIENCE_LABELS: Record<AudienceKind, string> = {
   outstanding_dues: 'Parents with outstanding dues',
   missing_documents: 'Missing documents',
   specific_parents: 'Specific parent(s)',
+  coaches: 'Coaches',
 }
 
 const DOCUMENT_FILTERS: { value: MissingDocument; label: string }[] = [
@@ -107,6 +109,7 @@ function buildTarget(
 ): CommTarget | null {
   if (audience === 'all') return { type: 'all' }
   if (audience === 'outstanding_dues') return { type: 'outstanding_dues' }
+  if (audience === 'coaches') return { type: 'coaches' }
   if (audience === 'practice_groups') {
     return practiceGroups.length ? { type: 'practice_groups', practiceGroups } : null
   }
@@ -366,6 +369,12 @@ export function ComposeForm({
           </SelectContent>
         </Select>
       </div>
+
+      {audience === 'coaches' && (
+        <p className="text-base text-clw-gray">
+          Everyone marked Coach in Families: parents and second parents. Tick or untick it on the family&apos;s page.
+        </p>
+      )}
 
       {audience === 'practice_groups' && (
         <div className="space-y-2">

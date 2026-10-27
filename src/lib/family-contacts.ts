@@ -20,6 +20,8 @@ export const familyContactSchema = z
     name: z.string().trim().min(1, 'Enter their name').max(120),
     email: z.string().trim().toLowerCase().email('Enter a valid email address').max(160).optional().or(z.literal('')),
     phone: z.string().trim().max(20).optional().or(z.literal('')),
+    // Admins only: saveFamilyContact ignores it for a family's own edits.
+    isCoach: z.boolean().optional(),
   })
   .refine((v) => Boolean(v.email || v.phone), { message: 'Enter an email or a cell number', path: ['email'] })
   .refine((v) => !v.phone || toE164(v.phone) !== null, { message: 'Enter a 10-digit cell number', path: ['phone'] })
@@ -27,7 +29,7 @@ export const familyContactSchema = z
 export type FamilyContactInput = z.input<typeof familyContactSchema>
 export type FamilyContactResult = { ok: true } | { ok: false; error: string }
 
-export type FamilyContactView = Pick<FamilyContact, 'id' | 'name' | 'email' | 'phone' | 'athlete_ids' | 'source'>
+export type FamilyContactView = Pick<FamilyContact, 'id' | 'name' | 'email' | 'phone' | 'athlete_ids' | 'source' | 'is_coach'>
 
 /** The active contacts on a family, oldest first. */
 export async function listFamilyContacts(
@@ -36,7 +38,7 @@ export async function listFamilyContacts(
 ): Promise<FamilyContactView[]> {
   const { data } = await supabase
     .from('family_contacts')
-    .select('id, name, email, phone, athlete_ids, source')
+    .select('id, name, email, phone, athlete_ids, source, is_coach')
     .eq('owner_id', ownerId)
     .is('removed_at', null)
     .order('created_at', { ascending: true })
@@ -55,6 +57,8 @@ export async function saveFamilyContact(
   const { id, name } = parsed.data
   const email = parsed.data.email || null
   const phone = normalizeUsPhone(parsed.data.phone)
+  // Only an admin marks a coach (the database refuses it from a family too).
+  const coach = source === 'admin' && parsed.data.isCoach !== undefined ? { is_coach: parsed.data.isCoach } : {}
 
   const { data: owner } = await supabase.from('profiles').select('email').eq('id', ownerId).maybeSingle()
   if (email && owner?.email && owner.email.trim().toLowerCase() === email) {
@@ -71,11 +75,11 @@ export async function saveFamilyContact(
   const { error } = id
     ? await supabase
         .from('family_contacts')
-        .update({ name, email, phone })
+        .update({ name, email, phone, ...coach })
         .eq('id', id)
         .eq('owner_id', ownerId)
         .is('removed_at', null)
-    : await supabase.from('family_contacts').insert({ owner_id: ownerId, name, email, phone, source })
+    : await supabase.from('family_contacts').insert({ owner_id: ownerId, name, email, phone, source, ...coach })
   if (error) {
     // 23505: that email is already on this family's list.
     return { ok: false, error: error.code === '23505' ? 'That email is already on the list.' : error.message }
@@ -112,4 +116,18 @@ export function contactScopeLabel(
   if (!covered.length) return 'a wrestler no longer on this family'
   const names = covered.map((w) => w.first_name)
   return names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+}
+
+/**
+ * Whether a person said Yes to coaching on a registration form: the forms'
+ * parents/guardians matched by email, or by name when there is no email.
+ */
+export function coachInterestMatcher(
+  forms: { name: string | null; email: string | null; coach_interest: string | null }[]
+): (email: string | null | undefined, name: string | null | undefined) => boolean {
+  const yes = forms.filter((f) => (f.coach_interest ?? '').trim().toLowerCase() === 'yes')
+  const emails = new Set(yes.flatMap((f) => (f.email ? [f.email.trim().toLowerCase()] : [])))
+  const names = new Set(yes.flatMap((f) => (f.name ? [f.name.trim().toLowerCase()] : [])))
+  return (email, name) =>
+    Boolean((email && emails.has(email.trim().toLowerCase())) || (name && names.has(name.trim().toLowerCase())))
 }

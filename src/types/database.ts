@@ -39,6 +39,9 @@ export type Profile = {
   postal_code: string | null
   email_unsubscribe_token: string
   is_active: boolean
+  // Ticked by Tony or Tyler: gets Communications sends to the Coaches group.
+  // Only an admin can change it (database guard).
+  is_coach: boolean
   onboarding_completed_at: string | null
   created_at: string
   updated_at: string
@@ -433,6 +436,8 @@ export type FamilyContact = {
   // null: every wrestler on the family. A list: only messages about those.
   athlete_ids: string[] | null
   source: 'family' | 'form' | 'admin'
+  // Ticked by an admin: gets Communications sends to the Coaches group.
+  is_coach: boolean
   removed_at: string | null
   created_at: string
   updated_at: string

@@ -37,6 +37,8 @@ export function describeAudience(target: CommTarget, tournamentName?: string | n
         .join(' and ')}`
     case 'custom':
       return `${target.profileIds.length} specific parent${target.profileIds.length === 1 ? '' : 's'}`
+    case 'coaches':
+      return 'Coaches'
   }
 }
 

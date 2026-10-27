@@ -62,6 +62,16 @@ export async function previewRecipients(target: CommTarget): Promise<PreviewResu
       sortKey: kids.length ? `0 ${kids[0].last_name} ${kids[0].first_name}` : `1 ${parent}`,
     }
   })
+  // A contact on the send in their own right (a second parent ticked as a
+  // coach) whose family account is not on it: their own row.
+  const listed = new Set(profiles.map((p) => p.id))
+  for (const c of contacts) {
+    if (listed.has(c.ownerId)) continue
+    rows.push({
+      recipient: { wrestlers: [], parent: c.name || c.email, email: c.email, alsoTo: [] },
+      sortKey: `1 ${c.name || c.email}`,
+    })
+  }
   rows.sort((a, b) => a.sortKey.localeCompare(b.sortKey, 'en', { sensitivity: 'base' }))
   const recipients = rows.map((row) => row.recipient)
   // A co-parent's row lists the same wrestlers as the other parent's, so count each wrestler once.

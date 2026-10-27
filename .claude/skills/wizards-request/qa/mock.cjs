@@ -23,7 +23,7 @@ const profile = (pid, full_name, email, extra = {}) => ({
   ...base, id: pid, full_name, first_name: full_name.split(' ')[0], last_name: full_name.split(' ').slice(1).join(' '),
   email, role: 'parent', admin_scope: null, phone: '8155550100', practice_group: null, sms_opt_in: true,
   sms_opt_in_at: T, consent_text: 'x', street_address: '1 Main St', city: 'Crystal Lake', state: 'IL', postal_code: '60014',
-  email_unsubscribe_token: id('f', 9), is_active: true, onboarding_completed_at: T, ...extra,
+  email_unsubscribe_token: id('f', 9), is_active: true, is_coach: false, onboarding_completed_at: T, ...extra,
 })
 const tables = {
   profiles: [
@@ -33,7 +33,7 @@ const tables = {
     profile(id('a', 4), 'Gone Admin', 'gone@example.com', { role: 'admin', admin_scope: 'limited', is_active: false }),
     profile(PARENT, 'Pat Parent', 'pat@example.com'),
     profile(PARENT2, 'Sam Sample', 'sam@example.com', { sms_opt_in: false }),
-    profile(PARENT3, 'Robin Roe', 'robin@example.com', { created_at: '2026-10-05T12:00:00Z' }),
+    profile(PARENT3, 'Robin Roe', 'robin@example.com', { created_at: '2026-10-05T12:00:00Z', is_coach: true }),
     // A co-parent with no wrestlers of their own, linked (club-locked) to one of Pat Parent's kids.
     profile(id('b', 4), 'Casey Coparent', 'casey@example.com', { created_at: '2026-10-13T12:00:00Z' }),
   ],
@@ -69,7 +69,14 @@ const tables = {
   dues_payments: [],
   season_enrollments: [],
   disclosure_acceptances: [],
-  athlete_guardians: [],
+  // Registration form answers: Robin and Rae Roe said yes to coaching (both ticked
+  // Coach), Jordan said yes but isn't ticked yet, Pat said no.
+  athlete_guardians: [
+    { id: id('h', 1), athlete_id: id('k', 5), name: 'Robin Roe', email: 'robin@example.com', coach_interest: 'Yes', created_at: T },
+    { id: id('h', 2), athlete_id: id('k', 5), name: 'Rae Roe', email: 'rae@example.com', coach_interest: 'Yes', created_at: T },
+    { id: id('h', 3), athlete_id: id('k', 1), name: 'Jordan Second-Parent', email: 'jordan.second.parent.with.a.long.address@example.com', coach_interest: 'Yes', created_at: T },
+    { id: id('h', 4), athlete_id: id('k', 1), name: 'Pat Parent', email: 'pat@example.com', coach_interest: 'No', created_at: T },
+  ],
   athlete_documents: [
     { id: id('d', 3), athlete_id: id('k', 6), parent_id: PARENT3, doc_type: 'usa_wrestling_card', file_name: 'IMG_20261018_093412_USA_Wrestling_membership_card_front_and_back_scan.jpeg', file_url: PARENT3 + '/' + id('k', 6) + '/usa_wrestling_card-3-card.jpeg', verified: false, verified_by: null, verified_at: null, uploaded_at: '2026-10-18T14:30:00Z', ...base },
     { id: id('d', 2), athlete_id: id('k', 2), parent_id: PARENT, doc_type: 'usa_wrestling_card', file_url: PARENT + '/' + id('k', 2) + '/usa_wrestling_card-1-card.png', file_name: 'card.png', verified: false, verified_by: null, verified_at: null, uploaded_at: '2026-10-02T15:00:00Z' },
@@ -99,12 +106,12 @@ const tables = {
   // Second parents and others who get a family's emails: a long address, one
   // listed for one wrestler only, and a family at the limit of three.
   family_contacts: [
-    { ...base, id: id('f', 1), owner_id: PARENT, name: 'Jordan Second-Parent', email: 'jordan.second.parent.with.a.long.address@example.com', phone: '8155550100', athlete_ids: null, source: 'form', removed_at: null },
-    { ...base, id: id('f', 2), owner_id: PARENT, name: 'Grandma Parent', email: 'grandma@example.com', phone: null, athlete_ids: [id('k', 1)], source: 'form', removed_at: null },
-    { ...base, id: id('f', 3), owner_id: PARENT3, name: 'Rae Roe', email: 'rae@example.com', phone: null, athlete_ids: null, source: 'family', removed_at: null },
-    { ...base, id: id('f', 4), owner_id: PARENT3, name: 'Grandpa Roe', email: null, phone: '8155550111', athlete_ids: null, source: 'admin', removed_at: null },
-    { ...base, id: id('f', 5), owner_id: PARENT3, name: 'Aunt Vandenberghe-Fontaine', email: 'aunt.vandenberghe.fontaine@example.com', phone: null, athlete_ids: [id('k', 6)], source: 'form', removed_at: null },
-    { ...base, id: id('f', 6), owner_id: PARENT3, name: 'Removed Person', email: 'removed@example.com', phone: null, athlete_ids: null, source: 'form', removed_at: T },
+    { ...base, id: id('f', 1), owner_id: PARENT, name: 'Jordan Second-Parent', email: 'jordan.second.parent.with.a.long.address@example.com', phone: '8155550100', athlete_ids: null, source: 'form', removed_at: null, is_coach: false },
+    { ...base, id: id('f', 2), owner_id: PARENT, name: 'Grandma Parent', email: 'grandma@example.com', phone: null, athlete_ids: [id('k', 1)], source: 'form', removed_at: null, is_coach: false },
+    { ...base, id: id('f', 3), owner_id: PARENT3, name: 'Rae Roe', email: 'rae@example.com', phone: null, athlete_ids: null, source: 'family', removed_at: null, is_coach: true },
+    { ...base, id: id('f', 4), owner_id: PARENT3, name: 'Grandpa Roe', email: null, phone: '8155550111', athlete_ids: null, source: 'admin', removed_at: null, is_coach: false },
+    { ...base, id: id('f', 5), owner_id: PARENT3, name: 'Aunt Vandenberghe-Fontaine', email: 'aunt.vandenberghe.fontaine@example.com', phone: null, athlete_ids: [id('k', 6)], source: 'form', removed_at: null, is_coach: false },
+    { ...base, id: id('f', 6), owner_id: PARENT3, name: 'Removed Person', email: 'removed@example.com', phone: null, athlete_ids: null, source: 'form', removed_at: T, is_coach: false },
   ],
   family_guardians: [{ id: id('g', 1), owner_id: PARENT, guardian_id: id('b', 4), athlete_ids: [id('k', 1)], locked: true, created_at: T }], family_invites: [], coaches: [], admin_invites: [], sponsors: [], sponsor_tiers: [], donations: [],
   faq_items: [], page_content: [], parent_auth_incidents: [],

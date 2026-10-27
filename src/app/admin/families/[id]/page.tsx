@@ -33,7 +33,7 @@ import { FamilyActiveToggle } from '../FamilyActiveToggle'
 import { ParentDialog } from '../ParentDialog'
 import { removeFamilyContactAsAdmin, saveFamilyContactAsAdmin } from '../actions'
 import { FamilyContactsManager } from '@/components/family/FamilyContactsManager'
-import { contactScopeLabel, listFamilyContacts, MAX_FAMILY_CONTACTS } from '@/lib/family-contacts'
+import { coachInterestMatcher, contactScopeLabel, listFamilyContacts, MAX_FAMILY_CONTACTS } from '@/lib/family-contacts'
 import { COMM_TYPE_LABELS } from '@/lib/comms/labels'
 
 // How many past messages to show on a family's profile. Older history is
@@ -73,7 +73,7 @@ const ENROLLMENT_LABELS: Record<SeasonEnrollment['status'], string> = {
   withdrawn: 'withdrawn',
 }
 
-type GuardianRow = Pick<Profile, 'id' | 'full_name' | 'email' | 'phone' | 'sms_opt_in' | 'is_active'>
+type GuardianRow = Pick<Profile, 'id' | 'full_name' | 'email' | 'phone' | 'sms_opt_in' | 'is_active' | 'is_coach'>
 
 export default async function FamilyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -210,7 +210,7 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
   if (guardianIds.length) {
     const { data } = await supabase
       .from('profiles')
-      .select('id, full_name, email, phone, sms_opt_in, is_active')
+      .select('id, full_name, email, phone, sms_opt_in, is_active, is_coach')
       .in('id', guardianIds)
       .order('last_name', { ascending: true })
       .order('first_name', { ascending: true })
@@ -227,6 +227,13 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
   ])
 
   const familyContacts = await listFamilyContacts(supabase, id)
+  // "Interested in coaching" from the registration forms on this family's
+  // wrestlers, matched to a person by email or name. It is only a detail:
+  // the Coach box is what puts someone on Coaches sends.
+  const { data: guardianForms } = athleteIds.length
+    ? await supabase.from('athlete_guardians').select('name, email, coach_interest').in('athlete_id', athleteIds)
+    : { data: [] as { name: string; email: string | null; coach_interest: string | null }[] }
+  const coachInterest = coachInterestMatcher(guardianForms ?? [])
   const activeWrestlers = athletes.filter((a) => a.active)
   // A copy sent to a family contact is logged under the family's account; name the contact.
   const contactNameByEmail = new Map(
@@ -273,6 +280,13 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
             <p className="text-clw-gray/70">Account</p>
             <p className="text-clw-white">{parent.is_active ? 'Active' : 'Inactive'}</p>
           </div>
+          <div>
+            <p className="text-clw-gray/70">Coach</p>
+            <p className="text-clw-white">{parent.is_coach ? 'Yes' : 'No'}</p>
+          </div>
+          {coachInterest(parent.email, parent.full_name) && (
+            <p className="col-span-full text-base text-clw-gray">Expressed interest in coaching on the registration form.</p>
+          )}
         </CardContent>
       </Card>
 
@@ -294,7 +308,10 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
               email: c.email,
               phone: c.phone,
               forWrestlers: contactScopeLabel(c.athlete_ids, activeWrestlers),
+              isCoach: c.is_coach,
+              interestedInCoaching: coachInterest(c.email, c.name),
             }))}
+            coachControls
           />
         </CardContent>
       </Card>
@@ -349,6 +366,15 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
                     <p className="text-clw-gray/70">SMS opt-in</p>
                     <p className="text-clw-white">{guardian.sms_opt_in ? 'Yes' : 'No'}</p>
                   </div>
+                  <div>
+                    <p className="text-clw-gray/70">Coach</p>
+                    <p className="text-clw-white">{guardian.is_coach ? 'Yes' : 'No'}</p>
+                  </div>
+                  {coachInterest(guardian.email, guardian.full_name) && (
+                    <p className="col-span-full text-base text-clw-gray">
+                      Expressed interest in coaching on the registration form.
+                    </p>
+                  )}
                 </div>
 
                 <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-clw-gold/10 pt-4">
