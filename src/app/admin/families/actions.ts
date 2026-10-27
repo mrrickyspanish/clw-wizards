@@ -11,6 +11,7 @@ import { ORG } from '@/config/org.config'
 import { normalizeUsPhone } from '@/lib/phone'
 import { duesToRemoveWithWrestler, hasMoney } from '@/lib/wrestler-removal'
 import { removeFamilyContact, saveFamilyContact, type FamilyContactInput } from '@/lib/family-contacts'
+import { addParentLogin, type ParentLoginInput, type ParentLoginResult } from '@/lib/parent-login'
 
 export type ActionResult = { ok: true } | { ok: false; error: string }
 
@@ -570,5 +571,19 @@ export async function removeFamilyContactAsAdmin(ownerId: string, id: string): P
   if (!z.string().uuid().safeParse(ownerId).success) return { ok: false, error: 'Invalid family' }
   const result = await removeFamilyContact(createAdminSupabase(), ownerId, id)
   if (result.ok) revalidatePath(`/admin/families/${ownerId}`)
+  return result
+}
+
+// "Add parent login" on a wrestler: a second parent's own login, linked to the
+// wrestlers picked (Tyler, Oct 27). Full admins, the same as Remove wrestler.
+export async function addParentLoginAsAdmin(ownerId: string, values: ParentLoginInput): Promise<ParentLoginResult> {
+  const auth = await assertFullAdmin()
+  if (!auth.ok) return { ok: false, error: 'Only a full admin can add a parent login.' }
+  if (!z.string().uuid().safeParse(ownerId).success) return { ok: false, error: 'Invalid family' }
+  const result = await addParentLogin(createAdminSupabase(), ownerId, values)
+  if (result.ok) {
+    revalidatePath('/admin/families')
+    revalidatePath(`/admin/families/${ownerId}`)
+  }
   return result
 }

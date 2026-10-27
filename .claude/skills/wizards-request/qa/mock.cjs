@@ -183,6 +183,21 @@ http.createServer((req, res) => {
     if (u.pathname === '/__as') { as = u.searchParams.get('who'); return res.end('{}') }
     if (u.pathname === '/__unknown') return res.end(JSON.stringify([...unknown]))
     if (u.pathname.startsWith('/auth/v1/user')) return res.end(JSON.stringify(user()))
+    // One login by id (Families: last logged in). Casey Coparent has never logged in.
+    const oneUser = /^\/auth\/v1\/admin\/users\/([^/]+)$/.exec(u.pathname)
+    if (oneUser && req.method === 'GET') {
+      const p = tables.profiles.find((r) => r.id === oneUser[1])
+      if (!p) { res.statusCode = 404; return res.end(JSON.stringify({ code: 404, msg: 'User not found' })) }
+      return res.end(JSON.stringify({ id: p.id, aud: 'authenticated', email: p.email, last_sign_in_at: p.id === id('b', 4) ? null : '2026-10-25T17:04:00Z' }))
+    }
+    // Add parent login: a new login gets a parent profile, as the sign-up trigger does.
+    if (u.pathname === '/auth/v1/admin/users' && req.method === 'POST') {
+      const input = JSON.parse(body || '{}')
+      if (tables.profiles.some((r) => r.email === input.email)) { res.statusCode = 422; return res.end(JSON.stringify({ code: 422, msg: 'A user with this email address has already been registered' })) }
+      const nid = id('n', 900 + tables.profiles.length)
+      tables.profiles.push(profile(nid, input.user_metadata?.full_name || input.email, input.email, { onboarding_completed_at: null, sms_opt_in: false, phone: null }))
+      return res.end(JSON.stringify({ id: nid, aud: 'authenticated', email: input.email, last_sign_in_at: null }))
+    }
     if (u.pathname.startsWith('/auth/v1/admin/users')) return res.end(JSON.stringify({ users: [user()], aud: 'authenticated' }))
     if (u.pathname.startsWith('/auth/v1/')) return res.end('{}')
     if (req.method !== 'GET' && req.method !== 'HEAD') writes.push({ method: req.method, path: u.pathname + u.search, body: body.slice(0, 400) })

@@ -137,7 +137,8 @@ At the start of each request, mention open items that have been waiting a while.
 |---|---|
 | Google Form add | Pull the sheet "2026-2027 Wizards" (Drive id `19Vj-uIgOojnu4hFauLxiCfmTFtDV3urzwHBbVmPgcVA`) as CSV, find the rows, check each kid isn't already on the site (name, DOB, parent email), then run the form import. [playbooks.md#form-add](playbooks.md#form-add) |
 | "I paid" | Look at `dues_payments` for the wrestler. No `stripe_checkout_session_id` means no online payment was ever started. Reply asking whether it was paid offline; mark paid only after a yes. |
-| Co-parent access | Parents who share kids but not a household: new account + locked `family_guardians` link limited to those kids. [playbooks.md#co-parent](playbooks.md#co-parent) |
+| Co-parent access | Parents who share kids but not a household: new account + locked `family_guardians` link limited to those kids. Since Oct 27 full admins do this themselves: Families → the family → the wrestler → **Add parent login** (name + email; emails a set-password link, or links an existing parent login). Do it for them if asked, then mention the button. By hand: [playbooks.md#co-parent](playbooks.md#co-parent) |
+| "Can't log in" | Families → the family shows **Last logged in** for the parent and each co-parent ("Not yet" = never set a password: Set or reset password on the login page). No family page for the email = no login at all. |
 | Name / contact fix | Conditional update; mention any conflict found between two forms and ask which is right. |
 | Second parent / extra email | `family_contacts`: Admin → Families → the family → "Also gets this family's emails" (parents: Profile). Pre-filled from each registration form's guardians by a trigger, including form imports. Gets Communications emails only, never texts. A removed contact stays removed (`removed_at`). |
 | Delete | If Tony said delete, delete (Admin → Families → Delete permanently records it in the Removed tab). |

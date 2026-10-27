@@ -31,6 +31,8 @@ import { DeleteFamilyButton } from '../DeleteFamilyButton'
 import { DeleteWrestlerButton } from '../DeleteWrestlerButton'
 import { FamilyActiveToggle } from '../FamilyActiveToggle'
 import { ParentDialog } from '../ParentDialog'
+import { AddParentLoginDialog } from '../AddParentLoginDialog'
+import { lastSignIns } from '@/lib/parent-login'
 import { removeFamilyContactAsAdmin, saveFamilyContactAsAdmin } from '../actions'
 import { FamilyContactsManager } from '@/components/family/FamilyContactsManager'
 import { coachInterestMatcher, contactScopeLabel, listFamilyContacts, MAX_FAMILY_CONTACTS } from '@/lib/family-contacts'
@@ -43,6 +45,7 @@ const MESSAGE_HISTORY_LIMIT = 25
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString('en-US', {
+    timeZone: 'America/Chicago',
     month: 'short',
     day: 'numeric',
     hour: 'numeric',
@@ -56,6 +59,24 @@ function formatDate(value: string) {
     day: 'numeric',
     year: 'numeric',
   })
+}
+
+// Last time this account logged in; undefined when it could not be looked up.
+function SignInStatus({ at }: { at: string | null | undefined }) {
+  if (at === undefined) return null
+  return (
+    <>
+      <div>
+        <p className="text-clw-gray/70">Last logged in</p>
+        <p className="text-clw-white">{at ? formatDateTime(at) : 'Not yet'}</p>
+      </div>
+      {!at && (
+        <p className="col-span-full text-base text-clw-gray">
+          Hasn&apos;t logged in yet. They choose a password with Set or reset password on the login page.
+        </p>
+      )}
+    </>
+  )
 }
 
 // Same labels and colors as Registrations, so a status reads the same on both pages.
@@ -216,6 +237,9 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
       .order('first_name', { ascending: true })
     guardians = (data ?? []) as GuardianRow[]
   }
+  // So the club can answer "I can't get in" without asking us: has this
+  // person ever logged in, and when.
+  const signedInAt = await lastSignIns(supabase, [id, ...guardians.map((g) => g.id)])
 
   // Every profile in this family (the owner plus any co-guardians), so a
   // message sent to a co-guardian specifically still shows up here instead
@@ -284,6 +308,7 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
             <p className="text-clw-gray/70">Coach</p>
             <p className="text-clw-white">{parent.is_coach ? 'Yes' : 'No'}</p>
           </div>
+          <SignInStatus at={signedInAt.get(parent.id)} />
           {coachInterest(parent.email, parent.full_name) && (
             <p className="col-span-full text-base text-clw-gray">Expressed interest in coaching on the registration form.</p>
           )}
@@ -370,6 +395,7 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
                     <p className="text-clw-gray/70">Coach</p>
                     <p className="text-clw-white">{guardian.is_coach ? 'Yes' : 'No'}</p>
                   </div>
+                  <SignInStatus at={signedInAt.get(guardian.id)} />
                   {coachInterest(guardian.email, guardian.full_name) && (
                     <p className="col-span-full text-base text-clw-gray">
                       Expressed interest in coaching on the registration form.
@@ -550,6 +576,14 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
                 </div>
                 <div className="flex flex-wrap items-center gap-2 pt-2">
                   <AthleteDialog athlete={athlete} />
+                  {viewerIsFullAdmin && athlete.active && (
+                    <AddParentLoginDialog
+                      ownerId={parent.id}
+                      ownerName={parent.full_name || parent.email || 'this family'}
+                      athleteId={athlete.id}
+                      wrestlers={activeWrestlers.map((w) => ({ id: w.id, name: `${w.first_name} ${w.last_name}` }))}
+                    />
+                  )}
                   {viewerIsFullAdmin && <DeleteWrestlerButton athleteId={athlete.id} />}
                 </div>
               </CardContent>
