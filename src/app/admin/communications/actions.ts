@@ -15,7 +15,16 @@ export type PreviewRecipient = { wrestlers: string[]; parent: string; email: str
 export type PreviewResult =
   // smsCount: families who would get a text -- opted in, with a dialable mobile number.
   // contactCount: extra emails to second parents and other family contacts.
-  | { ok: true; count: number; wrestlerCount: number; smsCount: number; contactCount: number; recipients: PreviewRecipient[] }
+  // peopleCount: everyone emailed, accounts and contacts (a Coaches send counts people, not families).
+  | {
+      ok: true
+      count: number
+      wrestlerCount: number
+      smsCount: number
+      contactCount: number
+      peopleCount: number
+      recipients: PreviewRecipient[]
+    }
   | { ok: false; error: string }
 
 // Lets an admin see how many parents a target resolves to before they hit send.
@@ -77,7 +86,15 @@ export async function previewRecipients(target: CommTarget): Promise<PreviewResu
   // A co-parent's row lists the same wrestlers as the other parent's, so count each wrestler once.
   const wrestlerCount = new Set([...wrestlersByParent.values()].flat().map((w) => w.id)).size
   const smsCount = profiles.filter((p) => p.sms_opt_in && toE164(p.phone)).length
-  return { ok: true, count: recipients.length, wrestlerCount, smsCount, contactCount: contacts.length, recipients }
+  return {
+    ok: true,
+    count: recipients.length,
+    wrestlerCount,
+    smsCount,
+    contactCount: contacts.length,
+    peopleCount: profiles.length + contacts.length,
+    recipients,
+  }
 }
 
 export type BoardActionResult = { ok: true } | { ok: false; error: string }

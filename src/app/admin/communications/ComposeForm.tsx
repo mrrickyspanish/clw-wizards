@@ -178,6 +178,7 @@ export function ComposeForm({
     wrestlerCount: number
     smsCount: number
     contactCount: number
+    peopleCount: number
     recipients: PreviewRecipient[]
   } | null>(null)
   const [previewing, setPreviewing] = useState(false)
@@ -233,6 +234,7 @@ export function ComposeForm({
       wrestlerCount: result.wrestlerCount,
       smsCount: result.smsCount,
       contactCount: result.contactCount,
+      peopleCount: result.peopleCount,
       recipients: result.recipients,
     })
   }
@@ -539,10 +541,17 @@ export function ComposeForm({
           </Button>
           {preview && (
             <p className="text-base text-clw-white">
-              {preview.wrestlerCount} wrestler{preview.wrestlerCount === 1 ? '' : 's'} · {preview.count} famil
-              {preview.count === 1 ? 'y' : 'ies'}
-              {wantsEmail && preview.contactCount > 0 &&
-                ` · ${preview.contactCount} second parent${preview.contactCount === 1 ? '' : 's'} copied`}
+              {audience === 'coaches' ? (
+                `${preview.peopleCount} coach${preview.peopleCount === 1 ? '' : 'es'}`
+              ) : (
+                <>
+                  {preview.wrestlerCount} wrestler{preview.wrestlerCount === 1 ? '' : 's'} · {preview.count} famil
+                  {preview.count === 1 ? 'y' : 'ies'}
+                  {wantsEmail &&
+                    preview.contactCount > 0 &&
+                    ` · ${preview.contactCount} second parent${preview.contactCount === 1 ? '' : 's'} copied`}
+                </>
+              )}
               {wantsSms && ` · ${preview.smsCount} get the text`}
             </p>
           )}
@@ -554,10 +563,13 @@ export function ComposeForm({
           >
             {preview.recipients.map((r, index) => (
               <li key={`${r.email ?? r.parent}-${index}`} className="px-3 py-2">
-                <p className="text-base text-clw-white">
-                  {r.wrestlers.length ? r.wrestlers.join(', ') : <span className="text-clw-gray">No wrestler listed</span>}
-                </p>
-                <p className={cn('text-sm', r.email ? 'text-clw-gray' : 'text-red-400')}>
+                {/* A second parent on a Coaches send has no wrestlers of their own: skip the line. */}
+                {(r.wrestlers.length > 0 || audience !== 'coaches') && (
+                  <p className="text-base text-clw-white">
+                    {r.wrestlers.length ? r.wrestlers.join(', ') : <span className="text-clw-gray">No wrestler listed</span>}
+                  </p>
+                )}
+                <p className={cn('break-words text-sm', r.email ? 'text-clw-gray' : 'text-red-400')}>
                   {r.parent} · {r.email ?? 'No email: will not receive this'}
                 </p>
                 {wantsEmail &&
