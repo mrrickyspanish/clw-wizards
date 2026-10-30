@@ -1,5 +1,6 @@
 'use client'
 
+import { flierKind } from '@/lib/flier'
 import { useRef, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Pencil, Upload } from 'lucide-react'
@@ -343,8 +344,10 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
               </Button>
               {imageUrl && (
                 <>
-                  {/* eslint-disable-next-line @next/next/no-img-element -- admin flyer preview thumbnail */}
-                  <img src={imageUrl} alt="Flyer preview" className="h-10 w-10 rounded object-cover" />
+                  {flierKind(imageUrl) === 'image' && (
+                    // eslint-disable-next-line @next/next/no-img-element -- admin flyer preview thumbnail
+                    <img src={imageUrl} alt="Flyer preview" className="h-10 w-10 rounded object-cover" />
+                  )}
                   <button
                     type="button"
                     className="text-sm text-clw-gray underline hover:text-clw-gold"
@@ -359,11 +362,14 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
             <Input
               id="image_url"
               type="url"
-              placeholder="…or paste an image URL (https://…)"
+              placeholder="…or paste a link to the flier (https://…)"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
             />
-            <p className="text-sm text-clw-gray">Upload a flyer or paste a URL — shown as the event&apos;s homepage preview.</p>
+            <p className="text-sm text-clw-gray">
+              Upload a picture, or paste a link to a picture, a PDF or the tournament&apos;s page. Families see it on
+              Tournaments and Events.
+            </p>
           </div>
 
           <div className="space-y-2">

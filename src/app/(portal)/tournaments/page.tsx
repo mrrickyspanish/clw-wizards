@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { RegisterControls, type RegistrationState } from './RegisterControls'
+import { TournamentFlier } from '@/components/events/TournamentFlier'
 
 const STATUS_STYLES: Record<Tournament['status'], string> = {
   open: 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold-ink',
@@ -99,9 +100,16 @@ export default async function TournamentsPage() {
                     {t.start_time && ` · Starts ${formatTime(t.start_time)}`}
                   </p>
                 </div>
-                <Badge variant="outline" className={STATUS_STYLES[t.status]}>
-                  {t.status}
-                </Badge>
+                <div className="flex shrink-0 flex-col items-end gap-2">
+                  <Badge variant="outline" className={STATUS_STYLES[t.status]}>
+                    {t.status}
+                  </Badge>
+                  {t.competition_level && (
+                    <Badge variant="outline" className="border-clw-gray/40 text-clw-white">
+                      {t.competition_level}
+                    </Badge>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -121,10 +129,12 @@ export default async function TournamentsPage() {
                 </div>
               )}
 
-              {t.notes && <p className="text-sm text-clw-gray">{t.notes}</p>}
+              {t.notes && <p className="text-base text-clw-gray">{t.notes}</p>}
+
+              <TournamentFlier url={t.image_url} name={t.name} />
 
               {t.external_registration_url ? (
-                <Button asChild variant="outline" size="sm">
+                <Button asChild variant="outline" size="sm" className="h-auto min-h-11 max-w-full whitespace-normal text-left">
                   <a href={t.external_registration_url} target="_blank" rel="noopener noreferrer">
                     Register on {t.external_platform ?? 'external site'} <ExternalLink className="ml-1.5 h-3 w-3" />
                   </a>

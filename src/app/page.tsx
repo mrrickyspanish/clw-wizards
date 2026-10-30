@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { flierPicture } from '@/lib/flier'
 import { SignupLandingRedirect } from '@/components/auth/SignupLandingRedirect'
 
 import { createServerSupabase } from '@/lib/supabase/server'
@@ -63,7 +64,8 @@ export default async function HomePage({
       kind: 'tournament' as const,
       startTime: event.start_time,
       location: event.location || [event.city, event.state].filter(Boolean).join(', ') || null,
-      imageUrl: event.image_url,
+      // Only a picture can be the card's photo (a PDF or web page link can't).
+      imageUrl: flierPicture(event.image_url),
     })),
     ...clubEventRows.map((event) => ({
       id: `e-${event.id}`,

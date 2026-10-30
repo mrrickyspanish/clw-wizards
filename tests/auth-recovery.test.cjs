@@ -3330,3 +3330,30 @@ test('a full admin can open the parent pages; a limited admin and adding a wrest
   assert.equal(await visit('parent', null, '/admin'), '/dashboard')
   assert.equal(await visit('admin', 'full', '/onboarding'), '/admin') // setup stays parent-only
 })
+
+// Tournament fliers (Tyler, Oct 30): a picture is shown, anything else opens as a link.
+test('a flier link is shown as a picture only when it is one', () => {
+  const lib = load('src/lib/flier.ts', {})
+  for (const [url, kind] of [
+    ['https://www.ikwf.org/flyers/winter.png', 'image'],
+    ['https://cdn4.sportngin.com/attachments/photo/1/flyer.JPG', 'image'],
+    ['https://abc.supabase.co/storage/v1/object/public/tournament-flyers/flyers/1-x', 'image'],
+    ['https://www.ikwf.org/docs/regional.pdf', 'link'],
+    ['https://www.trackwrestling.com/TW_Register.jsp?id=1', 'link'],
+    ['https://www.bigbashwrestling.com/', 'link'],
+    ['javascript:alert(1)', null],
+    ['not a url', null],
+    [null, null],
+  ]) assert.equal(lib.flierKind(url), kind, String(url))
+  assert.equal(lib.flierPicture('https://www.ikwf.org/docs/regional.pdf'), null)
+})
+
+test('the Events details box carries the flier and notes, never the weigh-in', () => {
+  const entries = plain(clubCalLib.clubCalendarEntries([
+    { id: 't9', name: 'IKWF Future Finalist', date: '2027-02-06', start_time: null, location: 'Rockford', city: '', state: 'IL', status: 'open', external_registration_url: null, competition_level: null, image_url: 'https://www.ikwf.org/docs/ff.pdf', notes: ' 10U ', weigh_in_date: '2027-02-05', weigh_in_time: '09:00', weigh_in_location: 'Secret Gym' },
+  ], []))
+  assert.equal(entries[0].detail.flierUrl, 'https://www.ikwf.org/docs/ff.pdf')
+  assert.deepEqual(entries[0].detail.lines, ['10U'])
+  assert.ok(!JSON.stringify(entries).includes('Secret Gym'))
+  assert.ok(!JSON.stringify(entries).includes('2027-02-05'))
+})

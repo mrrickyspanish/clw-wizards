@@ -3,6 +3,8 @@
 // Usage: node mock.cjs <port> <as: admin|parent>
 const http = require('http')
 const uploads = {}
+// A made-up flier picture (a gold 300x400 SVG) for the tournament flier view.
+uploads['tournament-flyers/flyers/qa-flier.svg'] = { type: 'image/svg+xml', body: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400"><rect width="300" height="400" fill="#F0C020"/><text x="150" y="200" font-size="28" text-anchor="middle" font-family="sans-serif">QA FLIER</text></svg>') }
 const { URL } = require('url')
 const port = Number(process.argv[2] || 54329)
 let as = process.argv[3] || 'admin'
@@ -90,8 +92,8 @@ const tables = {
     { id: id('v', 2), practice_id: id('p', 2), date: '2026-11-09', reason: null, created_at: T },
   ],
   tournaments: [
-    { ...base, id: id('t', 1), name: 'Turkey Tussle Open With A Long Tournament Name', date: '2026-11-21', start_time: '8:00 AM', location: 'Central High School', city: 'Huntley', state: 'IL', status: 'open', external_registration_url: 'https://example.com/register', competition_level: 'Novice', weigh_in_date: null, weigh_in_location: null, practice_groups: [] },
-    { ...base, id: id('t', 2), name: 'Holiday Duals', date: '2026-12-05', start_time: null, location: '', city: 'Crystal Lake', state: 'IL', status: 'closed', external_registration_url: null, competition_level: null, weigh_in_date: null, weigh_in_location: null, practice_groups: [] },
+    { ...base, id: id('t', 1), name: 'Turkey Tussle Open With A Long Tournament Name', date: '2026-11-21', start_time: '8:00 AM', location: 'Central High School', city: 'Huntley', state: 'IL', status: 'open', external_registration_url: 'https://example.com/register', competition_level: 'Novice', weigh_in_date: '2026-11-20', weigh_in_time: '18:00', weigh_in_location: 'Central High School', practice_groups: [], notes: 'Singlets required.', external_platform: 'TrackWrestling', image_url: 'http://127.0.0.1:54329/storage/v1/object/public/tournament-flyers/flyers/qa-flier.svg' },
+    { ...base, id: id('t', 2), name: 'Holiday Duals', date: '2026-12-05', start_time: null, location: '', city: 'Crystal Lake', state: 'IL', status: 'closed', external_registration_url: null, competition_level: null, weigh_in_date: null, weigh_in_location: null, practice_groups: [], notes: null, external_platform: null, image_url: 'https://example.com/holiday-duals.pdf' },
   ],
   tournament_registrations: [],
   communication_log: [

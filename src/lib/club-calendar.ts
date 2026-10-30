@@ -24,7 +24,16 @@ type Entry = {
   allDay?: boolean
   color: string
   textColor: string
-  detail: { label: string; when: string; location: string | null; lines: string[]; tags: string[]; registerUrl: string | null }
+  detail: {
+    label: string
+    when: string
+    location: string | null
+    lines: string[]
+    tags: string[]
+    registerUrl: string | null
+    // A tournament's flier: a picture or a link (PDF, the event's page).
+    flierUrl?: string | null
+  }
 }
 
 /** '8:00 AM', '8 am', '08:00' or '08:00:00' -> '08:00'; anything else -> null. */
@@ -69,7 +78,10 @@ function entry(id: string, title: string, date: string, time: string | null, col
 }
 
 export function clubCalendarEntries(
-  tournaments: Pick<Tournament, 'id' | 'name' | 'date' | 'start_time' | 'location' | 'city' | 'state' | 'status' | 'external_registration_url' | 'competition_level'>[],
+  tournaments: Pick<
+    Tournament,
+    'id' | 'name' | 'date' | 'start_time' | 'location' | 'city' | 'state' | 'status' | 'external_registration_url' | 'competition_level' | 'image_url' | 'notes'
+  >[],
   clubEvents: Pick<ClubEvent, 'id' | 'title' | 'date' | 'start_time' | 'location' | 'event_type' | 'practice_group'>[],
   sessionLines: Map<string, string[]> = new Map()
 ): Entry[] {
@@ -78,9 +90,11 @@ export function clubCalendarEntries(
       entry(`t-${t.id}`, t.name, t.date, t.start_time, EVENT_COLORS.tournament, {
         label: KIND_LABELS.tournament,
         location: t.location || [t.city, t.state].filter(Boolean).join(', ') || null,
-        lines: [],
+        // Weigh-in stays off: it is for families, in the parent portal.
+        lines: t.notes?.trim() ? [t.notes.trim()] : [],
         tags: t.competition_level ? [t.competition_level] : [],
         registerUrl: t.status === 'open' ? t.external_registration_url || '/login' : null,
+        flierUrl: t.image_url,
       })
     ),
     ...clubEvents.map((e) => {

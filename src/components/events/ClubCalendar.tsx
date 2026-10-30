@@ -6,6 +6,7 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import listPlugin from '@fullcalendar/list'
 import { ArrowUpRight, Clock, MapPin } from 'lucide-react'
 
+import { TournamentFlier } from '@/components/events/TournamentFlier'
 import {
   Dialog,
   DialogContent,
@@ -40,6 +41,7 @@ export type CalendarEntry = {
     lines: string[]
     tags: string[]
     registerUrl: string | null
+    flierUrl?: string | null
   }
 }
 
@@ -158,6 +160,7 @@ export function ClubCalendar({
                     ))}
                   </ul>
                 )}
+                {detail.flierUrl && <TournamentFlier url={detail.flierUrl} name={open.title} />}
                 {detail.registerUrl && (
                   <a
                     href={detail.registerUrl}
