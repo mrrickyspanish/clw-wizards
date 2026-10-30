@@ -12,6 +12,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fullcalendar/core": "6.1.21",
+    "@fullcalendar/daygrid": "6.1.21",
+    "@fullcalendar/list": "6.1.21",
+    "@fullcalendar/react": "6.1.21",
     "@hookform/resolvers": "^3.9.1",
     "@next/third-parties": "^15.5.19",
     "@radix-ui/react-accordion": "^1.2.1",

@@ -3,8 +3,8 @@ import { CalendarDays } from 'lucide-react'
 
 import { createPublicSupabase } from '@/lib/supabase/public'
 import { chicagoDatePlusDays, chicagoDateString } from '@/lib/chicago-time'
-import { practiceSchedule } from '@/lib/practice'
-import { PracticeScheduleList } from '@/components/events/PracticeScheduleList'
+import { practiceCalendarEvents, practiceCalendarSetup, practiceSchedule } from '@/lib/practice'
+import { PracticeCalendar } from '@/components/events/PracticeCalendar'
 import type { Practice } from '@/types/database'
 
 /**
@@ -25,14 +25,14 @@ export async function PracticeSchedule() {
   if (!days.length) return null
 
   return (
-    <section id="schedule" className="mt-6 scroll-mt-44 chamfer-md card-depth border border-clw-gold/15 bg-clw-black-2 p-7 sm:p-8 lg:p-10">
+    <section id="schedule" className="mt-6 scroll-mt-44 chamfer-md card-depth border border-clw-gold/15 bg-clw-black-2 p-4 sm:p-8 lg:p-10">
       <div className="flex items-center gap-3">
         <CalendarDays className="h-6 w-6 text-clw-gold" />
         <p className="font-cond text-sm uppercase tracking-[0.26em] text-clw-gold">Practice Schedule</p>
       </div>
       <h2 className="mt-4 font-display text-4xl uppercase leading-[0.96] text-clw-white sm:text-5xl">The next two weeks</h2>
       <div className="mt-7">
-        <PracticeScheduleList days={days} emptyText="" />
+        <PracticeCalendar events={practiceCalendarEvents(days)} {...practiceCalendarSetup(days, today)} twoWeeks />
       </div>
       <Link
         href="/practices"

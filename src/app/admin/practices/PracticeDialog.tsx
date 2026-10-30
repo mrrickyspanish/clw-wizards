@@ -194,6 +194,7 @@ export function PracticeDialog({ practice }: { practice?: Practice }) {
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
             <Input id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+            <p className="text-sm text-clw-gray">Shown to everyone on the public practice schedule.</p>
           </div>
 
           <label className="flex items-center gap-2 text-sm text-clw-white">

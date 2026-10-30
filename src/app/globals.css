@@ -252,3 +252,70 @@
     animation: none;
   }
 }
+
+/* Practice calendar (FullCalendar 6): the site's colors through FullCalendar's
+   own theme variables, so it follows dark mode and the portal's light mode. */
+.clw-calendar {
+  --fc-page-bg-color: rgb(var(--clw-black-2));
+  --fc-neutral-bg-color: rgb(var(--clw-black-3));
+  --fc-neutral-text-color: rgb(var(--clw-gray));
+  --fc-border-color: rgb(var(--clw-gray) / 0.22);
+  --fc-today-bg-color: rgb(var(--clw-gold) / 0.12);
+  --fc-list-event-hover-bg-color: rgb(var(--clw-black-3));
+  --fc-button-text-color: rgb(var(--clw-white));
+  --fc-button-bg-color: transparent;
+  --fc-button-border-color: rgb(var(--clw-gold) / 0.45);
+  --fc-button-hover-bg-color: rgb(var(--clw-gold) / 0.12);
+  --fc-button-hover-border-color: rgb(var(--clw-gold) / 0.7);
+  --fc-button-active-bg-color: rgb(var(--clw-gold));
+  --fc-button-active-border-color: rgb(var(--clw-gold));
+  --fc-small-font-size: 0.9375rem;
+  color: rgb(var(--clw-white));
+  font-size: 1rem;
+}
+.clw-calendar .fc .fc-toolbar-title {
+  font-family: var(--font-bebas), sans-serif;
+  font-size: 1.875rem;
+  letter-spacing: 0.02em;
+}
+/* Phone-sized tap targets for the toolbar. */
+.clw-calendar .fc .fc-button {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  font-size: 1rem;
+  text-transform: none;
+}
+.clw-calendar .fc .fc-button-primary:not(:disabled).fc-button-active {
+  color: rgb(11 11 11);
+}
+.clw-calendar .fc .fc-col-header-cell-cushion,
+.clw-calendar .fc .fc-daygrid-day-number,
+.clw-calendar .fc .fc-list-day-text,
+.clw-calendar .fc .fc-list-day-side-text {
+  color: inherit;
+  text-decoration: none;
+}
+.clw-calendar .fc .fc-list-day-cushion {
+  background-color: rgb(var(--clw-black-3));
+}
+.clw-calendar .fc .fc-list-event:hover td {
+  background-color: var(--fc-list-event-hover-bg-color);
+}
+/* Narrow calendars (phones, the portal beside its menu): smaller title. */
+@container (max-width: 639px) {
+  .clw-calendar .fc .fc-toolbar-title {
+    font-size: 1.5rem;
+  }
+}
+.clw-calendar {
+  container-type: inline-size;
+}
+/* Very narrow calendars (small phones inside a card): tighter list cells so
+   times stay on one line without a sideways scroll. */
+@container (max-width: 399px) {
+  .clw-calendar .fc .fc-list-table td,
+  .clw-calendar .fc .fc-list-table th {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}

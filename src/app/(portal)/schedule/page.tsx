@@ -2,9 +2,9 @@ import Link from 'next/link'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { resolveFamilyOwnerIds } from '@/lib/family'
-import { practiceSchedule, practiceSeasonEnd } from '@/lib/practice'
+import { practiceCalendarEvents, practiceCalendarSetup, practiceSchedule, practiceSeasonEnd } from '@/lib/practice'
 import { chicagoDateString } from '@/lib/chicago-time'
-import { PracticeScheduleList } from '@/components/events/PracticeScheduleList'
+import { PracticeCalendar } from '@/components/events/PracticeCalendar'
 import type { Practice } from '@/types/database'
 
 export default async function SchedulePage({
@@ -34,7 +34,7 @@ export default async function SchedulePage({
   const days = practiceSchedule(all, cancellations ?? [], today, practiceSeasonEnd(all, today), mineView ? myGroups : undefined)
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6">
       <div>
         <h1 className="font-display text-3xl text-clw-gold-ink">Practice schedule</h1>
         <p className="mt-1 text-base text-clw-gray">Every practice by date, and the days there is no practice.</p>
@@ -55,11 +55,12 @@ export default async function SchedulePage({
         <p className="rounded-md border border-red-500/40 bg-red-500/10 p-4 text-base text-red-400">
           Failed to load schedule: {error.message}
         </p>
+      ) : days.length ? (
+        <PracticeCalendar events={practiceCalendarEvents(days)} {...practiceCalendarSetup(days, today)} />
       ) : (
-        <PracticeScheduleList
-          days={days}
-          emptyText={mineView ? 'No practices posted for your groups yet.' : 'No practices have been posted yet.'}
-        />
+        <p className="text-base text-clw-gray">
+          {mineView ? 'No practices posted for your groups yet.' : 'No practices have been posted yet.'}
+        </p>
       )}
     </div>
   )

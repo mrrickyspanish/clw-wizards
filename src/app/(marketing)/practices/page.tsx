@@ -5,8 +5,8 @@ import { CalendarDays } from 'lucide-react'
 import { pageMetadata } from '@/lib/page-metadata'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { chicagoDateString } from '@/lib/chicago-time'
-import { practiceSchedule, practiceSeasonEnd } from '@/lib/practice'
-import { PracticeScheduleList } from '@/components/events/PracticeScheduleList'
+import { practiceCalendarEvents, practiceCalendarSetup, practiceSchedule, practiceSeasonEnd } from '@/lib/practice'
+import { PracticeCalendar } from '@/components/events/PracticeCalendar'
 import type { Practice } from '@/types/database'
 
 export const metadata: Metadata = pageMetadata({
@@ -49,8 +49,12 @@ export default async function PracticesPage() {
           </Link>
         </header>
 
-        <div className="mt-10 max-w-3xl">
-          <PracticeScheduleList days={days} emptyText="The practice schedule hasn't been posted yet." />
+        <div className="mt-10">
+          {days.length ? (
+            <PracticeCalendar events={practiceCalendarEvents(days)} {...practiceCalendarSetup(days, today)} />
+          ) : (
+            <p className="text-base text-clw-gray">The practice schedule hasn&apos;t been posted yet.</p>
+          )}
         </div>
       </section>
     </main>

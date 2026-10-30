@@ -100,6 +100,7 @@ export function CancelDateDialog({
           <div className="space-y-2">
             <Label htmlFor="cancel_reason">Reason (optional)</Label>
             <Input id="cancel_reason" placeholder="Holiday, closure…" value={reason} onChange={(e) => setReason(e.target.value)} />
+            <p className="text-sm text-clw-gray">Shown to everyone on the public practice schedule.</p>
           </div>
         </form>
 

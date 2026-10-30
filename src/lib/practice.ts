@@ -169,7 +169,15 @@ export function practiceDays(
   return days
 }
 
-export type ScheduleLine = { title: string; groups: string[]; start_time: string; end_time: string | null; location: string }
+export type ScheduleLine = {
+  title: string
+  groups: string[]
+  start_time: string
+  end_time: string | null
+  location: string
+  // What the club wrote on these practices ("Regional wrestlers").
+  notes: string[]
+}
 export type ScheduleDay = {
   date: string
   // Who practices, one line per time slot ("Groups 2 & 3 · 6:00 PM – 7:30 PM").
@@ -208,7 +216,7 @@ export function practiceSchedule(
     const called = scheduled.filter((p) => offByKey.has(`${p.id}|${date}`))
     const slots = new Map<string, Practice[]>()
     for (const p of running) {
-      const key = `${p.start_time}|${p.end_time ?? ''}|${p.location}`
+      const key = `${p.start_time}|${p.end_time ?? ''}|${p.location}|${p.notes?.trim() ?? ''}`
       slots.set(key, [...(slots.get(key) ?? []), p])
     }
     const reasons = [...new Set(called.map((p) => offByKey.get(`${p.id}|${date}`)?.reason?.trim()).filter(Boolean))]
@@ -220,6 +228,7 @@ export function practiceSchedule(
         start_time: slot[0].start_time,
         end_time: slot[0].end_time,
         location: slot[0].location,
+        notes: [...new Set(slot.map((p) => p.notes?.trim()).filter((n): n is string => Boolean(n)))],
       })),
       off: called.length ? { groups: [...new Set(called.map((p) => p.practice_group))], reason: reasons.join(' · ') || null } : null,
       notes: [...new Set(running.map((p) => p.notes?.trim()).filter((n): n is string => Boolean(n)))],
@@ -234,4 +243,80 @@ export function practiceSeasonEnd(practices: Pick<Practice, 'ends_on' | 'active'
   if (!ends.length) return today
   if (ends.some((e) => !e)) return chicagoDatePlusDays(16 * 7, new Date(`${today}T12:00:00Z`))
   return (ends as string[]).reduce((a, b) => (b > a ? b : a), today)
+}
+
+// Each practice group's color on the practice calendar (dot + legend). Readable
+// on the dark site and the portal's light mode.
+export const GROUP_COLORS: Record<string, string> = {
+  'Group 1': '#F0C020',
+  'Group 2': '#3B82F6',
+  'Group 3': '#10B981',
+  'Group 4': '#A855F7',
+}
+const OTHER_GROUP_COLOR = '#F97316'
+export const groupColor = (group: string) => GROUP_COLORS[group] ?? OTHER_GROUP_COLOR
+
+export type PracticeCalendarEvent = {
+  id: string
+  title: string
+  start: string
+  end?: string
+  allDay?: boolean
+  color: string
+  textColor?: string
+  kind: 'practice' | 'off'
+}
+
+/**
+ * The schedule as calendar events: one per group per practice (so each group
+ * keeps its color), and an all-day "No practice" on days it is called off.
+ */
+export function practiceCalendarEvents(days: ScheduleDay[]): PracticeCalendarEvent[] {
+  const out: PracticeCalendarEvent[] = []
+  for (const day of days) {
+    if (day.off) {
+      const who = day.lines.length ? `: ${day.off.groups.join(', ')}` : ''
+      out.push({
+        id: `off-${day.date}`,
+        title: `No practice${who}${day.off.reason ? ` · ${day.off.reason}` : ''}`,
+        start: day.date,
+        allDay: true,
+        color: '#52525B',
+        textColor: '#FFFFFF',
+        kind: 'off',
+      })
+    }
+    for (const line of day.lines) {
+      const note = line.notes.length ? ` · ${line.notes.join(' · ')}` : ''
+      for (const group of line.groups) {
+        out.push({
+          id: `${day.date}-${group}-${line.start_time}`,
+          title: `${group}${note}`,
+          start: `${day.date}T${line.start_time}`,
+          ...(line.end_time ? { end: `${day.date}T${line.end_time}` } : {}),
+          color: groupColor(group),
+          kind: 'practice',
+        })
+      }
+    }
+  }
+  return out
+}
+
+/** What the practice calendar opens on, how far it pages, and its legend. */
+export function practiceCalendarSetup(days: ScheduleDay[], today: string) {
+  const first = days[0]?.date ?? today
+  const last = days.at(-1)?.date ?? today
+  const dayAfter = new Date(Date.UTC(+last.slice(0, 4), +last.slice(5, 7) - 1, +last.slice(8, 10) + 1)).toISOString().slice(0, 10)
+  const groups = [...new Set(days.flatMap((d) => d.lines.flatMap((l) => l.groups)))].sort((a, b) =>
+    a.localeCompare(b, 'en', { numeric: true })
+  )
+  return {
+    initialDate: first > today ? first : today,
+    validRange: { start: `${today.slice(0, 7)}-01`, end: dayAfter },
+    legend: [
+      ...groups.map((g) => ({ label: g, color: groupColor(g) })),
+      ...(days.some((d) => d.off) ? [{ label: 'No practice', color: '#52525B' }] : []),
+    ],
+  }
 }

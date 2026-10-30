@@ -3252,7 +3252,30 @@ test('groups at the same time share a line, notes show, and a family sees only i
   assert.deepEqual(days.map((d) => d.date), ['2027-02-19', '2027-02-22'])
   assert.deepEqual(days[1].lines.map((l) => l.title), ['Groups 2 & 3'])
   assert.deepEqual(days[1].notes, ['Regional wrestlers'])
+  assert.deepEqual(days[1].lines[0].notes, ['Regional wrestlers'])
+  // A note stays on its own practices, not on everything else that day.
+  const mixed = plain(practiceLib.practiceCalendarEvents(practiceLib.practiceSchedule(all, [], '2027-02-22', '2027-02-22')))
+  assert.deepEqual(mixed.map((e) => e.title), ['Group 2 · Regional wrestlers', 'Group 3 · Regional wrestlers'])
   const mine = plain(practiceLib.practiceSchedule(all, [], '2026-11-02', '2026-11-06', new Set(['Group 1'])))
   assert.deepEqual(mine.map((d) => [d.date, d.lines.map((l) => l.title)]), [['2026-11-02', ['Group 1']], ['2026-11-05', ['Group 1']]])
   assert.equal(practiceLib.practiceSeasonEnd(all, '2026-10-30'), '2027-02-22')
+})
+
+test('the practice calendar gets one colored event per group, and an all-day No practice on days off', () => {
+  const cancellations = [{ practice_id: 'w3', date: '2026-12-02', reason: 'Team pictures' }, { practice_id: 'w4', date: '2026-12-02', reason: 'Team pictures' }]
+  const days = practiceLib.practiceSchedule(tonyWeek(), cancellations, '2026-11-30', '2026-12-02')
+  const events = plain(practiceLib.practiceCalendarEvents(days))
+  assert.deepEqual(events.map((e) => [e.title, e.start, e.end ?? null, e.allDay ?? false]), [
+    ['Group 1', '2026-11-30T17:30', '2026-11-30T18:30', false],
+    ['Group 3', '2026-11-30T19:00', '2026-11-30T20:30', false],
+    ['Group 2', '2026-12-01T17:30', '2026-12-01T18:45', false],
+    ['Group 4', '2026-12-01T19:00', '2026-12-01T20:30', false],
+    ['No practice · Team pictures', '2026-12-02', null, true],
+  ])
+  assert.equal(events[0].color, practiceLib.groupColor('Group 1'))
+  assert.notEqual(practiceLib.groupColor('Group 1'), practiceLib.groupColor('Group 2'))
+  const setup = plain(practiceLib.practiceCalendarSetup(days, '2026-10-30'))
+  assert.equal(setup.initialDate, '2026-11-30') // opens on the first practice, not an empty October
+  assert.deepEqual(setup.validRange, { start: '2026-10-01', end: '2026-12-03' })
+  assert.deepEqual(setup.legend.map((l) => l.label), ['Group 1', 'Group 2', 'Group 3', 'Group 4', 'No practice'])
 })
