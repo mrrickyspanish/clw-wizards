@@ -92,7 +92,7 @@ export function clubCalendarEntries(
         location: t.location || [t.city, t.state].filter(Boolean).join(', ') || null,
         // Weigh-in stays off: it is for families, in the parent portal.
         lines: t.notes?.trim() ? [t.notes.trim()] : [],
-        tags: t.competition_level ? [t.competition_level] : [],
+        tags: [...(t.competition_level ? [t.competition_level] : []), ...(t.status === 'not_open' ? ['Registration not open yet'] : [])],
         registerUrl: t.status === 'open' ? t.external_registration_url || '/login' : null,
         flierUrl: t.image_url,
       })

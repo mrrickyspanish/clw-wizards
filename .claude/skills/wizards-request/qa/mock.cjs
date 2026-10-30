@@ -93,6 +93,7 @@ const tables = {
   ],
   tournaments: [
     { ...base, id: id('t', 1), name: 'Turkey Tussle Open With A Long Tournament Name', date: '2026-11-21', start_time: '8:00 AM', location: 'Central High School', city: 'Huntley', state: 'IL', status: 'open', external_registration_url: 'https://example.com/register', competition_level: 'Novice', weigh_in_date: '2026-11-20', weigh_in_time: '18:00', weigh_in_location: 'Central High School', practice_groups: [], notes: 'Singlets required.', external_platform: 'TrackWrestling', image_url: 'http://127.0.0.1:54329/storage/v1/object/public/tournament-flyers/flyers/qa-flier.svg' },
+    { ...base, id: id('t', 3), name: 'Spring Open', date: '2026-11-28', start_time: '9:00 AM', location: 'North Gym', city: 'Crystal Lake', state: 'IL', status: 'not_open', external_registration_url: 'https://example.com/spring', competition_level: null, weigh_in_date: null, weigh_in_location: null, practice_groups: [], notes: null, external_platform: 'TrackWrestling', image_url: null },
     { ...base, id: id('t', 2), name: 'Holiday Duals', date: '2026-12-05', start_time: null, location: '', city: 'Crystal Lake', state: 'IL', status: 'closed', external_registration_url: null, competition_level: null, weigh_in_date: null, weigh_in_location: null, practice_groups: [], notes: null, external_platform: null, image_url: 'https://example.com/holiday-duals.pdf' },
   ],
   tournament_registrations: [],

@@ -1,5 +1,6 @@
 import { ExternalLink } from 'lucide-react'
 
+import { TOURNAMENT_STATUS_LABELS } from '@/lib/tournament-status'
 import { createServerSupabase } from '@/lib/supabase/server'
 import type { Tournament } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
@@ -16,6 +17,7 @@ import { DeleteTournamentButton } from './DeleteTournamentButton'
 
 const STATUS_STYLES: Record<Tournament['status'], string> = {
   open: 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold',
+  not_open: 'border-sky-500/40 bg-sky-500/10 text-sky-300',
   closed: 'border-clw-gray/40 bg-clw-gray/10 text-clw-gray',
   cancelled: 'border-red-500/40 bg-red-500/10 text-red-400',
 }
@@ -94,8 +96,8 @@ export default async function AdminTournamentsPage() {
                     {t.practice_groups.length === 0 ? 'All' : t.practice_groups.join(', ')}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={STATUS_STYLES[t.status]}>
-                      {t.status}
+                    <Badge variant="outline" className={`whitespace-nowrap ${STATUS_STYLES[t.status]}`}>
+                      {TOURNAMENT_STATUS_LABELS[t.status]}
                     </Badge>
                   </TableCell>
                   <TableCell>

@@ -106,7 +106,8 @@ export type Tournament = {
   weigh_in_date: string | null
   weigh_in_location: string | null
   start_time: string | null
-  status: 'open' | 'closed' | 'cancelled'
+  // not_open: listed, but registration hasn't opened yet (acts like closed).
+  status: 'open' | 'not_open' | 'closed' | 'cancelled'
   practice_groups: string[]
   competition_level: string | null
   image_url: string | null

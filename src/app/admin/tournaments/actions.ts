@@ -16,7 +16,7 @@ const tournamentSchema = z.object({
   location: z.string().trim().min(1, 'Location is required'),
   city: z.string().trim().min(1, 'City is required'),
   state: z.string().trim().min(1, 'State is required').max(2),
-  status: z.enum(['open', 'closed', 'cancelled']),
+  status: z.enum(['open', 'not_open', 'closed', 'cancelled']),
   start_time: z.string().trim().optional().nullable(),
   weigh_in_date: z
     .string()

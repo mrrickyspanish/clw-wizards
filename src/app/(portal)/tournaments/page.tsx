@@ -1,5 +1,6 @@
 import { ExternalLink, Scale } from 'lucide-react'
 
+import { registrationLine, TOURNAMENT_STATUS_LABELS } from '@/lib/tournament-status'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { resolveFamilyOwnerIds } from '@/lib/family'
 import { chicagoDateString } from '@/lib/chicago-time'
@@ -13,6 +14,7 @@ import { TournamentFlier } from '@/components/events/TournamentFlier'
 
 const STATUS_STYLES: Record<Tournament['status'], string> = {
   open: 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold-ink',
+  not_open: 'border-sky-500/40 bg-sky-500/10 text-clw-white',
   closed: 'border-clw-gray/40 bg-clw-gray/10 text-clw-gray',
   cancelled: 'border-red-500/40 bg-red-500/10 text-red-400',
 }
@@ -101,8 +103,8 @@ export default async function TournamentsPage() {
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-2">
-                  <Badge variant="outline" className={STATUS_STYLES[t.status]}>
-                    {t.status}
+                  <Badge variant="outline" className={`whitespace-nowrap ${STATUS_STYLES[t.status]}`}>
+                    {TOURNAMENT_STATUS_LABELS[t.status]}
                   </Badge>
                   {t.competition_level && (
                     <Badge variant="outline" className="border-clw-gray/40 text-clw-white">
@@ -133,7 +135,8 @@ export default async function TournamentsPage() {
 
               <TournamentFlier url={t.image_url} name={t.name} />
 
-              {t.external_registration_url ? (
+              {/* Register only while open, same as Events (Oct 30: not open yet, closed and cancelled show the line). */}
+              {t.status === 'open' && t.external_registration_url ? (
                 <Button asChild variant="outline" size="sm" className="h-auto min-h-11 max-w-full whitespace-normal text-left">
                   <a href={t.external_registration_url} target="_blank" rel="noopener noreferrer">
                     Register on {t.external_platform ?? 'external site'} <ExternalLink className="ml-1.5 h-3 w-3" />
@@ -146,7 +149,7 @@ export default async function TournamentsPage() {
                   registrations={regsByTournament.get(t.id) ?? {}}
                 />
               ) : (
-                <p className="text-sm text-clw-gray">Registration is {t.status}.</p>
+                <p className="text-base text-clw-gray">{registrationLine(t.status)}</p>
               )}
             </CardContent>
           </Card>

@@ -3357,3 +3357,16 @@ test('the Events details box carries the flier and notes, never the weigh-in', (
   assert.ok(!JSON.stringify(entries).includes('Secret Gym'))
   assert.ok(!JSON.stringify(entries).includes('2027-02-05'))
 })
+
+// "Not open yet" tournament status (Tyler, Oct 30).
+test('a tournament that is not open yet reads that way, with no Register anywhere', () => {
+  const lib = load('src/lib/tournament-status.ts', {})
+  assert.equal(lib.TOURNAMENT_STATUS_LABELS.not_open, 'Not open yet')
+  assert.equal(lib.registrationLine('not_open'), "Registration isn't open yet.")
+  assert.equal(lib.registrationLine('closed'), 'Registration is closed.')
+  const [entry] = plain(clubCalLib.clubCalendarEntries([
+    { id: 'n1', name: 'Spring Open', date: '2027-03-20', start_time: '9:00 AM', location: 'Gym', city: '', state: 'IL', status: 'not_open', external_registration_url: 'https://example.com/reg', competition_level: 'Novice', image_url: null, notes: null },
+  ], []))
+  assert.equal(entry.detail.registerUrl, null)
+  assert.deepEqual(entry.detail.tags, ['Novice', 'Registration not open yet'])
+})

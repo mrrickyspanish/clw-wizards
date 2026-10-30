@@ -261,6 +261,7 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="open">Open</SelectItem>
+                <SelectItem value="not_open">Not open yet</SelectItem>
                 <SelectItem value="closed">Closed</SelectItem>
                 <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
