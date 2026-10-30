@@ -3305,3 +3305,28 @@ test('the Events calendar has tournaments and club events with their details, an
   assert.deepEqual(plain(clubCalLib.clubCalendarLegend(entries)).map((l) => l.label), ['Tournament', 'Club event'])
   assert.deepEqual(plain(clubCalLib.calendarRange(entries.map((e) => e.start.slice(0, 10)), '2026-10-30')), { initialDate: '2026-11-07', validRange: { start: '2026-10-01', end: '2026-12-01' } })
 })
+
+// Parent view for admins (Oct 30): full admins can open the parent pages, not add a wrestler.
+test('a full admin can open the parent pages; a limited admin and adding a wrestler stay blocked', async () => {
+  const next = require('next/server')
+  const visit = async (role, adminScope, path) => {
+    const mod = load('src/middleware.ts', {
+      'next/server': next,
+      '@/lib/auth/session': { getSessionRole: async () => ({ user: { id: 'u' }, role, adminScope, onboardingCompleted: false, sessionError: null }), homeForRole: (r) => (r === 'admin' ? '/admin' : '/dashboard') },
+      '@/lib/supabase/middleware': { getSupabaseAndResponse: async () => ({ supabase: {}, response: next.NextResponse.next() }) },
+      '@/lib/auth/incident-policy': incidentPolicy,
+      '@/lib/auth/incidents': { linkAttemptId: async () => null, reportParentAuthFailure: async () => {} },
+    })
+    const res = await mod.middleware(new next.NextRequest('https://www.clwizards.com' + path), { waitUntil: () => {} })
+    const to = res.headers.get('location')
+    return to ? new URL(to).pathname : 'allowed'
+  }
+  for (const path of ['/dashboard', '/schedule', '/athletes', '/dues', '/documents', '/registration', '/tournaments', '/profile']) {
+    assert.equal(await visit('admin', 'full', path), 'allowed', path)
+  }
+  assert.equal(await visit('admin', 'full', '/athletes/new'), '/admin')
+  assert.equal(await visit('admin', 'limited', '/schedule'), '/admin')
+  assert.equal(await visit('staff', null, '/schedule'), '/dashboard')
+  assert.equal(await visit('parent', null, '/admin'), '/dashboard')
+  assert.equal(await visit('admin', 'full', '/onboarding'), '/admin') // setup stays parent-only
+})

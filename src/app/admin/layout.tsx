@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import {
   CalendarClock,
   ClipboardCheck,
+  Eye,
   FileText,
   HandCoins,
   Handshake,
@@ -36,6 +37,8 @@ const ADMIN_NAV: AdminNavItem[] = [
   { href: '/admin/content', label: 'Website content', icon: <FileText className="w-4 h-4" />, fullOnly: true },
   { href: '/admin/communications', label: 'Communications', icon: <Megaphone className="w-4 h-4" /> },
   { href: '/admin/team', label: 'Admin team', icon: <ShieldCheck className="w-4 h-4" />, fullOnly: true },
+  // The parent pages as families see them (an empty family for an admin).
+  { href: '/dashboard', label: 'Parent view', icon: <Eye className="w-4 h-4" />, fullOnly: true },
 ]
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

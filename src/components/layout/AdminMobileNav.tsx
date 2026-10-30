@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import {
+import { Eye,
   CalendarClock,
   ClipboardCheck,
   FileText,
@@ -44,6 +44,7 @@ const ADMIN_ITEMS = [
   { href: '/admin/content', label: 'Website content', icon: FileText, fullOnly: true },
   { href: '/admin/communications', label: 'Communications', icon: Megaphone },
   { href: '/admin/team', label: 'Admin team', icon: ShieldCheck, fullOnly: true },
+  { href: '/dashboard', label: 'Parent view', icon: Eye, fullOnly: true },
 ]
 
 export function AdminMobileNav({

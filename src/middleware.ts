@@ -105,10 +105,19 @@ export async function middleware(req: NextRequest, event: NextFetchEvent) {
     if (storedDestination) response.cookies.delete(POST_ONBOARDING_COOKIE)
   }
 
+  // Full admins can open the parent pages too, to see what families see
+  // (Ricky, Oct 30). Every parent page shows only the signed-in person's own
+  // family, so an admin sees an empty family, never anyone else's. Adding a
+  // wrestler stays parent-only: one added on an admin login would land in the
+  // club's real rosters.
+  const adminViewingPortal =
+    isPortalPath && role === 'admin' && adminScope === 'full' && !matchesPrefix(pathname, ['/athletes/new'])
+
   const allowed =
     (isAdminPath && role === 'admin') ||
     (isStaffPath && (role === 'admin' || role === 'staff')) ||
     (isPortalPath && role === 'parent') ||
+    adminViewingPortal ||
     (isOnboardingPath && role === 'parent')
 
   if (!allowed) {
