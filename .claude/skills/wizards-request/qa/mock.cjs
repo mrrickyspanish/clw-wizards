@@ -89,7 +89,10 @@ const tables = {
     { id: id('v', 1), practice_id: id('p', 6), date: '2026-11-05', reason: 'Team pictures', created_at: T },
     { id: id('v', 2), practice_id: id('p', 2), date: '2026-11-09', reason: null, created_at: T },
   ],
-  tournaments: [],
+  tournaments: [
+    { ...base, id: id('t', 1), name: 'Turkey Tussle Open With A Long Tournament Name', date: '2026-11-21', start_time: '8:00 AM', location: 'Central High School', city: 'Huntley', state: 'IL', status: 'open', external_registration_url: 'https://example.com/register', competition_level: 'Novice', weigh_in_date: null, weigh_in_location: null, practice_groups: [] },
+    { ...base, id: id('t', 2), name: 'Holiday Duals', date: '2026-12-05', start_time: null, location: '', city: 'Crystal Lake', state: 'IL', status: 'closed', external_registration_url: null, competition_level: null, weigh_in_date: null, weigh_in_location: null, practice_groups: [] },
+  ],
   tournament_registrations: [],
   communication_log: [
     { id: id('l', 1), channel: 'email', comm_type: 'custom', recipient_id: PARENT, recipient_email: 'pat@example.com', recipient_phone: null, tournament_id: null, subject: 'Practice starts Nov 2', body_preview: 'See you there', status: 'sent', sent_at: '2026-10-05T14:00:00Z', external_id: null, blast_id: id('z', 1) },

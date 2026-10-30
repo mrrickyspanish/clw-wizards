@@ -38,8 +38,8 @@ const SEARCH_ITEMS = [
   },
   {
     title: 'Practice Schedule',
-    description: 'Every practice by date, which groups practice when, and the days there is no practice.',
-    href: '/practices',
+    description: 'Practice times by date for club families. Log in to the parent portal to see them.',
+    href: '/schedule',
     keywords: ['schedule', 'practice', 'practices', 'times', 'days', 'when', 'location'],
   },
   {

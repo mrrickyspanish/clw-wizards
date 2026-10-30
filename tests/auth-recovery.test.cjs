@@ -3276,6 +3276,32 @@ test('the practice calendar gets one colored event per group, and an all-day No 
   assert.notEqual(practiceLib.groupColor('Group 1'), practiceLib.groupColor('Group 2'))
   const setup = plain(practiceLib.practiceCalendarSetup(days, '2026-10-30'))
   assert.equal(setup.initialDate, '2026-11-30') // opens on the first practice, not an empty October
-  assert.deepEqual(setup.validRange, { start: '2026-10-01', end: '2026-12-03' })
+  assert.deepEqual(setup.validRange, { start: '2026-10-01', end: '2027-01-01' })
   assert.deepEqual(setup.legend.map((l) => l.label), ['Group 1', 'Group 2', 'Group 3', 'Group 4', 'No practice'])
+})
+
+// Public Events calendar (Oct 30): tournaments and club events only, with details on click.
+const clubCalLib = load('src/lib/club-calendar.ts', { '@/lib/practice': practiceLib })
+
+test('event times in any written form become calendar times; unknown times become all-day', () => {
+  for (const [input, out] of [['8:00 AM', '08:00'], ['8 am', '08:00'], ['12:30 PM', '12:30'], ['12:00 a.m.', '00:00'], ['17:30', '17:30'], ['09:00:00', '09:00'], ['TBD', null], ['', null], [null, null], ['13:00 PM', null]]) {
+    assert.equal(clubCalLib.clockTime(input), out, String(input))
+  }
+})
+
+test('the Events calendar has tournaments and club events with their details, and no practices', () => {
+  const tournaments = [
+    { id: 't1', name: 'Turkey Tussle', date: '2026-11-21', start_time: '8:00 AM', location: '', city: 'Huntley', state: 'IL', status: 'open', external_registration_url: 'https://example.com/reg', competition_level: 'Novice' },
+    { id: 't2', name: 'Closed Open', date: '2026-11-07', start_time: null, location: 'Big Gym', city: 'X', state: 'IL', status: 'closed', external_registration_url: 'https://example.com/x', competition_level: null },
+  ]
+  const events = [{ id: 'e1', title: 'Picture Day', date: '2026-11-14', start_time: '09:00', location: 'Wizards Facility', event_type: 'event', practice_group: null }]
+  const entries = plain(clubCalLib.clubCalendarEntries(tournaments, events, new Map([['e1', ['Tot, Bantam · 9:00 AM – 10:30 AM']]])))
+  assert.deepEqual(entries.map((e) => [e.id, e.start, e.allDay ?? false]), [['t-t2', '2026-11-07', true], ['e-e1', '2026-11-14', true], ['t-t1', '2026-11-21T08:00', false]])
+  const tussle = entries.find((e) => e.id === 't-t1').detail
+  assert.deepEqual(tussle, { label: 'Tournament', location: 'Huntley, IL', lines: [], tags: ['Novice'], registerUrl: 'https://example.com/reg', when: 'Saturday, November 21 · 8:00 AM' })
+  assert.equal(entries.find((e) => e.id === 't-t2').detail.registerUrl, null) // closed: no Register
+  assert.deepEqual(entries.find((e) => e.id === 'e-e1').detail.lines, ['Tot, Bantam · 9:00 AM – 10:30 AM'])
+  assert.ok(!entries.some((e) => /practice/i.test(e.detail.label)))
+  assert.deepEqual(plain(clubCalLib.clubCalendarLegend(entries)).map((l) => l.label), ['Tournament', 'Club event'])
+  assert.deepEqual(plain(clubCalLib.calendarRange(entries.map((e) => e.start.slice(0, 10)), '2026-10-30')), { initialDate: '2026-11-07', validRange: { start: '2026-10-01', end: '2026-12-01' } })
 })

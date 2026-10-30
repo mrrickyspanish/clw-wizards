@@ -4,7 +4,7 @@ import { createServerSupabase } from '@/lib/supabase/server'
 import { resolveFamilyOwnerIds } from '@/lib/family'
 import { practiceCalendarEvents, practiceCalendarSetup, practiceSchedule, practiceSeasonEnd } from '@/lib/practice'
 import { chicagoDateString } from '@/lib/chicago-time'
-import { PracticeCalendar } from '@/components/events/PracticeCalendar'
+import { ClubCalendar } from '@/components/events/ClubCalendar'
 import type { Practice } from '@/types/database'
 
 export default async function SchedulePage({
@@ -56,7 +56,11 @@ export default async function SchedulePage({
           Failed to load schedule: {error.message}
         </p>
       ) : days.length ? (
-        <PracticeCalendar events={practiceCalendarEvents(days)} {...practiceCalendarSetup(days, today)} />
+        <ClubCalendar
+          events={practiceCalendarEvents(days)}
+          {...practiceCalendarSetup(days, today)}
+          emptyText="No practices this month."
+        />
       ) : (
         <p className="text-base text-clw-gray">
           {mineView ? 'No practices posted for your groups yet.' : 'No practices have been posted yet.'}

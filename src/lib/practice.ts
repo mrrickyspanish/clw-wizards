@@ -307,13 +307,14 @@ export function practiceCalendarEvents(days: ScheduleDay[]): PracticeCalendarEve
 export function practiceCalendarSetup(days: ScheduleDay[], today: string) {
   const first = days[0]?.date ?? today
   const last = days.at(-1)?.date ?? today
-  const dayAfter = new Date(Date.UTC(+last.slice(0, 4), +last.slice(5, 7) - 1, +last.slice(8, 10) + 1)).toISOString().slice(0, 10)
+  // Whole months: paging stops after the last month with practice.
+  const monthAfter = new Date(Date.UTC(+last.slice(0, 4), +last.slice(5, 7), 1)).toISOString().slice(0, 10)
   const groups = [...new Set(days.flatMap((d) => d.lines.flatMap((l) => l.groups)))].sort((a, b) =>
     a.localeCompare(b, 'en', { numeric: true })
   )
   return {
     initialDate: first > today ? first : today,
-    validRange: { start: `${today.slice(0, 7)}-01`, end: dayAfter },
+    validRange: { start: `${today.slice(0, 7)}-01`, end: monthAfter },
     legend: [
       ...groups.map((g) => ({ label: g, color: groupColor(g) })),
       ...(days.some((d) => d.off) ? [{ label: 'No practice', color: '#52525B' }] : []),

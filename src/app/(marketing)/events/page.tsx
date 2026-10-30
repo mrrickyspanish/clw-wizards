@@ -1,16 +1,14 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-
-import { pageMetadata } from '@/lib/page-metadata'
 import { CalendarDays } from 'lucide-react'
 
+import { pageMetadata } from '@/lib/page-metadata'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { chicagoDateString } from '@/lib/chicago-time'
-import { formatTime, practiceDays, practiceGroupsTitle } from '@/lib/practice'
 import { sessionLine, sessionsByEvent } from '@/lib/event-sessions'
-import type { ClubEvent, EventSession, Practice, Tournament } from '@/types/database'
-import { EventsCalendar } from '@/components/events/EventsCalendar'
-import { EventsList, type CalendarItem } from '@/components/events/EventsList'
+import { calendarRange, clubCalendarEntries, clubCalendarLegend } from '@/lib/club-calendar'
+import type { ClubEvent, EventSession, Tournament } from '@/types/database'
+import { ClubCalendar } from '@/components/events/ClubCalendar'
 
 export const metadata: Metadata = pageMetadata({
   title: 'Events',
@@ -18,93 +16,24 @@ export const metadata: Metadata = pageMetadata({
     'The Wizards Wrestling Club calendar: upcoming tournaments, banquets, fundraisers, and club events with dates, times, and locations.',
 })
 
+// Tournaments and club events on a standard calendar (Ricky, Oct 30). Practice
+// times are for signed-in families only: they are in the parent portal.
 export default async function EventsPage() {
   const supabase = await createServerSupabase()
   const today = chicagoDateString()
 
-  const [{ data: tournamentData }, { data: clubEventData }, { data: practiceData }, { data: cancellationData }] = await Promise.all([
-    supabase
-      .from('tournaments')
-      .select('*')
-      .neq('status', 'cancelled')
-      .gte('date', today)
-      .order('date', { ascending: true }),
-    supabase
-      .from('club_events')
-      .select('*')
-      .eq('active', true)
-      .gte('date', today)
-      .order('date', { ascending: true }),
-    supabase.from('practices').select('*').eq('active', true),
-    supabase.from('practice_cancellations').select('practice_id, date').gte('date', today),
+  const [{ data: tournamentData }, { data: clubEventData }, { data: sessionData }] = await Promise.all([
+    supabase.from('tournaments').select('*').neq('status', 'cancelled').gte('date', today).order('date', { ascending: true }),
+    supabase.from('club_events').select('*').eq('active', true).gte('date', today).order('date', { ascending: true }),
+    supabase.from('event_sessions').select('*'),
   ])
-  // Split-session events list each session with its divisions.
-  const { data: sessionData } = await supabase.from('event_sessions').select('*')
-  const sessionsFor = sessionsByEvent((sessionData ?? []) as EventSession[])
-
-  const tournaments = (tournamentData ?? []) as Tournament[]
-  const clubEvents = (clubEventData ?? []) as ClubEvent[]
-
-  // Practices are public so visitors see how busy the club is. Every practice
-  // day through the end of the season is marked on the calendar; the list
-  // spells out the next three weeks of them, one entry per day.
-  const practices = (practiceData ?? []) as Practice[]
-  const cancelled = new Set((cancellationData ?? []).map((c) => `${c.practice_id}|${c.date}`))
-  const seasonEnd = practices.reduce((end, p) => (p.ends_on && p.ends_on > end ? p.ends_on : end), today)
-  const allPracticeDays = practiceDays(practices, today, seasonEnd, cancelled)
-  const listedUntil = allPracticeDays.length
-    ? new Date(Date.parse(`${allPracticeDays[0].date}T00:00:00Z`) + 20 * 86_400_000).toISOString().slice(0, 10)
-    : today
-  const listedPracticeDays = allPracticeDays.filter((d) => d.date <= listedUntil)
-  const practiceItems: CalendarItem[] = listedPracticeDays.map((day) => {
-    const places = [...new Set(day.sessions.map((p) => p.location))]
-    return {
-      id: `p-${day.date}`,
-      date: day.date,
-      // The badge already says Practice; the title says who trains that day.
-      title: practiceGroupsTitle(day.sessions.map((p) => p.practice_group)),
-      kind: 'practice' as const,
-      startTime: day.sessions[0].start_time,
-      location: places.length === 1 ? places[0] : null,
-      registerUrl: null,
-      competitionLevel: null,
-      practiceGroup: null,
-      details: day.sessions.map(
-        (p) =>
-          `${p.practice_group} · ${formatTime(p.start_time)}${p.end_time ? ` – ${formatTime(p.end_time)}` : ''}${
-            places.length > 1 ? ` · ${p.location}` : ''
-          }`
-      ),
-    }
-  })
-
-  const items: CalendarItem[] = [
-    ...practiceItems,
-    ...tournaments.map((t) => ({
-      id: `t-${t.id}`,
-      date: t.date,
-      title: t.name,
-      kind: 'tournament' as const,
-      startTime: t.start_time,
-      location: t.location || `${t.city}, ${t.state}`,
-      registerUrl: t.status === 'open' ? t.external_registration_url || '/login' : null,
-      competitionLevel: t.competition_level,
-      practiceGroup: null,
-    })),
-    ...clubEvents.map((e) => ({
-      id: `e-${e.id}`,
-      date: e.date,
-      title: e.title,
-      kind: e.event_type,
-      startTime: e.start_time,
-      location: e.location,
-      registerUrl: e.event_type === 'season_registration' ? '/registration' : null,
-      competitionLevel: null,
-      practiceGroup: e.practice_group,
-      details: (sessionsFor.get(e.id) ?? []).map(sessionLine),
-    })),
-  ].sort((a, b) =>
-    a.date === b.date ? (a.startTime ?? '99').localeCompare(b.startTime ?? '99') : a.date.localeCompare(b.date),
+  const sessions = new Map(
+    [...sessionsByEvent((sessionData ?? []) as EventSession[])].map(([id, rows]) => [id, rows.map(sessionLine)])
+  )
+  const entries = clubCalendarEntries((tournamentData ?? []) as Tournament[], (clubEventData ?? []) as ClubEvent[], sessions)
+  const range = calendarRange(
+    entries.map((e) => e.start.slice(0, 10)),
+    today
   )
 
   return (
@@ -126,22 +55,24 @@ export default async function EventsPage() {
             </span>
           </h1>
           <p className="mt-6 max-w-3xl text-xl leading-relaxed text-clw-gray sm:text-2xl sm:leading-relaxed">
-            Every practice, tournament, banquet, and club night in one place.
+            Tournaments, banquets, fundraisers, and club nights. Tap an event for the details.
           </p>
-          <Link href="/practices" className="mt-6 inline-flex min-h-11 items-center text-base text-clw-gold hover:text-clw-white">
-            See the full practice schedule, with days off
-          </Link>
+          <p className="mt-4 text-base text-clw-gray">
+            Club families: practice times are in the{' '}
+            <Link href="/schedule" className="text-clw-gold underline-offset-4 hover:underline">
+              parent portal
+            </Link>
+            .
+          </p>
         </header>
 
-        <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,26rem)_1fr] lg:items-start lg:gap-10">
-          <div className="lg:sticky lg:top-32">
-            <EventsCalendar
-              eventDates={items.map((i) => i.date)}
-              practiceDates={allPracticeDays.filter((d) => d.date > listedUntil).map((d) => d.date)}
-              todayISO={today}
-            />
-          </div>
-          <EventsList items={items} />
+        <div className="mt-10">
+          <ClubCalendar
+            events={entries}
+            {...range}
+            legend={clubCalendarLegend(entries)}
+            emptyText="No events this month."
+          />
         </div>
       </section>
     </main>
