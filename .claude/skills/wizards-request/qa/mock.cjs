@@ -84,7 +84,11 @@ const tables = {
   ],
   practices: [[1, 'Group 1', '17:30', '18:30'], [1, 'Group 3', '19:00', '20:30'], [2, 'Group 2', '17:30', '18:45'], [2, 'Group 4', '19:00', '20:30'], [3, 'Group 3', '17:30', '18:45'], [4, 'Group 1', '17:30', '18:30'], [5, 'Group 2', '17:30', '18:45']]
     .map(([weekday, practice_group, start_time, end_time], i) => ({ ...base, id: id('p', i + 1), weekday, practice_group, start_time, end_time, location: 'Wizards Facility', notes: null, active: true, starts_on: '2026-11-01', ends_on: '2027-03-15' })),
-  practice_cancellations: [],
+  // A whole day off with a reason, one group off on another day.
+  practice_cancellations: [
+    { id: id('v', 1), practice_id: id('p', 6), date: '2026-11-05', reason: 'Team pictures', created_at: T },
+    { id: id('v', 2), practice_id: id('p', 2), date: '2026-11-09', reason: null, created_at: T },
+  ],
   tournaments: [],
   tournament_registrations: [],
   communication_log: [
@@ -129,6 +133,8 @@ enroll(3, id('k', 4), PARENT2, 'submitted', 10000)
 enroll(4, id('k', 2), PARENT, 'submitted', 0)
 // Tina's dues are on a payment plan with $50 paid, so the Pay another amount box shows.
 Object.assign(tables.dues_payments.find((d) => d.id === id('m', 4)), { payment_plan: true, amount_paid_cents: 5000, status: 'partial' })
+// A one-day session for two groups with a note, like Tony's regional week.
+for (const [n, group] of [[20, 'Group 2'], [21, 'Group 3']]) tables.practices.push({ ...base, id: id('p', n), weekday: 2, practice_group: group, start_time: '18:00', end_time: '19:30', location: 'Wizards Facility', notes: 'Regional wrestlers', active: true, starts_on: '2026-11-10', ends_on: '2026-11-10' })
 tables.athletes.find((a) => a.first_name === 'Tina').usa_wrestling_card_number = '1234567890'
 tables.athletes.find((a) => a.first_name === 'Lily').usa_wrestling_card_number = '5550001112'
 

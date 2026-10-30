@@ -14,8 +14,8 @@ import {
 } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
-import { chicagoDateString, chicagoHour } from '@/lib/chicago-time'
-import { WEEKDAYS, formatTime, nextPractice, practiceEnded, practiceDateNote } from '@/lib/practice'
+import { chicagoDatePlusDays, chicagoDateString, chicagoHour } from '@/lib/chicago-time'
+import { formatTime, nextPractice, practiceEnded, practiceSchedule } from '@/lib/practice'
 import { resolveFamilyOwnerIds } from '@/lib/family'
 import { ORG } from '@/config/org.config'
 import type { Tournament, TournamentRegistration, Practice, Athlete, ClubEvent, EventSession } from '@/types/database'
@@ -90,7 +90,7 @@ export default async function ParentDashboardPage() {
     supabase.from('practices').select('*').eq('active', true),
     supabase.from('athlete_documents').select('uploaded_at, doc_type').eq('parent_id', userId),
     supabase.from('dues_payments').select('updated_at, season').eq('parent_id', userId).eq('status', 'paid'),
-    supabase.from('practice_cancellations').select('practice_id, date').gte('date', today),
+    supabase.from('practice_cancellations').select('practice_id, date, reason').gte('date', today),
     supabase.from('club_events').select('*').eq('active', true).gte('date', today).order('date', { ascending: true }).limit(6),
   ])
 
@@ -123,6 +123,8 @@ export default async function ParentDashboardPage() {
     ((cancellations ?? []) as { practice_id: string; date: string }[]).map((c) => `${c.practice_id}|${c.date}`)
   )
   const next = nextPractice(myPractices, new Date(), cancelledSet)
+  // The next seven days by date, with any day practice is off.
+  const thisWeek = practiceSchedule(myPractices, cancellations ?? [], today, chicagoDatePlusDays(6))
 
   // Upcoming one-off events: club-wide or matching one of the family's groups.
   // Season registration has its own state-aware dashboard card below.
@@ -327,7 +329,7 @@ export default async function ParentDashboardPage() {
       </section>
 
       {/* THIS WEEK */}
-      {myPractices.length > 0 && (
+      {thisWeek.length > 0 && (
         <section className="card-depth mb-8 rounded-2xl border border-clw-gold/10 bg-clw-black-3 p-5">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-sm font-medium text-clw-white">
@@ -338,15 +340,23 @@ export default async function ParentDashboardPage() {
             </Link>
           </div>
           <ul className="space-y-2">
-            {myPractices.map((p) => (
-              <li key={p.id} className="flex items-center justify-between rounded-xl bg-clw-black px-3 py-3">
-                <span>
-                  <span className="block font-medium text-clw-white">{WEEKDAYS[p.weekday]}</span>
-                  <span className="block text-sm text-clw-gray">{p.location}</span>
-                </span>
-                <span className="text-right text-sm text-clw-gold-ink">
-                  {formatTime(p.start_time)}
-                  {practiceDateNote(p, today) && <span className="block text-clw-gray">{practiceDateNote(p, today)}</span>}
+            {thisWeek.map((day) => (
+              <li key={day.date} className="flex items-start justify-between gap-3 rounded-xl bg-clw-black px-3 py-3">
+                <span className="shrink-0 whitespace-nowrap font-medium text-clw-white">{shortDate(day.date)}</span>
+                <span className="min-w-0 text-right text-base">
+                  {day.lines.map((line) => (
+                    <span key={`${line.title}-${line.start_time}`} className="block text-clw-gold-ink">
+                      {line.title} · {formatTime(line.start_time)}
+                    </span>
+                  ))}
+                  {day.off && (
+                    <>
+                      <span className="mt-0.5 inline-block rounded-sm border border-amber-500/50 bg-amber-500/20 px-2 font-medium text-clw-white">
+                        {day.lines.length ? `No practice for ${day.off.groups.join(', ')}` : 'No practice'}
+                      </span>
+                      {day.off.reason && <span className="block text-clw-gray">{day.off.reason}</span>}
+                    </>
+                  )}
                 </span>
               </li>
             ))}

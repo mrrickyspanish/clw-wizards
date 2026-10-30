@@ -3214,3 +3214,45 @@ test('only a full admin can add a parent login', async () => {
   assert.match(result.error, /full admin/)
   assert.deepEqual(h.writes(), [])
 })
+
+// Practice schedule by date (Tony, Oct 30).
+const tonyWeek = () => [
+  ['m1', 1, 'Group 1', '17:30', '18:30'], ['m3', 1, 'Group 3', '19:00', '20:30'],
+  ['t2', 2, 'Group 2', '17:30', '18:45'], ['t4', 2, 'Group 4', '19:00', '20:30'],
+  ['w3', 3, 'Group 3', '17:30', '18:45'], ['w4', 3, 'Group 4', '19:00', '20:30'],
+  ['h1', 4, 'Group 1', '17:30', '18:30'], ['h4', 4, 'Group 4', '19:00', '20:30'],
+  ['f2', 5, 'Group 2', '17:30', '18:45'], ['f3', 5, 'Group 3', '19:00', '20:30'],
+].map(([id, weekday, practice_group, start_time, end_time]) => ({ id, weekday, practice_group, start_time, end_time, location: 'Wizards Facility', notes: null, active: true, starts_on: '2026-11-01', ends_on: '2027-02-19' }))
+
+test('the practice schedule lists each date with its groups, and days off as No practice', () => {
+  const cancellations = [
+    { practice_id: 'h1', date: '2026-11-26', reason: null }, { practice_id: 'h4', date: '2026-11-26', reason: null },
+    { practice_id: 'w3', date: '2026-12-02', reason: 'Team pictures' }, { practice_id: 'w4', date: '2026-12-02', reason: 'Team pictures' },
+    { practice_id: 'f2', date: '2026-11-27', reason: null }, // only Group 2 off
+  ]
+  const days = plain(practiceLib.practiceSchedule(tonyWeek(), cancellations, '2026-10-30', '2026-12-04'))
+  assert.equal(days[0].date, '2026-11-02') // nothing before the season starts
+  assert.deepEqual(days[0].lines.map((l) => [l.title, l.start_time, l.end_time]), [['Group 1', '17:30', '18:30'], ['Group 3', '19:00', '20:30']])
+  assert.equal(days[0].off, null)
+  const thanksgiving = days.find((d) => d.date === '2026-11-26')
+  assert.deepEqual(thanksgiving.lines, []); assert.deepEqual(thanksgiving.off, { groups: ['Group 1', 'Group 4'], reason: null })
+  const pictures = days.find((d) => d.date === '2026-12-02')
+  assert.equal(pictures.off.reason, 'Team pictures'); assert.deepEqual(pictures.lines, [])
+  const partly = days.find((d) => d.date === '2026-11-27')
+  assert.deepEqual(partly.lines.map((l) => l.title), ['Group 3']); assert.deepEqual(partly.off.groups, ['Group 2'])
+  assert.ok(!days.some((d) => ['2026-11-01', '2026-11-07', '2026-11-08'].includes(d.date))) // no weekend rows
+})
+
+test('groups at the same time share a line, notes show, and a family sees only its groups', () => {
+  const regional = [
+    ['r2', 1, 'Group 2', '18:00', '19:30'], ['r3', 1, 'Group 3', '18:00', '19:30'],
+  ].map(([id, weekday, practice_group, start_time, end_time]) => ({ id, weekday, practice_group, start_time, end_time, location: 'Wizards Facility', notes: 'Regional wrestlers', active: true, starts_on: '2027-02-22', ends_on: '2027-02-22' }))
+  const all = [...tonyWeek(), ...regional]
+  const days = plain(practiceLib.practiceSchedule(all, [], '2027-02-19', '2027-03-01'))
+  assert.deepEqual(days.map((d) => d.date), ['2027-02-19', '2027-02-22'])
+  assert.deepEqual(days[1].lines.map((l) => l.title), ['Groups 2 & 3'])
+  assert.deepEqual(days[1].notes, ['Regional wrestlers'])
+  const mine = plain(practiceLib.practiceSchedule(all, [], '2026-11-02', '2026-11-06', new Set(['Group 1'])))
+  assert.deepEqual(mine.map((d) => [d.date, d.lines.map((l) => l.title)]), [['2026-11-02', ['Group 1']], ['2026-11-05', ['Group 1']]])
+  assert.equal(practiceLib.practiceSeasonEnd(all, '2026-10-30'), '2027-02-22')
+})

@@ -1,14 +1,11 @@
 import Link from 'next/link'
-import { MapPin } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { resolveFamilyOwnerIds } from '@/lib/family'
-import { WEEKDAYS, formatTime, practiceEnded, practiceDateNote } from '@/lib/practice'
+import { practiceSchedule, practiceSeasonEnd } from '@/lib/practice'
 import { chicagoDateString } from '@/lib/chicago-time'
+import { PracticeScheduleList } from '@/components/events/PracticeScheduleList'
 import type { Practice } from '@/types/database'
-
-// Monday-first weekly order (0 = Sunday in the data).
-const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0]
 
 export default async function SchedulePage({
   searchParams,
@@ -20,37 +17,27 @@ export default async function SchedulePage({
   const { data: auth } = await supabase.auth.getUser()
   const userId = auth.user?.id ?? ''
 
+  const today = chicagoDateString()
   const familyOwnerIds = await resolveFamilyOwnerIds(supabase, userId)
-  const [{ data: practices, error }, { data: athletes }] = await Promise.all([
+  const [{ data: practices, error }, { data: cancellations }, { data: athletes }] = await Promise.all([
     supabase.from('practices').select('*').eq('active', true),
+    supabase.from('practice_cancellations').select('practice_id, date, reason').gte('date', today),
     supabase.from('athletes').select('practice_group').in('parent_id', familyOwnerIds),
   ])
 
-  const myGroups = new Set((athletes ?? []).map((a) => a.practice_group))
+  const myGroups = new Set((athletes ?? []).map((a) => a.practice_group).filter((g): g is string => Boolean(g)))
   const mineView = view === 'mine' && myGroups.size > 0
 
-  // A practice whose series has ended is gone. One that has not started yet
-  // stays on the weekly schedule, marked with its first day, so families can
-  // plan; the dashboard's "next practice" never counts it before then.
-  const today = chicagoDateString()
-  const all = ((practices ?? []) as Practice[]).filter((p) => !practiceEnded(p, today))
-  const shown = mineView ? all.filter((p) => myGroups.has(p.practice_group)) : all
-
-  const byDay = new Map<number, Practice[]>()
-  for (const p of shown) {
-    const list = byDay.get(p.weekday) ?? []
-    list.push(p)
-    byDay.set(p.weekday, list)
-  }
-  for (const list of byDay.values()) list.sort((a, b) => a.start_time.localeCompare(b.start_time))
-
-  const daysWithPractice = DAY_ORDER.filter((d) => byDay.has(d))
+  // Day by day from today, with the days practice is off (Tony, Oct 30: the
+  // weekly view confused families).
+  const all = (practices ?? []) as Practice[]
+  const days = practiceSchedule(all, cancellations ?? [], today, practiceSeasonEnd(all, today), mineView ? myGroups : undefined)
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h1 className="font-display text-3xl text-clw-gold-ink">Weekly schedule</h1>
-        <p className="mt-1 text-sm text-clw-gray">Practice times by day. Your groups are highlighted.</p>
+        <h1 className="font-display text-3xl text-clw-gold-ink">Practice schedule</h1>
+        <p className="mt-1 text-base text-clw-gray">Every practice by date, and the days there is no practice.</p>
       </div>
 
       {/* All / My groups filter */}
@@ -64,63 +51,16 @@ export default async function SchedulePage({
         />
       </div>
 
-      {error && (
-        <p className="rounded-md border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-400">
+      {error ? (
+        <p className="rounded-md border border-red-500/40 bg-red-500/10 p-4 text-base text-red-400">
           Failed to load schedule: {error.message}
         </p>
+      ) : (
+        <PracticeScheduleList
+          days={days}
+          emptyText={mineView ? 'No practices posted for your groups yet.' : 'No practices have been posted yet.'}
+        />
       )}
-
-      {!error && daysWithPractice.length === 0 && (
-        <div className="card-depth rounded-2xl border border-clw-gold/10 bg-clw-black-3 p-10 text-center">
-          <p className="text-clw-gray">
-            {mineView ? 'No practices posted for your groups yet.' : 'No practices have been posted yet.'}
-          </p>
-        </div>
-      )}
-
-      <div className="space-y-4">
-        {daysWithPractice.map((day) => (
-          <section key={day} className="card-depth rounded-2xl border border-clw-gold/10 bg-clw-black-3 p-5">
-            <h2 className="mb-3 font-display text-xl text-clw-white">{WEEKDAYS[day]}</h2>
-            <ul className="space-y-2">
-              {byDay.get(day)!.map((p) => {
-                const mine = myGroups.has(p.practice_group)
-                return (
-                  <li key={p.id} className="flex items-center justify-between gap-3 rounded-xl bg-clw-black px-4 py-3">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-clw-white">{formatTime(p.start_time)}</span>
-                        {practiceDateNote(p, today) && (
-                          <span className="rounded-full border border-clw-gold/40 px-2 py-0.5 text-sm text-clw-gold-ink">
-                            {practiceDateNote(p, today)}
-                          </span>
-                        )}
-                        <span
-                          className={
-                            mine
-                              ? 'rounded-full border border-clw-gold/40 bg-clw-gold/10 px-2 py-0.5 text-xs text-clw-gold-ink'
-                              : 'rounded-full border border-clw-gray/30 px-2 py-0.5 text-xs text-clw-gray'
-                          }
-                        >
-                          {p.practice_group}
-                        </span>
-                      </div>
-                      <p className="mt-1 flex items-center gap-1.5 text-sm text-clw-gray">
-                        <MapPin className="h-3.5 w-3.5 shrink-0" /> {p.location}
-                      </p>
-                    </div>
-                    {p.end_time && (
-                      <span className="shrink-0 text-sm text-clw-gray">
-                        until {formatTime(p.end_time)}
-                      </span>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          </section>
-        ))}
-      </div>
     </div>
   )
 }

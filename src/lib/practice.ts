@@ -168,3 +168,70 @@ export function practiceDays(
   }
   return days
 }
+
+export type ScheduleLine = { title: string; groups: string[]; start_time: string; end_time: string | null; location: string }
+export type ScheduleDay = {
+  date: string
+  // Who practices, one line per time slot ("Groups 2 & 3 · 6:00 PM – 7:30 PM").
+  lines: ScheduleLine[]
+  // Set when practice that would have been on this day is off.
+  off: { groups: string[]; reason: string | null } | null
+  // Anything the club wrote on that day's practices ("Regional wrestlers").
+  notes: string[]
+}
+
+/**
+ * The practice schedule day by day, the way Tony writes it (Oct 30): every
+ * date from `from` through `to` that has practice or had practice called off,
+ * with groups that share a time on one line. `groups` limits it to those
+ * practice groups (a family's own). Read as calendar dates, so no time zone
+ * can shift a day.
+ */
+export function practiceSchedule(
+  practices: Practice[],
+  cancellations: { practice_id: string; date: string; reason: string | null }[],
+  from: string,
+  to: string,
+  groups?: Set<string>
+): ScheduleDay[] {
+  const live = practices.filter((p) => p.active !== false && (!groups || groups.has(p.practice_group)))
+  const offByKey = new Map(cancellations.map((c) => [`${c.practice_id}|${c.date}`, c]))
+  const days: ScheduleDay[] = []
+  for (let day = calendarDays(from); day <= calendarDays(to); day += 1) {
+    const at = new Date(day * 86_400_000)
+    const date = at.toISOString().slice(0, 10)
+    const scheduled = live
+      .filter((p) => p.weekday === at.getUTCDay() && (!p.starts_on || p.starts_on <= date) && (!p.ends_on || p.ends_on >= date))
+      .sort((a, b) => startMinutes(a) - startMinutes(b) || a.practice_group.localeCompare(b.practice_group))
+    if (!scheduled.length) continue
+    const running = scheduled.filter((p) => !offByKey.has(`${p.id}|${date}`))
+    const called = scheduled.filter((p) => offByKey.has(`${p.id}|${date}`))
+    const slots = new Map<string, Practice[]>()
+    for (const p of running) {
+      const key = `${p.start_time}|${p.end_time ?? ''}|${p.location}`
+      slots.set(key, [...(slots.get(key) ?? []), p])
+    }
+    const reasons = [...new Set(called.map((p) => offByKey.get(`${p.id}|${date}`)?.reason?.trim()).filter(Boolean))]
+    days.push({
+      date,
+      lines: [...slots.values()].map((slot) => ({
+        title: practiceGroupsTitle(slot.map((p) => p.practice_group)),
+        groups: slot.map((p) => p.practice_group),
+        start_time: slot[0].start_time,
+        end_time: slot[0].end_time,
+        location: slot[0].location,
+      })),
+      off: called.length ? { groups: [...new Set(called.map((p) => p.practice_group))], reason: reasons.join(' · ') || null } : null,
+      notes: [...new Set(running.map((p) => p.notes?.trim()).filter((n): n is string => Boolean(n)))],
+    })
+  }
+  return days
+}
+
+/** The last day any practice runs, or 16 weeks out when none has an end. */
+export function practiceSeasonEnd(practices: Pick<Practice, 'ends_on' | 'active'>[], today: string = chicagoDateString()): string {
+  const ends = practices.filter((p) => p.active !== false).map((p) => p.ends_on)
+  if (!ends.length) return today
+  if (ends.some((e) => !e)) return chicagoDatePlusDays(16 * 7, new Date(`${today}T12:00:00Z`))
+  return (ends as string[]).reduce((a, b) => (b > a ? b : a), today)
+}

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 
 import { pageMetadata } from '@/lib/page-metadata'
 import { CalendarDays } from 'lucide-react'
@@ -127,6 +128,9 @@ export default async function EventsPage() {
           <p className="mt-6 max-w-3xl text-xl leading-relaxed text-clw-gray sm:text-2xl sm:leading-relaxed">
             Every practice, tournament, banquet, and club night in one place.
           </p>
+          <Link href="/practices" className="mt-6 inline-flex min-h-11 items-center text-base text-clw-gold hover:text-clw-white">
+            See the full practice schedule, with days off
+          </Link>
         </header>
 
         <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,26rem)_1fr] lg:items-start lg:gap-10">

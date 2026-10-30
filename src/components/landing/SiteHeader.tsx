@@ -38,8 +38,8 @@ const SEARCH_ITEMS = [
   },
   {
     title: 'Practice Schedule',
-    description: 'Weekly practice days and times for each group, and where practices are held.',
-    href: '/program#schedule',
+    description: 'Every practice by date, which groups practice when, and the days there is no practice.',
+    href: '/practices',
     keywords: ['schedule', 'practice', 'practices', 'times', 'days', 'when', 'location'],
   },
   {
