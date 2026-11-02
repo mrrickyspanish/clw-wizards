@@ -513,6 +513,7 @@ export type ParentAuthIncident = {
   latest_step: string | null; latest_error: Record<string, unknown> | null; last_seen: string | null
   occurrences: number; source_key: string | null; notified_at: string | null
   message_id: string | null; lease_until: string | null
+  resolved_at: string | null; resolved_message_id: string | null
 }
 
 // One family or wrestler removed from the site, written by database triggers
