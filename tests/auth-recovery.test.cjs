@@ -68,44 +68,8 @@ test('rejected confirmation/reset callbacks retain one attempt reference through
   }
 })
 
-// In-memory stand-in for the few Supabase query calls the alert code makes.
-function memoryQuery(tables, name) {
-  const table = tables[name] ??= new Map()
-  const filters = []
-  let update = null, wantRows = false
-  const asTime = v => (typeof v === 'string' && /^\d{4}-\d\d-\d\dT/.test(v) ? Date.parse(v) : v)
-  const run = () => {
-    const hits = [...table.values()].filter(row => filters.every(f => f(row)))
-    if (update) { for (const row of hits) Object.assign(row, update); return { data: wantRows ? hits.map(r => ({ id: r.id })) : null, error: null } }
-    return { data: hits.map(r => ({ ...r })), error: null }
-  }
-  const q = {
-    select: () => { wantRows = true; return q },
-    eq: (f, v) => { filters.push(r => r[f] === v); return q },
-    is: (f, v) => { filters.push(r => (r[f] ?? null) === v); return q },
-    not: (f, op, v) => {
-      filters.push(op === 'is' ? r => (r[f] ?? null) !== v : r => r[f] != null && !String(r[f]).startsWith(v.replace('%', '')))
-      return q
-    },
-    gte: (f, v) => { filters.push(r => r[f] != null && asTime(r[f]) >= asTime(v)); return q },
-    lte: (f, v) => { filters.push(r => r[f] != null && asTime(r[f]) <= asTime(v)); return q },
-    order: () => q, limit: () => q,
-    update: values => { update = values; return q },
-    insert: async row => { table.set(row.id, { ...row, occurrences: 0 }); return { error: null } },
-    maybeSingle: async () => ({ data: run().data?.[0] ?? null, error: null }),
-    then: (resolve, reject) => Promise.resolve(run()).then(resolve, reject),
-  }
-  return q
-}
-
-const firstSeen = '2026-09-26T20:00:00Z'
-const minutesAfter = m => Date.parse(firstSeen) + m * 60 * 1000
-const isoAfter = m => new Date(minutesAfter(m)).toISOString()
-
 function incidentsHarness(options = {}) {
-  const tables = { parent_auth_incidents: new Map(), profiles: new Map() }
-  const rows = tables.parent_auth_incidents, sends = [], logs = [], signIns = new Map()
-  for (const p of options.profiles ?? []) tables.profiles.set(p.id, p)
+  const rows = new Map(), sends = [], logs = []
   let sendFails = Boolean(options.sendFails)
   const admin = {
     rpc: async (name, args) => {
@@ -113,9 +77,9 @@ function incidentsHarness(options = {}) {
       if (name === 'record_parent_auth_failure') {
         if (options.rateLimited) return { data: false }
         const previous = rows.get(args.p_id)
-        const row = previous ?? { id: args.p_id, occurrences: 0, created_at: firstSeen }
+        const row = previous ?? { id: args.p_id, occurrences: 0 }
         if (!row.first_seen) Object.assign(row, {
-          first_seen: firstSeen, first_step: args.p_step, first_error: args.p_error,
+          first_seen: '2026-09-26T20:00:00Z', first_step: args.p_step, first_error: args.p_error,
           first_email: row.email ?? args.p_email, first_email_source: row.email_source ?? args.p_email_source,
         })
         row.latest_step = args.p_step; row.latest_error = args.p_error; row.occurrences++
@@ -127,124 +91,33 @@ function incidentsHarness(options = {}) {
       row.lease_until = 'claimed'
       return { data: [{ ...row }] }
     },
-    from: name => {
-      if (options.dbFails) return { insert: async () => ({ error: { message: 'DB unavailable' } }) }
-      return memoryQuery(tables, name)
-    },
-    auth: { admin: { getUserById: async id => {
-      if (options.lookupFails) throw new Error('auth unavailable')
-      return { data: { user: { id, last_sign_in_at: signIns.get(id) ?? null } }, error: null }
-    } } },
+    from: () => ({
+      insert: async row => { rows.set(row.id, { ...row, occurrences: 0 }); return { error: null } },
+      update: values => ({ eq: async (_field, id) => { Object.assign(rows.get(id), values); return { error: null } } }),
+    }),
   }
   const incidentModule = load('src/lib/auth/incidents.ts', {
     './incident-policy': incidentPolicy,
-    './alert-copy': load('src/lib/auth/alert-copy.ts', {}),
     '@/lib/supabase/admin': { createAdminSupabase: () => admin },
     '@/lib/env': { readCredential: key => ({ RESEND_API_KEY: 'test', RESEND_FROM_EMAIL: 'CLW <auth@example.com>', ALERT_EMAIL: 'owner@example.com' })[key] },
     '@/config/org.config': { ORG: { shortName: 'CLW', contactEmail: 'fallback@example.com' } },
     resend: { Resend: class { emails = { send: async (payload, opts) => {
       sends.push({ payload, opts })
-      return sendFails ? { error: { name: 'RateLimit' } } : { data: { id: `accepted-${sends.length}` } }
+      return sendFails ? { error: { name: 'RateLimit' } } : { data: { id: 'accepted-message' } }
     } } } },
-  }, {}, logs, fetch, { crypto: require('node:crypto').webcrypto, TextEncoder, Intl })
-  return {
-    ...incidentModule, rows, sends, logs,
-    recover: () => { sendFails = false },
-    breakSending: () => { sendFails = true },
-    signIn: (id, at) => signIns.set(id, at),
-  }
+  }, {}, logs, fetch, { crypto: require('node:crypto').webcrypto, TextEncoder })
+  return { ...incidentModule, rows, sends, logs, recover: () => { sendFails = false } }
 }
 
-const alertParent = { id: 'parent-1', email: 'parent@example.com', full_name: 'Pat Parent' }
-
-test('a failure is recorded right away but emailed only after the 10-minute timer, once, in plain English', async () => {
-  const h = incidentsHarness({ profiles: [alertParent] })
+test('actual incident sender groups concurrent failures into one email with required diagnostics', async () => {
+  const h = incidentsHarness()
   const input = { attemptId: incidentId, step: 'reset_link', email: 'parent@example.com', error: { code: 'otp_expired', message: 'Link expired', status: 403 } }
   await Promise.all([h.reportParentAuthFailure(input), h.reportParentAuthFailure(input)])
   assert.equal(h.rows.get(incidentId).occurrences, 2)
-  assert.equal(h.sends.length, 0)
-  await h.sendDueParentAuthAlerts(minutesAfter(9))
-  assert.equal(h.sends.length, 0)
-  await h.sendDueParentAuthAlerts(minutesAfter(11))
-  await h.sendDueParentAuthAlerts(minutesAfter(16))
   assert.equal(h.sends.length, 1)
-  const { payload, opts } = h.sends[0]
-  assert.deepEqual(Array.from(payload.to), ['owner@example.com'])
-  assert.equal(payload.subject, "[CLW] Pat Parent can't get in yet")
-  assert.match(payload.text, /^Pat Parent \(parent@example\.com\) tried to set their password with the link we emailed them at Sat, Sep 26, 3:00\sPM, and it was turned down: the link had expired or had already been used\./)
-  assert.match(payload.text, /What usually fixes it: /)
-  assert.match(payload.text, /follow-up email here as soon as they get in/)
-  for (const expected of ['reset_link', 'otp_expired', '(403)', 'Link expired', incidentId]) assert.ok(payload.text.includes(expected), expected)
-  assert.equal(opts.idempotencyKey, `parent-auth/${incidentId}/open`)
-  assert.equal(h.rows.get(incidentId).resolved_at, undefined)
+  assert.deepEqual(Array.from(h.sends[0].payload.to), ['owner@example.com'])
+  for (const expected of ['parent@example.com', 'reset_link', 'otp_expired', 'Link expired', '2026-09-26T20:00:00Z', incidentId]) assert.ok(h.sends[0].payload.text.includes(expected))
   assert.doesNotMatch(JSON.stringify(h.logs), /parent@example.com/)
-})
-
-test('a parent who logs in before the timer is up gets one "then got in" email and no follow-up', async () => {
-  const h = incidentsHarness({ profiles: [alertParent] })
-  await h.reportParentAuthFailure({ attemptId: incidentId, step: 'reset_link', email: 'parent@example.com', error: { code: 'otp_expired' } })
-  h.signIn('parent-1', isoAfter(2))
-  await h.sendDueParentAuthAlerts(minutesAfter(11))
-  await h.sendDueParentAuthAlerts(minutesAfter(16))
-  assert.equal(h.sends.length, 1)
-  assert.equal(h.sends[0].payload.subject, '[CLW] Pat Parent had a login hiccup, then got in')
-  assert.match(h.sends[0].payload.text, /They logged in 2 minutes later \(Sat, Sep 26, 3:02\sPM\), so there's nothing to do\./)
-  assert.doesNotMatch(h.sends[0].payload.text, /What usually fixes it/)
-  assert.equal(h.sends[0].opts.idempotencyKey, `parent-auth/${incidentId}/resolved/${isoAfter(2)}`)
-  assert.ok(h.rows.get(incidentId).resolved_at)
-})
-
-test('a sign-in from before the failure does not count as getting in', async () => {
-  const h = incidentsHarness({ profiles: [alertParent] })
-  h.signIn('parent-1', '2026-09-20T12:00:00Z')
-  await h.reportParentAuthFailure({ attemptId: incidentId, step: 'reset_link', email: 'parent@example.com', error: { code: 'otp_expired' } })
-  await h.sendDueParentAuthAlerts(minutesAfter(11))
-  await h.sendDueParentAuthAlerts(minutesAfter(16))
-  assert.equal(h.sends.length, 1)
-  assert.match(h.sends[0].payload.subject, /can't get in yet/)
-})
-
-test('a stuck parent who later logs in closes the loop with one Resolved email', async () => {
-  const h = incidentsHarness({ profiles: [alertParent] })
-  await h.reportParentAuthFailure({ attemptId: incidentId, step: 'reset_link', email: 'parent@example.com', error: { code: 'otp_expired' } })
-  await h.sendDueParentAuthAlerts(minutesAfter(11))
-  assert.equal(h.sends.length, 1)
-  h.signIn('parent-1', isoAfter(40))
-  await h.sendDueParentAuthAlerts(minutesAfter(41))
-  await h.sendDueParentAuthAlerts(minutesAfter(46))
-  assert.equal(h.sends.length, 2)
-  assert.equal(h.sends[1].payload.subject, '[CLW] Resolved: Pat Parent got in')
-  assert.match(h.sends[1].payload.text, /^Pat Parent \(parent@example\.com\) logged in at Sat, Sep 26, 3:40\sPM\./)
-  assert.match(h.sends[1].payload.text, /closes the alert from Sat, Sep 26, 3:00\sPM/)
-  assert.equal(h.sends[1].opts.idempotencyKey, `parent-auth-resolved/${incidentId}/${isoAfter(40)}`)
-  assert.equal(h.rows.get(incidentId).resolved_message_id, 'accepted-2')
-})
-
-test('a Resolved email that fails to send is tried again on the next sweep', async () => {
-  const h = incidentsHarness({ profiles: [alertParent] })
-  await h.reportParentAuthFailure({ attemptId: incidentId, step: 'reset_link', email: 'parent@example.com', error: { code: 'otp_expired' } })
-  await h.sendDueParentAuthAlerts(minutesAfter(11))
-  h.signIn('parent-1', isoAfter(40))
-  h.breakSending()
-  await assert.rejects(h.sendDueParentAuthAlerts(minutesAfter(41)))
-  assert.equal(h.rows.get(incidentId).resolved_at, null)
-  h.recover()
-  await h.sendDueParentAuthAlerts(minutesAfter(46))
-  assert.equal(h.sends.length, 3)
-  assert.deepEqual(h.sends[1].payload, h.sends[2].payload)
-  assert.equal(h.sends[2].opts.idempotencyKey, h.sends[1].opts.idempotencyKey)
-  assert.equal(h.rows.get(incidentId).resolved_message_id, 'accepted-3')
-})
-
-test('an alert still goes out, by email address, when the parent lookup fails or finds no one', async () => {
-  for (const options of [{ lookupFails: true, profiles: [alertParent] }, {}]) {
-    const h = incidentsHarness(options)
-    await h.reportParentAuthFailure({ attemptId: incidentId, step: 'family_setup', email: 'parent@example.com', error: { message: 'No profile row' } })
-    await h.sendDueParentAuthAlerts(minutesAfter(11))
-    assert.equal(h.sends.length, 1)
-    assert.equal(h.sends[0].payload.subject, "[CLW] parent@example.com can't get in yet")
-    assert.match(h.sends[0].payload.text, /the site said: "No profile row"/)
-  }
 })
 
 test('a confirmation link opened in another browser is recorded but never paged', async () => {
@@ -257,23 +130,20 @@ test('a confirmation link opened in another browser is recorded but never paged'
   // Recorded with diagnostics intact, so volume is still countable in the table.
   assert.equal(h.rows.get(incidentId).occurrences, 1)
   assert.equal(h.rows.get(incidentId).first_step, 'confirmation_link')
-  // But nobody is woken, and neither sweep (first alert or follow-up) mails it later.
-  await h.sendDueParentAuthAlerts(minutesAfter(11))
+  // But nobody is woken, and the retry sweep must not mail it later either.
   assert.equal(h.sends.length, 0)
   assert.equal(h.rows.get(incidentId).message_id, 'suppressed:self-healing')
   assert.ok(h.rows.get(incidentId).notified_at)
 })
 
 test('re-entering the password you already have is recorded but never paged', async () => {
-  const h = incidentsHarness({ profiles: [alertParent] })
+  const h = incidentsHarness()
   await h.reportParentAuthFailure({
     attemptId: incidentId, step: 'password_save', email: 'parent@example.com',
     error: { code: 'same_password', name: 'AuthApiError', status: 422,
       message: 'New password should be different from the old password.' },
   })
   assert.equal(h.rows.get(incidentId).occurrences, 1)
-  h.signIn('parent-1', isoAfter(5))
-  await h.sendDueParentAuthAlerts(minutesAfter(11))
   assert.equal(h.sends.length, 0)
   assert.equal(h.rows.get(incidentId).message_id, 'suppressed:self-healing')
 })
@@ -284,11 +154,8 @@ test('a real password_save failure still pages', async () => {
     attemptId: incidentId, step: 'password_save',
     error: { code: 'weak_password', message: 'Password is too short' },
   })
-  await h.sendDueParentAuthAlerts(minutesAfter(11))
   assert.equal(h.sends.length, 1)
   assert.ok(h.sends[0].payload.text.includes('weak_password'))
-  assert.match(h.sends[0].payload.text, /the password was too short or too simple/)
-  assert.match(h.sends[0].payload.subject, /^\[CLW\] A parent can't get in yet$/)
 })
 
 test('a genuinely blocking failure on the same step still pages', async () => {
@@ -297,43 +164,30 @@ test('a genuinely blocking failure on the same step still pages', async () => {
     attemptId: incidentId, step: 'confirmation_link',
     error: { code: 'otp_expired', message: 'Email link is invalid or has expired' },
   })
-  await h.sendDueParentAuthAlerts(minutesAfter(11))
   assert.equal(h.sends.length, 1)
   assert.ok(h.sends[0].payload.text.includes('otp_expired'))
 })
 
 test('failed alert delivery remains pending and retries with identical payload and idempotency key', async () => {
-  const h = incidentsHarness({ sendFails: true, profiles: [alertParent] })
-  const input = { attemptId: incidentId, step: 'reset_link', email: 'parent@example.com', error: { code: 'otp_expired' } }
-  assert.equal((await h.reportParentAuthFailure(input)).recorded, true)
-  await assert.rejects(h.sendDueParentAuthAlerts(minutesAfter(11)))
+  const h = incidentsHarness({ sendFails: true })
+  const input = { attemptId: incidentId, step: 'reset_link', error: { code: 'otp_expired' } }
+  assert.equal((await h.reportParentAuthFailure(input)).recorded, false)
   assert.equal(h.rows.get(incidentId).notified_at, undefined)
   assert.equal(h.rows.get(incidentId).lease_until, null)
   h.recover()
   await h.reportParentAuthFailure({ ...input, step: 'password_save', error: { message: 'Second failure' }, email: 'later@example.com' })
-  await h.sendDueParentAuthAlerts(minutesAfter(16))
-  assert.equal(h.sends.length, 2)
   assert.deepEqual(h.sends[0].payload, h.sends[1].payload)
   assert.equal(h.sends[0].opts.idempotencyKey, h.sends[1].opts.idempotencyKey)
   assert.equal(h.rows.get(incidentId).latest_step, 'password_save')
-  assert.equal(h.rows.get(incidentId).message_id, 'accepted-2')
-})
-
-test('alerts older than 23 hours are not sent late', async () => {
-  const h = incidentsHarness()
-  await h.reportParentAuthFailure({ attemptId: incidentId, step: 'reset_link', error: { code: 'otp_expired' } })
-  await h.sendDueParentAuthAlerts(minutesAfter(24 * 60))
-  assert.equal(h.sends.length, 0)
+  assert.equal(h.rows.get(incidentId).message_id, 'accepted-message')
 })
 
 test('reset recipient is available even when verification fails without a session', async () => {
-  const h = incidentsHarness({ profiles: [alertParent, { id: 'spoof', email: 'spoof@example.com', full_name: 'Spoof' }] })
+  const h = incidentsHarness()
   await h.registerResetAttempt(incidentId, 'parent@example.com')
   await h.reportParentAuthFailure({ attemptId: incidentId, step: 'reset_link', error: { code: 'otp_expired' }, email: 'spoof@example.com' })
-  await h.sendDueParentAuthAlerts(minutesAfter(11))
   assert.match(h.sends[0].payload.text, /parent@example.com/)
-  assert.doesNotMatch(h.sends[0].payload.text, /spoof@example.com|Spoof/)
-  assert.doesNotMatch(h.sends[0].payload.subject, /Spoof/)
+  assert.doesNotMatch(h.sends[0].payload.text, /spoof@example.com/)
 })
 
 test('rate-limited and unavailable incident storage cannot send uncontrolled emails or break auth', async () => {
