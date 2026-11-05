@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { familyRemindersOn, isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { enqueueCommsJob } from '@/lib/comms/enqueue'
 import { chicagoDateString, chicagoDatePlusDays } from '@/lib/chicago-time'
@@ -8,6 +8,9 @@ import { chicagoDateString, chicagoDatePlusDays } from '@/lib/chicago-time'
 export async function GET(request: Request) {
   if (!isAuthorizedCronRequest(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  if (!familyRemindersOn()) {
+    return NextResponse.json({ ok: true, skipped: 'Family reminders are off' })
   }
 
   const supabase = createAdminSupabase()

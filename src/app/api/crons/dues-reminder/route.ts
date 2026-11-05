@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server'
 
-import { isAuthorizedCronRequest } from '@/lib/cron-auth'
+import { familyRemindersOn, isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { enqueueCommsJob } from '@/lib/comms/enqueue'
 
 export async function GET(request: Request) {
   if (!isAuthorizedCronRequest(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  if (!familyRemindersOn()) {
+    return NextResponse.json({ ok: true, skipped: 'Family reminders are off' })
   }
 
   await enqueueCommsJob({

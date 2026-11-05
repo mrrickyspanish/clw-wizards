@@ -9,3 +9,13 @@ export function isAuthorizedCronRequest(request: Request): boolean {
   if (!secret) return false
   return request.headers.get('authorization') === `Bearer ${secret}`
 }
+
+/**
+ * The scheduled messages to families (weekly dues, Monday digest, Wednesday
+ * and weigh-in reminders) stay off until the club says go and FAMILY_REMINDERS
+ * is set to "on" (Ricky, Nov 5). Login alerts and the password-reset check
+ * run on the same schedule and don't use this.
+ */
+export function familyRemindersOn(): boolean {
+  return process.env.FAMILY_REMINDERS?.trim() === 'on'
+}

@@ -345,6 +345,37 @@ test('rate-limited and unavailable incident storage cannot send uncontrolled ema
   }
 })
 
+test('scheduled family messages stay off until FAMILY_REMINDERS is on, even with the cron secret', async () => {
+  const next = require('next/server')
+  const authorized = () => new Request('https://www.clwizards.com/api/crons/x', { headers: { authorization: 'Bearer cron-test' } })
+  const routes = ['dues-reminder', 'monday-digest', 'wednesday-reminder', 'weigh-in-alert']
+  for (const reminders of [undefined, 'off', 'yes']) {
+    for (const name of routes) {
+      const queued = []
+      const route = load(`src/app/api/crons/${name}/route.ts`, {
+        'next/server': next,
+        '@/lib/cron-auth': load('src/lib/cron-auth.ts', {}, { CRON_SECRET: 'cron-test', ...(reminders ? { FAMILY_REMINDERS: reminders } : {}) }),
+        '@/lib/comms/enqueue': { enqueueCommsJob: async job => queued.push(job) },
+        '@/lib/supabase/admin': { createAdminSupabase: () => { throw new Error('must not query') } },
+        '@/lib/chicago-time': { chicagoDateString: () => '2026-11-05', chicagoDatePlusDays: () => '2026-11-06' },
+      })
+      const res = await route.GET(authorized())
+      assert.equal(res.status, 200, name)
+      assert.equal((await res.json()).skipped, 'Family reminders are off')
+      assert.equal(queued.length, 0, name)
+    }
+  }
+  const queued = []
+  const dues = load('src/app/api/crons/dues-reminder/route.ts', {
+    'next/server': next,
+    '@/lib/cron-auth': load('src/lib/cron-auth.ts', {}, { CRON_SECRET: 'cron-test', FAMILY_REMINDERS: 'on' }),
+    '@/lib/comms/enqueue': { enqueueCommsJob: async job => queued.push(job) },
+  })
+  assert.equal((await dues.GET(authorized())).status, 200)
+  assert.equal(queued.length, 1)
+  assert.equal((await dues.GET(new Request('https://www.clwizards.com/api/crons/dues-reminder'))).status, 401)
+})
+
 test('diagnostics exclude token URLs, passwords, JWTs, and extra auth response fields', () => {
   const details = incidentPolicy.safeAuthError({
     message: 'Rejected https://example.com/#token=secret password=hunter2 token_hash=SECRET_TOKEN',

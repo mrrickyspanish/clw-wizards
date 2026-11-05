@@ -77,6 +77,7 @@ and where to get it. **Bold** ones are needed for core MVP 1; the rest can wait.
 | `ALERT_EMAIL` | Your club admin inbox | internal alerts |
 | `QSTASH_TOKEN` + signing keys | Upstash → QStash | email blasts, cron fan-out |
 | `CRON_SECRET` | Make up a long random string | protects the cron endpoints |
+| `FAMILY_REMINDERS` | `on`, only once the club approves | turns on the scheduled family messages (weekly dues, Monday digest, Wednesday and weigh-in reminders); anything else keeps them off |
 | `TWILIO_*` | Twilio Console | **SMS — fast-follow, skip for now** |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile | bot protection on public forms |
 
