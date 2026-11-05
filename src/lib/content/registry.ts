@@ -27,10 +27,9 @@ export type ContentField = {
 
 export const CONTENT_FIELDS: ContentField[] = [
   // --- Sign-ups -------------------------------------------------------------
-  // Both are CLOSED unless switched on here. The sign-up pages and the admin
-  // account action check them on the server, and a database rule refuses new
-  // accounts while neither is on, so a closed switch is closed even to someone
-  // calling the sign-up service directly.
+  // Parent sign-up is CLOSED unless switched on here; the sign-up page checks it
+  // on the server. Admin sign-up has no switch (Ricky, Nov 5): it is always
+  // open and needs a single-use invite code from Admin team.
   {
     key: 'signups.parents_open',
     label: 'Parent sign-ups are open',
@@ -39,15 +38,6 @@ export const CONTENT_FIELDS: ContentField[] = [
     default: 'off',
     help: 'Off: the sign-up page shows a "contact Tony" message and no new parent accounts can be made.',
     revalidate: ['/signup', '/join'],
-  },
-  {
-    key: 'signups.admins_open',
-    label: 'Admin account sign-up is open',
-    type: 'toggle',
-    group: 'Sign-ups',
-    default: 'off',
-    help: 'Off: nobody can create an admin account, with or without an access code. Turn on only while adding a new admin, then turn it off again.',
-    revalidate: ['/admin-signup'],
   },
 
   // --- Site menu · Extra link ---------------------------------------------

@@ -60,9 +60,9 @@ export async function getExtraNavLink(): Promise<ExtraNavLink | null> {
   }
 }
 
-export type SignupStatus = { parents: boolean; admins: boolean }
+export type SignupStatus = { parents: boolean }
 
-const SIGNUP_KEYS = ['signups.parents_open', 'signups.admins_open']
+const SIGNUP_KEYS = ['signups.parents_open']
 
 /**
  * Whether new accounts may be made. Closed unless a switch is explicitly 'on':
@@ -74,13 +74,13 @@ const SIGNUP_KEYS = ['signups.parents_open', 'signups.admins_open']
  */
 export async function getSignupStatus(client?: SupabaseClient<Database>): Promise<SignupStatus> {
   const supabase = client ?? createPublicSupabase()
-  if (!supabase) return { parents: false, admins: false }
+  if (!supabase) return { parents: false }
   try {
     const { data, error } = await supabase.from('page_content').select('key, value').in('key', SIGNUP_KEYS)
-    if (error || !data) return { parents: false, admins: false }
+    if (error || !data) return { parents: false }
     const on = (key: string) => data.find((row) => row.key === key)?.value?.trim() === 'on'
-    return { parents: on('signups.parents_open'), admins: on('signups.admins_open') }
+    return { parents: on('signups.parents_open') }
   } catch {
-    return { parents: false, admins: false }
+    return { parents: false }
   }
 }

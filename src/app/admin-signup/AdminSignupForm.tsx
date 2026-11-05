@@ -45,8 +45,8 @@ export default function AdminSignupForm() {
         <CardHeader>
           <CardTitle className="text-clw-gold">Create a {ORG.shortName} admin account</CardTitle>
           <CardDescription>
-            For club staff and organizers. You need an admin access code — ask a current full admin, or use the
-            club&apos;s setup code.
+            For club staff and organizers. You need an invite code from a full admin (Admin team). Already have a
+            family login? Use a different email here: your family login stays as it is.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -94,7 +94,7 @@ export default function AdminSignupForm() {
                 autoCapitalize="characters"
                 placeholder="e.g. ABCD-2345"
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 Your access level (full or limited) is set by this code — you don&apos;t choose it here.
               </p>
             </div>

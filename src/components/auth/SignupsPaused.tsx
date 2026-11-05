@@ -10,7 +10,7 @@ import { ORG } from '@/config/org.config'
  * (Admin -> Content -> Sign-ups). Gives families somewhere to go instead of a
  * dead end: whoever the club names as its contact.
  */
-export function SignupsPaused({ audience = 'families' }: { audience?: 'families' | 'admins' }) {
+export function SignupsPaused() {
   return (
     <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-clw-black px-4 py-12">
       <AuthBrand />
@@ -18,16 +18,12 @@ export function SignupsPaused({ audience = 'families' }: { audience?: 'families'
         <CardHeader>
           <CardTitle className="text-clw-gold">Sign-ups are paused</CardTitle>
           <CardDescription className="text-base">
-            {audience === 'admins'
-              ? 'New admin accounts cannot be created right now.'
-              : 'We are not creating new accounts right now.'}
+            We are not creating new accounts right now.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-base text-clw-white">
-            {audience === 'admins'
-              ? 'If you need access, contact Tony and he will set it up.'
-              : 'To join the club or get help with an account, please contact Tony. He will take care of you.'}
+            To join the club or get help with an account, please contact Tony. He will take care of you.
           </p>
           <p className="text-base text-clw-white">
             Email Tony at{' '}

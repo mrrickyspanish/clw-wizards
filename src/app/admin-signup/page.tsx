@@ -1,11 +1,7 @@
-import { SignupsPaused } from '@/components/auth/SignupsPaused'
-import { getSignupStatus } from '@/lib/content/get'
 import AdminSignupForm from './AdminSignupForm'
 
-export const dynamic = 'force-dynamic'
-
-export default async function AdminSignupPage() {
-  const status = await getSignupStatus()
-  if (!status.admins) return <SignupsPaused audience="admins" />
+// Always open (Ricky, Nov 5): pausing parent sign-ups never blocks adding an
+// admin. The single-use invite code from Admin team is what keeps it safe.
+export default function AdminSignupPage() {
   return <AdminSignupForm />
 }

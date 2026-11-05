@@ -3,7 +3,6 @@
 import { z } from 'zod'
 
 import { createAdminSupabase } from '@/lib/supabase/admin'
-import { getSignupStatus } from '@/lib/content/get'
 import type { AdminScope } from '@/types/database'
 
 export type ActionResult = { ok: true } | { ok: false; error: string }
@@ -16,16 +15,13 @@ const schema = z.object({
 })
 
 // Resolve an access code to the tier it grants, or null if it's not valid.
-// Two sources: the ADMIN_SIGNUP_CODE env secret (bootstrap → always 'full'), and
-// single-use rows in admin_invites (tier chosen by the inviting admin). Returns
-// the matched invite id so the caller can mark it redeemed.
+// Only single-use invites a full admin made on Admin team (tier chosen there).
+// The old never-expiring setup code (ADMIN_SIGNUP_CODE) no longer works: with
+// admin sign-up always open, it would be a permanent full-access key.
 async function resolveCode(
   admin: ReturnType<typeof createAdminSupabase>,
   code: string
-): Promise<{ scope: AdminScope; inviteId: string | null } | null> {
-  const bootstrap = process.env.ADMIN_SIGNUP_CODE
-  if (bootstrap && code === bootstrap) return { scope: 'full', inviteId: null }
-
+): Promise<{ scope: AdminScope; inviteId: string } | null> {
   const { data: invite } = await admin
     .from('admin_invites')
     .select('id, scope, expires_at, redeemed_at')
@@ -48,13 +44,6 @@ async function resolveCode(
 export async function createAdminAccount(values: z.input<typeof schema>): Promise<ActionResult> {
   const admin = createAdminSupabase()
 
-  // First, before the code or anything else is looked at: admin sign-up is
-  // closed unless someone switched it on. This is a server action, so it can be
-  // called without the page; checking here is what keeps the door shut.
-  if (!(await getSignupStatus(admin)).admins) {
-    return { ok: false, error: 'Admin sign-up is closed. Contact Tony if you need access.' }
-  }
-
   const parsed = schema.safeParse(values)
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
 
@@ -74,7 +63,13 @@ export async function createAdminAccount(values: z.input<typeof schema>): Promis
   if (createError || !created.user) {
     const msg = createError?.message ?? 'Could not create the account.'
     // Surface the common case cleanly.
-    if (/already/i.test(msg)) return { ok: false, error: 'An account with that email already exists — sign in instead.' }
+    // Usually a parent using their family email: admins use a second email.
+    if (/already/i.test(msg)) {
+      return {
+        ok: false,
+        error: 'That email already has a login. If it is your family login, use a different email for your admin login.',
+      }
+    }
     return { ok: false, error: msg }
   }
 
@@ -91,12 +86,10 @@ export async function createAdminAccount(values: z.input<typeof schema>): Promis
     return { ok: false, error: promoteError.message }
   }
 
-  if (resolved.inviteId) {
-    await admin
-      .from('admin_invites')
-      .update({ redeemed_at: new Date().toISOString(), redeemed_by: userId })
-      .eq('id', resolved.inviteId)
-  }
+  await admin
+    .from('admin_invites')
+    .update({ redeemed_at: new Date().toISOString(), redeemed_by: userId })
+    .eq('id', resolved.inviteId)
 
   return { ok: true }
 }
