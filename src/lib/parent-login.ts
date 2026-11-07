@@ -187,18 +187,9 @@ export async function sendParentLoginEmail({
   const siteUrl = readCredential('NEXT_PUBLIC_SITE_URL')?.replace(/\/$/, '')
   if (!resendKey || !fromAddress || !siteUrl) return false
 
-  const { data, error } = await createAdminSupabase().auth.admin.generateLink({
-    type: 'recovery',
-    email,
-    options: { redirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent('/update-password')}` },
-  })
-  const token = data?.properties?.hashed_token
-  if (error || !token) return false
-
-  // Ties a problem on the set-password page back to this email.
-  const attemptId = randomUUID()
-  await registerResetAttempt(attemptId, email)
-  const link = `${siteUrl}/update-password#recovery_token=${encodeURIComponent(token)}&attempt=${attemptId}`
+  const made = await setPasswordLink(email, siteUrl)
+  if (!made) return false
+  const { link, attemptId } = made
   const first = name.split(/\s+/)[0] || name
   const kids = wrestlers.length > 1 ? `${wrestlers.slice(0, -1).join(', ')} and ${wrestlers.at(-1)}` : wrestlers[0]
   const html = `<p>Hi ${escapeHtml(first)},</p>
@@ -220,6 +211,27 @@ export async function sendParentLoginEmail({
     )
     .catch(() => null)
   return Boolean(result && !result.error && result.data?.id)
+}
+
+/**
+ * A one-time link to choose a password, the same link the Set or reset
+ * password page sends. Also used by Invite admin (src/lib/admin-login.ts).
+ */
+export async function setPasswordLink(
+  email: string,
+  siteUrl: string
+): Promise<{ link: string; attemptId: string } | null> {
+  const { data, error } = await createAdminSupabase().auth.admin.generateLink({
+    type: 'recovery',
+    email,
+    options: { redirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent('/update-password')}` },
+  })
+  const token = data?.properties?.hashed_token
+  if (error || !token) return null
+  // Ties a problem on the set-password page back to this email.
+  const attemptId = randomUUID()
+  await registerResetAttempt(attemptId, email)
+  return { link: `${siteUrl}/update-password#recovery_token=${encodeURIComponent(token)}&attempt=${attemptId}`, attemptId }
 }
 
 /** When each account last signed in (null: never). Admin pages only. */

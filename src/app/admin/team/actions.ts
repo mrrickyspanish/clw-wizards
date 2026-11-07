@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { isFullAdmin } from '@/lib/auth/admin'
+import { createAdminSupabase } from '@/lib/supabase/admin'
+import { inviteAdmin, type AdminInviteInput, type AdminInviteResult } from '@/lib/admin-login'
 import type { AdminScope } from '@/types/database'
 
 export type InviteResult = { ok: true; code: string } | { ok: false; error: string }
@@ -132,4 +134,13 @@ export async function setAdminScope(targetId: string, scope: AdminScope): Promis
   if (error) return { ok: false, error: error.message }
   revalidatePath('/admin/team')
   return { ok: true }
+}
+
+// Invite admin: makes the admin login and emails a set-password link.
+export async function inviteAdminByEmail(values: AdminInviteInput): Promise<AdminInviteResult> {
+  const supabase = await createServerSupabase()
+  if (!(await isFullAdmin(supabase))) return { ok: false, error: 'Only full admins can invite admins.' }
+  const result = await inviteAdmin(createAdminSupabase(), values)
+  if (result.ok) revalidatePath('/admin/team')
+  return result
 }

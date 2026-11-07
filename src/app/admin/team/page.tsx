@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { TeamControls } from './TeamControls'
 import { AdminRowActions } from './AdminRowActions'
+import { InviteAdminDialog } from './InviteAdminDialog'
 
 const SCOPE_STYLES: Record<AdminScope, string> = {
   full: 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold',
@@ -43,12 +44,15 @@ export default async function AdminTeamPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-display text-clw-gold">Admin team</h1>
-        <p className="text-sm text-clw-gray">
-          Add and manage admin accounts. Full admins can edit the public website and manage the team; limited admins do
-          everything else.
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-display text-clw-gold">Admin team</h1>
+          <p className="text-base text-clw-gray">
+            Add and manage admin accounts. Full admins can edit the public website and manage the team; limited admins
+            do everything else.
+          </p>
+        </div>
+        <InviteAdminDialog />
       </div>
 
       <Card className="border-clw-gold/10 bg-clw-black">

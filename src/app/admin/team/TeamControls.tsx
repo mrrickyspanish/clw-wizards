@@ -48,9 +48,10 @@ export function TeamControls({ invites }: { invites: AdminInvite[] }) {
 
   return (
     <section className="card-depth rounded-2xl border border-clw-gold/10 bg-clw-black-3 p-5">
-      <h2 className="mb-3 text-sm font-medium text-clw-white">Invite an admin</h2>
+      <h2 className="mb-3 text-base font-medium text-clw-white">Or invite with a code</h2>
       <p className="mb-4 text-sm text-clw-gray">
-        Generate a one-time code and share it with the person you&apos;re adding. They enter it at{' '}
+        Easier: Invite admin at the top emails them a link. Or generate a one-time code and share it with the person
+        you&apos;re adding. They enter it at{' '}
         <span className="font-mono text-clw-gold-ink">/admin-signup</span> to create their account (always open, even
         while parent sign-ups are paused). Codes expire in 14 days and work once. Someone with a family login uses a
         second email for their admin login.

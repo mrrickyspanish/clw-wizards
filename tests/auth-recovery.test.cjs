@@ -3234,6 +3234,85 @@ test('the login-ready email has its own subject, a one-time set-password link, a
   assert.equal(await loginLib({}, [], admin).sendParentLoginEmail({ email: 'a@example.org', name: 'A', wrestlers: ['K'] }), false)
 })
 
+// Invite admin (Tyler, Nov 7): a full admin types a name and email on Admin
+// team; the site makes the admin login and emails a set-password link.
+const adminLoginLib = (env = {}, sent = [], admin = null, parentLogin = null) => load('src/lib/admin-login.ts', {
+  '@/lib/supabase/admin': { createAdminSupabase: () => admin },
+  '@/lib/env': { readCredential: (k) => env[k] },
+  '@/lib/parent-login': parentLogin ?? { setPasswordLink: async () => null },
+  '@/config/org.config': { ORG: { name: 'CLW Wizards' } },
+  resend: { Resend: class { constructor() { this.emails = { send: async (m, o) => { sent.push({ m, o }); return { data: { id: 'e1' }, error: null } } } } } },
+})
+const inviteForm = (extra = {}) => ({ name: ' Pat  Coach Jr ', email: 'Pat@Example.org ', emailAgain: 'pat@example.org', scope: 'limited', ...extra })
+
+test('invite admin makes an admin login at the level picked, with no password, and emails it', async () => {
+  for (const scope of ['limited', 'full']) {
+    const { db, tables, auth } = loginDb()
+    const emails = []
+    const result = await adminLoginLib().inviteAdmin(db.client, inviteForm({ scope }), async (e) => { emails.push(e); return true })
+    assert.deepEqual(plain(result), { ok: true, emailed: true })
+    assert.equal(auth.created[0].email, 'pat@example.org')
+    assert.equal('password' in auth.created[0], false)
+    const profile = tables.profiles.find((p) => p.id === 'new1')
+    assert.equal(profile.role, 'admin'); assert.equal(profile.admin_scope, scope); assert.equal(profile.is_active, true)
+    assert.equal(profile.email, 'pat@example.org'); assert.equal(profile.first_name, 'Pat'); assert.equal(profile.last_name, 'Coach Jr')
+    assert.deepEqual(plain(emails), [{ email: 'pat@example.org', name: 'Pat  Coach Jr', scope }])
+  }
+})
+
+test('invite admin refuses mismatched emails, a family login, an existing or turned-off admin, and no access level', async () => {
+  const send = async () => { throw new Error('no email expected') }
+  for (const [extra, message, more] of [
+    [{ emailAgain: 'pat@example.orgx' }, /don't match/],
+    [{ email: 'mom@example.org', emailAgain: 'mom@example.org' }, /family login. Use a second email/],
+    [{ email: 'coach@example.org', emailAgain: 'coach@example.org' }, /already an admin/],
+    [{ email: 'gone@example.org', emailAgain: 'gone@example.org' }, /Restore access/, { role: 'admin', is_active: false, email: 'gone@example.org', id: 'gone' }],
+    [{ scope: 'owner' }, /Full or Limited/],
+    [{ scope: undefined }, /Full or Limited/],
+  ]) {
+    const { db, tables, auth } = loginDb()
+    if (more) tables.profiles.push(more)
+    const result = await adminLoginLib().inviteAdmin(db.client, inviteForm(extra), send)
+    assert.equal(result.ok, false); assert.match(result.error, message)
+    assert.equal(auth.created.length, 0)
+  }
+})
+
+test('invite admin undoes the new login if it cannot be made an admin, and reports an email that did not send', async () => {
+  const { db, auth } = loginDb()
+  const from = db.client.from
+  db.client.from = (table) => {
+    const b = from(table)
+    if (table === 'profiles') b.update = () => ({ eq: () => ({ select: () => ({ maybeSingle: async () => ({ data: null }) }) }) })
+    return b
+  }
+  const result = await adminLoginLib().inviteAdmin(db.client, inviteForm(), async () => true)
+  assert.equal(result.ok, false); assert.deepEqual(plain(auth.deleted), ['new1'])
+  const again = loginDb()
+  const sent = await adminLoginLib().inviteAdmin(again.db.client, inviteForm(), async () => { throw new Error('resend down') })
+  assert.deepEqual(plain(sent), { ok: true, emailed: false })
+})
+
+test('the admin-login email has its own subject, a one-time set-password link, the access level, and escapes names', async () => {
+  const sent = []
+  const admin = { auth: { admin: { generateLink: async (input) => { assert.equal(input.type, 'recovery'); return { data: { properties: { hashed_token: 'tok' } }, error: null } } } } }
+  const env = { RESEND_API_KEY: 'k', RESEND_FROM_EMAIL: 'club@clwizards.com', NEXT_PUBLIC_SITE_URL: 'https://clwizards.com/' }
+  const lib = adminLoginLib(env, sent, admin, loginLib(env, [], admin))
+  assert.equal(await lib.sendAdminLoginEmail({ email: 'pat@example.org', name: 'Pat <b>', scope: 'full' }), true)
+  const { m, o } = sent[0]
+  assert.equal(m.subject, 'Your CLW Wizards admin login is ready')
+  assert.notEqual(m.subject, 'Reset your password')
+  assert.match(m.html, /Hi Pat,/)
+  assert.match(m.html, /full access/)
+  assert.match(m.html, /https:\/\/clwizards\.com\/update-password#recovery_token=tok&attempt=/)
+  assert.match(o.idempotencyKey, /^admin-login\//)
+  const sent2 = []
+  await adminLoginLib(env, sent2, admin, loginLib(env, [], admin)).sendAdminLoginEmail({ email: 'a@example.org', name: '<i>x</i>', scope: 'limited' })
+  assert.doesNotMatch(sent2[0].m.html, /<i>/)
+  assert.doesNotMatch(sent2[0].m.html, /public website/)
+  assert.equal(await adminLoginLib({}, [], admin, loginLib({}, [], admin)).sendAdminLoginEmail({ email: 'a@example.org', name: 'A', scope: 'full' }), false)
+})
+
 test('last logged in comes from the login itself: a time, or never', async () => {
   const { db } = loginDb()
   const map = await loginLib().lastSignIns(db.client, ['dad', 'never', 'gone', 'dad'])
