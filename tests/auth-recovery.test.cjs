@@ -1381,80 +1381,20 @@ test('parent sign-ups read as closed unless the switch is explicitly on, whateve
   assert.deepEqual(plain(await contentGet(null).getSignupStatus()), { parents: false })
 })
 
-function signupPages(status) {
+test('parent sign-up follows its switch', async () => {
   const mocks = {
     '@/components/auth/SignupsPaused': { SignupsPaused: 'Paused' },
-    '@/lib/content/get': { getSignupStatus: async () => status },
     './SignupForm': { default: 'ParentForm' },
-    './AdminSignupForm': { default: 'AdminForm' },
   }
-  return {
-    parents: load('src/app/signup/page.tsx', mocks),
-    admins: load('src/app/admin-signup/page.tsx', mocks),
-  }
-}
-
-test('parent sign-up follows its switch; admin sign-up is always open', async () => {
-  const closed = signupPages({ parents: false })
-  assert.equal((await closed.parents.default()).type, 'Paused')
-  assert.equal((await closed.admins.default()).type, 'AdminForm')
-  const open = signupPages({ parents: true })
-  assert.equal((await open.parents.default()).type, 'ParentForm')
-  assert.equal((await open.admins.default()).type, 'AdminForm')
+  const page = (parents) => load('src/app/signup/page.tsx', { ...mocks, '@/lib/content/get': { getSignupStatus: async () => ({ parents }) } })
+  assert.equal((await page(false).default()).type, 'Paused')
+  assert.equal((await page(true).default()).type, 'ParentForm')
 })
 
-function adminSignupHarness({ invite = null, existingEmail = false } = {}) {
-  const calls = { created: [], redeemed: [] }
-  const client = {
-    from: (table) => {
-      if (table === 'admin_invites') return {
-        select: () => ({ eq: (_f, code) => ({ maybeSingle: async () => ({ data: invite && invite.code === code ? invite : null }) }) }),
-        update: (values) => ({ eq: async (_f, id) => { calls.redeemed.push({ id, ...values }); return { error: null } } }),
-      }
-      return { update: () => ({ eq: async () => ({ error: null }) }) }
-    },
-    auth: { admin: {
-      createUser: async (args) => {
-        if (existingEmail) return { data: { user: null }, error: { message: 'A user with this email address has already been registered' } }
-        calls.created.push(args.email); return { data: { user: { id: 'new-admin' } }, error: null }
-      },
-      deleteUser: async () => ({}),
-    } },
-  }
-  // The old setup code is still in Vercel; it must no longer work.
-  const actions = load('src/app/admin-signup/actions.ts', {
-    '@/lib/supabase/admin': { createAdminSupabase: () => client },
-  }, { ADMIN_SIGNUP_CODE: 'old-setup-code' })
-  return { actions, calls }
-}
-const adminForm = { fullName: 'New Admin', email: 'new@example.org', password: 'Long-enough-1', code: 'ABCD-2345' }
-const liveInvite = (extra = {}) => ({ id: 'invite-1', code: 'ABCD-2345', scope: 'limited', expires_at: new Date(Date.now() + 86400000).toISOString(), redeemed_at: null, ...extra })
-
-test('admin sign-up needs a live invite code from Admin team; guesses and the old setup code make no one', async () => {
-  for (const [form, invite] of [
-    [{ ...adminForm, code: 'guess' }, liveInvite()],
-    [{ ...adminForm, code: 'old-setup-code' }, liveInvite()],
-    [adminForm, liveInvite({ redeemed_at: '2026-11-01T00:00:00Z' })],
-    [adminForm, liveInvite({ expires_at: '2026-11-01T00:00:00Z' })],
-  ]) {
-    const h = adminSignupHarness({ invite })
-    const result = await h.actions.createAdminAccount(form)
-    assert.equal(result.ok, false)
-    assert.match(result.error, /invalid or has expired/)
-    assert.deepEqual(plain(h.calls.created), [])
-  }
-  const h = adminSignupHarness({ invite: liveInvite() })
-  assert.equal((await h.actions.createAdminAccount(adminForm)).ok, true)
-  assert.deepEqual(plain(h.calls.created), ['new@example.org'])
-  assert.equal(h.calls.redeemed[0].id, 'invite-1')
-  assert.equal(h.calls.redeemed[0].redeemed_by, 'new-admin')
-})
-
-test('a parent using their family email on admin sign-up is told to use a second email', async () => {
-  const h = adminSignupHarness({ invite: liveInvite(), existingEmail: true })
-  const result = await h.actions.createAdminAccount(adminForm)
-  assert.equal(result.ok, false)
-  assert.match(result.error, /different email for your admin login/)
+test('there is no admin sign-up page or invite-code action: admins are added from Admin team', () => {
+  assert.equal(fs.existsSync(path.join(__dirname, '..', 'src/app/admin-signup')), false)
+  const actions = fs.readFileSync(path.join(__dirname, '..', 'src/app/admin/team/actions.ts'), 'utf8')
+  assert.doesNotMatch(actions, /createAdminInvite|admin_invites/)
 })
 
 test('a provider "sign-ups disabled" answer is explained in the club\'s words, naming who to contact', () => {

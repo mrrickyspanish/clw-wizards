@@ -28,8 +28,8 @@ export type ContentField = {
 export const CONTENT_FIELDS: ContentField[] = [
   // --- Sign-ups -------------------------------------------------------------
   // Parent sign-up is CLOSED unless switched on here; the sign-up page checks it
-  // on the server. Admin sign-up has no switch (Ricky, Nov 5): it is always
-  // open and needs a single-use invite code from Admin team.
+  // on the server. Admins have no sign-up page: a full admin adds them on Admin
+  // team (Add admin), which emails a set-password link.
   {
     key: 'signups.parents_open',
     label: 'Parent sign-ups are open',

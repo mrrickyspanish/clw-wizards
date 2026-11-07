@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { Mail } from 'lucide-react'
+import { UserPlus } from 'lucide-react'
 
 import type { AdminScope } from '@/types/database'
 import { inviteAdminByEmail } from './actions'
@@ -25,9 +25,9 @@ const LEVELS: { scope: AdminScope; label: string; detail: string }[] = [
   { scope: 'full', label: 'Full access', detail: 'Also edits the public website and manages admins.' },
 ]
 
-// Admin team: invite an admin by email (Tyler, Nov 7). Same as Add parent
-// login: the site makes the login and emails a link to set a password.
-export function InviteAdminDialog() {
+// Admin team: Add admin (Tyler, Nov 7). Same as Add parent login: the site
+// makes the login and emails a link to set a password. No invite codes.
+export function AddAdminDialog() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
@@ -82,12 +82,12 @@ export function InviteAdminDialog() {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button className="w-full text-base sm:w-auto">
-          <Mail className="mr-2 h-4 w-4" /> Invite admin
+          <UserPlus className="mr-2 h-4 w-4" /> Add admin
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-clw-gold">Invite admin</DialogTitle>
+          <DialogTitle className="text-clw-gold">Add admin</DialogTitle>
           <DialogDescription className="text-base">
             We email them a link to set a password. Someone with a family login uses a second email here, so their
             family login stays as it is.
@@ -179,7 +179,7 @@ export function InviteAdminDialog() {
               )}
               <DialogFooter>
                 <Button type="submit" disabled={loading}>
-                  {loading ? 'Sending…' : 'Send invite'}
+                  {loading ? 'Adding…' : 'Add admin'}
                 </Button>
               </DialogFooter>
             </div>

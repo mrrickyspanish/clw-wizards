@@ -2,12 +2,11 @@ import { redirect } from 'next/navigation'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { isFullAdmin } from '@/lib/auth/admin'
-import type { AdminInvite, AdminScope, Profile } from '@/types/database'
+import type { AdminScope, Profile } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { TeamControls } from './TeamControls'
 import { AdminRowActions } from './AdminRowActions'
-import { InviteAdminDialog } from './InviteAdminDialog'
+import { AddAdminDialog } from './AddAdminDialog'
 
 const SCOPE_STYLES: Record<AdminScope, string> = {
   full: 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold',
@@ -24,23 +23,13 @@ export default async function AdminTeamPage() {
   } = await supabase.auth.getUser()
   const currentUserId = user?.id ?? ''
 
-  const nowIso = new Date().toISOString()
-  const [{ data: admins }, { data: invites }] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select('id, full_name, email, admin_scope, is_active')
-      .eq('role', 'admin')
-      .order('created_at', { ascending: true }),
-    supabase
-      .from('admin_invites')
-      .select('*')
-      .is('redeemed_at', null)
-      .gt('expires_at', nowIso)
-      .order('created_at', { ascending: false }),
-  ])
+  const { data: admins } = await supabase
+    .from('profiles')
+    .select('id, full_name, email, admin_scope, is_active')
+    .eq('role', 'admin')
+    .order('created_at', { ascending: true })
 
   const adminRows = (admins ?? []) as Pick<Profile, 'id' | 'full_name' | 'email' | 'admin_scope' | 'is_active'>[]
-  const inviteRows = (invites ?? []) as AdminInvite[]
 
   return (
     <div className="space-y-8">
@@ -52,7 +41,7 @@ export default async function AdminTeamPage() {
             do everything else.
           </p>
         </div>
-        <InviteAdminDialog />
+        <AddAdminDialog />
       </div>
 
       <Card className="border-clw-gold/10 bg-clw-black">
@@ -100,7 +89,6 @@ export default async function AdminTeamPage() {
         </CardContent>
       </Card>
 
-      <TeamControls invites={inviteRows} />
     </div>
   )
 }
