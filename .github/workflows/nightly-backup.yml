@@ -1,0 +1,99 @@
+# Nightly backup (Ricky, Nov 8). The club's Supabase project is on the free
+# plan, which keeps no backups. Every night this copies the database (families,
+# registrations, waivers, dues, payments, logins) and every Sunday the uploaded
+# files too, encrypts them with BACKUP_PASSPHRASE, and keeps them as private
+# workflow artifacts. Restore steps: docs/backups.md.
+#
+# Needs three repository secrets (Settings > Secrets and variables > Actions):
+#   SUPABASE_DB_URL            Session pooler connection string, with the database password
+#   SUPABASE_SERVICE_ROLE_KEY  same value as in Vercel
+#   BACKUP_PASSPHRASE          long random phrase; without it the backups cannot be opened
+name: Nightly backup
+
+on:
+  schedule:
+    - cron: '17 8 * * *' # about 2:17 AM in Crystal Lake
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_URL: https://nerrrzuocgaohrzurnny.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - name: Check the secrets are set
+        run: |
+          missing=""
+          for v in SUPABASE_DB_URL SUPABASE_SERVICE_ROLE_KEY BACKUP_PASSPHRASE; do
+            [ -n "${!v}" ] || missing="$missing $v"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secrets:$missing (see docs/backups.md)"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Copy the database
+        run: |
+          mkdir -p out/db
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f out/db/roles.sql --role-only
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f out/db/schema.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f out/db/data.sql --use-copy --data-only
+          # A dump that silently came back empty is not a backup.
+          for t in public.profiles public.athletes public.season_registrations auth.users; do
+            grep -q "COPY \"\?${t%%.*}\"\?\.\"\?${t#*.}\"\? " out/db/data.sql || { echo "::error::$t missing from the data dump"; exit 1; }
+          done
+          ls -la out/db
+
+      - name: Encrypt the database copy
+        run: |
+          stamp=$(date -u +%Y-%m-%d)
+          echo "STAMP=$stamp" >> "$GITHUB_ENV"
+          tar -czf - -C out db | gpg --batch --yes --symmetric --cipher-algo AES256 --pinentry-mode loopback \
+            --passphrase-fd 3 -o "clw-db-$stamp.tar.gz.gpg" 3<<<"$BACKUP_PASSPHRASE"
+          rm -rf out/db
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: clw-db-${{ env.STAMP }}
+          path: clw-db-${{ env.STAMP }}.tar.gz.gpg
+          retention-days: 30
+          compression-level: 0
+
+      # Uploaded files are about 135 MB and change slowly, so they are copied
+      # weekly (and on a hand-started run) to stay inside GitHub's storage.
+      - name: Copy the uploaded files (Sundays)
+        id: files
+        run: |
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ] && [ "$(date -u +%u)" != "7" ]; then
+            echo "Not Sunday; skipping files."; echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          node scripts/backup-storage.mjs out/files
+          tar -cf - -C out files | gpg --batch --yes --symmetric --cipher-algo AES256 --pinentry-mode loopback \
+            --passphrase-fd 3 -o "clw-files-$STAMP.tar.gpg" 3<<<"$BACKUP_PASSPHRASE"
+          rm -rf out/files
+          echo "run=true" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        if: steps.files.outputs.run == 'true'
+        with:
+          name: clw-files-${{ env.STAMP }}
+          path: clw-files-${{ env.STAMP }}.tar.gpg
+          retention-days: 15
+          compression-level: 0
