@@ -18,12 +18,13 @@ Find them under the repository's **Actions** tab > **Nightly backup** > a run >
 
 Repository **Settings > Secrets and variables > Actions > New repository secret**:
 
-1. `SUPABASE_DB_URL`: in Supabase, open the project, tap **Connect** at the
+1. `SUPABASE_DB_URL`: in Supabase, open the **CLW Wizards** project (not The
+   Daily Dribble; the run refuses any other project), tap **Connect** at the
    top, choose **Session pooler**, copy the connection string and put the
    database password in place of `[YOUR-PASSWORD]`. (GitHub can't reach the
    direct connection, which is IPv6 only.) Forgot the password? Reset it in the
    project's Database settings; the site itself does not use it.
-2. `SUPABASE_SERVICE_ROLE_KEY`: the same value as in Vercel.
+2. `SUPABASE_SERVICE_ROLE_KEY`: the CLW Wizards project's service role key (the same value as in Vercel).
 3. `BACKUP_PASSPHRASE`: a long random phrase from a password manager.
 
 Then **Actions > Nightly backup > Run workflow** once to check it.

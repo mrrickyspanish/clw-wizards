@@ -42,6 +42,13 @@ jobs:
             echo "::error::Missing repository secrets:$missing (see docs/backups.md)"
             exit 1
           fi
+          # Supabase lists more than one project under this account. Refuse to
+          # back up anything but the club's (Nov 8: a string from another
+          # project was saved here by mistake).
+          case "$SUPABASE_DB_URL" in
+            *nerrrzuocgaohrzurnny*) ;;
+            *) echo "::error::SUPABASE_DB_URL is not the CLW Wizards project (nerrrzuocgaohrzurnny). Copy it from that project's Connect button."; exit 1 ;;
+          esac
 
       - uses: actions/checkout@v4
 
