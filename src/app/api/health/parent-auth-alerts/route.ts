@@ -7,7 +7,7 @@ export async function GET() {
     if (!readCredential('RESEND_API_KEY') || !readCredential('RESEND_FROM_EMAIL') || !readCredential('CRON_SECRET')) throw new Error('Missing configuration')
     const { count, error } = await createAdminSupabase().from('parent_auth_incidents')
       .select('id', { count: 'exact', head: true }).is('notified_at', null)
-      .lt('first_seen', new Date(Date.now() - 10 * 60 * 1000).toISOString())
+      .lt('first_seen', new Date(Date.now() - 20 * 60 * 1000).toISOString())
     if (error || count) throw new Error('Delivery backlog')
     return NextResponse.json({ ok: true }, { headers: { 'Cache-Control': 'no-store' } })
   } catch {

@@ -3,6 +3,28 @@ import { createAdminSupabase } from '@/lib/supabase/admin'
 import { readCredential } from '@/lib/env'
 import { ORG } from '@/config/org.config'
 import { safeAuthError, safeEmail, validAttempt, isSelfHealingFailure, type FailureStep } from './incident-policy'
+import { firstAlert, gotInSince, resolvedAlert, type AlertPerson } from './alert-copy'
+
+// Wait this long before emailing about a failure (Ricky, Nov 2): most parents
+// sort it out themselves within minutes, and then the email just says so.
+export const ALERT_DELAY_MINUTES = 10
+// How long to keep watching a stuck parent for the "they got in" follow-up.
+const FOLLOW_UP_DAYS = 7
+
+type Admin = ReturnType<typeof createAdminSupabase>
+
+/** Who the email belongs to and when they last logged in. Never blocks an alert. */
+async function lookupPerson(admin: Admin, email: string | null): Promise<AlertPerson> {
+  if (!email) return null
+  try {
+    const { data: profile } = await admin.from('profiles').select('id, full_name').eq('email', email).maybeSingle()
+    if (!profile) return null
+    const { data } = await admin.auth.admin.getUserById(profile.id)
+    return { name: profile.full_name ?? null, signedInAt: data?.user?.last_sign_in_at ?? null }
+  } catch {
+    return null
+  }
+}
 
 export async function incidentFingerprint(value: string) {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
@@ -36,33 +58,30 @@ export async function deliverParentAuthIncident(id: string) {
   const admin = createAdminSupabase()
   const { data, error } = await admin.rpc('claim_parent_auth_incident', { p_id: id })
   if (error) throw error
-  const incident = data?.[0]
-  if (!incident) return
+  const claimed = data?.[0]
+  if (!claimed) return
+  // A claimed row always has its failure; the guard is for the type.
+  const firstSeen = claimed.first_seen ?? claimed.created_at
+  const incident = { ...claimed, first_seen: firstSeen }
   try {
     const key = readCredential('RESEND_API_KEY')
     const from = readCredential('RESEND_FROM_EMAIL')
     const to = readCredential('ALERT_EMAIL') ?? ORG.contactEmail
     if (!key || !from) throw new Error('Alert email configuration missing')
-    // First-event fields stay immutable so retries use an identical payload.
-    const sendOptions = { idempotencyKey: `parent-auth/${id}`, signal: AbortSignal.timeout(8000) }
-    const result = await new Resend(key).emails.send({
-      from, to: [to], subject: `[${ORG.shortName} Alert] Parent blocked: ${incident.first_step}`,
-      text: [
-        'A parent authentication step failed.',
-        `Email: ${incident.first_email ?? 'Unavailable (no verified session)'}`,
-        `Email source: ${incident.first_email_source ?? 'unavailable'}`,
-        `Failed step: ${incident.first_step}`,
-        `Actual error: ${JSON.stringify(incident.first_error)}`,
-        `Timestamp (UTC): ${incident.first_seen}`,
-        `Reference ID: ${incident.id}`,
-        '',
-        'Retries from this attempt are grouped under this reference in parent_auth_incidents.',
-        'This reports a failure at that time; it does not mean a later retry also failed.',
-      ].join('\n'),
-    }, sendOptions)
+    // Plain English: who, what they tried, why it was turned down, and whether
+    // they've gotten in since. First-event fields stay immutable, so a retry of
+    // the same outcome sends an identical payload under the same key.
+    const person = await lookupPerson(admin, incident.first_email)
+    const copy = firstAlert(incident, person, ORG.shortName)
+    // A retry must send the same words under the same key, so the key changes
+    // whenever the words can: open vs got in, and the sign-in time it quotes.
+    const outcome = copy.resolved ? `resolved/${person?.signedInAt}` : 'open'
+    const sendOptions = { idempotencyKey: `parent-auth/${id}/${outcome}`, signal: AbortSignal.timeout(8000) }
+    const result = await new Resend(key).emails.send({ from, to: [to], subject: copy.subject, text: copy.text }, sendOptions)
     if (result.error || !result.data?.id) throw new Error('Alert provider did not accept the message')
+    const now = new Date().toISOString()
     const saved = await admin.from('parent_auth_incidents').update({
-      notified_at: new Date().toISOString(), message_id: result.data.id, lease_until: null,
+      notified_at: now, message_id: result.data.id, lease_until: null, ...(copy.resolved ? { resolved_at: now } : {}),
     }).eq('id', id)
     if (saved.error) throw saved.error
     console.info('[parent-auth] alert accepted', { referenceId: id, messageId: result.data.id })
@@ -102,7 +121,8 @@ export async function reportParentAuthFailure(input: {
       // Marked notified rather than left pending, so the retry sweep does not
       // pick it back up and mail it an hour later.
       if (isSelfHealingFailure(input.step, input.error)) await suppressParentAuthAlert(id)
-      else await deliverParentAuthIncident(id)
+      // Anything else waits ALERT_DELAY_MINUTES for the 5-minute sweep
+      // (sendDueParentAuthAlerts), which first checks whether they got in.
     }
     return { referenceId: id, recorded: Boolean(data) }
   } catch {
@@ -111,12 +131,60 @@ export async function reportParentAuthFailure(input: {
   }
 }
 
-export async function retryParentAuthAlerts() {
-  const { data, error } = await createAdminSupabase().from('parent_auth_incidents')
+/**
+ * The 5-minute sweep: sends each alert once its timer is up (or retries one
+ * that didn't go out), then closes the loop on anyone who was stuck and has
+ * since logged in.
+ */
+export async function sendDueParentAuthAlerts(now = Date.now()) {
+  const admin = createAdminSupabase()
+  const { data, error } = await admin.from('parent_auth_incidents')
     .select('id').is('notified_at', null).not('first_seen', 'is', null)
-    .gte('first_seen', new Date(Date.now() - 23 * 60 * 60 * 1000).toISOString())
+    .gte('first_seen', new Date(now - 23 * 60 * 60 * 1000).toISOString())
+    .lte('first_seen', new Date(now - ALERT_DELAY_MINUTES * 60 * 1000).toISOString())
     .order('first_seen').limit(20)
   if (error) throw error
   const results = await Promise.allSettled((data ?? []).map(row => deliverParentAuthIncident(row.id)))
-  if (results.some(result => result.status === 'rejected')) throw new Error('Some alerts remain pending')
+  const followUps = await sendResolvedFollowUps(admin, now)
+  if (results.some(result => result.status === 'rejected') || !followUps) throw new Error('Some alerts remain pending')
+}
+
+/** "They got in" for each alert that went out while the parent was still stuck. */
+async function sendResolvedFollowUps(admin: Admin, now: number): Promise<boolean> {
+  const { data, error } = await admin.from('parent_auth_incidents')
+    .select('id, first_email, first_step, first_error, first_seen')
+    .not('notified_at', 'is', null).is('resolved_at', null).not('first_email', 'is', null)
+    .not('message_id', 'like', 'suppressed%')
+    .gte('first_seen', new Date(now - FOLLOW_UP_DAYS * 24 * 60 * 60 * 1000).toISOString())
+    .order('first_seen').limit(50)
+  if (error) return false
+  let ok = true
+  for (const row of data ?? []) {
+    if (!row.first_seen) continue
+    const incident = { ...row, first_seen: row.first_seen }
+    const person = await lookupPerson(admin, incident.first_email)
+    if (!person || !gotInSince(incident, person)) continue
+    // Claim it first, so two overlapping sweeps can't both send it.
+    const { data: claimed } = await admin.from('parent_auth_incidents')
+      .update({ resolved_at: new Date().toISOString() }).eq('id', incident.id).is('resolved_at', null).select('id')
+    if (!claimed?.length) continue
+    try {
+      const key = readCredential('RESEND_API_KEY')
+      const from = readCredential('RESEND_FROM_EMAIL')
+      const to = readCredential('ALERT_EMAIL') ?? ORG.contactEmail
+      if (!key || !from) throw new Error('Alert email configuration missing')
+      const copy = resolvedAlert(incident, person, ORG.shortName)
+      const sendOptions = { idempotencyKey: `parent-auth-resolved/${incident.id}/${person.signedInAt}`, signal: AbortSignal.timeout(8000) }
+      const result = await new Resend(key).emails.send({ from, to: [to], subject: copy.subject, text: copy.text }, sendOptions)
+      if (result.error || !result.data?.id) throw new Error('Alert provider did not accept the message')
+      await admin.from('parent_auth_incidents').update({ resolved_message_id: result.data.id }).eq('id', incident.id)
+      console.info('[parent-auth] resolved follow-up accepted', { referenceId: incident.id })
+    } catch {
+      // Put it back so the next sweep tries again.
+      await admin.from('parent_auth_incidents').update({ resolved_at: null }).eq('id', incident.id)
+      console.error('[parent-auth] resolved follow-up pending', { referenceId: incident.id })
+      ok = false
+    }
+  }
+  return ok
 }
