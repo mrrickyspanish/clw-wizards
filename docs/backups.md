@@ -48,6 +48,12 @@ Then **Actions > Nightly backup > Run workflow** once to check it.
 To bring back a single record (one family, one payment), restore into the new
 project and copy just that row across.
 
+**Last tested Nov 10, 2026:** the Nov 9 copy decrypted with the passphrase and
+loaded into a scratch database. All 35 club tables restored with no errors, and
+every row count matched the live site except rows created after the backup ran.
+150 logins were in the copy. (Supabase's own login and storage tables only load
+into a real Supabase project, which is expected.)
+
 ## Website text, coaches and FAQs
 
 Every change is also kept in the `content_history` table (who, when, before
