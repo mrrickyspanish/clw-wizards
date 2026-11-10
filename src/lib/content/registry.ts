@@ -28,15 +28,17 @@ export type ContentField = {
 export const CONTENT_FIELDS: ContentField[] = [
   // --- Sign-ups -------------------------------------------------------------
   // Parent sign-up is CLOSED unless switched on here; the sign-up page checks it
-  // on the server. Admins have no sign-up page: a full admin adds them on Admin
-  // team (Add admin), which emails a set-password link.
+  // on the server. Supabase's own "Allow new users to sign up" is also off
+  // (Nov 10), so nobody can make an account by calling the sign-up service
+  // directly; logins the site makes (Add parent login, Add admin) are not
+  // affected. Admins have no sign-up page: a full admin adds them on Admin team.
   {
     key: 'signups.parents_open',
     label: 'Parent sign-ups are open',
     type: 'toggle',
     group: 'Sign-ups',
     default: 'off',
-    help: 'Off: the sign-up page shows a "contact Tony" message and no new parent accounts can be made.',
+    help: 'Off: the sign-up page shows a "contact Tony" message and no new parent accounts can be made. To reopen sign-ups, Ricky also has to switch on "Allow new users to sign up" in Supabase.',
     revalidate: ['/signup', '/join'],
   },
 
