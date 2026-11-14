@@ -1,0 +1,38 @@
+# Homefield demo database (RJ, Nov 14). Builds the database structure in the
+# separate demo Supabase project from this repo's migrations, so the demo
+# matches the live site's structure without copying any of its data. Run by
+# hand only. Refuses the live club's project.
+#
+# Needs one repository secret: DEMO_DB_URL, the demo project's Session pooler
+# connection string with its database password.
+name: Demo database
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DEMO_DB_URL: ${{ secrets.DEMO_DB_URL }}
+    steps:
+      - name: Check it's the demo project, never the live club
+        run: |
+          if [ -z "$DEMO_DB_URL" ]; then echo "::error::DEMO_DB_URL secret is missing"; exit 1; fi
+          case "$DEMO_DB_URL" in
+            *nerrrzuocgaohrzurnny*) echo "::error::That is the live club database. Refusing."; exit 1 ;;
+            *rqbrshlalcscpvdtmxvc*) echo "::error::That is The Daily Dribble's database. Refusing."; exit 1 ;;
+          esac
+
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Apply the migrations
+        run: supabase db push --db-url "$DEMO_DB_URL" --include-all --yes

@@ -134,7 +134,7 @@ export async function resetDemo(password: string): Promise<ResetResult> {
 
     // Staff logins.
     const adminId = await makeLogin(admin, password, { email: DEMO_LOGINS.admin, first: 'Jordan', last: 'Avery', role: 'admin', scope: 'full' })
-    const staffId = await makeLogin(admin, password, { email: DEMO_LOGINS.staff, first: 'Casey', last: 'Brooks', role: 'admin', scope: 'limited' })
+    await makeLogin(admin, password, { email: DEMO_LOGINS.staff, first: 'Casey', last: 'Brooks', role: 'admin', scope: 'limited' })
 
     // Families: new, mid-registration (the demo parent), fully registered.
     const newParent = await makeLogin(admin, password, { email: `hollins@${DEMO_DOMAIN}`, first: 'Dana', last: 'Hollins', phone: '5550100101' })
