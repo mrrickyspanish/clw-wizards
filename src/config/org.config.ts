@@ -1,3 +1,5 @@
+import { DEMO_MODE } from '@/lib/demo'
+
 export interface OrgConfig {
   slug: string
   name: string
@@ -42,4 +44,27 @@ export const CRYSTAL_LAKE_WIZARDS: OrgConfig = {
   },
 }
 
-export const ORG: OrgConfig = CRYSTAL_LAKE_WIZARDS
+// The made-up club the Homefield demo shows (RJ, Nov 14). Every detail is
+// invented: the town, the contact address (.example never delivers) and the
+// tax number. Used only when NEXT_PUBLIC_DEMO_MODE=1.
+export const KESTREL_FALLS_DEMO: OrgConfig = {
+  slug: 'kestrel-falls-demo',
+  name: 'Kestrel Falls Wrestling Club',
+  shortName: 'KFW',
+  tagline: 'Kestrel Falls Wrestling Club',
+  domain: 'kestrelfalls.example',
+  contactEmail: 'coach@kestrelfalls.example',
+  ein: '00-0000000',
+  mailingAddress: '100 Riverside Drive, Kestrel Falls',
+  practiceGroups: ['Group 1', 'Group 2', 'Group 3', 'Group 4'],
+  social: {},
+  brand: {
+    colors: {
+      black: '#0E1A33',
+      gold: '#F28C28',
+      white: '#FFFFFF',
+    },
+  },
+}
+
+export const ORG: OrgConfig = DEMO_MODE ? KESTREL_FALLS_DEMO : CRYSTAL_LAKE_WIZARDS

@@ -4,6 +4,7 @@ import Script from 'next/script'
 import { useEffect, useRef, useState } from 'react'
 
 import { ORG } from '@/config/org.config'
+import { DEMO_MODE } from '@/lib/demo'
 
 declare global {
   interface Window {
@@ -25,7 +26,8 @@ declare global {
   }
 }
 
-const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+// The demo runs on its own address, which the bot check isn't set up for.
+const TURNSTILE_SITE_KEY = DEMO_MODE ? undefined : process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 
 // How long to wait for the Cloudflare script before telling the visitor it did
 // not load. Generous: a slow phone connection should not be told it failed.

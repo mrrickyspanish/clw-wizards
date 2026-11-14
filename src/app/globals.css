@@ -60,6 +60,24 @@
     --clw-muted-dark: 79 79 70;
   }
 
+  /* Homefield demo (Kestrel Falls): navy and orange in place of black and
+     gold. html[data-demo] outranks :root and [data-theme], so it wins in
+     every theme. */
+  html[data-demo] {
+    --primary: 29 88% 55%;
+    --accent: 29 88% 55%;
+    --ring: 29 88% 55%;
+    --sidebar-accent: 29 88% 55%;
+    --clw-black: 12 20 38;
+    --clw-black-2: 20 30 52;
+    --clw-black-3: 30 42 68;
+    --clw-gold: 242 140 40;
+    --clw-gold-l: 247 168 92;
+    --clw-gold-dim: 242 140 40;
+    --clw-gold-ink: 242 140 40;
+    --clw-gold-on-light: 166 82 10;
+  }
+
   /* Portal dark: lifted off pure black so surfaces read as layered, muted
      text brightened for legibility. */
   [data-theme='dark'] {

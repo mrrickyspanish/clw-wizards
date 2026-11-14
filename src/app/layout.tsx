@@ -2,14 +2,19 @@ import type { Metadata, Viewport } from 'next'
 import { Bebas_Neue, Barlow, Barlow_Condensed, Big_Shoulders } from 'next/font/google'
 import { GoogleAnalytics } from '@next/third-parties/google'
 import { ORG } from '@/config/org.config'
+import { DEMO_MODE } from '@/lib/demo'
 import './globals.css'
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? `https://${ORG.domain}`).replace(/\/$/, '')
-const GA_ID = process.env.NEXT_PUBLIC_GA_ID
-const SITE_TITLE = 'Wizards Wrestling Club | Youth Wrestling in Crystal Lake, IL'
+// No analytics from the Homefield demo.
+const GA_ID = DEMO_MODE ? undefined : process.env.NEXT_PUBLIC_GA_ID
+const SITE_TITLE = DEMO_MODE
+  ? 'Kestrel Falls Wrestling Club | Youth Wrestling'
+  : 'Wizards Wrestling Club | Youth Wrestling in Crystal Lake, IL'
 
-const SITE_DESCRIPTION =
-  'Crystal Lake Wizards Wrestling Club develops youth wrestlers in Crystal Lake and across McHenry County, IL through structured practice groups, dedicated coaching, and regular tournament competition.'
+const SITE_DESCRIPTION = DEMO_MODE
+  ? 'Kestrel Falls Wrestling Club develops youth wrestlers through structured practice groups, dedicated coaching, and regular tournament competition.'
+  : 'Crystal Lake Wizards Wrestling Club develops youth wrestlers in Crystal Lake and across McHenry County, IL through structured practice groups, dedicated coaching, and regular tournament competition.'
 
 // Organization / local-business structured data so Google can surface the
 // club's name, location, and contact info in search and the knowledge panel.
@@ -97,10 +102,11 @@ export const metadata: Metadata = {
     canonical: '/',
   },
   robots: {
-    index: true,
-    follow: true,
+    // The Homefield demo stays out of search engines.
+    index: !DEMO_MODE,
+    follow: !DEMO_MODE,
     googleBot: {
-      index: true,
+      index: !DEMO_MODE,
       follow: true,
       'max-image-preview': 'large',
       'max-snippet': -1,
@@ -124,12 +130,19 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${bebasNeue.variable} ${barlow.variable} ${barlowCondensed.variable} ${bigShoulders.variable}`}>
+    <html
+      lang="en"
+      data-demo={DEMO_MODE ? '' : undefined}
+      className={`${bebasNeue.variable} ${barlow.variable} ${barlowCondensed.variable} ${bigShoulders.variable}`}
+    >
       <body>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }}
-        />
+        {/* Search-engine details about the real club; the demo describes no real club. */}
+        {!DEMO_MODE && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }}
+          />
+        )}
         {children}
       </body>
       {GA_ID ? <GoogleAnalytics gaId={GA_ID} /> : null}

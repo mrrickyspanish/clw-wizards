@@ -1,9 +1,12 @@
 import type { MetadataRoute } from 'next'
 import { ORG } from '@/config/org.config'
+import { DEMO_MODE } from '@/lib/demo'
 
 const BASE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? `https://${ORG.domain}`).replace(/\/$/, '')
 
 export default function robots(): MetadataRoute.Robots {
+  // The Homefield demo stays out of search engines entirely.
+  if (DEMO_MODE) return { rules: { userAgent: '*', disallow: '/' } }
   return {
     rules: {
       userAgent: '*',
