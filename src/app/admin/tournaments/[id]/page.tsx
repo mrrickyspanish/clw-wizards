@@ -124,10 +124,10 @@ export default async function TournamentRosterPage({ params }: { params: Promise
               {unpaid > 0 && ` ${unpaid} not paid on TrackWrestling yet.`}
               {unmatched > 0 && ` ${unmatched} not matched to anyone on our site, so they won't get the reminders.`}
             </p>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Button asChild>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild className="h-auto min-h-11 w-full whitespace-normal py-2 sm:w-auto">
                 <Link href={`/admin/communications?audience=tournament_registrants&tournament=${t.id}`}>
-                  <Mail className="mr-2 h-4 w-4" /> Message these families
+                  <Mail className="mr-2 h-4 w-4 shrink-0" /> Message these families
                 </Link>
               </Button>
               <RosterTools

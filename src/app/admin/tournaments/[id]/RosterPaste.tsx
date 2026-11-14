@@ -101,8 +101,8 @@ export function RosterPaste({
     return (
       <div className="space-y-3 print:hidden">
         {done && <p className="text-base text-clw-white">{done}</p>}
-        <Button type="button" variant="outline" onClick={() => setOpen(true)}>
-          <ClipboardPaste className="mr-2 h-4 w-4" /> Paste a fresh list from TrackWrestling
+        <Button type="button" variant="outline" className="h-auto min-h-11 w-full whitespace-normal py-2 sm:w-auto" onClick={() => setOpen(true)}>
+          <ClipboardPaste className="mr-2 h-4 w-4 shrink-0" /> Paste a new list
         </Button>
       </div>
     )

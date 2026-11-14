@@ -19,12 +19,12 @@ export function RosterTools({ tournament, rows }: { tournament: { name: string; 
     URL.revokeObjectURL(url)
   }
   return (
-    <div className="flex flex-col gap-2 sm:flex-row print:hidden">
-      <Button type="button" variant="outline" onClick={() => window.print()}>
-        <Printer className="mr-2 h-4 w-4" /> Print for coaches
+    <div className="flex w-full flex-wrap gap-2 sm:w-auto print:hidden">
+      <Button type="button" variant="outline" className="h-auto min-h-11 w-full whitespace-normal py-2 sm:w-auto" onClick={() => window.print()}>
+        <Printer className="mr-2 h-4 w-4 shrink-0" /> Print
       </Button>
-      <Button type="button" variant="outline" onClick={download}>
-        <Download className="mr-2 h-4 w-4" /> Download spreadsheet
+      <Button type="button" variant="outline" className="h-auto min-h-11 w-full whitespace-normal py-2 sm:w-auto" onClick={download}>
+        <Download className="mr-2 h-4 w-4 shrink-0" /> Spreadsheet
       </Button>
     </div>
   )

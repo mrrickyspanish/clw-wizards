@@ -692,8 +692,8 @@ export function ComposeForm({
       {wantsEmail && (
         <>
           <div className="space-y-2">
-            <Button type="button" variant="outline" onClick={draftUpdate} disabled={drafting}>
-              {drafting ? 'Drafting…' : 'Draft weekly tournament update'}
+            <Button type="button" variant="outline" className="h-auto min-h-11 w-full whitespace-normal py-2 sm:w-auto" onClick={draftUpdate} disabled={drafting}>
+              {drafting ? 'Drafting…' : 'Draft tournament update'}
             </Button>
             <p className="text-sm text-clw-gray">
               Fills in Open and Not open yet tournaments by month, with Register links. Read it over before sending.
