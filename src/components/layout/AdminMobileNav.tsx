@@ -71,7 +71,7 @@ export function AdminMobileNav({
 
   return (
     <header
-      className="sticky top-0 z-40 flex items-center justify-between border-b border-clw-gold/10 bg-clw-black/95 px-4 pb-3 backdrop-blur-md md:hidden"
+      className="sticky top-0 z-40 flex items-center justify-between border-b border-clw-gold/10 bg-clw-black/95 px-4 pb-3 backdrop-blur-md md:hidden print:!hidden"
       style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}
     >
       <Sheet>

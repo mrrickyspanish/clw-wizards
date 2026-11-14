@@ -9,13 +9,17 @@ import { BoardCopyManager } from './BoardCopyManager'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { BoardCopyRecipient } from '@/types/database'
 
-export default async function AdminCommunicationsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+export default async function AdminCommunicationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string; audience?: string; tournament?: string }>
+}) {
   // ?tab=history opens History, e.g. from the link shown after a send.
-  const { tab } = await searchParams
+  const { tab, audience, tournament } = await searchParams
   const openTab = tab === 'history' || tab === 'board' || tab === 'payments' || tab === 'uploads' ? tab : 'compose'
   const supabase = await createServerSupabase()
   const [{ data: tournaments }, { data: events }, { data: parents }, { data: boardRows }, { data: paymentRows }, { data: uploadRows }] = await Promise.all([
-    supabase.from('tournaments').select('id, name').order('date', { ascending: false }),
+    supabase.from('tournaments').select('id, name, date').order('date', { ascending: false }),
     // Upcoming club events (not the season registration itself) for the
     // "About an event" picker.
     supabase
@@ -36,6 +40,11 @@ export default async function AdminCommunicationsPage({ searchParams }: { search
     supabase.from('payment_notice_recipients').select('id, name, email').order('name', { ascending: true }),
     supabase.from('upload_notice_recipients').select('id, name, email').order('name', { ascending: true }),
   ])
+  // Wizards on each tournament's pasted TrackWrestling list, shown in the picker.
+  const { data: entryRows } = await supabase.from('tournament_entries').select('tournament_id').not('athlete_id', 'is', null)
+  const registeredCount = new Map<string, number>()
+  for (const e of entryRows ?? []) registeredCount.set(e.tournament_id, (registeredCount.get(e.tournament_id) ?? 0) + 1)
+
   const board = (boardRows ?? []) as BoardCopyRecipient[]
 
   const queue = commsQueueStatus()
@@ -59,7 +68,13 @@ export default async function AdminCommunicationsPage({ searchParams }: { search
         <TabsContent value="compose" className="mt-6">
           <ComposeForm
             practiceGroups={ORG.practiceGroups}
-            tournaments={tournaments ?? []}
+            tournaments={(tournaments ?? []).map((t) => ({
+              id: t.id,
+              name: registeredCount.get(t.id) ? `${t.name} (${registeredCount.get(t.id)} registered)` : t.name,
+            }))}
+            initialTournamentId={
+              audience === 'tournament_registrants' && (tournaments ?? []).some((t) => t.id === tournament) ? tournament : undefined
+            }
             events={events ?? []}
             boardNames={board.map((b) => b.name)}
             parents={parents ?? []}

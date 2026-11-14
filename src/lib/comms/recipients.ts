@@ -73,13 +73,10 @@ async function accountOwners(supabase: AdminClient, target: CommTarget): Promise
   }
 
   if (target.type === 'tournament_registrants') {
-    const { data: registrations } = await supabase
-      .from('tournament_registrations')
-      .select('parent_id')
-      .eq('tournament_id', target.tournamentId)
-      .in('status', ['registered', 'confirmed'])
-
-    const parentIds = [...new Set((registrations ?? []).map((r) => r.parent_id))]
+    const athleteIds = await registeredAthleteIds(supabase, target.tournamentId)
+    if (!athleteIds.length) return []
+    const { data: wrestlers } = await supabase.from('athletes').select('parent_id').eq('active', true).in('id', athleteIds)
+    const parentIds = [...new Set((wrestlers ?? []).map((w) => w.parent_id))]
     if (!parentIds.length) return []
 
     const { data } = await supabase.from('profiles').select('*').eq('is_active', true).in('id', parentIds)
@@ -207,6 +204,25 @@ export async function recipientWrestlerRows(target: CommTarget, profileIds: stri
   return byProfile
 }
 
+/**
+ * Wrestlers registered for a tournament: signed up on our site, or on the
+ * TrackWrestling Wrestler List an admin pasted (matched to one of our
+ * wrestlers). Rows not matched to anyone reach nobody.
+ */
+async function registeredAthleteIds(supabase: AdminClient, tournamentId: string): Promise<string[]> {
+  const [{ data: onSite }, { data: pasted }] = await Promise.all([
+    supabase
+      .from('tournament_registrations')
+      .select('athlete_id')
+      .eq('tournament_id', tournamentId)
+      .in('status', ['registered', 'confirmed']),
+    supabase.from('tournament_entries').select('athlete_id').eq('tournament_id', tournamentId).not('athlete_id', 'is', null),
+  ])
+  return [
+    ...new Set([...(onSite ?? []).map((r) => r.athlete_id), ...(pasted ?? []).map((r) => r.athlete_id as string)]),
+  ]
+}
+
 type CoParentLinkRow = { owner_id: string; guardian_id: string; athlete_ids: string[] | null }
 
 function coversWrestler(link: { athlete_ids: string[] | null }, athleteId: string): boolean {
@@ -230,12 +246,7 @@ async function wrestlersOnTarget(supabase: AdminClient, target: CommTarget, pare
   }
   if (target.type === 'practice_groups') return activeWrestlers({ groups: target.practiceGroups })
   if (target.type === 'tournament_registrants') {
-    const { data } = await supabase
-      .from('tournament_registrations')
-      .select('athlete_id')
-      .eq('tournament_id', target.tournamentId)
-      .in('status', ['registered', 'confirmed'])
-    return activeWrestlers({ ids: (data ?? []).map((r) => r.athlete_id) })
+    return activeWrestlers({ ids: await registeredAthleteIds(supabase, target.tournamentId) })
   }
   if (target.type === 'outstanding_dues') {
     const { data } = await supabase

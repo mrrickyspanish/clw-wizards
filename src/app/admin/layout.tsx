@@ -59,7 +59,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }))
 
   return (
-    <div className="flex min-h-[100dvh] bg-clw-black-2">
+    <div className="flex min-h-[100dvh] bg-clw-black-2 print:bg-white">
       <DashboardNav title="Admin" items={navItems} userName={profile?.full_name ?? null} role={profile?.role ?? null} />
       <div className="flex min-w-0 flex-1 flex-col">
         <AdminMobileNav
@@ -68,7 +68,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           isFullAdmin={isFullAdmin}
           reviewCount={reviewCount}
         />
-        <main className="min-w-0 flex-1 p-4 md:p-8">{children}</main>
+        <main className="min-w-0 flex-1 p-4 md:p-8 print:p-0">{children}</main>
       </div>
     </div>
   )

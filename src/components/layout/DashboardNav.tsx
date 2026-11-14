@@ -36,7 +36,7 @@ export function DashboardNav({ title, items, userName, role }: DashboardNavProps
   }
 
   return (
-    <aside className="hidden md:flex w-64 flex-col bg-clw-black border-r border-clw-gold/10">
+    <aside className="hidden md:flex w-64 flex-col bg-clw-black border-r border-clw-gold/10 print:!hidden">
       <div className="p-6 border-b border-clw-gold/10">
         <p className="text-lg font-display text-clw-gold-ink">{ORG.shortName}</p>
         <p className="text-sm text-clw-gray">{title}</p>

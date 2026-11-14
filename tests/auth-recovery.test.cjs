@@ -2892,6 +2892,8 @@ function commsImageHarness(role) {
       getPublicUrl: (path) => ({ data: { publicUrl: `https://x.supabase.co/storage/v1/object/public/${bucket}/${path}` } }),
     }) } }) },
     '@/lib/comms/recipients': {},
+    '@/lib/tournament-update': { tournamentUpdate: () => null },
+    '@/lib/chicago-time': { chicagoDateString: () => '2026-11-13' },
   })
   return { actions, signed }
 }
@@ -3569,4 +3571,157 @@ test('a tournament that is not open yet reads that way, with no Register anywher
   ], []))
   assert.equal(entry.detail.registerUrl, null)
   assert.deepEqual(entry.detail.tags, ['Novice', 'Registration not open yet'])
+})
+
+// Paste from TrackWrestling (Tyler, Nov 13). Made-up names only.
+const twLib = load('src/lib/tw-roster.ts', {})
+const TW_PASTE = [
+  'Tournament\tDivision\tWeight\tName\t\tTeam\tSubmitted\tPayment Received',
+  '2026 Winter Classic\tBoys 6u\t40\tAxel Ray (Pre-K)\tIllinois\tCrystal Lake Wizards\t10/29/2026 09:03 p.m.\t10/29/2026 09:03 p.m.',
+  '2026 Winter Classic\tBoys 12u\t135\tWilliam Lee II (6th)\tIllinois\tCrystal Lake Wizards\t10/29/2026 07:20 p.m.\t',
+  '2026 Winter Classic\tBoys 10u\t67\tTre`Von Moss\tIllinois\tCrystal Lake Wizards\t11/11/2026 01:17 a.m.\t11/11/2026 01:19 a.m.',
+  '2026 Winter Classic\tGirls 8u\t68\tKya Stone\tIllinois\tOther Town Wrestling\t11/05/2026 10:15 a.m.\t11/05/2026 10:16 a.m.',
+].join('\n')
+
+test('a pasted TrackWrestling Wrestler List keeps only our club, with division, weight, grade and payment', () => {
+  const { rows, otherTeams } = twLib.parseWrestlerList(TW_PASTE)
+  assert.equal(otherTeams, 1)
+  assert.deepEqual(plain(rows.map((r) => [r.name, r.grade, r.division, r.weight, r.paid])), [
+    ['Axel Ray', 'Pre-K', 'Boys 6u', '40', true],
+    ['William Lee II', '6th', 'Boys 12u', '135', false],
+    ['Tre`Von Moss', null, 'Boys 10u', '67', true],
+  ])
+  assert.equal(rows[1].externalName, 'William Lee II (6th)')
+  // Without the header row, the usual column order still reads.
+  assert.equal(twLib.parseWrestlerList(TW_PASTE.split('\n').slice(1).join('\n')).rows.length, 3)
+  assert.equal(twLib.parseWrestlerList('just some words\nnothing tabular').rows.length, 0)
+  assert.equal(twLib.isOurTeam('CRYSTAL LAKE WIZARDS'), true)
+  assert.equal(twLib.isOurTeam('Wauconda Wizards'), false)
+})
+
+test('names match only when exact and unique; lookalikes and nicknames are offered, never assumed', () => {
+  const athletes = [
+    { id: 'a1', first_name: 'Axel', last_name: 'Ray', date_of_birth: '2020-05-01' },
+    { id: 'a2', first_name: 'Liam', last_name: 'Lee', date_of_birth: '2014-09-02' },
+    { id: 'a3', first_name: 'Trevon', last_name: 'Moss', date_of_birth: '2016-01-01' },
+    { id: 'a4', first_name: 'Sam', last_name: 'Twin', date_of_birth: null },
+    { id: 'a5', first_name: 'Sam', last_name: 'Twin', date_of_birth: null },
+  ]
+  const rows = [...twLib.parseWrestlerList(TW_PASTE).rows, { ...twLib.parseWrestlerList(TW_PASTE).rows[0], name: 'Sam Twin', externalName: 'Sam Twin' }, { ...twLib.parseWrestlerList(TW_PASTE).rows[0], name: 'Nobody Here', externalName: 'Nobody Here' }]
+  const out = twLib.matchRows(rows, athletes)
+  assert.deepEqual(plain(out.map((r) => [r.externalName, r.athleteId, r.how])), [
+    ['Axel Ray (Pre-K)', 'a1', 'exact'],
+    ['William Lee II (6th)', null, 'pick'],
+    ['Tre`Von Moss', 'a3', 'exact'],
+    ['Sam Twin', null, 'pick'],
+    ['Nobody Here', null, 'none'],
+  ])
+  assert.deepEqual(plain(out[1].candidates), [{ id: 'a2', name: 'Liam Lee', birthYear: 2014 }])
+  assert.equal(out[3].candidates.length, 2)
+  // A pick made on an earlier paste is used next time.
+  const again = twLib.matchRows(rows.slice(1, 2), athletes, new Map([[twLib.normalizeName('William Lee II'), 'a2']]))
+  assert.deepEqual(plain([again[0].athleteId, again[0].how]), ['a2', 'remembered'])
+  assert.equal(twLib.normalizeName('  José O’Neil Jr. '), 'jose oneil')
+})
+
+test('TrackWrestling links lose the copier session code; roster sorts and spreadsheets are safe', () => {
+  assert.equal(
+    twLib.cleanTrackWrestlingUrl('https://www.trackwrestling.com/registration/TW_Register.jsp?TIM=1&tournamentGroupId=290576132&twSessionId=abcdef&utm_source=chatgpt.com'),
+    'https://www.trackwrestling.com/registration/TW_Register.jsp?tournamentGroupId=290576132'
+  )
+  assert.equal(twLib.cleanTrackWrestlingUrl('https://example.com/?twSessionId=x'), 'https://example.com/?twSessionId=x')
+  const sorted = twLib.sortRoster([
+    { division: 'Girls 8u', weight: '68', wrestler: 'G' },
+    { division: 'Boys 12u', weight: '70', wrestler: 'C' },
+    { division: 'Boys 6u', weight: '53', wrestler: 'B' },
+    { division: 'Boys 6u', weight: '40', wrestler: 'A' },
+  ])
+  assert.deepEqual(plain(sorted.map((r) => r.wrestler)), ['A', 'B', 'C', 'G'])
+  const csv = twLib.rosterCsv({ name: 'Classic, Winter', date: '2026-11-22' }, [
+    { division: 'Boys 6u', weight: '40', wrestler: '=HYPERLINK("x")', externalName: 'A "B"', paid: false },
+  ])
+  assert.equal(csv.split('\n')[1], '"Classic, Winter",2026-11-22,Boys 6u,40,"\'=HYPERLINK(""x"")","A ""B""",No')
+})
+
+test('the weekly tournament update groups Open then Not open yet by month, links only open ones', () => {
+  const lib = load('src/lib/tournament-update.ts', { '@/lib/tw-roster': twLib })
+  const draft = lib.tournamentUpdate([
+    { name: 'Past Open', date: '2026-11-01', city: 'Elgin', status: 'open', external_registration_url: 'https://example.com/p' },
+    { name: 'Winter Classic', date: '2026-11-22', city: 'Crystal Lake', status: 'open', external_registration_url: 'https://www.trackwrestling.com/x?tournamentGroupId=1&twSessionId=zz' },
+    { name: 'Force Challenge', date: '2026-12-13', city: 'Rockford', status: 'open', external_registration_url: null },
+    { name: 'Spartan 300', date: '2027-01-17', city: 'Rockford', status: 'not_open', external_registration_url: 'https://example.com/s' },
+  ], '2026-11-13')
+  const flat = (nodes) => nodes.map((n) => n.text ?? (n.content ? flat(n.content) : '')).join('')
+  const lines = draft.content.map((n) => flat([n]))
+  assert.deepEqual(plain(lines), [
+    '🟢 OPEN — Registration Available',
+    'November',
+    'Sun, Nov 22 – Winter Classic | Crystal Lake – Register',
+    'December',
+    'Sun, Dec 13 – Force Challenge | Rockford',
+    '🔵 NOT OPEN YET — Upcoming Registration',
+    'January',
+    'Sun, Jan 17 – Spartan 300 | Rockford',
+  ])
+  const link = JSON.stringify(draft.content)
+  assert.match(link, /tournamentGroupId=1"/)
+  assert.doesNotMatch(link, /twSessionId|example\.com\/s|Past Open/)
+  assert.equal(lib.tournamentUpdate([], '2026-11-13'), null)
+})
+
+test('a tournament roster pasted from TrackWrestling reaches those families and their co-parents, nobody else', async () => {
+  const tables = familyTables()
+  tables.tournament_registrations = []
+  tables.tournament_entries = [
+    { tournament_id: 't1', athlete_id: 'k2' },
+    { tournament_id: 't1', athlete_id: null },
+    { tournament_id: 't2', athlete_id: 'k3' },
+  ]
+  const lib = recipientsLib(tableDb(tables))
+  const recipients = await lib.resolveRecipients({ type: 'tournament_registrants', tournamentId: 't1' })
+  assert.deepEqual(plain(recipients.map((r) => r.id).sort()), ['g2', 'o1'])
+})
+
+function rosterActionsHarness({ admin = true, athletes = [], entries = [] } = {}) {
+  const rpc = []
+  const tables = { profiles: [{ id: 'me', role: admin ? 'admin' : 'parent', is_active: true }], athletes, tournament_entries: entries }
+  const db = tableDb(tables)
+  db.client.auth = { getUser: async () => ({ data: { user: { id: 'me' } } }) }
+  db.client.rpc = async (name, args) => { rpc.push({ name, args }); return { data: args.p_entries.length, error: null } }
+  const actions = load('src/app/admin/tournaments/roster-actions.ts', {
+    'next/cache': { revalidatePath: () => {} },
+    '@/lib/supabase/server': { createServerSupabase: async () => db.client },
+    '@/lib/tw-roster': twLib,
+  })
+  return { actions, rpc }
+}
+const T1 = '11111111-1111-4111-a111-111111111111', A1 = '22222222-2222-4222-a222-222222222222', A2 = '33333333-3333-4333-a333-333333333333'
+
+test('reading a paste changes nothing and remembers earlier picks; saving replaces the list, admins only', async () => {
+  const athletes = [
+    { id: A1, first_name: 'Axel', last_name: 'Ray', date_of_birth: '2020-05-01', active: true },
+    { id: A2, first_name: 'Liam', last_name: 'Lee', date_of_birth: '2014-09-02', active: true },
+  ]
+  const h = rosterActionsHarness({ athletes, entries: [
+    { tournament_id: 'old', external_name: 'William Lee II (6th)', athlete_id: A2, imported_at: '2026-11-01' },
+    { tournament_id: T1, external_name: 'Gone Kid', athlete_id: null, imported_at: '2026-11-01' },
+  ] })
+  const read = await h.actions.readTrackWrestlingPaste(T1, TW_PASTE)
+  assert.equal(read.ok, true)
+  assert.deepEqual(plain(read.rows.map((r) => [r.athleteId, r.how])), [[A1, 'exact'], [A2, 'remembered'], [null, 'none']])
+  assert.deepEqual(plain(read.dropped), ['Gone Kid'])
+  assert.equal(h.rpc.length, 0)
+
+  const row = (name, athleteId) => ({ externalName: name, athleteId, division: 'Boys 6u', weight: '40', grade: null, paid: true, submitted: null })
+  const dup = await h.actions.saveTrackWrestlingRoster({ tournamentId: T1, rows: [row('A', A1), row('B', A1)] })
+  assert.match(dup.error, /same wrestler/)
+  const saved = await h.actions.saveTrackWrestlingRoster({ tournamentId: T1, rows: [row('Axel Ray (Pre-K)', A1), row('Tre`Von Moss', null)] })
+  assert.deepEqual(plain(saved), { ok: true, saved: 2, matched: 1 })
+  assert.equal(h.rpc[0].name, 'replace_tournament_entries')
+  assert.equal(h.rpc[0].args.p_entries[1].athlete_id, null)
+
+  const parent = rosterActionsHarness({ admin: false, athletes })
+  assert.equal((await parent.actions.readTrackWrestlingPaste(T1, TW_PASTE)).ok, false)
+  assert.equal((await parent.actions.saveTrackWrestlingRoster({ tournamentId: T1, rows: [] })).ok, false)
+  assert.equal(parent.rpc.length, 0)
 })

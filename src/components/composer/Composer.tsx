@@ -32,6 +32,8 @@ export type ComposerFeatures = {
 export type ComposerHandle = {
   /** Puts text (blank lines split paragraphs) above what is already written. */
   prependText: (text: string) => void
+  /** Puts ready-made content (paragraphs, lists, links) above what is already written. */
+  prependContent: (content: JSONContent[]) => void
   clear: () => void
 }
 
@@ -165,6 +167,9 @@ export const Composer = forwardRef<ComposerHandle, Props>(function Composer(
         if (!editor) return
         const content = textToComposerContent(text)
         if (content.length) editor.chain().insertContentAt(0, content).focus('end').run()
+      },
+      prependContent: (content: JSONContent[]) => {
+        if (editor && content.length) editor.chain().insertContentAt(0, content).focus('end').run()
       },
       clear: () => editor?.commands.clearContent(true),
     }),

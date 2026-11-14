@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { ExternalLink } from 'lucide-react'
 
 import { TOURNAMENT_STATUS_LABELS } from '@/lib/tournament-status'
@@ -35,17 +36,22 @@ function formatDate(value: string) {
 
 export default async function AdminTournamentsPage() {
   const supabase = await createServerSupabase()
-  const { data: tournaments, error } = await supabase
-    .from('tournaments')
-    .select('*')
-    .order('date', { ascending: false })
+  const [{ data: tournaments, error }, { data: entryRows }] = await Promise.all([
+    supabase.from('tournaments').select('*').order('date', { ascending: false }),
+    supabase.from('tournament_entries').select('tournament_id'),
+  ])
+  // Wizards on each tournament's pasted TrackWrestling list.
+  const registered = new Map<string, number>()
+  for (const e of entryRows ?? []) registered.set(e.tournament_id, (registered.get(e.tournament_id) ?? 0) + 1)
 
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-display text-clw-gold">Tournaments</h1>
-          <p className="text-sm text-clw-gray">Manage the club tournament schedule.</p>
+          <p className="text-base text-clw-gray">
+            Manage the club tournament schedule. Tap a tournament to see who&apos;s registered.
+          </p>
         </div>
         <TournamentDialog />
       </div>
@@ -72,6 +78,7 @@ export default async function AdminTournamentsPage() {
                 <TableHead className="text-clw-gray">Location</TableHead>
                 <TableHead className="text-clw-gray">Groups</TableHead>
                 <TableHead className="text-clw-gray">Status</TableHead>
+                <TableHead className="text-clw-gray">Wizards</TableHead>
                 <TableHead className="text-clw-gray">Reg.</TableHead>
                 <TableHead className="w-[88px] text-right text-clw-gray">Actions</TableHead>
               </TableRow>
@@ -80,7 +87,9 @@ export default async function AdminTournamentsPage() {
               {tournaments.map((t) => (
                 <TableRow key={t.id} className="border-clw-gold/10">
                   <TableCell className="font-medium text-clw-white">
-                    {t.name}
+                    <Link href={`/admin/tournaments/${t.id}`} className="hover:text-clw-gold hover:underline">
+                      {t.name}
+                    </Link>
                     {t.competition_level && (
                       <span className="block text-sm font-normal text-clw-gold/80">{t.competition_level}</span>
                     )}
@@ -99,6 +108,11 @@ export default async function AdminTournamentsPage() {
                     <Badge variant="outline" className={`whitespace-nowrap ${STATUS_STYLES[t.status]}`}>
                       {TOURNAMENT_STATUS_LABELS[t.status]}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Link href={`/admin/tournaments/${t.id}`} className="whitespace-nowrap text-clw-gold hover:underline">
+                      {registered.get(t.id) ? `${registered.get(t.id)} registered` : 'Add list'}
+                    </Link>
                   </TableCell>
                   <TableCell>
                     {t.external_registration_url ? (

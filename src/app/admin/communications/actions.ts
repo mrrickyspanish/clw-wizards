@@ -7,6 +7,9 @@ import { createServerSupabase } from '@/lib/supabase/server'
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { familyContactRecipients, recipientWrestlerRows, resolveRecipients, type CommTarget } from '@/lib/comms/recipients'
 import { toE164 } from '@/lib/phone'
+import { tournamentUpdate } from '@/lib/tournament-update'
+import { chicagoDateString } from '@/lib/chicago-time'
+import type { JSONContent } from '@tiptap/react'
 
 // One family on a send: the wrestlers it is about, the parent the email goes
 // to, and anyone else on the family's contacts who gets a copy (a second parent).
@@ -257,4 +260,23 @@ export async function prepareCommsImageUpload(values: z.input<typeof commsImageS
     token: data.token,
     publicUrl: storage.getPublicUrl(data.path).data.publicUrl,
   }
+}
+
+export type TournamentUpdateDraft =
+  | { ok: true; subject: string; content: JSONContent[] }
+  | { ok: false; error: string }
+
+/** The weekly tournament update in the club's format, for the admin to edit and send. */
+export async function draftTournamentUpdate(): Promise<TournamentUpdateDraft> {
+  const auth = await requireAdmin()
+  if (!auth.ok) return auth
+  const supabase = await createServerSupabase()
+  const { data, error } = await supabase
+    .from('tournaments')
+    .select('name, date, city, status, external_registration_url')
+    .in('status', ['open', 'not_open'])
+  if (error) return { ok: false, error: 'Could not load tournaments. Try again.' }
+  const draft = tournamentUpdate(data ?? [], chicagoDateString())
+  if (!draft) return { ok: false, error: 'No upcoming tournaments are Open or Not open yet.' }
+  return { ok: true, ...draft }
 }

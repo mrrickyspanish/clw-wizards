@@ -5,7 +5,7 @@ import type { JSONContent } from '@tiptap/react'
 import Link from 'next/link'
 import { Check, ChevronsUpDown, X } from 'lucide-react'
 
-import { prepareCommsImageUpload, previewRecipients, type PreviewRecipient } from './actions'
+import { draftTournamentUpdate, prepareCommsImageUpload, previewRecipients, type PreviewRecipient } from './actions'
 import { Composer, type ComposerHandle } from '@/components/composer/Composer'
 import { composerEmailHtml, composerHasContent } from '@/components/composer/email-html'
 import { createBrowserSupabase } from '@/lib/supabase/browser'
@@ -54,7 +54,7 @@ type AudienceKind =
 const AUDIENCE_LABELS: Record<AudienceKind, string> = {
   all: 'All active parents',
   practice_groups: 'Practice groups',
-  tournament_registrants: "A tournament's registrants",
+  tournament_registrants: 'Wizards registered for a tournament',
   outstanding_dues: 'Parents with outstanding dues',
   missing_documents: 'Missing documents',
   specific_parents: 'Specific parent(s)',
@@ -146,6 +146,7 @@ export function ComposeForm({
   queueReady,
   queueMissing,
   smsReady,
+  initialTournamentId,
 }: {
   practiceGroups: readonly string[]
   tournaments: TournamentOption[]
@@ -156,16 +157,18 @@ export function ComposeForm({
   queueMissing: string[]
   // Twilio credentials and a sender are set. Until then only email is offered.
   smsReady: boolean
+  // From a tournament's roster page ("Message these families").
+  initialTournamentId?: string
 }) {
   const [channel, setChannel] = useState<Channel>('email')
   const [smsText, setSmsText] = useState('')
   const wantsEmail = channel !== 'sms'
   const wantsSms = channel !== 'email'
   const smsFinal = smsText.trim() ? clubSms(smsText) : ''
-  const [audience, setAudience] = useState<AudienceKind>('all')
+  const [audience, setAudience] = useState<AudienceKind>(initialTournamentId ? 'tournament_registrants' : 'all')
   const [selectedGroups, setSelectedGroups] = useState<string[]>([])
   const [documents, setDocuments] = useState<MissingDocument[]>([])
-  const [tournamentId, setTournamentId] = useState(tournaments[0]?.id ?? '')
+  const [tournamentId, setTournamentId] = useState(initialTournamentId ?? tournaments[0]?.id ?? '')
   const [selectedParentIds, setSelectedParentIds] = useState<string[]>([])
   const [parentPickerOpen, setParentPickerOpen] = useState(false)
   const [subject, setSubject] = useState('')
@@ -209,6 +212,22 @@ export function ComposeForm({
     const draft = eventMessage(event)
     if (!subject.trim()) setSubject(draft.subject)
     composerRef.current?.prependText(draft.body)
+  }
+
+  // The weekly tournament update (Tyler, Nov 13), drafted above anything
+  // already written, for the admin to edit before sending.
+  const [drafting, setDrafting] = useState(false)
+  async function draftUpdate() {
+    resetFeedback()
+    setDrafting(true)
+    const draft = await draftTournamentUpdate()
+    setDrafting(false)
+    if (!draft.ok) {
+      setError(draft.error)
+      return
+    }
+    if (!subject.trim()) setSubject(draft.subject)
+    composerRef.current?.prependContent(draft.content)
   }
 
   function currentTarget(): CommTarget | null {
@@ -453,6 +472,10 @@ export function ComposeForm({
           ) : (
             <p className="text-base text-clw-gray">No tournaments yet — create one first.</p>
           )}
+          <p className="text-sm text-clw-gray">
+            Families of the wrestlers on that tournament&apos;s roster (Tournaments → the tournament → paste from
+            TrackWrestling), co-parents included. Preview shows who it reaches.
+          </p>
         </div>
       )}
 
@@ -668,6 +691,15 @@ export function ComposeForm({
 
       {wantsEmail && (
         <>
+          <div className="space-y-2">
+            <Button type="button" variant="outline" onClick={draftUpdate} disabled={drafting}>
+              {drafting ? 'Drafting…' : 'Draft weekly tournament update'}
+            </Button>
+            <p className="text-sm text-clw-gray">
+              Fills in Open and Not open yet tournaments by month, with Register links. Read it over before sending.
+            </p>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="subject">Subject</Label>
             <Input id="subject" value={subject} onChange={(e) => setSubject(e.target.value)} />

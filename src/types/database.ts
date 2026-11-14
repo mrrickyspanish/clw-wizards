@@ -116,6 +116,24 @@ export type Tournament = {
   updated_at: string
 }
 
+// One of our wrestlers on a tournament's TrackWrestling Wrestler List, pasted
+// by an admin (see src/lib/tw-roster.ts). athlete_id is null when nobody on
+// the site has been matched yet.
+export type TournamentEntry = {
+  id: string
+  tournament_id: string
+  athlete_id: string | null
+  external_name: string
+  division: string | null
+  weight: string | null
+  grade: string | null
+  paid: boolean
+  submitted: string | null
+  source: 'trackwrestling'
+  imported_at: string
+  imported_by: string | null
+}
+
 export type TournamentRegistration = {
   id: string
   tournament_id: string
@@ -561,6 +579,12 @@ export type Database = {
         Update: Partial<Tournament>
         Relationships: []
       }
+      tournament_entries: {
+        Row: TournamentEntry
+        Insert: Partial<TournamentEntry>
+        Update: Partial<TournamentEntry>
+        Relationships: []
+      }
       tournament_registrations: {
         Row: TournamentRegistration
         Insert: Partial<TournamentRegistration>
@@ -774,6 +798,10 @@ export type Database = {
       record_parent_auth_failure: {
         Args: { p_id: string; p_step: string; p_error: Record<string, unknown>; p_email: string | null; p_email_source: string; p_source_key: string }
         Returns: boolean
+      }
+      replace_tournament_entries: {
+        Args: { p_tournament: string; p_entries: unknown }
+        Returns: number
       }
       claim_parent_auth_incident: {
         Args: { p_id: string }
