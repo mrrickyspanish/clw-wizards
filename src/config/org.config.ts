@@ -47,15 +47,15 @@ export const CRYSTAL_LAKE_WIZARDS: OrgConfig = {
 // The made-up club the Homefield demo shows (RJ, Nov 14). Every detail is
 // invented: the town, the contact address (.example never delivers) and the
 // tax number. Used only when NEXT_PUBLIC_DEMO_MODE=1.
-export const KESTREL_FALLS_DEMO: OrgConfig = {
-  slug: 'kestrel-falls-demo',
-  name: 'Kestrel Falls Wrestling Club',
-  shortName: 'KFW',
-  tagline: 'Kestrel Falls Wrestling Club',
-  domain: 'kestrelfalls.example',
-  contactEmail: 'coach@kestrelfalls.example',
+export const MOHEGAN_VALLEY_DEMO: OrgConfig = {
+  slug: 'mohegan-valley-demo',
+  name: 'Mohegan Valley Wrestling Club',
+  shortName: 'MVW',
+  tagline: 'Mohegan Valley Wrestling Club',
+  domain: 'moheganvalley.example',
+  contactEmail: 'coach@moheganvalley.example',
   ein: '00-0000000',
-  mailingAddress: '100 Riverside Drive, Kestrel Falls',
+  mailingAddress: '100 Riverside Drive, Mohegan Valley',
   practiceGroups: ['Group 1', 'Group 2', 'Group 3', 'Group 4'],
   social: {},
   brand: {
@@ -67,4 +67,4 @@ export const KESTREL_FALLS_DEMO: OrgConfig = {
   },
 }
 
-export const ORG: OrgConfig = DEMO_MODE ? KESTREL_FALLS_DEMO : CRYSTAL_LAKE_WIZARDS
+export const ORG: OrgConfig = DEMO_MODE ? MOHEGAN_VALLEY_DEMO : CRYSTAL_LAKE_WIZARDS

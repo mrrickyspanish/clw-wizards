@@ -1,8 +1,8 @@
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { DEMO_MODE, demoProblems } from '@/lib/demo'
 
-// The Homefield demo's starting state (RJ, Nov 14): a made-up club, Kestrel
-// Falls, with invented families, wrestlers, coaches, sponsors, practices and
+// The Homefield demo's starting state (RJ, Nov 14): a made-up club, Mohegan
+// Valley, with invented families, wrestlers, coaches, sponsors, practices and
 // tournaments. Birthdays all fall on January 1 of a fixed year so none is a
 // real one; USA Wrestling numbers are DEMO-0001 and so on; every email ends in
 // .example, which never delivers. Reset (resetDemo) wipes the demo database
@@ -10,7 +10,7 @@ import { DEMO_MODE, demoProblems } from '@/lib/demo'
 
 type Admin = ReturnType<typeof createAdminSupabase>
 
-export const DEMO_DOMAIN = 'kestrelfalls.example'
+export const DEMO_DOMAIN = 'moheganvalley.example'
 export const DEMO_LOGINS = {
   parent: `parent@${DEMO_DOMAIN}`,
   admin: `admin@${DEMO_DOMAIN}`,
@@ -182,7 +182,7 @@ export async function resetDemo(password: string): Promise<ResetResult> {
       'season event',
       admin
         .from('club_events')
-        .insert({ title: `${SEASON} Season Registration`, event_type: 'season_registration', date: day(-14), location: 'Kestrel Falls Rec Center', active: true })
+        .insert({ title: `${SEASON} Season Registration`, event_type: 'season_registration', date: day(-14), location: 'Mohegan Valley Rec Center', active: true })
         .select('id')
     )
     const [season] = await must(
@@ -276,7 +276,7 @@ export async function resetDemo(password: string): Promise<ResetResult> {
       reviewed_at: status === 'approved' ? new Date().toISOString() : null,
       usa_card_document_id: docIds[`${first}-usa_wrestling_card`] ?? null,
       grade,
-      school: 'Kestrel Falls Elementary',
+      school: 'Mohegan Valley Elementary',
       years_experience: '1-2 years',
     })
     await must(
@@ -317,10 +317,10 @@ export async function resetDemo(password: string): Promise<ResetResult> {
       admin
         .from('practices')
         .insert([
-          { practice_group: 'Group 1', weekday: 1, start_time: '17:30', end_time: '18:30', location: 'Kestrel Falls Rec Center', active: true },
-          { practice_group: 'Group 2', weekday: 1, start_time: '18:30', end_time: '19:45', location: 'Kestrel Falls Rec Center', active: true },
-          { practice_group: 'Group 3', weekday: 3, start_time: '17:30', end_time: '19:00', location: 'Kestrel Falls Rec Center', active: true },
-          { practice_group: 'Group 4', weekday: 3, start_time: '19:00', end_time: '20:30', location: 'Kestrel Falls Rec Center', active: true },
+          { practice_group: 'Group 1', weekday: 1, start_time: '17:30', end_time: '18:30', location: 'Mohegan Valley Rec Center', active: true },
+          { practice_group: 'Group 2', weekday: 1, start_time: '18:30', end_time: '19:45', location: 'Mohegan Valley Rec Center', active: true },
+          { practice_group: 'Group 3', weekday: 3, start_time: '17:30', end_time: '19:00', location: 'Mohegan Valley Rec Center', active: true },
+          { practice_group: 'Group 4', weekday: 3, start_time: '19:00', end_time: '20:30', location: 'Mohegan Valley Rec Center', active: true },
         ])
         .select('id, weekday')
     )
@@ -336,8 +336,8 @@ export async function resetDemo(password: string): Promise<ResetResult> {
     await must(
       'club events',
       admin.from('club_events').insert([
-        { title: 'Parent Meeting', event_type: 'meeting', date: day(10), start_time: '18:00', end_time: '19:00', location: 'Kestrel Falls Rec Center', active: true },
-        { title: 'Team Pictures', event_type: 'other', date: nextMonday, start_time: '17:30', end_time: '19:00', location: 'Kestrel Falls Rec Center', active: true },
+        { title: 'Parent Meeting', event_type: 'meeting', date: day(10), start_time: '18:00', end_time: '19:00', location: 'Mohegan Valley Rec Center', active: true },
+        { title: 'Team Pictures', event_type: 'other', date: nextMonday, start_time: '17:30', end_time: '19:00', location: 'Mohegan Valley Rec Center', active: true },
       ])
     )
 
@@ -362,10 +362,10 @@ export async function resetDemo(password: string): Promise<ResetResult> {
             practice_groups: [],
           },
           {
-            name: 'Kestrel Falls Home Duals',
+            name: 'Mohegan Valley Home Duals',
             date: day(26),
-            location: 'Kestrel Falls Rec Center',
-            city: 'Kestrel Falls',
+            location: 'Mohegan Valley Rec Center',
+            city: 'Mohegan Valley',
             state: 'IL',
             status: 'not_open',
             external_platform: null,
@@ -409,7 +409,7 @@ export async function resetDemo(password: string): Promise<ResetResult> {
       admin.from('sponsors').insert([
         { name: 'Falls Hardware & Supply', tier: 'platinum', industry: 'Hardware', description: 'Local hardware store (sample sponsor).', active: true },
         { name: 'Riverside Family Dental', tier: 'yellow', industry: 'Dental', description: 'Family dentistry (sample sponsor).', active: true },
-        { name: 'Kestrel Coffee Co.', tier: 'black', industry: 'Cafe', description: 'Coffee and bakery (sample sponsor).', active: true },
+        { name: 'Valley Coffee Co.', tier: 'black', industry: 'Cafe', description: 'Coffee and bakery (sample sponsor).', active: true },
         { name: 'Summit Auto Care', tier: 'white', industry: 'Auto repair', description: 'Auto repair (sample sponsor).', active: true },
       ])
     )

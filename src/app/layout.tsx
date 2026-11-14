@@ -9,11 +9,11 @@ const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? `https://${ORG.domain}`).r
 // No analytics from the Homefield demo.
 const GA_ID = DEMO_MODE ? undefined : process.env.NEXT_PUBLIC_GA_ID
 const SITE_TITLE = DEMO_MODE
-  ? 'Kestrel Falls Wrestling Club | Youth Wrestling'
+  ? 'Mohegan Valley Wrestling Club | Youth Wrestling'
   : 'Wizards Wrestling Club | Youth Wrestling in Crystal Lake, IL'
 
 const SITE_DESCRIPTION = DEMO_MODE
-  ? 'Kestrel Falls Wrestling Club develops youth wrestlers through structured practice groups, dedicated coaching, and regular tournament competition.'
+  ? 'Mohegan Valley Wrestling Club develops youth wrestlers through structured practice groups, dedicated coaching, and regular tournament competition.'
   : 'Crystal Lake Wizards Wrestling Club develops youth wrestlers in Crystal Lake and across McHenry County, IL through structured practice groups, dedicated coaching, and regular tournament competition.'
 
 // Organization / local-business structured data so Google can surface the

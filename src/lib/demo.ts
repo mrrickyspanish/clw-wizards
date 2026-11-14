@@ -1,5 +1,5 @@
 // Homefield demo (RJ, Nov 14): a private copy of the platform for recording a
-// walkthrough, branded as a made-up club (Kestrel Falls) and filled only with
+// walkthrough, branded as a made-up club (Mohegan Valley) and filled only with
 // invented data. Switched on per deployment with NEXT_PUBLIC_DEMO_MODE=1; the
 // live club never sets it.
 

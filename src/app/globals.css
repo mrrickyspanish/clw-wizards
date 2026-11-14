@@ -60,7 +60,7 @@
     --clw-muted-dark: 79 79 70;
   }
 
-  /* Homefield demo (Kestrel Falls): navy and orange in place of black and
+  /* Homefield demo (Mohegan Valley): navy and orange in place of black and
      gold. html[data-demo] outranks :root and [data-theme], so it wins in
      every theme. */
   html[data-demo] {
