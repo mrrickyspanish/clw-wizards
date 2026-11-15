@@ -10,6 +10,7 @@ import { ORG } from '@/config/org.config'
 import { duesCheckoutAmount } from '@/lib/payments/dues-amount'
 import { DONATIONS_ENABLED, DONATIONS_COMING_SOON_BODY } from '@/config/donations'
 import type { SponsorTier } from '@/types/database'
+import { DEMO_MODE } from '@/lib/demo'
 
 interface DuesCheckoutBody {
   flow: 'dues'
@@ -103,6 +104,10 @@ export async function POST(request: Request) {
   // client trims meant a whitespace-only key passed this gate and then threw
   // deeper in, as an unhandled 500 with no JSON body at all.
   const stripeKey = process.env.STRIPE_SECRET_KEY?.trim()
+  // The Homefield demo has no payment account on purpose (RJ, Nov 15).
+  if (!stripeKey && DEMO_MODE) {
+    return checkoutError('Payments are switched off in this demo. Parents would continue to secure card checkout here.', 'DEMO', 503)
+  }
   if (!stripeKey) {
     console.error('[checkout] STRIPE_SECRET_KEY is not set on this deployment.')
     await sendAlert('Checkout refused: Stripe is not configured', {
