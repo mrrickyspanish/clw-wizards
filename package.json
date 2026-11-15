@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "test:auth": "node --test tests/auth-recovery.test.cjs",
-    "prebuild": "npm run test:auth && node scripts/demo-assets.mjs",
+    "prebuild": "npm run test:auth && node scripts/demo-assets.mjs && node scripts/demo-copy.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

@@ -132,7 +132,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      data-demo={DEMO_MODE ? '' : undefined}
+      {...(DEMO_MODE ? { 'data-demo': '' } : {})}
       className={`${bebasNeue.variable} ${barlow.variable} ${barlowCondensed.variable} ${bigShoulders.variable}`}
     >
       <body>

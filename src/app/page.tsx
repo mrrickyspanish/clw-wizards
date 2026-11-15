@@ -14,6 +14,7 @@ import { HomeSupportIntro } from '@/components/landing/HomeSupportIntro'
 import { HomeFacilitySection } from '@/components/landing/HomeFacilitySection'
 import { HomeTeamSection } from '@/components/landing/HomeTeamSection'
 import { HomeFacebookSection } from '@/components/landing/HomeFacebookSection'
+import { DEMO_MODE } from '@/lib/demo'
 import { HomeMatTapeDivider } from '@/components/landing/HomeMatTapeDivider'
 import { SectionSlideOver } from '@/components/landing/SectionSlideOver'
 import { SiteFooter } from '@/components/landing/SiteFooter'
@@ -140,7 +141,8 @@ export default async function HomePage({
       />
 
       <HomeFacilitySection />
-      <HomeFacebookSection />
+      {/* The real club's Facebook page has no place in the Homefield demo. */}
+      {!DEMO_MODE && <HomeFacebookSection />}
       <SiteFooter />
       <MobileCtaBar />
     </main>
