@@ -95,6 +95,12 @@ const RULES = [
   ['McHenry County, IL', 'the Mohegan Valley area'],
   ['McHenry County', 'Mohegan Valley'],
 
+  // Hard-coded club colours (SVG edges, calendar dots, the error page): navy and orange.
+  [/#F0C020/gi, '#F28C28'],
+  [/rgba\(240,\s*192,\s*32/g, 'rgba(242,140,40'],
+  [/#080808/gi, '#0E1A33'],
+  [/#f5ce50/gi, '#F7A85C'],
+
   // The "W" monogram in the header, the big background letters and the tab icon.
   [/(font-display[^"]*">)W(<\/(?:span|div)>)/g, '$1M$2'],
   [/(\n\s*)W(\n\s*<\/div>)/g, '$1M$2'],
@@ -104,7 +110,7 @@ async function* sourceFiles(dir) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const file = path.join(dir, entry.name)
     if (entry.isDirectory()) yield* sourceFiles(file)
-    else if (/\.(tsx?|mjs|txt)$/.test(entry.name)) yield file
+    else if (/\.(tsx?|mjs|txt)$|\.module\.css$/.test(entry.name)) yield file
   }
 }
 

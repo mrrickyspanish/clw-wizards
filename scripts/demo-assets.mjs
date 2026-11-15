@@ -15,20 +15,30 @@ const stock = (await readdir(placeholders)).filter((f) => /\.(jpe?g|png|webp)$/i
 // Decorative tape and star graphics carry no people or club marks.
 const keep = (file) => /^clw_(tape|star)_/.test(file)
 
-async function replaceWithStock(file, i, from = stock) {
+async function replaceWithStock(file, i, from = stock, dir = placeholders) {
   const meta = await sharp(file).metadata()
-  const source = path.join(placeholders, from[i % from.length])
+  const source = path.join(dir, from[i % from.length])
   const out = sharp(await readFile(source)).resize(meta.width ?? 1600, meta.height ?? 1000, { fit: 'cover' })
   const ext = path.extname(file).toLowerCase()
   const buf = ext === '.png' ? await out.png().toBuffer() : ext === '.webp' ? await out.webp().toBuffer() : await out.jpeg({ quality: 80 }).toBuffer()
   await writeFile(file, buf)
 }
 
+// The home page hero gets its own made-up team photo (generated for the demo,
+// Nov 15): kids of different backgrounds walking out together, lit for the
+// headline on the left. Kept outside public/ so the live site never serves it.
+const HERO = {
+  'clw_wizards_hero_landscape.png': 'demo-hero-landscape.jpg',
+  'clw-wizards-hero-mobile.jpg': 'demo-hero-mobile.jpg',
+}
+const heroDir = path.join(root, 'scripts/demo-media')
+
 let replaced = 0
 const real = path.join(root, 'public/images/real')
 for (const [i, f] of (await readdir(real)).sort().entries()) {
   if (keep(f) || !/\.(jpe?g|png|webp)$/i.test(f)) continue
-  await replaceWithStock(path.join(real, f), i)
+  if (HERO[f]) await replaceWithStock(path.join(real, f), 0, [HERO[f]], heroDir)
+  else await replaceWithStock(path.join(real, f), i)
   replaced++
 }
 
