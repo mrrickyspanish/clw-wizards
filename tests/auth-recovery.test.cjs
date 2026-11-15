@@ -12,6 +12,8 @@ function load(relative, mocks, env = {}, logs = [], fetcher = fetch, globals = {
   mocks = { ...mocks }
   if (mocks['next/server'] && (!mocks['next/server'].after || mocks['next/server'].after === require('next/server').after)) mocks['next/server'] = { ...mocks['next/server'], after: () => {} }
   mocks['@/lib/auth/incidents'] ??= { registerResetAttempt: async () => {}, linkAttemptId: async () => '11111111-1111-4111-a111-111111111111', requestSourceKey: async () => 'test', reportParentAuthFailure: async () => {} }
+  // The Homefield demo switch is off everywhere unless a test turns it on.
+  mocks['@/lib/demo'] ??= { DEMO_MODE: false, demoProblems: () => [], scrubDemoEnv: () => [] }
   mocks['@/lib/auth/report-client'] ??= { authAttempt: () => 'test', reportClientAuthFailure: async () => {}, markAuthNavigation: () => {} }
   if (relative.startsWith('src/app/') || relative === 'src/middleware.ts') mocks['@/lib/auth/incident-policy'] ??= incidentPolicy
   if (relative.startsWith('src/app/')) mocks['@/lib/auth/recovery-errors'] ??= policy
@@ -3724,4 +3726,28 @@ test('reading a paste changes nothing and remembers earlier picks; saving replac
   assert.equal((await parent.actions.readTrackWrestlingPaste(T1, TW_PASTE)).ok, false)
   assert.equal((await parent.actions.saveTrackWrestlingRoster({ tournamentId: T1, rows: [] })).ok, false)
   assert.equal(parent.rpc.length, 0)
+})
+
+// Homefield demo safety (RJ, Nov 14).
+test('a demo deployment wipes every key that reaches people or real money, keeping only a Stripe test key', () => {
+  const demo = load('src/lib/demo.ts', {}, { NEXT_PUBLIC_DEMO_MODE: '1' })
+  assert.equal(demo.DEMO_MODE, true)
+  const env = {
+    RESEND_API_KEY: 're_x', TWILIO_AUTH_TOKEN: 't', QSTASH_TOKEN: 'q', CRON_SECRET: 'c', ALERT_EMAIL: 'a@x.org',
+    TURNSTILE_SECRET_KEY: 's', STRIPE_SECRET_KEY: 'sk_live_123', STRIPE_WEBHOOK_SECRET: 'whsec', NEXT_PUBLIC_SUPABASE_URL: 'https://demo.supabase.co',
+  }
+  demo.scrubDemoEnv(env)
+  assert.deepEqual(Object.keys(env), ['NEXT_PUBLIC_SUPABASE_URL'])
+  const test = { STRIPE_SECRET_KEY: 'sk_test_123', STRIPE_WEBHOOK_SECRET: 'whsec' }
+  demo.scrubDemoEnv(test)
+  assert.equal(test.STRIPE_SECRET_KEY, 'sk_test_123')
+  assert.equal(load('src/lib/demo.ts', {}, {}).DEMO_MODE, false)
+})
+
+test('a demo refuses to run against the live club database, as production, or with no database', () => {
+  const demo = load('src/lib/demo.ts', {}, { NEXT_PUBLIC_DEMO_MODE: '1' })
+  assert.equal(demo.demoProblems({ NEXT_PUBLIC_SUPABASE_URL: 'https://abcdemo.supabase.co', VERCEL_ENV: 'preview' }).length, 0)
+  assert.match(demo.demoProblems({ NEXT_PUBLIC_SUPABASE_URL: 'https://nerrrzuocgaohrzurnny.supabase.co' }).join(' '), /live club database/)
+  assert.match(demo.demoProblems({ NEXT_PUBLIC_SUPABASE_URL: 'https://abcdemo.supabase.co', VERCEL_ENV: 'production' }).join(' '), /production/)
+  assert.match(demo.demoProblems({}).join(' '), /No demo database/)
 })
