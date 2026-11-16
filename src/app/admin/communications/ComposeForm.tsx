@@ -38,6 +38,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
+import { DEMO_MODE } from '@/lib/demo'
 
 type TournamentOption = { id: string; name: string }
 type ParentOption = { id: string; full_name: string | null; email: string | null }
@@ -263,7 +264,11 @@ export function ComposeForm({
     resetFeedback()
 
     if (!queueReady) {
-      setError('Email sending is not configured on this environment yet — see the notice above.')
+      setError(
+        DEMO_MODE
+          ? 'Sending is switched off in this demo. On a live site this message goes to every family in the audience.'
+          : 'Email sending is not configured on this environment yet — see the notice above.'
+      )
       return
     }
 
@@ -339,7 +344,8 @@ export function ComposeForm({
 
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
-      {!queueReady && (
+      {/* The Homefield demo has no email service on purpose; no warning there. */}
+      {!queueReady && !DEMO_MODE && (
         <Alert variant="destructive">
           <AlertTitle className="text-base">Email sending is not configured</AlertTitle>
           <AlertDescription className="text-base">
