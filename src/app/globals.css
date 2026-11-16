@@ -90,6 +90,18 @@
     --card-shadow: 0 12px 30px rgb(0 0 0 / 0.45);
   }
 
+  /* Homefield demo: the portal's own dark and light themes keep the demo's
+     navy and orange instead of the club's charcoal and yellow. */
+  html[data-demo] [data-theme='dark'] {
+    --clw-black: 12 20 38;
+    --clw-black-2: 20 30 52;
+    --clw-black-3: 30 42 68;
+    --clw-gold-ink: 242 140 40;
+  }
+  html[data-demo] [data-theme='light'] {
+    --clw-gold-ink: 242 140 40;
+  }
+
   /* Soft-light: warm off-white page with white cards that float (Apple-style),
      intentionally NOT pure white at the page level to avoid glare. */
   [data-theme='light'] {

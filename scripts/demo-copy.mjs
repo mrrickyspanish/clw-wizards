@@ -103,7 +103,7 @@ const RULES = [
 
   // The "W" monogram in the header, the big background letters and the tab icon.
   [/(font-display[^"]*">)W(<\/(?:span|div)>)/g, '$1M$2'],
-  [/(\n\s*)W(\n\s*<\/div>)/g, '$1M$2'],
+  [/(\n\s*)W(\n\s*<\/(?:div|span)>)/g, '$1M$2'],
 ]
 
 async function* sourceFiles(dir) {
