@@ -110,10 +110,6 @@ async function makeLogin(
         admin_scope: p.role === 'admin' ? (p.scope ?? 'full') : null,
         is_active: true,
         onboarding_completed_at: new Date().toISOString(),
-        // Skip the first-visit tours so the recording starts clean.
-        parent_tour_seen_at: new Date().toISOString(),
-        admin_tour_seen_at: new Date().toISOString(),
-        // The tour columns aren't in the hand-written Profile type.
       } as never)
       .eq('id', id)
   )
