@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Bebas_Neue, Barlow, Barlow_Condensed, Big_Shoulders } from 'next/font/google'
 import { GoogleAnalytics } from '@next/third-parties/google'
 import { ORG } from '@/config/org.config'
-import { DEMO_MODE } from '@/lib/demo'
+import { DEMO_FLAVOR, DEMO_MODE } from '@/lib/demo'
 import './globals.css'
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? `https://${ORG.domain}`).replace(/\/$/, '')
@@ -132,7 +132,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      {...(DEMO_MODE ? { 'data-demo': '' } : {})}
+      {...(DEMO_MODE ? { 'data-demo': DEMO_FLAVOR } : {})}
       className={`${bebasNeue.variable} ${barlow.variable} ${barlowCondensed.variable} ${bigShoulders.variable}`}
     >
       <body>

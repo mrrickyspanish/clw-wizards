@@ -5,6 +5,13 @@
 
 export const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === '1'
 
+/**
+ * Which demo this deployment shows: the Mohegan Valley wrestling club, or the
+ * church staff dashboard reskin for Second Baptist Church of Elgin (Creative
+ * Eye proposal, Nov 16). Set per branch with NEXT_PUBLIC_DEMO_FLAVOR=church.
+ */
+export const DEMO_FLAVOR: 'club' | 'church' = DEMO_MODE && process.env.NEXT_PUBLIC_DEMO_FLAVOR === 'church' ? 'church' : 'club'
+
 /** The live club's Supabase project. A demo deployment must never point at it. */
 export const PRODUCTION_SUPABASE_REF = 'nerrrzuocgaohrzurnny'
 

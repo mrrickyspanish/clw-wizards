@@ -1,5 +1,5 @@
 import { createAdminSupabase } from '@/lib/supabase/admin'
-import { DEMO_MODE, demoProblems } from '@/lib/demo'
+import { DEMO_FLAVOR, DEMO_MODE, demoProblems } from '@/lib/demo'
 
 // The Homefield demo's starting state (RJ, Nov 14): a made-up club, Mohegan
 // Valley, with invented families, wrestlers, coaches, sponsors, practices and
@@ -8,9 +8,10 @@ import { DEMO_MODE, demoProblems } from '@/lib/demo'
 // .example, which never delivers. Reset (resetDemo) wipes the demo database
 // and loads this again, so the walkthrough can be recorded more than once.
 
-type Admin = ReturnType<typeof createAdminSupabase>
+export type Admin = ReturnType<typeof createAdminSupabase>
 
-export const DEMO_DOMAIN = 'moheganvalley.example'
+// The church reskin's logins end in sbc-demo.example (also never delivers).
+export const DEMO_DOMAIN = DEMO_FLAVOR === 'church' ? 'sbc-demo.example' : 'moheganvalley.example'
 export const DEMO_LOGINS = {
   parent: `parent@${DEMO_DOMAIN}`,
   admin: `admin@${DEMO_DOMAIN}`,
@@ -29,14 +30,14 @@ const PLACEHOLDER_PDF = Buffer.from(
   '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj\n4 0 obj<</Length 60>>stream\nBT /F1 28 Tf 160 400 Td (DEMO DOCUMENT - SAMPLE) Tj ET\nendstream endobj\n5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n'
 )
 
-async function must<T>(label: string, p: PromiseLike<{ data: T; error: { message: string } | null }>): Promise<NonNullable<T>> {
+export async function must<T>(label: string, p: PromiseLike<{ data: T; error: { message: string } | null }>): Promise<NonNullable<T>> {
   const { data, error } = await p
   if (error) throw new Error(`${label}: ${error.message}`)
   return data as NonNullable<T>
 }
 
 /** Empties every table the demo fills, children before parents. */
-async function wipe(admin: Admin) {
+export async function wipe(admin: Admin) {
   // Logins first: deleting them removes their profiles, wrestlers, enrollments,
   // dues, documents and family links with them.
   for (;;) {
@@ -83,7 +84,7 @@ async function wipe(admin: Admin) {
   }
 }
 
-async function makeLogin(
+export async function makeLogin(
   admin: Admin,
   password: string,
   p: { email: string; first: string; last: string; role?: 'admin'; scope?: 'full' | 'limited'; phone?: string }

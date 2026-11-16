@@ -106,6 +106,26 @@ const RULES = [
   [/(\n\s*)W(\n\s*<\/(?:div|span)>)/g, '$1M$2'],
 ]
 
+// The church reskin (NEXT_PUBLIC_DEMO_FLAVOR=church, Nov 16) runs the rules
+// above first, then turns the made-up club into Second Baptist Church of Elgin:
+// its name, the "S" monogram and navy and gold. The everyday words (parents,
+// wrestlers, dues...) are relabeled by demo-church.mjs, on screen text only.
+const CHURCH = process.env.NEXT_PUBLIC_DEMO_FLAVOR === 'church'
+const CHURCH_RULES = [
+  ['Mohegan Valley Wrestling Club', 'Second Baptist Church of Elgin'],
+  ["Mohegan Valley's", "Second Baptist's"],
+  ['Mohegan Valley Wrestling', 'Second Baptist Church'],
+  ['Mohegan Valley Parks & Recreation', 'the Elgin community'],
+  ['Mohegan Valley', 'Second Baptist'],
+  [/\bMVW\b/g, 'SBC'],
+  [/(font-display[^"]*">)M(<\/(?:span|div)>)/g, '$1S$2'],
+  [/(\n\s*)M(\n\s*<\/(?:div|span)>)/g, '$1S$2'],
+  [/#F28C28/gi, '#DAB21C'],
+  [/rgba\(242,140,40/g, 'rgba(218,178,28'],
+  [/#0E1A33/gi, '#1B2A4A'],
+  [/#F7A85C/gi, '#E8C95A'],
+]
+
 async function* sourceFiles(dir) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const file = path.join(dir, entry.name)
@@ -120,7 +140,7 @@ for await (const file of sourceFiles(path.join(root, 'src'))) {
   if (SKIP.has(rel)) continue
   const before = await readFile(file, 'utf8')
   let text = before
-  for (const [from, to] of RULES) text = typeof from === 'string' ? text.split(from).join(to) : text.replace(from, to)
+  for (const [from, to] of CHURCH ? [...RULES, ...CHURCH_RULES] : RULES) text = typeof from === 'string' ? text.split(from).join(to) : text.replace(from, to)
   if (text !== before) {
     await writeFile(file, text)
     changed++

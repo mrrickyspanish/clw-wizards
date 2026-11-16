@@ -102,6 +102,32 @@
     --clw-gold-ink: 242 140 40;
   }
 
+  /* SBC church reskin (Nov 16): navy #1B2A4A and gold #DAB21C. Comes after
+     the club demo rules so it wins on church deployments only. */
+  html[data-demo='church'] {
+    --primary: 47 77% 48%;
+    --accent: 47 77% 48%;
+    --ring: 47 77% 48%;
+    --sidebar-accent: 47 77% 48%;
+    --clw-black: 27 42 74;
+    --clw-black-2: 36 54 92;
+    --clw-black-3: 46 66 108;
+    --clw-gold: 218 178 28;
+    --clw-gold-l: 232 201 90;
+    --clw-gold-dim: 218 178 28;
+    --clw-gold-ink: 218 178 28;
+    --clw-gold-on-light: 150 120 10;
+  }
+  html[data-demo='church'] [data-theme='dark'] {
+    --clw-black: 22 34 60;
+    --clw-black-2: 27 42 74;
+    --clw-black-3: 36 54 92;
+    --clw-gold-ink: 218 178 28;
+  }
+  html[data-demo='church'] [data-theme='light'] {
+    --clw-gold-ink: 218 178 28;
+  }
+
   /* Soft-light: warm off-white page with white cards that float (Apple-style),
      intentionally NOT pure white at the page level to avoid glare. */
   [data-theme='light'] {

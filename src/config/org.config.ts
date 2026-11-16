@@ -1,4 +1,4 @@
-import { DEMO_MODE } from '@/lib/demo'
+import { DEMO_FLAVOR, DEMO_MODE } from '@/lib/demo'
 
 export interface OrgConfig {
   slug: string
@@ -67,4 +67,27 @@ export const MOHEGAN_VALLEY_DEMO: OrgConfig = {
   },
 }
 
-export const ORG: OrgConfig = DEMO_MODE ? MOHEGAN_VALLEY_DEMO : CRYSTAL_LAKE_WIZARDS
+// The church staff dashboard reskin (Creative Eye proposal for Second Baptist
+// Church of Elgin, Nov 16). Cosmetic only: the same platform, relabeled, with
+// invented members. Used only when NEXT_PUBLIC_DEMO_FLAVOR=church.
+export const SECOND_BAPTIST_DEMO: OrgConfig = {
+  slug: 'second-baptist-demo',
+  name: 'Second Baptist Church of Elgin',
+  shortName: 'SBC',
+  tagline: 'Second Baptist Church of Elgin',
+  domain: 'sbc-demo.example',
+  contactEmail: 'office@sbc-demo.example',
+  ein: '00-0000000',
+  mailingAddress: 'Church office (sample address)',
+  practiceGroups: ['Music Ministry', 'ELEVATE Youth', 'Grief & Recovery', 'Hospitality'],
+  social: {},
+  brand: {
+    colors: {
+      black: '#1B2A4A',
+      gold: '#DAB21C',
+      white: '#FFFFFF',
+    },
+  },
+}
+
+export const ORG: OrgConfig = !DEMO_MODE ? CRYSTAL_LAKE_WIZARDS : DEMO_FLAVOR === 'church' ? SECOND_BAPTIST_DEMO : MOHEGAN_VALLEY_DEMO
