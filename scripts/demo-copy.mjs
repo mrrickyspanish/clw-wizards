@@ -52,6 +52,9 @@ const RULES = [
   // The link preview's alt text (its photo is swapped for a stock one).
   ['a young wrestler in a Wizard Wrestling jacket at a tournament', 'a young wrestler at a tournament'],
 
+  // The site's builder, named in an admin help line.
+  [/\bRicky\b/g, 'the site administrator'],
+
   // The gym.
   ['975+Nimco+Dr+Unit+L+Crystal+Lake+IL+60014', '100+Riverside+Drive+Mohegan+Valley'],
   ['975 Nimco Drive, Unit L in Crystal Lake', '100 Riverside Drive in Mohegan Valley'],
@@ -112,6 +115,12 @@ const RULES = [
 // wrestlers, dues...) are relabeled by demo-church.mjs, on screen text only.
 const CHURCH = process.env.NEXT_PUBLIC_DEMO_FLAVOR === 'church'
 const CHURCH_RULES = [
+  ['Home · Coach Ferris', 'Home · Welcome'],
+  ['Coach Ferris’s quote', 'Welcome message'],
+  ['Coach Ferris’s photo', 'Welcome photo'],
+  ['Coach Ferris’s philosophy quote on the home page.', 'The welcome message on the home page.'],
+  ['contact Coach Ferris. He will take care of you.', 'contact the church office. We will take care of you.'],
+  ['Coach Ferris', 'the church office'],
   ['Mohegan Valley Wrestling Club', 'Second Baptist Church of Elgin'],
   ["Mohegan Valley's", "Second Baptist's"],
   ['Mohegan Valley Wrestling', 'Second Baptist Church'],

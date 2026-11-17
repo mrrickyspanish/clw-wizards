@@ -38,25 +38,34 @@ export async function must<T>(label: string, p: PromiseLike<{ data: T; error: { 
 
 /** Empties every table the demo fills, children before parents. */
 export async function wipe(admin: Admin) {
-  // Logins first: deleting them removes their profiles, wrestlers, enrollments,
-  // dues, documents and family links with them.
-  for (;;) {
-    const { data } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 })
-    const users = data?.users ?? []
-    if (!users.length) break
-    for (const u of users) await admin.auth.admin.deleteUser(u.id)
-    if (users.length < 200) break
+  // Records first, then logins. A login can't be deleted while a signed waiver
+  // or a verified document still points at it (Nov 17: the church reset left
+  // Mohegan Valley households behind because the old order deleted logins
+  // first and never checked), so every table goes before any login, and each
+  // step is checked.
+  const byId = async (table: string) => {
+    const { error } = await admin.from(table as never).delete().not('id', 'is', null)
+    if (error) throw new Error(`clearing ${table}: ${error.message}`)
   }
-  const byId = (table: string) => admin.from(table as never).delete().not('id', 'is', null)
   for (const table of [
     'tournament_entries',
     'tournament_registrations',
     'disclosure_acceptances',
     'season_enrollments',
+    'athlete_documents',
+    'document_rejections',
+    'dues_charges',
+    'dues_payments',
+    'family_guardians',
+    'family_contacts',
+    'family_invites',
+    'athlete_guardians',
+    'athletes',
     'season_price_tiers',
     'season_registrations',
     'practice_cancellations',
     'practices',
+    'event_sessions',
     'club_events',
     'tournaments',
     'sponsors',
@@ -68,9 +77,22 @@ export async function wipe(admin: Admin) {
     'upload_notice_recipients',
     'disclosures',
     'content_history',
+    'deletion_log',
   ]) {
     await byId(table)
   }
+  for (let round = 0; round < 10; round++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 })
+    if (error) throw new Error(`listing logins: ${error.message}`)
+    const users = data?.users ?? []
+    if (!users.length) break
+    for (const u of users) {
+      const { error: delErr } = await admin.auth.admin.deleteUser(u.id)
+      if (delErr) throw new Error(`removing login ${u.email ?? u.id}: ${delErr.message}`)
+    }
+  }
+  const { data: left } = await admin.auth.admin.listUsers({ page: 1, perPage: 1 })
+  if (left?.users?.length) throw new Error('Some logins from an earlier take could not be removed.')
   await admin.from('page_content').delete().not('key', 'is', null)
   // Uploaded files from earlier takes.
   for (const bucket of ['athlete-documents', 'tournament-flyers', 'comms-images']) {

@@ -3,7 +3,7 @@
 // build's own copy of the files only, every real club photo, sponsor logo and
 // the link preview image with neutral stand-ins, so no real person, child or
 // business can appear anywhere in the demo. The live club never runs this.
-import { readdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import sharp from 'sharp'
 
@@ -39,6 +39,20 @@ for (const [i, f] of (await readdir(real)).sort().entries()) {
   if (keep(f) || !/\.(jpe?g|png|webp)$/i.test(f)) continue
   if (HERO[f]) await replaceWithStock(path.join(real, f), 0, [HERO[f]], heroDir)
   else await replaceWithStock(path.join(real, f), i)
+  replaced++
+}
+
+// Stand-in photos with neutral file names, so the Website content editor
+// shows /images/demo/... rather than the club's own file names (Nov 17).
+const demoDir = path.join(root, 'public/images/demo')
+await mkdir(demoDir, { recursive: true })
+for (const [name, source, dir] of [
+  ['hero-mobile.jpg', 'demo-hero-mobile.jpg', heroDir],
+  ['welcome.jpg', stock[0], placeholders],
+  ['campus.jpg', stock[1 % stock.length], placeholders],
+  ['about.jpg', stock[2 % stock.length], placeholders],
+]) {
+  await writeFile(path.join(demoDir, name), await sharp(await readFile(path.join(dir, source))).jpeg({ quality: 82 }).toBuffer())
   replaced++
 }
 

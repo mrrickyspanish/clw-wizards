@@ -38,6 +38,10 @@ const PAGE_CONTENT: Record<string, string> = {
     'From the Music Ministry to ELEVATE Youth, Grief & Recovery and Hospitality, every ministry is a way to belong, to serve and to be known.',
   'home.intro.stat_years': '100+',
   'home.intro.stat_wrestlers': '4 ministries',
+  'home.hero.photo': '/images/demo/hero-mobile.jpg',
+  'home.tony.photo': '/images/demo/welcome.jpg',
+  'facility.photo': '/images/demo/campus.jpg',
+  'about.hero_photo': '/images/demo/about.jpg',
   'home.tony.quote':
     'Welcome home. Whether this is your first Sunday or your five-hundredth, we are glad you are here. Come as you are.',
   'facility.address_line1': 'Church office',
