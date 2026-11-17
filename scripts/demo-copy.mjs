@@ -115,6 +115,14 @@ const RULES = [
 // wrestlers, dues...) are relabeled by demo-church.mjs, on screen text only.
 const CHURCH = process.env.NEXT_PUBLIC_DEMO_FLAVOR === 'church'
 const CHURCH_RULES = [
+  // The member sign-up form's season options (stored and checked from this one
+  // list, so label and value change together).
+  [/Will wrestle [^'"]*?IKWF during the season and IKWF state series/g, 'Will serve every week this season'],
+  [/Will wrestle [^'"]*?IKWF\/Middle School during the season & IKWF state series/g, 'Will serve most weeks this season'],
+  [/Will wrestle [^'"]*?IKWF\/Middle School during the season and Middle School state series/g, 'Will serve now and then this season'],
+  ['N/A - this wrestler is not in Middle School', 'Not sure yet'],
+  // The link preview's alt text: the church preview image is the dashboard.
+  [/^.*a young wrestler at a tournament.*$/m, 'Second Baptist Church of Elgin staff dashboard (demo): emailing one ministry'],
   // "famil" + (one ? 'y' : 'ies'): the plural is built in code, so swap the
   // whole expression for "household(s)".
   [/famil(\s*)(\$?)\{([^{}]*?) \? 'y' : 'ies'\}/g, "household$1$2{$3 ? '' : 's'}"],

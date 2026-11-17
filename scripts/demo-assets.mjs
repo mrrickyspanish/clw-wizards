@@ -72,7 +72,9 @@ for (const f of await readdir(sponsors)) {
 
 // The shared-link preview image (a real wrestler).
 const og = path.join(root, 'src/app/opengraph-image.jpg')
-await replaceWithStock(og, 0)
+// The church reskin's link preview is its own dashboard (a sample screen).
+if (process.env.NEXT_PUBLIC_DEMO_FLAVOR === 'church') await replaceWithStock(og, 0, ['church-og.jpg'], heroDir)
+else await replaceWithStock(og, 0)
 replaced++
 
 console.log(`Homefield demo: replaced ${replaced} real images with stand-ins.`)

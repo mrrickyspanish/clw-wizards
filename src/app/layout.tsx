@@ -8,11 +8,16 @@ import './globals.css'
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? `https://${ORG.domain}`).replace(/\/$/, '')
 // No analytics from the Homefield demo.
 const GA_ID = DEMO_MODE ? undefined : process.env.NEXT_PUBLIC_GA_ID
-const SITE_TITLE = DEMO_MODE
+const CHURCH = DEMO_FLAVOR === 'church'
+const SITE_TITLE = CHURCH
+  ? 'Second Baptist Church of Elgin | Staff Dashboard (demo)'
+  : DEMO_MODE
   ? 'Mohegan Valley Wrestling Club | Youth Wrestling'
   : 'Wizards Wrestling Club | Youth Wrestling in Crystal Lake, IL'
 
-const SITE_DESCRIPTION = DEMO_MODE
+const SITE_DESCRIPTION = CHURCH
+  ? 'A working demo of the church staff dashboard for Second Baptist Church of Elgin: members, ministries, giving, website content and communications, with sample data only.'
+  : DEMO_MODE
   ? 'Mohegan Valley Wrestling Club develops youth wrestlers through structured practice groups, dedicated coaching, and regular tournament competition.'
   : 'Crystal Lake Wizards Wrestling Club develops youth wrestlers in Crystal Lake and across McHenry County, IL through structured practice groups, dedicated coaching, and regular tournament competition.'
 
@@ -84,7 +89,9 @@ export const metadata: Metadata = {
   },
   description: SITE_DESCRIPTION,
   applicationName: ORG.name,
-  keywords: [
+  keywords: CHURCH
+    ? ['church staff dashboard', 'church management', 'Second Baptist Church of Elgin']
+    : [
     'Crystal Lake Wizards',
     'Crystal Lake wrestling',
     'youth wrestling',
@@ -93,11 +100,11 @@ export const metadata: Metadata = {
     'wrestling club Illinois',
     'Wizards Wrestling Club',
     'youth wrestling near me',
-  ],
+      ],
   authors: [{ name: ORG.name }],
   creator: ORG.name,
   publisher: ORG.name,
-  category: 'sports',
+  category: CHURCH ? 'religion' : 'sports',
   alternates: {
     canonical: '/',
   },
