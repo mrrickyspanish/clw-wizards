@@ -1,5 +1,6 @@
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from '@/types/database'
+import { readOnlyGlobal } from '@/lib/demo-readonly'
 
 // NEXT_PUBLIC_* values are inlined at build time, not read at runtime. If a
 // build runs without them, these are `undefined` in the shipped bundle even
@@ -13,7 +14,7 @@ export function isBrowserSupabaseConfigured() {
 }
 
 export function createBrowserSupabase() {
-  return createBrowserClient<Database>(supabaseUrl!, supabaseAnonKey!)
+  return createBrowserClient<Database>(supabaseUrl!, supabaseAnonKey!, readOnlyGlobal())
 }
 
 /**

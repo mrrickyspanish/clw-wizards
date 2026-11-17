@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/database'
+import { readOnlyGlobal } from '@/lib/demo-readonly'
 
 export async function createServerSupabase() {
   const cookieStore = await cookies()
@@ -8,6 +9,7 @@ export async function createServerSupabase() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      ...readOnlyGlobal(),
       cookies: {
         getAll() {
           return cookieStore.getAll()

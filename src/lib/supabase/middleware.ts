@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { readOnlyGlobal } from '@/lib/demo-readonly'
 
 /**
  * Refreshes the Supabase session cookie and returns both the response and a
@@ -14,6 +15,7 @@ export async function getSupabaseAndResponse(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      ...readOnlyGlobal(),
       cookies: {
         getAll() {
           return req.cookies.getAll()

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+import { readOnlyGlobal } from '@/lib/demo-readonly'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -20,5 +21,6 @@ export function createPublicSupabase() {
 
   return createClient<Database>(supabaseUrl, supabaseAnonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
+    ...readOnlyGlobal(),
   })
 }

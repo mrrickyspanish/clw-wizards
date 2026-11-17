@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { ReadOnlyBanner } from '@/components/demo/ReadOnlyBanner'
 import {
   CalendarClock,
   ClipboardCheck,
@@ -68,6 +69,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           isFullAdmin={isFullAdmin}
           reviewCount={reviewCount}
         />
+        <ReadOnlyBanner />
         <main className="min-w-0 flex-1 p-4 md:p-8 print:p-0">{children}</main>
       </div>
     </div>

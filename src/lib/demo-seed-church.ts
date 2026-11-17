@@ -1,4 +1,4 @@
-import { createAdminSupabase } from '@/lib/supabase/admin'
+import { createDemoSetupSupabase } from '@/lib/supabase/admin'
 import { DEMO_FLAVOR, DEMO_MODE, demoProblems } from '@/lib/demo'
 import { DEMO_DOMAIN, DEMO_LOGINS, makeLogin, must, wipe, type ResetResult } from '@/lib/demo-seed'
 
@@ -61,7 +61,7 @@ export async function resetChurchDemo(password: string): Promise<ResetResult> {
   const problems = demoProblems(process.env)
   if (problems.length) return { ok: false, error: problems.join(' ') }
   if (password.length < 12) return { ok: false, error: 'The demo password must be at least 12 characters.' }
-  const admin = createAdminSupabase()
+  const admin = createDemoSetupSupabase()
 
   try {
     await wipe(admin)

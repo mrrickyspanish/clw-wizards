@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { ReadOnlyBanner } from '@/components/demo/ReadOnlyBanner'
 import Link from 'next/link'
 import { Eye, LayoutDashboard, Users, FolderOpen, HandCoins, Trophy, User, UsersRound } from 'lucide-react'
 
@@ -37,6 +38,7 @@ export default async function PortalLayout({ children }: { children: React.React
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <MobileTopBar name={profile?.full_name ?? null} />
+        <ReadOnlyBanner />
         <main className="flex-1 p-4 pb-28 md:p-8 md:pb-8">
           {profile?.role === 'admin' && (
             // An admin looking at the parent pages: say so, and the way back.
