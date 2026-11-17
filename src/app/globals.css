@@ -123,6 +123,18 @@
     --clw-black-2: 27 42 74;
     --clw-black-3: 36 54 92;
     --clw-gold-ink: 218 178 28;
+    --clw-gray: 214 222 236;
+  }
+
+  /* Built for church office staff, many of them older (RJ, Nov 17): every
+     size on the page is set in rem, so a larger root scales labels, menus,
+     buttons and spacing together, about 19% up. Secondary text is a light
+     blue-grey instead of mid grey so it reads clearly on navy. */
+  html[data-demo='church'] {
+    font-size: 118.75%;
+    --clw-gray: 214 222 236;
+    --muted-foreground: 218 30% 88%;
+    --foreground: 0 0% 100%;
   }
   html[data-demo='church'] [data-theme='light'] {
     --clw-gold-ink: 218 178 28;
