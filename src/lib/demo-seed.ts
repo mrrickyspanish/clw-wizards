@@ -93,6 +93,8 @@ export async function wipe(admin: Admin) {
   }
   const { data: left } = await admin.auth.admin.listUsers({ page: 1, perPage: 1 })
   if (left?.users?.length) throw new Error('Some logins from an earlier take could not be removed.')
+  // Deleting a login writes a 'removed family' entry; clear those too.
+  await byId('deletion_log')
   await admin.from('page_content').delete().not('key', 'is', null)
   // Uploaded files from earlier takes.
   for (const bucket of ['athlete-documents', 'tournament-flyers', 'comms-images']) {
