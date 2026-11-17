@@ -736,7 +736,8 @@ export function ComposeForm({
         </p>
       </div>
 
-      <Button type="submit" disabled={sending || !queueReady}>
+      {/* In a demo the button stays clickable so it can say sending is switched off. */}
+      <Button type="submit" disabled={sending || (!queueReady && !DEMO_MODE)}>
         {sending ? 'Sending…' : channel === 'email' ? 'Send email' : channel === 'sms' ? 'Send text' : 'Send email + text'}
       </Button>
     </form>
