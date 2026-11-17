@@ -115,6 +115,9 @@ const RULES = [
 // wrestlers, dues...) are relabeled by demo-church.mjs, on screen text only.
 const CHURCH = process.env.NEXT_PUBLIC_DEMO_FLAVOR === 'church'
 const CHURCH_RULES = [
+  // "famil" + (one ? 'y' : 'ies'): the plural is built in code, so swap the
+  // whole expression for "household(s)".
+  [/famil(\s*)(\$?)\{([^{}]*?) \? 'y' : 'ies'\}/g, "household$1$2{$3 ? '' : 's'}"],
   ['Home · Coach Ferris', 'Home · Welcome'],
   ['Coach Ferris’s quote', 'Welcome message'],
   ['Coach Ferris’s photo', 'Welcome photo'],

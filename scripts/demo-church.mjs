@@ -83,6 +83,7 @@ const ANY = [
   ['Weigh-in', 'Check-in'],
   ['TrackWrestling', 'the sign-up site'],
   ['Wrestling', 'Ministry'],
+  ['Club', 'Church'],
 ]
 
 // Lower-case words, only inside text that has a space in it.
@@ -114,6 +115,7 @@ const SENTENCE = [
   ['sponsor', 'community partner'],
   ['weigh-in', 'check-in'],
   ['wrestling', 'ministry'],
+  ['club', 'church'],
 ]
 
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -179,7 +181,8 @@ function rewrite(file, source) {
       start = node.getStart(sf) + 1
       end = node.getEnd() - (ts.isTemplateTail(node) ? 1 : 2)
     } else if (ts.isJsxText(node)) {
-      start = node.getStart(sf)
+      // Full start, so " wrestler" keeps its space and reads as a sentence.
+      start = node.pos
       end = node.getEnd()
     }
     if (start !== undefined && end >= start) {
