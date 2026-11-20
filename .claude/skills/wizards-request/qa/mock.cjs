@@ -174,6 +174,27 @@ tables.tournaments.find((t) => t.id === id('t', 1)).street_address = '12345 West
 for (const t of tables.tournaments) t.street_address ??= null
 // ---- end CLW-ENG-005 ----
 
+// ---- CLW-ENG-003: made-up site registrations for the admin roster ----
+// The Turkey Tussle costs $25 a wrestler and has a street address. Its site
+// registrations: Tommy and Tina paid by card (the checkout in the CLW-ENG-001
+// block; Tommy is also on the TrackWrestling list, so he counts once), Lily paid
+// cash, the long-named wrestler is waived, Owen still owes, and Max withdrew.
+Object.assign(tables.tournaments.find((t) => t.id === id('t', 1)), { entry_fee_cents: 2500, street_address: '100 Example Avenue' })
+for (const [n, kid, parent, status, division, weight, pay] of [
+  [1, id('k', 1), PARENT, 'registered', 'Boys 10u', '67', { fee_cents: 2500, paid_cents: 2500, payment_method: 'card' }],
+  [2, id('k', 2), PARENT, 'registered', 'Girls 6u', '41.5', { fee_cents: 2500, paid_cents: 2500, payment_method: 'card' }],
+  [3, id('k', 5), PARENT3, 'registered', 'Boys 10u', '72', {}],
+  [4, id('k', 6), PARENT3, 'confirmed', 'Boys 12u Intermediate and Advanced Combined Bracket', '95', { fee_cents: 2500, payment_method: 'waived' }],
+  [5, id('k', 4), PARENT2, 'registered', 'Girls 14u', '110', { fee_cents: 2500, paid_cents: 2500, payment_method: 'cash' }],
+  [6, id('k', 3), PARENT2, 'withdrawn', 'Boys 12u', '88', {}],
+]) {
+  tables.tournament_registrations.push({
+    id: id('j', n), tournament_id: id('t', 1), athlete_id: kid, parent_id: parent, status, registered_at: T, confirmed_at: null, notes: null,
+    weight, division, grade: null, fee_cents: null, paid_cents: 0, paid_at: pay.payment_method ? T : null, payment_method: null, payment_note: null, ...pay,
+  })
+}
+// ---- end CLW-ENG-003 ----
+
 const user = () => {
   const uid = as === 'admin' ? ADMIN : PARENT
   const email = as === 'admin' ? 'coach@example.com' : 'pat@example.com'

@@ -5,10 +5,18 @@ import { z } from 'zod'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { ORG } from '@/config/org.config'
+import { earliestStart, normalizeSessions, type NormalizedTournamentSession } from '@/lib/tournament-sessions'
+import { registrationPaymentState } from '@/lib/tournament-registration'
+import { MAX_STREET_ADDRESS_LENGTH, parseClubLink, parseEntryFee, parseSpots } from './tournament-admin'
 
 // Writes go through the authenticated server client; the `admin_write_tournaments`
 // RLS policy enforces that only an admin can insert/update/delete. /admin is also
-// middleware-gated to admins, so this is defense in depth.
+// middleware-gated to admins, and every action re-checks the admin role first
+// (same check as roster-actions.ts), so this is defense in depth.
+//
+// Admin-only fields (the TrackWrestling club registrations link and the number
+// of spots) go to tournament_admin_details, never to tournaments: anyone,
+// including visitors who are not signed in, can read every tournaments column.
 
 const tournamentSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
@@ -17,7 +25,17 @@ const tournamentSchema = z.object({
   city: z.string().trim().min(1, 'City is required'),
   state: z.string().trim().min(1, 'State is required').max(2),
   status: z.enum(['open', 'not_open', 'closed', 'cancelled']),
-  start_time: z.string().trim().optional().nullable(),
+  // Up to five sessions, each a 'HH:MM' start time and free-text divisions (B2).
+  sessions: z
+    .array(z.object({ start_time: z.string().optional().nullable(), divisions: z.string().optional().nullable() }))
+    .max(20)
+    .default([]),
+  street_address: z
+    .string()
+    .trim()
+    .max(MAX_STREET_ADDRESS_LENGTH, `Street address must be ${MAX_STREET_ADDRESS_LENGTH} characters or less`)
+    .optional()
+    .nullable(),
   weigh_in_date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -32,13 +50,40 @@ const tournamentSchema = z.object({
   competition_level: z.string().trim().optional().nullable(),
   image_url: z.string().trim().url('Flyer image must be a valid URL').optional().nullable().or(z.literal('')),
   notes: z.string().trim().optional().nullable(),
+  // "Cost per wrestler" as typed, in dollars (B4). Blank: no in-house payment.
+  entry_fee: z.string().optional().nullable(),
+  // Admin only (B5, B6). Saved to tournament_admin_details.
+  club_registrations_url: z.string().optional().nullable(),
+  spots_allotted: z.string().optional().nullable(),
 })
 
 export type TournamentInput = z.input<typeof tournamentSchema>
-export type ActionResult = { ok: true } | { ok: false; error: string }
+export type ActionResult = { ok: true; id?: string } | { ok: false; error: string; id?: string }
 
-function normalize(values: TournamentInput) {
-  const parsed = tournamentSchema.parse(values)
+const ADMIN_ONLY = 'Admin access required.'
+
+async function adminClient() {
+  const supabase = await createServerSupabase()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return null
+  const { data: profile } = await supabase.from('profiles').select('role, is_active').eq('id', user.id).single()
+  return profile?.role === 'admin' && profile.is_active ? { supabase, userId: user.id } : null
+}
+
+type Supabase = Awaited<ReturnType<typeof createServerSupabase>>
+
+type NormalizedForm =
+  | {
+      ok: true
+      tournament: ReturnType<typeof tournamentPayload>
+      sessions: NormalizedTournamentSession[]
+      details: { club_registrations_url: string | null; spots_allotted: number | null }
+    }
+  | { ok: false; error: string }
+
+function tournamentPayload(parsed: z.output<typeof tournamentSchema>, sessions: NormalizedTournamentSession[], entryFeeCents: number | null) {
   return {
     name: parsed.name,
     date: parsed.date,
@@ -46,7 +91,11 @@ function normalize(values: TournamentInput) {
     city: parsed.city,
     state: parsed.state.toUpperCase(),
     status: parsed.status,
-    start_time: parsed.start_time || null,
+    // Always the earliest session start, so the homepage, ticker, reminders
+    // and calendar keep reading one start time. No sessions: no start time.
+    start_time: earliestStart(sessions),
+    street_address: parsed.street_address || null,
+    entry_fee_cents: entryFeeCents,
     weigh_in_date: parsed.weigh_in_date || null,
     weigh_in_time: parsed.weigh_in_time || null,
     weigh_in_location: parsed.weigh_in_location || null,
@@ -59,49 +108,174 @@ function normalize(values: TournamentInput) {
   }
 }
 
-export async function createTournament(values: TournamentInput): Promise<ActionResult> {
-  let payload
-  try {
-    payload = normalize(values)
-  } catch (err) {
-    if (err instanceof z.ZodError) return { ok: false, error: err.issues[0]?.message ?? 'Invalid input' }
-    throw err
+// Splits the form into the public tournaments row, the sessions and the
+// admin-only details. The club link and spots are never in the tournaments row.
+function normalize(values: TournamentInput): NormalizedForm {
+  const result = tournamentSchema.safeParse(values)
+  if (!result.success) return { ok: false, error: result.error.issues[0]?.message ?? 'Invalid input' }
+  const parsed = result.data
+
+  const sessions = normalizeSessions(parsed.sessions)
+  if (!sessions.ok) return sessions
+  const fee = parseEntryFee(parsed.entry_fee)
+  if (!fee.ok) return fee
+  const link = parseClubLink(parsed.club_registrations_url)
+  if (!link.ok) return link
+  const spots = parseSpots(parsed.spots_allotted)
+  if (!spots.ok) return spots
+
+  return {
+    ok: true,
+    tournament: tournamentPayload(parsed, sessions.sessions, fee.cents),
+    sessions: sessions.sessions,
+    details: { club_registrations_url: link.url, spots_allotted: spots.spots },
+  }
+}
+
+// Sessions and admin details are saved after the tournament row. Returns what
+// did not save, or null when everything did.
+async function saveSessionsAndDetails(
+  supabase: Supabase,
+  userId: string,
+  tournamentId: string,
+  form: Extract<NormalizedForm, { ok: true }>,
+  isNew: boolean
+): Promise<string | null> {
+  const problems: string[] = []
+
+  if (!isNew || form.sessions.length > 0) {
+    const { error } = await supabase.rpc('replace_tournament_sessions', {
+      p_tournament: tournamentId,
+      p_sessions: form.sessions.map((s) => ({ start_time: s.start_time, divisions: s.divisions })),
+    })
+    if (error) problems.push(`The sessions did not save (${error.message}).`)
   }
 
-  const supabase = await createServerSupabase()
-  const { error } = await supabase.from('tournaments').insert(payload)
-  if (error) return { ok: false, error: error.message }
+  const { club_registrations_url, spots_allotted } = form.details
+  if (club_registrations_url !== null || spots_allotted !== null) {
+    const { error } = await supabase
+      .from('tournament_admin_details')
+      .upsert({ tournament_id: tournamentId, club_registrations_url, spots_allotted, updated_by: userId }, { onConflict: 'tournament_id' })
+    if (error) problems.push(`The club link and spots did not save (${error.message}).`)
+  } else if (!isNew) {
+    const { error } = await supabase.from('tournament_admin_details').delete().eq('tournament_id', tournamentId)
+    if (error) problems.push(`The club link and spots did not clear (${error.message}).`)
+  }
 
+  return problems.length ? `The tournament saved, but: ${problems.join(' ')} Save again to retry.` : null
+}
+
+export async function createTournament(values: TournamentInput): Promise<ActionResult> {
+  const admin = await adminClient()
+  if (!admin) return { ok: false, error: ADMIN_ONLY }
+  const form = normalize(values)
+  if (!form.ok) return form
+
+  const { supabase, userId } = admin
+  const { data, error } = await supabase.from('tournaments').insert(form.tournament).select('id').single()
+  if (error || !data) return { ok: false, error: error?.message ?? 'Could not save the tournament.' }
+
+  const problem = await saveSessionsAndDetails(supabase, userId, data.id, form, true)
   revalidatePath('/admin/tournaments')
-  return { ok: true }
+  // The id lets the dialog save the rest again as an edit, not a second tournament.
+  return problem ? { ok: false, error: problem, id: data.id } : { ok: true, id: data.id }
 }
 
 export async function updateTournament(id: string, values: TournamentInput): Promise<ActionResult> {
   if (!id) return { ok: false, error: 'Missing tournament id' }
+  const admin = await adminClient()
+  if (!admin) return { ok: false, error: ADMIN_ONLY }
+  const form = normalize(values)
+  if (!form.ok) return form
 
-  let payload
-  try {
-    payload = normalize(values)
-  } catch (err) {
-    if (err instanceof z.ZodError) return { ok: false, error: err.issues[0]?.message ?? 'Invalid input' }
-    throw err
-  }
-
-  const supabase = await createServerSupabase()
-  const { error } = await supabase.from('tournaments').update(payload).eq('id', id)
+  const { supabase, userId } = admin
+  const { error } = await supabase.from('tournaments').update(form.tournament).eq('id', id)
   if (error) return { ok: false, error: error.message }
 
+  const problem = await saveSessionsAndDetails(supabase, userId, id, form, false)
   revalidatePath('/admin/tournaments')
-  return { ok: true }
+  revalidatePath(`/admin/tournaments/${id}`)
+  return problem ? { ok: false, error: problem, id } : { ok: true, id }
 }
 
 export async function deleteTournament(id: string): Promise<ActionResult> {
   if (!id) return { ok: false, error: 'Missing tournament id' }
+  const admin = await adminClient()
+  if (!admin) return { ok: false, error: ADMIN_ONLY }
+  const { supabase } = admin
 
-  const supabase = await createServerSupabase()
+  // Paid entries keep the tournament, so a payment is never left pointing at nothing.
+  const { data: paid, error: paidError } = await supabase
+    .from('tournament_registrations')
+    .select('id')
+    .eq('tournament_id', id)
+    .gt('paid_cents', 0)
+    .limit(1)
+  if (paidError) return { ok: false, error: 'Could not check this tournament for paid entries. Try again.' }
+  if ((paid ?? []).length > 0) {
+    return {
+      ok: false,
+      error:
+        'Families have paid for this tournament, so it cannot be deleted. Set its status to Cancelled instead, and refund anyone who should get their money back.',
+    }
+  }
+
   const { error } = await supabase.from('tournaments').delete().eq('id', id)
   if (error) return { ok: false, error: error.message }
 
   revalidatePath('/admin/tournaments')
   return { ok: true }
+}
+
+// "Mark paid (cash or check)" and "Waive fee" on the roster page (B4). The
+// admin's own client writes the payment columns; the database trigger lets an
+// admin through and keeps everyone else out.
+const manualSchema = z.object({ registrationId: z.string().uuid(), method: z.enum(['cash', 'check', 'waived']) })
+
+async function recordManualPayment(registrationId: string, method: 'cash' | 'check' | 'waived'): Promise<ActionResult> {
+  const admin = await adminClient()
+  if (!admin) return { ok: false, error: ADMIN_ONLY }
+  const parsed = manualSchema.safeParse({ registrationId, method })
+  if (!parsed.success) return { ok: false, error: 'Registration not found.' }
+  const { supabase } = admin
+
+  const { data: reg } = await supabase
+    .from('tournament_registrations')
+    .select('id, tournament_id, status, fee_cents, paid_cents, payment_method')
+    .eq('id', parsed.data.registrationId)
+    .maybeSingle()
+  if (!reg) return { ok: false, error: 'Registration not found.' }
+  const { data: tournament } = await supabase.from('tournaments').select('entry_fee_cents').eq('id', reg.tournament_id).maybeSingle()
+
+  const fee = reg.fee_cents ?? tournament?.entry_fee_cents ?? null
+  const state = registrationPaymentState({ feeCents: fee, paidCents: reg.paid_cents, paymentMethod: reg.payment_method, status: reg.status })
+  if (state === 'withdrawn') return { ok: false, error: 'This wrestler was withdrawn.' }
+  if (state === 'paid') return { ok: false, error: 'This entry is already paid.' }
+  if (state === 'waived') return { ok: false, error: 'This entry is already waived.' }
+  if (state === 'free' || fee === null) return { ok: false, error: 'This tournament has no cost, so there is nothing to collect.' }
+
+  const now = new Date().toISOString()
+  const values =
+    parsed.data.method === 'waived'
+      ? { fee_cents: fee, payment_method: 'waived' as const, paid_at: now }
+      : { fee_cents: fee, paid_cents: fee, payment_method: parsed.data.method, paid_at: now }
+  // Only if nothing changed since it was read (a card payment landing at the same moment).
+  let update = supabase.from('tournament_registrations').update(values).eq('id', reg.id).eq('paid_cents', reg.paid_cents)
+  update = reg.payment_method === null ? update.is('payment_method', null) : update.eq('payment_method', reg.payment_method)
+  const { data: changed, error } = await update.select('id')
+  if (error) return { ok: false, error: 'Could not save that. Try again.' }
+  if (!changed || changed.length === 0) return { ok: false, error: 'This entry changed while you were looking. Refresh the page and try again.' }
+
+  revalidatePath(`/admin/tournaments/${reg.tournament_id}`)
+  revalidatePath('/admin/tournaments')
+  return { ok: true }
+}
+
+export async function markRegistrationPaid(registrationId: string, method: 'cash' | 'check'): Promise<ActionResult> {
+  if (method !== 'cash' && method !== 'check') return { ok: false, error: 'Choose cash or check.' }
+  return recordManualPayment(registrationId, method)
+}
+
+export async function waiveRegistrationFee(registrationId: string): Promise<ActionResult> {
+  return recordManualPayment(registrationId, 'waived')
 }
