@@ -18,6 +18,11 @@
 -- locked fee_cents, else the tournament's entry_fee_cents) is missing or 0;
 -- 'paid' when paid_cents covers it; otherwise 'due'. src/lib's
 -- registrationPaymentState uses the same order. NULL for TrackWrestling rows.
+--
+-- tournament_status is the tournament's own status (open, not_open, closed,
+-- cancelled), so the rosters page can mark a cancelled tournament
+-- (CLW-QA-003, ENG-006 L-1). Added in place on Nov 20 before this migration
+-- was first applied anywhere, so no DROP is needed.
 
 CREATE OR REPLACE FUNCTION public.family_tournament_roster()
 RETURNS TABLE (
@@ -34,7 +39,8 @@ RETURNS TABLE (
   source TEXT,
   division TEXT,
   weight TEXT,
-  registration_state TEXT
+  registration_state TEXT,
+  tournament_status TEXT
 ) LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT t.id, t.name, t.date, t.location, t.city, t.state, t.street_address,
     a.id, a.first_name, a.last_name,
@@ -44,7 +50,8 @@ RETURNS TABLE (
       WHEN coalesce(r.fee_cents, t.entry_fee_cents, 0) = 0 THEN 'free'
       WHEN r.paid_cents >= coalesce(r.fee_cents, t.entry_fee_cents) THEN 'paid'
       ELSE 'due'
-    END
+    END,
+    t.status
   FROM public.tournament_registrations r
   JOIN public.tournaments t ON t.id = r.tournament_id
   JOIN public.athletes a ON a.id = r.athlete_id
@@ -55,7 +62,8 @@ RETURNS TABLE (
   UNION ALL
   SELECT t.id, t.name, t.date, t.location, t.city, t.state, t.street_address,
     a.id, a.first_name, a.last_name,
-    'trackwrestling'::TEXT, NULL::TEXT, NULL::TEXT, NULL::TEXT
+    'trackwrestling'::TEXT, NULL::TEXT, NULL::TEXT, NULL::TEXT,
+    t.status
   FROM public.tournament_entries e
   JOIN public.tournaments t ON t.id = e.tournament_id
   JOIN public.athletes a ON a.id = e.athlete_id

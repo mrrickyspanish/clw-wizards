@@ -221,9 +221,11 @@ function familyTournamentRoster() {
   if (as !== 'parent') return []
   const tw = (t, kid, first) => ({ ...t, athlete_id: kid, athlete_first_name: first, athlete_last_name: 'Parent', source: 'trackwrestling', division: null, weight: null, registration_state: null })
   const site = (t, kid, first, division, weight, registration_state) => ({ ...t, athlete_id: kid, athlete_first_name: first, athlete_last_name: 'Parent', source: 'site', division, weight, registration_state })
-  const tussle = { tournament_id: id('t', 1), tournament_name: 'Turkey Tussle Open With A Long Tournament Name', date: rosterDay(1), location: 'Central High School', city: 'Huntley', state: 'IL', street_address: null }
-  const duals = { tournament_id: id('t', 2), tournament_name: 'Holiday Duals', date: rosterDay(15), location: '', city: 'Crystal Lake', state: 'IL', street_address: null }
-  const fall = { tournament_id: id('t', 9), tournament_name: 'Fall Classic At The Very Long Named Fieldhouse Invitational', date: rosterDay(-10), location: 'Northwest Regional Athletic Fieldhouse Annex', city: 'Crystal Lake', state: 'IL', street_address: '1234 Example Boulevard' }
+  const tussle = { tournament_id: id('t', 1), tournament_name: 'Turkey Tussle Open With A Long Tournament Name', date: rosterDay(1), location: 'Central High School', city: 'Huntley', state: 'IL', street_address: null, tournament_status: 'open' }
+  const duals = { tournament_id: id('t', 2), tournament_name: 'Holiday Duals', date: rosterDay(15), location: '', city: 'Crystal Lake', state: 'IL', street_address: null, tournament_status: 'closed' }
+  const fall = { tournament_id: id('t', 9), tournament_name: 'Fall Classic At The Very Long Named Fieldhouse Invitational', date: rosterDay(-10), location: 'Northwest Regional Athletic Fieldhouse Annex', city: 'Crystal Lake', state: 'IL', street_address: '1234 Example Boulevard', tournament_status: 'closed' }
+  // CLW-ENG-008: a cancelled tournament (the CLW-ENG-008 block adds it to tournaments) gets a Cancelled chip.
+  const snowed = { tournament_id: id('t', 10), tournament_name: 'Snowed Out Saturday Duals', date: rosterDay(8), location: 'Prairie Ridge Fieldhouse', city: 'Crystal Lake', state: 'IL', street_address: ENG008_LONG_STREET, tournament_status: 'cancelled' }
   return [
     // Tommy is on both the club site and the TrackWrestling paste: the page shows him once.
     site(tussle, id('k', 1), 'Tommy', 'Boys 10U', '67', 'due'),
@@ -232,9 +234,21 @@ function familyTournamentRoster() {
     site(duals, id('k', 2), 'Tina', 'Girls Novice and any wrestler moving up a division this season', '52', 'paid'),
     site(fall, id('k', 1), 'Tommy', 'Boys 10U', '65', 'waived'),
     tw(fall, id('k', 2), 'Tina'),
+    site(snowed, id('k', 1), 'Tommy', 'Boys 10U', '66', 'paid'),
   ]
 }
 // ---- end CLW-ENG-006 ----
+
+// ---- CLW-ENG-008: long street and a cancelled tournament for the sweep ----
+// The CLW-ENG-003 block replaced the Turkey Tussle's long street (CLW-ENG-005)
+// with a short one, so no page swept a long address any more (CLW-QA-003). Put
+// the long street back on the Turkey Tussle (parent Tournaments, public Events,
+// admin) and give it to a new cancelled tournament too, which the parent
+// Tournaments page, Events and the rosters page (Cancelled chip) all show.
+const ENG008_LONG_STREET = '12345 West Longname Memorial Boulevard, Building C'
+tables.tournaments.find((t) => t.id === id('t', 1)).street_address = ENG008_LONG_STREET
+tables.tournaments.push({ ...base, id: id('t', 10), name: 'Snowed Out Saturday Duals', date: '2026-11-28', start_time: '09:00', location: 'Prairie Ridge Fieldhouse', street_address: ENG008_LONG_STREET, city: 'Crystal Lake', state: 'IL', status: 'cancelled', external_registration_url: null, competition_level: null, weigh_in_date: '2026-11-27', weigh_in_time: '18:30', weigh_in_location: 'Prairie Ridge Fieldhouse, Auxiliary Gym Entrance on the North Side', practice_groups: [], notes: null, external_platform: null, image_url: null, entry_fee_cents: null })
+// ---- end CLW-ENG-008 ----
 
 const user = () => {
   const uid = as === 'admin' ? ADMIN : PARENT

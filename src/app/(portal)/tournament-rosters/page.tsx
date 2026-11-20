@@ -32,6 +32,8 @@ type RosterTournament = {
   venue: string
   place: string
   mapLink: string | null
+  // The club cancelled it: the card stays (families may have paid) with a Cancelled chip.
+  cancelled: boolean
   wrestlers: RosterWrestler[]
 }
 
@@ -52,10 +54,12 @@ function groupRoster(rows: FamilyTournamentRosterRow[]): RosterTournament[] {
         venue: clean(row.location),
         place: [clean(row.city), clean(row.state)].filter(Boolean).join(', '),
         mapLink: mapsUrl({ venue: row.location, street: row.street_address, city: row.city, state: row.state }),
+        cancelled: false,
         wrestlers: [],
       }
       tournaments.set(row.tournament_id, t)
     }
+    if (row.tournament_status === 'cancelled') t.cancelled = true
     const key = `${row.tournament_id}|${row.athlete_id}`
     let w = wrestlersByKey.get(key)
     if (!w) {
@@ -183,7 +187,14 @@ function TournamentCard({ tournament: t }: { tournament: RosterTournament }) {
   const where = [t.venue, t.place].filter(Boolean).join(', ')
   return (
     <article className="rounded-2xl border border-clw-gold/10 bg-clw-black-3 p-5 md:p-6">
-      <p className="text-base font-medium text-clw-gold-ink">{formatDate(t.date)}</p>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <p className="text-base font-medium text-clw-gold-ink">{formatDate(t.date)}</p>
+        {t.cancelled && (
+          <span className="rounded-sm border border-red-500/50 bg-red-500/15 px-2 text-base font-medium text-clw-white">
+            Cancelled
+          </span>
+        )}
+      </div>
       <h3 className="mt-1 break-words font-display text-2xl leading-tight text-clw-white">{t.name}</h3>
       {where &&
         (t.mapLink ? (

@@ -183,6 +183,8 @@ export type FamilyTournamentRosterRow = {
   weight: string | null
   // Site registrations only: the payment state. null for TrackWrestling rows.
   registration_state: 'free' | 'paid' | 'waived' | 'due' | null
+  // The tournament's own status, so a cancelled tournament can be marked.
+  tournament_status: Tournament['status']
 }
 
 // One of our wrestlers on a tournament's TrackWrestling Wrestler List, pasted

@@ -96,23 +96,49 @@ export async function registerAthletes(values: z.input<typeof registerSchema>): 
   if (!guarded) return { ok: false, error: 'Could not check your wrestlers. Please try again.' }
   if (athleteIds.some((id) => !guarded.has(id))) return { ok: false, error: NOT_YOURS }
 
-  // upsert on the unique (tournament_id, athlete_id) so re-registering an
-  // athlete is idempotent rather than a duplicate-key error.
-  const { data: saved, error } = await supabase
+  // The signed-in user becomes parent_id only on a new registration, the same
+  // rule as Register and pay (src/lib/payments/tournament-checkout.ts): an
+  // existing row (say, withdrawn and now signed up again by a co-parent) keeps
+  // the parent_id it has and only goes back to registered. A confirmed row is
+  // left as it is.
+  const { data: existingRows, error: existingError } = await supabase
     .from('tournament_registrations')
-    .upsert(
-      athleteIds.map((athleteId) => ({
-        tournament_id: tournamentId,
-        athlete_id: athleteId,
-        parent_id: user.id,
-        status: 'registered' as const,
-      })),
-      { onConflict: 'tournament_id,athlete_id' }
-    )
-    .select('id')
-  if (error) return { ok: false, error: isPermissionDenied(error) ? NOT_YOURS : error.message }
-  if ((saved ?? []).length < athleteIds.length) {
-    return { ok: false, error: 'The registration was not saved. Refresh the page and try again, or contact the club.' }
+    .select('id, athlete_id, status')
+    .eq('tournament_id', tournamentId)
+    .in('athlete_id', athleteIds)
+  if (existingError) return { ok: false, error: 'Could not check your registrations. Please try again.' }
+  const existing = new Map((existingRows ?? []).map((r) => [r.athlete_id, r]))
+  const notSaved = 'The registration was not saved. Refresh the page and try again, or contact the club.'
+
+  const reopen = [...existing.values()].filter((r) => r.status !== 'registered' && r.status !== 'confirmed').map((r) => r.id)
+  if (reopen.length) {
+    const { data: reopened, error } = await supabase
+      .from('tournament_registrations')
+      .update({ status: 'registered' as const })
+      .in('id', reopen)
+      .select('id')
+    if (error) return { ok: false, error: isPermissionDenied(error) ? NOT_YOURS : error.message }
+    if ((reopened ?? []).length < reopen.length) return { ok: false, error: notSaved }
+  }
+
+  const fresh = athleteIds.filter((athleteId) => !existing.has(athleteId))
+  if (fresh.length) {
+    // ignoreDuplicates: a row someone else created a moment ago is never
+    // overwritten (it comes back short, and the family is asked to refresh).
+    const { data: saved, error } = await supabase
+      .from('tournament_registrations')
+      .upsert(
+        fresh.map((athleteId) => ({
+          tournament_id: tournamentId,
+          athlete_id: athleteId,
+          parent_id: user.id,
+          status: 'registered' as const,
+        })),
+        { onConflict: 'tournament_id,athlete_id', ignoreDuplicates: true }
+      )
+      .select('id')
+    if (error) return { ok: false, error: isPermissionDenied(error) ? NOT_YOURS : error.message }
+    if ((saved ?? []).length < fresh.length) return { ok: false, error: notSaved }
   }
 
   revalidatePath('/tournaments')

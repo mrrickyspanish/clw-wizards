@@ -4070,6 +4070,8 @@ test('CLW-ENG-001: family_tournament_roster checks guards_athlete on both source
   assert.deepEqual([...returns.matchAll(/^ {2}([a-z_]+) /gm)].map((c) => c[1]), [
     'tournament_id', 'tournament_name', 'date', 'location', 'city', 'state', 'street_address', 'athlete_id',
     'athlete_first_name', 'athlete_last_name', 'source', 'division', 'weight', 'registration_state',
+    // CLW-ENG-008 (QA-003 ENG-006 L-1): the tournament's status, for the Cancelled chip.
+    'tournament_status',
   ])
   const body = eng001Body(sql, 'family_tournament_roster')
   const [site, tw] = body.split(/\bUNION ALL\b/)
@@ -5898,4 +5900,140 @@ test('CLW-ENG-007: the Tournaments page sends priced in-house tournaments to Reg
   assert.deepEqual(free.athletes, [{ id: 'k1', name: 'Ann Example' }])
   assert.equal(free.registrations.k1.id, 'r2')
   assert.ok(supabase.reads.includes('season_enrollments'))
+})
+
+// ---- CLW-ENG-008: Integration leftovers (roster status, weigh-in text, demo wipe, sweep fixtures, lint ignore) ----
+const eng008Read = (relative) => fs.readFileSync(path.join(__dirname, '..', relative), 'utf8')
+
+test('CLW-ENG-008: family_tournament_roster returns the tournament status from both sources, and the type carries it', () => {
+  const sql = eng001Sql('20261120000004_family_tournament_roster.sql')
+  const returns = /RETURNS TABLE \(([\s\S]*?)\) LANGUAGE/.exec(sql)[1]
+  assert.match(returns, /\n {2}tournament_status TEXT\s*$/, 'last column, so the ORDER BY positions stay the same')
+  assert.match(sql, /ORDER BY 3, 2, 10, 9;/)
+  const body = eng001Body(sql, 'family_tournament_roster')
+  const [site, tw] = body.split(/\bUNION ALL\b/)
+  for (const part of [site, tw]) {
+    const selectList = /SELECT([\s\S]*?)\bFROM\b/.exec(part)[1]
+    assert.match(selectList, /,\s*t\.status\s*$/, 'status is the last selected value')
+  }
+  // Still additive: the migration has not been applied anywhere, so it is edited in place without a DROP.
+  assert.doesNotMatch(eng001Outside(sql), /\bDROP\b/i)
+  const ts = eng008Read('src/types/database.ts')
+  const row = /export type FamilyTournamentRosterRow = \{([\s\S]*?)\n\}/.exec(ts)[1]
+  assert.match(row, /\n {2}tournament_status: Tournament\['status'\]/)
+})
+
+test('CLW-ENG-008: the rosters page shows a text-base Cancelled chip only on cancelled tournaments', async () => {
+  const rows = [
+    eng006Row({ tournament_status: 'open' }),
+    eng006Row({ tournament_id: 't-c', tournament_name: 'Example Snow Duals', date: '2026-11-28', tournament_status: 'cancelled', registration_state: 'paid' }),
+    // A TrackWrestling row for the same cancelled tournament keeps it cancelled (one card).
+    eng006Row({ tournament_id: 't-c', tournament_name: 'Example Snow Duals', date: '2026-11-28', athlete_id: 'kid-b', athlete_first_name: 'Blake', source: 'trackwrestling', division: null, weight: null, registration_state: null, tournament_status: 'cancelled' }),
+  ]
+  const html = await eng006Render({ data: rows, error: null }).html()
+  const chips = html.match(/<span class="[^"]*">Cancelled<\/span>/g) || []
+  assert.equal(chips.length, 1, 'one chip, on the cancelled card only')
+  assert.match(chips[0], /\btext-base\b/)
+  assert.doesNotMatch(chips[0], /\btext-(xs|sm)\b/)
+  const cards = html.split('<article')
+  const open = cards.find((c) => c.includes('Example Winter Open'))
+  const cancelled = cards.find((c) => c.includes('Example Snow Duals'))
+  assert.doesNotMatch(open, />Cancelled</)
+  assert.match(cancelled, />Cancelled</)
+  assert.equal((cancelled.match(/Blake Example/g) || []).length, 1)
+  // Rows without tournament_status read as not cancelled.
+  const legacy = await eng006Render({ data: [eng006Row({})], error: null }).html()
+  assert.doesNotMatch(legacy, />Cancelled</)
+  assert.doesNotMatch(eng008Read(ENG006_PAGE), /\btext-(xs|sm)\b/)
+})
+
+test('CLW-ENG-008: the parent Tournaments weigh-in block reads at text-base', () => {
+  const src = eng008Read('src/app/(portal)/tournaments/page.tsx')
+  const start = src.indexOf('{(t.weigh_in_date || t.weigh_in_time) && (')
+  assert.ok(start > -1, 'weigh-in block found')
+  const block = src.slice(start, src.indexOf('{t.notes &&', start))
+  assert.match(block, /Weigh-ins for \{t\.name\}/)
+  assert.match(block, /className="min-w-0 text-base"/)
+  assert.doesNotMatch(block, /\btext-(xs|sm)\b/)
+})
+
+test('CLW-ENG-008: the demo wipe clears tournament checkouts, sessions and admin details before tournaments', () => {
+  const src = eng008Read('src/lib/demo-seed.ts')
+  const wipe = /async function wipe\(admin: Admin\) \{([\s\S]*?)\n\}/.exec(src)[1]
+  const list = /for \(const table of \[([\s\S]*?)\]\)/.exec(wipe)[1]
+  const tables = [...list.matchAll(/'([a-z_]+)'/g)].map((m) => m[1])
+  const at = (name) => tables.indexOf(name)
+  for (const child of ['tournament_checkouts', 'tournament_sessions', 'tournament_entries', 'tournament_registrations']) {
+    assert.ok(at(child) > -1, `${child} is wiped`)
+    assert.ok(at(child) < at('tournaments'), `${child} before tournaments`)
+  }
+  // Keyed by tournament_id (no id column), so it cannot go through byId; it runs before the list.
+  assert.ok(!tables.includes('tournament_admin_details'))
+  const details = wipe.indexOf(".from('tournament_admin_details' as never).delete().not('tournament_id', 'is', null)")
+  assert.ok(details > -1 && details < wipe.indexOf('for (const table of ['), 'admin details cleared before the table list')
+})
+
+test('CLW-ENG-008: the sweep mock exercises a long street again, plus a cancelled tournament on the rosters page', () => {
+  const mock = eng008Read('.claude/skills/wizards-request/qa/mock.cjs')
+  new vm.Script(mock) // parses
+  const block = /\/\/ ---- CLW-ENG-008:[\s\S]*?\/\/ ---- end CLW-ENG-008 ----/.exec(mock)
+  assert.ok(block, 'delimited CLW-ENG-008 block')
+  // It runs after the CLW-ENG-003 block that set the short street, so the long one wins.
+  assert.ok(block.index > mock.indexOf('// ---- end CLW-ENG-003 ----'))
+  const street = /const ENG008_LONG_STREET = '([^']+)'/.exec(block[0])[1]
+  assert.ok(street.length >= 40, 'a long made-up street')
+  assert.match(block[0], /tables\.tournaments\.find\(\(t\) => t\.id === id\('t', 1\)\)\.street_address = ENG008_LONG_STREET/)
+  assert.match(block[0], /status: 'cancelled'/)
+  // The roster rows carry tournament_status, and one is cancelled.
+  const roster = /function familyTournamentRoster\(\) \{([\s\S]*?)\n\}/.exec(mock)[1]
+  assert.equal((roster.match(/tournament_status: '/g) || []).length, 4)
+  assert.match(roster, /tournament_status: 'cancelled'/)
+  assert.doesNotMatch(block[0], /@[a-z0-9-]+\.[a-z]/i, 'no email addresses')
+})
+
+test('CLW-ENG-008: lint skips agent worktrees, and the QA README covers the Chromium fallback and port overrides', () => {
+  assert.match(eng008Read('eslint.config.mjs'), /ignores: \[[^\]]*'\.claude\/worktrees\/\*\*'/)
+  const readme = eng008Read('.claude/skills/wizards-request/qa/README.md')
+  assert.match(readme, /CHROMIUM_PATH=\$\(ls -d \/opt\/pw-browsers\/chromium-\*\/chrome-linux\*\/chrome \| tail -1\)/)
+  assert.match(readme, /QA_APP_URL=http:\/\/127\.0\.0\.1:3181 QA_MOCK_URL=http:\/\/127\.0\.0\.1:54381/)
+  // The README's names match what the sweep script actually reads.
+  const sweep = eng008Read('.claude/skills/wizards-request/qa/layout-sweep.cjs')
+  for (const name of ['CHROMIUM_PATH', 'QA_APP_URL', 'QA_MOCK_URL']) assert.match(sweep, new RegExp(`process\\.env\\.${name}\\b`))
+  assert.doesNotMatch(readme, /—|–/, 'no em or en dashes')
+})
+
+test('CLW-ENG-008: a co-parent re-registering an existing free entry keeps its parent_id (QA-002 round 2 note 5)', async () => {
+  // The owner registers, then withdraws.
+  const db = e7Db(E7.OWNER)
+  assert.deepEqual(plain(await e7Actions(db).registerAthletes({ tournamentId: E7.T_FREE, athleteIds: [E7.K1] })), { ok: true })
+  const row = db.tables.tournament_registrations[0]
+  assert.equal(row.parent_id, E7.OWNER)
+  row.id = E7.R1 // the fake database's ids are not UUIDs; withdraw validates one
+  assert.deepEqual(plain(await e7Actions(db).withdrawRegistration({ registrationId: row.id })), { ok: true })
+  assert.equal(row.status, 'withdrawn')
+
+  // The whole-family co-parent signs the same wrestler up again, plus a new one, on the same data.
+  const co = e7Db(E7.WHOLE, { tournament_registrations: db.tables.tournament_registrations })
+  assert.deepEqual(plain(await e7Actions(co).registerAthletes({ tournamentId: E7.T_FREE, athleteIds: [E7.K1, E7.K2] })), { ok: true })
+  assert.equal(row.status, 'registered')
+  assert.equal(row.parent_id, E7.OWNER, 'the existing row keeps the owner as parent_id')
+  const reopen = co.writes.find((w) => w.op === 'update')
+  assert.deepEqual(reopen.values, { status: 'registered' }, 'the reopen never writes parent_id')
+  const insert = co.writes.find((w) => w.op === 'upsert')
+  assert.deepEqual(insert.values.map((v) => v.athlete_id), [E7.K2], 'only the new wrestler is inserted')
+  assert.equal(insert.values[0].parent_id, E7.WHOLE, 'a new row is owned by whoever made it')
+  assert.equal(db.tables.tournament_registrations.length, 2)
+
+  // Registered and confirmed rows are left alone: no write at all.
+  const done = e7Db(E7.LIMITED, { tournament_registrations: [
+    { id: 'r-c', tournament_id: E7.T_FREE, athlete_id: E7.K1, parent_id: E7.OWNER, status: 'confirmed', paid_cents: 0, payment_method: null, fee_cents: null },
+  ] })
+  assert.deepEqual(plain(await e7Actions(done).registerAthletes({ tournamentId: E7.T_FREE, athleteIds: [E7.K1] })), { ok: true })
+  assert.equal(done.writes.length, 0)
+  assert.equal(done.tables.tournament_registrations[0].status, 'confirmed')
+
+  // A new row never overwrites one created a moment ago by someone else.
+  const src = eng008Read('src/app/(portal)/tournaments/actions.ts')
+  assert.match(src, /\{ onConflict: 'tournament_id,athlete_id', ignoreDuplicates: true \}/)
+  assert.doesNotMatch(/\.update\(\{[^}]*\}\)/.exec(src.slice(src.indexOf('export async function registerAthletes')))[0], /parent_id/)
 })

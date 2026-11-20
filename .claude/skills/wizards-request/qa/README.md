@@ -35,6 +35,37 @@ The last line prints `TOTAL n`; only `TABLE` lines may remain.
 Playwright and Chromium come from the cloud container (`/opt/...`). Elsewhere set
 `PLAYWRIGHT_PATH` and `CHROMIUM_PATH`.
 
+### Chromium fallback
+
+The sweep's default browser path is
+`/opt/pw-browsers/chromium-1194/chrome-linux/chrome`. Container images move to
+newer Chromium builds (for example `chromium-1243/chrome-linux64/chrome`), and
+then the sweep fails at launch with "Executable doesn't exist". Point
+`CHROMIUM_PATH` at whichever Chromium the container has:
+
+```bash
+export CHROMIUM_PATH=$(ls -d /opt/pw-browsers/chromium-*/chrome-linux*/chrome | tail -1)
+```
+
+### Other ports (parallel worktrees)
+
+Two worktrees running the sweep at once collide on :3100 and :54329. Move both:
+
+- the mock takes its port as the first argument: `node $QA/mock.cjs 54381 &`
+- the app reads the mock through `NEXT_PUBLIC_SUPABASE_URL`, which `next build`
+  bakes in, so build with `NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54381` and
+  start with `npx next start -p 3181`
+- tell the sweep where both are:
+
+```bash
+QA_APP_URL=http://127.0.0.1:3181 QA_MOCK_URL=http://127.0.0.1:54381 \
+  node $QA/layout-sweep.cjs . 320,360,390,768,1024,1440
+```
+
+`QA_APP_URL` defaults to `http://127.0.0.1:3100` and `QA_MOCK_URL` to
+`http://127.0.0.1:54329`. Run one sweep per mock at a time: the sweep switches
+the mock between the admin and parent logins as it goes.
+
 When a page needs data the mock doesn't have (more admins, a document, a paid
 dues row), add fake rows to `mock.cjs` so the real layout renders. The Admin
 team overflow of Oct 16 slipped through because the mock had one admin, so no

@@ -249,8 +249,8 @@ export default async function TournamentsPage() {
                   personal to the portal, never on the public marketing page. */}
               {(t.weigh_in_date || t.weigh_in_time) && (
                 <div className="flex items-start gap-3 rounded-xl border border-clw-gold/15 bg-clw-black px-4 py-3">
-                  <Scale className="mt-0.5 h-4 w-4 shrink-0 text-clw-gold-ink" />
-                  <div className="min-w-0 text-sm">
+                  <Scale className="mt-1 h-4 w-4 shrink-0 text-clw-gold-ink" />
+                  <div className="min-w-0 text-base">
                     <p className="font-medium text-clw-white">Weigh-ins for {t.name}</p>
                     <p className="mt-0.5 text-clw-gray">
                       {formatDate(t.weigh_in_date || t.date)}

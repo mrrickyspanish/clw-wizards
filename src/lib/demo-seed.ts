@@ -47,7 +47,15 @@ async function wipe(admin: Admin) {
     if (users.length < 200) break
   }
   const byId = (table: string) => admin.from(table as never).delete().not('id', 'is', null)
+  // tournament_admin_details is keyed by tournament_id (no id column). It and
+  // tournament_sessions cascade from tournaments anyway; clearing them first
+  // keeps the order explicit. tournament_checkouts does not cascade (money rows
+  // survive a tournament delete with tournament_id set to NULL), so it must be
+  // listed or demo checkouts outlive every reset.
+  await admin.from('tournament_admin_details' as never).delete().not('tournament_id', 'is', null)
   for (const table of [
+    'tournament_checkouts',
+    'tournament_sessions',
     'tournament_entries',
     'tournament_registrations',
     'disclosure_acceptances',
