@@ -207,19 +207,38 @@ export async function recipientWrestlerRows(target: CommTarget, profileIds: stri
 /**
  * Wrestlers registered for a tournament: signed up on our site, or on the
  * TrackWrestling Wrestler List an admin pasted (matched to one of our
- * wrestlers). Rows not matched to anyone reach nobody.
+ * wrestlers). Rows not matched to anyone reach nobody. A site registration
+ * that carries a price (the tournament's entry fee, or the fee locked at
+ * checkout) counts only once it is paid or waived (default A3), the same rule
+ * as the rosters and spot counts.
  */
 async function registeredAthleteIds(supabase: AdminClient, tournamentId: string): Promise<string[]> {
-  const [{ data: onSite }, { data: pasted }] = await Promise.all([
+  const [{ data: onSite }, { data: pasted }, { data: tournament }] = await Promise.all([
     supabase
       .from('tournament_registrations')
-      .select('athlete_id')
+      .select('athlete_id, status, fee_cents, paid_cents, payment_method')
       .eq('tournament_id', tournamentId)
       .in('status', ['registered', 'confirmed']),
     supabase.from('tournament_entries').select('athlete_id').eq('tournament_id', tournamentId).not('athlete_id', 'is', null),
+    supabase.from('tournaments').select('entry_fee_cents').eq('id', tournamentId).maybeSingle(),
   ])
+  let site = onSite ?? []
+  const entryFee = tournament?.entry_fee_cents ?? null
+  if (site.some((r) => (r.fee_cents ?? entryFee ?? 0) > 0)) {
+    // Loaded only when a registration carries a price; free tournaments keep
+    // the lookup exactly as it was.
+    const { countsAsRegistered } = await import('@/lib/tournament-registration')
+    site = site.filter((r) =>
+      countsAsRegistered({
+        feeCents: r.fee_cents ?? entryFee,
+        paidCents: r.paid_cents,
+        paymentMethod: r.payment_method,
+        status: r.status,
+      })
+    )
+  }
   return [
-    ...new Set([...(onSite ?? []).map((r) => r.athlete_id), ...(pasted ?? []).map((r) => r.athlete_id as string)]),
+    ...new Set([...site.map((r) => r.athlete_id), ...(pasted ?? []).map((r) => r.athlete_id as string)]),
   ]
 }
 
