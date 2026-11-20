@@ -101,5 +101,5 @@ source keeps the club's words.
     real concert frames: the recap still needs PR ministry sign-off.
   - The Page Editor login exists only after a church reset at `/demo-reset`.
 - **Open:**
-  - Known gap: a Ministry Admin can open other households through a direct
-    `/admin/families/<id>` address.
+  - Fixed (Nov 20): a Ministry Admin opening another household by a direct
+    `/admin/families/<id>` address now gets 404, matching the Members list.

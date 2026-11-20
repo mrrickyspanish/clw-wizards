@@ -5,6 +5,7 @@ import { ArrowLeft, ChevronDown } from 'lucide-react'
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { isFullAdmin } from '@/lib/auth/admin'
+import { currentChurchRole } from '@/lib/demo-roles-server'
 import type {
   Athlete,
   AthleteDocument,
@@ -120,6 +121,12 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
     .eq('parent_id', id)
     .order('first_name', { ascending: true })
   const athletes = (athleteRows ?? []) as Athlete[]
+
+  // Church demo group role (SBC, Nov 20): a ministry's admin opens only households
+  // with someone in that ministry, the same rule as the Members list. Closes the
+  // direct /admin/families/<id> route around the list.
+  const churchGroup = (await currentChurchRole())?.group
+  if (churchGroup && !athletes.some((a) => a.practice_group === churchGroup)) notFound()
 
   // Each wrestler's newest uploaded birth certificate, to view and verify here.
   const { data: birthCertificateRows } = athletes.length
