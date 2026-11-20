@@ -6,8 +6,16 @@ import { pageMetadata } from '@/lib/page-metadata'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { chicagoDateString } from '@/lib/chicago-time'
 import { sessionLine, sessionsByEvent } from '@/lib/event-sessions'
-import { calendarRange, clubCalendarEntries, clubCalendarLegend } from '@/lib/club-calendar'
-import type { ClubEvent, EventSession, Tournament } from '@/types/database'
+import { earliestStart, sessionLine as tournamentSessionLine } from '@/lib/tournament-sessions'
+import { mapsUrl } from '@/lib/maps'
+import {
+  calendarRange,
+  clubCalendarEntries,
+  clubCalendarLegend,
+  groupTournamentSessions,
+  type TournamentCalendarExtra,
+} from '@/lib/club-calendar'
+import type { ClubEvent, EventSession, Tournament, TournamentSession } from '@/types/database'
 import { ClubCalendar } from '@/components/events/ClubCalendar'
 
 export const metadata: Metadata = pageMetadata({
@@ -22,15 +30,36 @@ export default async function EventsPage() {
   const supabase = await createServerSupabase()
   const today = chicagoDateString()
 
-  const [{ data: tournamentData }, { data: clubEventData }, { data: sessionData }] = await Promise.all([
-    supabase.from('tournaments').select('*').neq('status', 'cancelled').gte('date', today).order('date', { ascending: true }),
-    supabase.from('club_events').select('*').eq('active', true).gte('date', today).order('date', { ascending: true }),
-    supabase.from('event_sessions').select('*'),
-  ])
+  const [{ data: tournamentData }, { data: clubEventData }, { data: sessionData }, { data: tournamentSessionData }] =
+    await Promise.all([
+      supabase.from('tournaments').select('*').neq('status', 'cancelled').gte('date', today).order('date', { ascending: true }),
+      supabase.from('club_events').select('*').eq('active', true).gte('date', today).order('date', { ascending: true }),
+      supabase.from('event_sessions').select('*'),
+      // Public, like tournaments. Before its migration runs this read fails and the
+      // calendar shows each tournament's single start time, as before.
+      supabase.from('tournament_sessions').select('tournament_id, start_time, divisions, sort_order'),
+    ])
   const sessions = new Map(
     [...sessionsByEvent((sessionData ?? []) as EventSession[])].map(([id, rows]) => [id, rows.map(sessionLine)])
   )
-  const entries = clubCalendarEntries((tournamentData ?? []) as Tournament[], (clubEventData ?? []) as ClubEvent[], sessions)
+  const tournaments = (tournamentData ?? []) as Tournament[]
+  const tournamentSessions = groupTournamentSessions(
+    (tournamentSessionData ?? []) as Pick<TournamentSession, 'tournament_id' | 'start_time' | 'divisions' | 'sort_order'>[]
+  )
+  const tournamentExtras = new Map<string, TournamentCalendarExtra>(
+    tournaments.map((t) => {
+      const rows = tournamentSessions.get(t.id) ?? []
+      return [
+        t.id,
+        {
+          sessionLines: rows.map(tournamentSessionLine),
+          firstStart: earliestStart(rows),
+          mapUrl: mapsUrl({ venue: t.location, street: t.street_address, city: t.city, state: t.state }),
+        },
+      ]
+    })
+  )
+  const entries = clubCalendarEntries(tournaments, (clubEventData ?? []) as ClubEvent[], sessions, tournamentExtras)
   const range = calendarRange(
     entries.map((e) => e.start.slice(0, 10)),
     today

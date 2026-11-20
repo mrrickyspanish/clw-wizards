@@ -1,11 +1,15 @@
-import { ExternalLink, Scale } from 'lucide-react'
+import Link from 'next/link'
+import { Clock, ExternalLink, MapPin, Scale, Users } from 'lucide-react'
 
 import { registerButtonLabel, registrationLine, TOURNAMENT_STATUS_LABELS } from '@/lib/tournament-status'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { resolveFamilyOwnerIds } from '@/lib/family'
 import { chicagoDateString } from '@/lib/chicago-time'
 import { formatTime } from '@/lib/practice'
-import type { Tournament, Athlete, TournamentRegistration } from '@/types/database'
+import { mapsUrl } from '@/lib/maps'
+import { sessionLine } from '@/lib/tournament-sessions'
+import { groupTournamentSessions } from '@/lib/club-calendar'
+import type { Tournament, Athlete, TournamentRegistration, TournamentSession } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -26,6 +30,65 @@ function formatDate(value: string) {
     day: 'numeric',
     year: 'numeric',
   })
+}
+
+type SessionRow = Pick<TournamentSession, 'id' | 'tournament_id' | 'start_time' | 'divisions' | 'sort_order'>
+
+/** Where the tournament is, as two lines: the venue, then the street and town. */
+function venueLines(t: Pick<Tournament, 'location' | 'street_address' | 'city' | 'state'>) {
+  const name = (t.location ?? '').trim()
+  const street = (t.street_address ?? '').trim()
+  const place = [t.city, t.state].filter(Boolean).join(', ')
+  return {
+    first: name || street || place,
+    second: name ? [street, place].filter(Boolean).join(', ') : street ? place : '',
+  }
+}
+
+/** Venue (tap to map) and session times for one tournament card. */
+function TournamentDetails({ tournament: t, sessions }: { tournament: Tournament; sessions: SessionRow[] }) {
+  const venue = venueLines(t)
+  const mapLink = mapsUrl({ venue: t.location, street: t.street_address, city: t.city, state: t.state })
+  if (!venue.first && sessions.length === 0 && !t.start_time) return null
+  return (
+    <div className="space-y-1 text-base text-clw-gray">
+      {/* Tap to map (B3): Google Maps opens the app on a phone. */}
+      {venue.first && mapLink ? (
+        <a
+          href={mapLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex min-h-11 w-fit max-w-full items-center gap-2 underline decoration-clw-gold/40 underline-offset-4 hover:decoration-clw-gold"
+        >
+          <MapPin className="h-4 w-4 shrink-0 text-clw-gold-ink" />
+          <span className="min-w-0 break-words">
+            <span className="block text-clw-white">{venue.first}</span>
+            {venue.second && <span className="block">{venue.second}</span>}
+            <span className="sr-only"> (opens a map in a new tab)</span>
+          </span>
+        </a>
+      ) : venue.first ? (
+        <p className="flex items-start gap-2">
+          <MapPin className="mt-1 h-4 w-4 shrink-0 text-clw-gold-ink" /> {venue.first}
+        </p>
+      ) : null}
+      {/* Sessions (B2): each start time with the divisions it covers. */}
+      {sessions.length > 0 ? (
+        <ul className="space-y-1" aria-label="Sessions">
+          {sessions.map((s) => (
+            <li key={s.id} className="flex items-start gap-2">
+              <Clock className="mt-1 h-4 w-4 shrink-0 text-clw-gold-ink" />
+              <span className="min-w-0 break-words">{sessionLine(s)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : t.start_time ? (
+        <p className="flex items-start gap-2">
+          <Clock className="mt-1 h-4 w-4 shrink-0 text-clw-gold-ink" /> Starts {formatTime(t.start_time)}
+        </p>
+      ) : null}
+    </div>
+  )
 }
 
 export default async function TournamentsPage() {
@@ -56,6 +119,16 @@ export default async function TournamentsPage() {
     : { data: [] as Pick<TournamentRegistration, 'id' | 'tournament_id' | 'athlete_id' | 'status'>[] }
 
   const tournamentRows = (tournaments ?? []) as Tournament[]
+  // Sessions (B2). Before their migration runs this read fails, and each card
+  // shows the single start time as before.
+  const tournamentIds = tournamentRows.map((t) => t.id)
+  const { data: sessionData } = tournamentIds.length
+    ? await supabase
+        .from('tournament_sessions')
+        .select('id, tournament_id, start_time, divisions, sort_order')
+        .in('tournament_id', tournamentIds)
+    : { data: [] as SessionRow[] }
+  const sessionsByTournament = groupTournamentSessions((sessionData ?? []) as SessionRow[])
   const athleteRows = allAthletes.filter((a) => a.active)
   const athleteOptions = athleteRows.map((a) => ({ id: a.id, name: `${a.first_name} ${a.last_name}` }))
 
@@ -73,9 +146,16 @@ export default async function TournamentsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-display text-clw-gold-ink">Tournaments</h1>
-        <p className="text-sm text-clw-gray">Browse the schedule and register your wrestlers.</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-display text-clw-gold-ink">Tournaments</h1>
+          <p className="text-base text-clw-gray">Browse the schedule and register your wrestlers.</p>
+        </div>
+        <Button asChild variant="outline" className="text-base">
+          <Link href="/tournament-rosters">
+            <Users className="mr-1.5 h-4 w-4" /> Tournament rosters
+          </Link>
+        </Button>
       </div>
 
       {error && (
@@ -95,12 +175,9 @@ export default async function TournamentsPage() {
           <Card key={t.id} className="border-clw-gold/10 bg-clw-black-3">
             <CardHeader>
               <div className="flex items-start justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <CardTitle className="text-clw-white">{t.name}</CardTitle>
-                  <p className="mt-1 text-sm text-clw-gray">
-                    {formatDate(t.date)} · {t.location}, {t.city}, {t.state}
-                    {t.start_time && ` · Starts ${formatTime(t.start_time)}`}
-                  </p>
+                  <p className="mt-1 text-base text-clw-gray">{formatDate(t.date)}</p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-2">
                   <Badge variant="outline" className={`whitespace-nowrap ${STATUS_STYLES[t.status]}`}>
@@ -115,6 +192,8 @@ export default async function TournamentsPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              <TournamentDetails tournament={t} sessions={sessionsByTournament.get(t.id) ?? []} />
+
               {/* Weigh-in shows as its own linked calendar entry for families —
                   personal to the portal, never on the public marketing page. */}
               {(t.weigh_in_date || t.weigh_in_time) && (
