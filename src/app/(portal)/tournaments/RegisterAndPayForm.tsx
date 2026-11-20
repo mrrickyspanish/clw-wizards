@@ -391,7 +391,7 @@ export function RegisterAndPayForm({
                     disabled={busy !== null || pending}
                     onClick={() => payNow(a.id)}
                   >
-                    {rowBusy && !pending ? 'Starting checkout…' : `Pay now ${formatCents(reg.feeCents ?? feeCents)}`}
+                    {rowBusy && !pending ? 'Starting checkout…' : `Pay now ${formatCents(feeCents)}`}
                   </Button>
                 </div>
               )}

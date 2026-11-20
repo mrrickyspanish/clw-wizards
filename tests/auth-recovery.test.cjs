@@ -6037,3 +6037,10 @@ test('CLW-ENG-008: a co-parent re-registering an existing free entry keeps its p
   assert.match(src, /\{ onConflict: 'tournament_id,athlete_id', ignoreDuplicates: true \}/)
   assert.doesNotMatch(/\.update\(\{[^}]*\}\)/.exec(src.slice(src.indexOf('export async function registerAthletes')))[0], /parent_id/)
 })
+
+// ---- Pay now shows the price the server charges (QA-004, Nov 20) ----
+test('Pay now on an unpaid entry shows the tournament current cost, not an old locked fee', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'src/app/(portal)/tournaments/RegisterAndPayForm.tsx'), 'utf8')
+  assert.match(src, /`Pay now \$\{formatCents\(feeCents\)\}`/)
+  assert.doesNotMatch(src, /Pay now \$\{formatCents\(reg\.feeCents/)
+})
