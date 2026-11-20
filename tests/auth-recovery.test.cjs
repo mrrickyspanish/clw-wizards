@@ -3773,6 +3773,8 @@ const ENG001_MIGRATIONS = [
   '20261120000002_tournament_admin_details.sql',
   '20261120000003_tournament_payments.sql',
   '20261120000004_family_tournament_roster.sql',
+  // Operator decision (Nov 20): fixes F1 and F2 from the first review.
+  '20261120000005_tournament_registration_guards.sql',
 ]
 const eng001Dir = path.join(__dirname, '..', 'supabase', 'migrations')
 // The SQL with -- comments removed, so prose in comments never satisfies or trips a check.
@@ -3796,7 +3798,7 @@ const eng001TypeKeys = (ts, name) => {
   return [...m[1].matchAll(/^ {2}([a-z_]+)\??:/gm)].map((c) => c[1]).sort()
 }
 
-test('CLW-ENG-001: exactly the four new migrations exist and every new table has RLS on', () => {
+test('CLW-ENG-001: exactly the five new migrations exist and every new table has RLS on', () => {
   const ours = fs.readdirSync(eng001Dir).filter((f) => f.startsWith('20261120'))
   assert.deepEqual(ours.sort(), ENG001_MIGRATIONS)
   const tables = []
@@ -3954,6 +3956,24 @@ test('CLW-ENG-001: database.ts types match the new tables, columns and functions
   for (const fn of ['replace_tournament_sessions', 'record_tournament_payment', 'record_tournament_refund', 'family_tournament_roster']) {
     assert.match(ts, new RegExp(`\\n {6}${fn}: \\{\\n {8}Args: `), `Functions.${fn}`)
   }
+})
+
+test('CLW-ENG-001: registration guards are restrictive: only guardians or admins write, and only admins delete paid rows', () => {
+  const sql = eng001Sql(ENG001_MIGRATIONS[4])
+  const policies = eng001Policies(sql, 'tournament_registrations')
+  assert.equal(policies.length, 3)
+  for (const p of policies) {
+    assert.match(p, /AS RESTRICTIVE FOR (INSERT|UPDATE|DELETE)\b/, 'every new policy is restrictive')
+    assert.doesNotMatch(p, /\bTO\s+[a-z_]+/i, 'applies to every role (the service role bypasses RLS)')
+  }
+  const byCmd = (cmd) => policies.find((p) => new RegExp(`AS RESTRICTIVE FOR ${cmd}\\b`).test(p))
+  const guard = "public.has_role(auth.uid(), 'admin') OR public.guards_athlete(athlete_id)"
+  const clauses = (p) => [...p.matchAll(/(USING|WITH CHECK) \(([\s\S]*?)\)\s*(?=USING|WITH CHECK|;)/g)].map((c) => [c[1], c[2].replace(/\s+/g, ' ')])
+  assert.deepEqual(clauses(byCmd('INSERT')), [['WITH CHECK', guard]])
+  assert.deepEqual(clauses(byCmd('UPDATE')), [['USING', guard], ['WITH CHECK', guard]])
+  assert.deepEqual(clauses(byCmd('DELETE')), [['USING', "public.has_role(auth.uid(), 'admin') OR (paid_cents = 0 AND payment_method IS NULL)"]])
+  // Additive: the original permissive policies are left in place.
+  assert.doesNotMatch(sql, /DROP POLICY|ALTER POLICY/i)
 })
 
 test('CLW-ENG-001: the QA mock has made-up rows for the three new tables', () => {
