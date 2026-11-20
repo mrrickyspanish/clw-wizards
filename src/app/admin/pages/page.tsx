@@ -24,7 +24,7 @@ export default async function PagesListPage() {
           <h1 className="font-display text-3xl text-clw-gold">Pages</h1>
           <p className="mt-1 max-w-2xl text-base text-clw-gray">
             {mode === 'ministry'
-              ? `You can edit ${ministry}'s page. Your changes go to a Church Admin for approval before they appear on the website.`
+              ? `You can edit ${ministry}'s pages. Your changes go to a Church Admin for approval before they appear on the website.`
               : mode === 'editor'
                 ? 'Create and edit pages from the church templates. Nothing goes live until a Church Admin approves it.'
                 : 'Every page on the church website. Pages are built from three fixed templates; staff fill them in.'}

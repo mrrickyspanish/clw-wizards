@@ -286,7 +286,7 @@ export function PageEditor({ template, initial, initialHidden, title, ministry, 
           <div className="max-h-[80vh] overflow-y-auto rounded-2xl">
             <PagePreview template={template} values={values} hidden={hidden} phone={phone} />
           </div>
-          <p className="text-sm text-clw-gray">Fonts, layout and backgrounds come from the template and can&apos;t be changed here. Photos are AI-generated samples.</p>
+          <p className="text-base text-clw-gray">Fonts, layout and backgrounds come from the template and can&apos;t be changed here. Photos are AI-generated samples.</p>
         </div>
       </div>
     </div>

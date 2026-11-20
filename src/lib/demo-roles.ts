@@ -80,7 +80,7 @@ export const CHURCH_ROLES: ChurchRole[] = [
     scope: 'limited',
     label: 'Ministry Admin: Music Ministry',
     can: 'The Music Ministry member list, messages to that ministry, and edits to its page (sent for approval).',
-    cannot: 'Other ministries, giving, website content or the admin team.',
+    cannot: 'Other ministries, giving, creating or publishing pages, or the admin team.',
     home: '/admin/families',
     allow: ['/admin/families', '/admin/communications', '/admin/pages'],
     deny: ['/admin/pages/new', '/admin/pages/review'],

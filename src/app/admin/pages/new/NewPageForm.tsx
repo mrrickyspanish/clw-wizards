@@ -86,7 +86,7 @@ export function NewPageForm() {
         <Button onClick={start} className="text-base">
           Start with sample content
         </Button>
-        <p className="text-sm text-clw-gray">The page opens filled with sample text and photos so you can see where everything goes. It stays a draft until a Church Admin publishes it.</p>
+        <p className="text-base text-clw-gray">The page opens filled with sample text and photos so you can see where everything goes. It stays a draft until a Church Admin publishes it.</p>
       </section>
     </div>
   )

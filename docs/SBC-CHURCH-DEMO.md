@@ -78,8 +78,8 @@ source keeps the club's words.
 ## Status (Nov 20)
 
 - **Done:**
-  - Six staff roles: Church Admin, Communications, Giving Admin, Group Admin
-    (Music Ministry), Group Note Sender (Grief & Recovery) and Ministry Staff.
+  - Six staff roles: Church Admin, Communications, Giving Admin, Ministry Admin
+    (Music Ministry), Note Sender (Grief & Recovery) and Ministry Staff.
   - Giving is visible only to Giving Admin.
   - The member menu reads Household Members.
   - No password, and read-only everywhere.
@@ -93,7 +93,7 @@ source keeps the club's words.
     creative-eye-agent-os.
   - Access (`pages` on each role in `demo-roles.ts`): Church Admin full;
     Page Editor (new role, `pages@sbc-demo.example`) creates and edits drafts;
-    Group Admin edits only Music Ministry's page; others have no Pages item.
+    Ministry Admin edits only Music Ministry's pages; others have no Pages item.
   - The files are written in church words and are skipped by
     `scripts/demo-church.mjs`. Photos are in `public/images/sbc-pages/`: all are
     AI-generated samples from the SBC preview (job IDs in
@@ -101,5 +101,5 @@ source keeps the club's words.
     real concert frames: the recap still needs PR ministry sign-off.
   - The Page Editor login exists only after a church reset at `/demo-reset`.
 - **Open:**
-  - Known gap: a Group Admin can open other households through a direct
+  - Known gap: a Ministry Admin can open other households through a direct
     `/admin/families/<id>` address.
