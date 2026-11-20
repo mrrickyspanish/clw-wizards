@@ -213,7 +213,7 @@ export async function recipientWrestlerRows(target: CommTarget, profileIds: stri
  * as the rosters and spot counts.
  */
 async function registeredAthleteIds(supabase: AdminClient, tournamentId: string): Promise<string[]> {
-  const [{ data: onSite }, { data: pasted }, { data: tournament }] = await Promise.all([
+  const [{ data: onSite, error: onSiteError }, { data: pasted }, { data: tournament }] = await Promise.all([
     supabase
       .from('tournament_registrations')
       .select('athlete_id, status, fee_cents, paid_cents, payment_method')
@@ -222,6 +222,18 @@ async function registeredAthleteIds(supabase: AdminClient, tournamentId: string)
     supabase.from('tournament_entries').select('athlete_id').eq('tournament_id', tournamentId).not('athlete_id', 'is', null),
     supabase.from('tournaments').select('entry_fee_cents').eq('id', tournamentId).maybeSingle(),
   ])
+  if (onSiteError) {
+    // A database without the Nov 20 payment columns yet: the lookup as it was
+    // before them, with no paid filter, so families never silently drop off.
+    const { data: plainRows } = await supabase
+      .from('tournament_registrations')
+      .select('athlete_id')
+      .eq('tournament_id', tournamentId)
+      .in('status', ['registered', 'confirmed'])
+    return [
+      ...new Set([...(plainRows ?? []).map((r) => r.athlete_id), ...(pasted ?? []).map((r) => r.athlete_id as string)]),
+    ]
+  }
   let site = onSite ?? []
   const entryFee = tournament?.entry_fee_cents ?? null
   if (site.some((r) => (r.fee_cents ?? entryFee ?? 0) > 0)) {

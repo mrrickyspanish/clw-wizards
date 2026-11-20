@@ -160,16 +160,43 @@ export function tournamentPaymentNotice(f: {
   tournamentName: string
   tournamentId: string | null
   paidCents: number
+  // Wrestlers whose entry the family had withdrawn while the payment was
+  // open; the payment put them back on the list.
+  reregisteredNames?: string[]
 }): PaymentNotice {
   const entries = f.entries === 1 ? '1 tournament entry' : `${f.entries} tournament entries`
+  const back = f.reregisteredNames ?? []
   return {
     subject: `Tournament entry paid: ${f.tournamentName} (${formatCents(f.paidCents)})`,
     lines: [
       `${f.payerName ?? 'A family'} paid ${formatCents(f.paidCents)} for ${entries} at ${f.tournamentName}.`,
       `Wrestlers: ${wrestlerList(f.wrestlerNames)}.`,
+      back.length
+        ? `Re-registered by payment: ${back.join(', ')} (withdrawn while the payment was open, now registered again).`
+        : null,
     ],
     link: tournamentLink(f.tournamentId),
   }
+}
+
+/**
+ * What the refunded checkout's entries show after the refund, read back from
+ * the registrations (a full refund clears a card payment only when nothing
+ * else covers the entry).
+ */
+export type TournamentRefundEntries = {
+  // No payment and no mark left: the entry shows payment due.
+  nowDue: number
+  // Still paid by card: another card checkout covers it.
+  paidByOtherCard: number
+  // Still covered by an admin's cash, check or waived mark.
+  markedByAdmin: number
+  // Listed on the checkout but no longer on the roster.
+  removed: number
+}
+
+function entryCount(n: number) {
+  return n === 1 ? '1 entry' : `${n} entries`
 }
 
 /** A tournament entry payment was refunded in Stripe. Never says donation or sponsorship. */
@@ -179,18 +206,35 @@ export function tournamentRefundNotice(f: {
   tournamentName: string
   tournamentId: string | null
   refundedCents: number
-  full: boolean
+  // Some of the charge is still held: Stripe refunded only part of it.
+  partial: boolean
+  // null when the entries could not be read back.
+  entries: TournamentRefundEntries | null
 }): PaymentNotice {
   const who = f.payerName ?? 'a family'
   const amount = formatCents(f.refundedCents)
+  const e = f.entries
+  const state = f.partial
+    ? ['Partial refund: the entries still show paid. Adjust them on the roster if needed.']
+    : !e
+      ? ['Full refund. Check the roster for what each entry shows now.']
+      : [
+        'Full refund.',
+        e.nowDue ? `${entryCount(e.nowDue)} now ${e.nowDue === 1 ? 'shows' : 'show'} payment due.` : null,
+        e.paidByOtherCard
+          ? `${entryCount(e.paidByOtherCard)} still ${e.paidByOtherCard === 1 ? 'shows' : 'show'} paid: another card payment covers ${e.paidByOtherCard === 1 ? 'it' : 'them'}.`
+          : null,
+        e.markedByAdmin
+          ? `${entryCount(e.markedByAdmin)} still ${e.markedByAdmin === 1 ? 'shows' : 'show'} paid: a cash, check or waived mark covers ${e.markedByAdmin === 1 ? 'it' : 'them'}.`
+          : null,
+        e.removed ? `${entryCount(e.removed)} ${e.removed === 1 ? 'is' : 'are'} no longer on the roster.` : null,
+      ]
   return {
     subject: `Refund: ${amount} to ${who} (tournament entry)`,
     lines: [
       `A tournament entry payment from ${who} for ${f.tournamentName} was refunded: ${amount}.`,
       `Wrestlers: ${wrestlerList(f.wrestlerNames)}.`,
-      f.full
-        ? 'Full refund: these entries now show payment due.'
-        : 'Partial refund: the entries still show paid. Adjust them on the roster if needed.',
+      ...state.filter((line): line is string => line != null),
     ],
     link: tournamentLink(f.tournamentId),
   }

@@ -41,6 +41,17 @@ export type TournamentCheckoutResult =
   | { ok: true; url: string | null }
   | { ok: false; status: number; code: string; error: string }
 
+/**
+ * Stripe's shortest session lifetime is 30 minutes after the session is
+ * created. One extra minute keeps the value valid when it reaches Stripe a
+ * moment after it was computed here (a value under 30 minutes is refused).
+ */
+export const CHECKOUT_SESSION_MINUTES = 31
+
+export function sessionExpiresAt(nowMs: number = Date.now()): number {
+  return Math.floor(nowMs / 1000) + CHECKOUT_SESSION_MINUTES * 60
+}
+
 export const MAX_DIVISION_LENGTH = 60
 export const MAX_GRADE_LENGTH = 20
 
@@ -198,25 +209,34 @@ export async function checkoutTournament(params: {
   }
 
   // 1. Register and lock the price. Payment columns other than fee_cents are
-  //    left alone, so nothing here marks an entry paid.
-  const { data: registrations, error: upsertError } = await admin
-    .from('tournament_registrations')
-    .upsert(
-      entries.map((e) => ({
-        tournament_id: tournamentId,
-        athlete_id: e.athleteId,
-        parent_id: user.id,
-        status: existing.get(e.athleteId)?.status === 'confirmed' ? ('confirmed' as const) : ('registered' as const),
-        weight: e.weight,
-        division: e.division,
-        grade: e.grade,
-        fee_cents: fee,
-      })),
-      { onConflict: 'tournament_id,athlete_id' }
-    )
-    .select('id, athlete_id')
-  if (upsertError) throw new Error(`Could not save registrations: ${upsertError.message}`)
-  const registrationIds = athleteIds.map((id) => (registrations ?? []).find((r) => r.athlete_id === id)?.id)
+  //    left alone, so nothing here marks an entry paid. The payer becomes
+  //    parent_id only on a new registration: an existing row keeps the
+  //    parent_id it has, so paying never hands a co-parent lasting access to
+  //    the row (the payer is kept on tournament_checkouts.payer_id).
+  const details = (e: CleanEntry) => ({
+    status: existing.get(e.athleteId)?.status === 'confirmed' ? ('confirmed' as const) : ('registered' as const),
+    weight: e.weight,
+    division: e.division,
+    grade: e.grade,
+    fee_cents: fee,
+  })
+  const savedIds = new Map<string, string>()
+  for (const e of entries.filter((entry) => existing.has(entry.athleteId))) {
+    const row = existing.get(e.athleteId)!
+    const { error: updateError } = await admin.from('tournament_registrations').update(details(e)).eq('id', row.id)
+    if (updateError) throw new Error(`Could not save registrations: ${updateError.message}`)
+    savedIds.set(e.athleteId, row.id)
+  }
+  const fresh = entries.filter((entry) => !existing.has(entry.athleteId))
+  if (fresh.length) {
+    const { data: inserted, error: insertError } = await admin
+      .from('tournament_registrations')
+      .insert(fresh.map((e) => ({ tournament_id: tournamentId, athlete_id: e.athleteId, parent_id: user.id, ...details(e) })))
+      .select('id, athlete_id')
+    if (insertError) throw new Error(`Could not save registrations: ${insertError.message}`)
+    for (const r of inserted ?? []) savedIds.set(r.athlete_id, r.id)
+  }
+  const registrationIds = athleteIds.map((id) => savedIds.get(id))
   if (registrationIds.some((id) => !id)) throw new Error('Saved registrations did not come back for every wrestler.')
 
   // 2. One checkout row for this one Stripe session.
@@ -254,6 +274,9 @@ export async function checkoutTournament(params: {
         },
       ],
       metadata: { flow: 'tournament', checkout_id: checkout.id },
+      // Short-lived on purpose: it narrows the window for two tabs paying the
+      // same wrestler, or an entry or tournament being removed mid-payment.
+      expires_at: sessionExpiresAt(),
     })
   } catch (err) {
     // No session, so nothing can pay this row. The registrations stay, showing

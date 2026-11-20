@@ -310,7 +310,31 @@ async function handleTournamentFlow(session: Stripe.Checkout.Session) {
     })
   }
 
+  // A family can withdraw an unpaid entry while its Stripe tab is still open
+  // and then pay. The money is for that entry, so it goes back on the list
+  // rather than sitting paid but withdrawn.
+  let reregisteredIds: string[] = []
+  const coveredIds = stored.registration_ids ?? []
+  if (coveredIds.length) {
+    const { data: back, error: backError } = await supabase
+      .from('tournament_registrations')
+      .update({ status: 'registered' })
+      .in('id', coveredIds)
+      .eq('status', 'withdrawn')
+      .select('id, athlete_id')
+    if (backError) {
+      await sendAlert('Tournament entry paid while withdrawn: set it back to registered on the roster', {
+        checkoutId,
+        tournament: result.tournament_name,
+        error: backError.message,
+      })
+    } else {
+      reregisteredIds = (back ?? []).map((r) => r.athlete_id)
+    }
+  }
+
   const names = await tournamentNames(result.payer_id, result.athlete_ids)
+  const backNames = await tournamentNames(null, reregisteredIds)
   try {
     await sendPaymentNotice(
       tournamentPaymentNotice({
@@ -320,6 +344,7 @@ async function handleTournamentFlow(session: Stripe.Checkout.Session) {
         tournamentName: result.tournament_name,
         tournamentId: result.tournament_id,
         paidCents: amountPaidCents,
+        reregisteredNames: backNames.wrestlers,
       })
     )
   } catch (err) {
@@ -333,6 +358,7 @@ async function handleTournamentFlow(session: Stripe.Checkout.Session) {
       amountPaidCents,
       tournamentName: result.tournament_name,
       wrestlerNames: names.wrestlers,
+      entriesMarked: result.registrations_marked,
       sessionId: session.id,
     })
   }
@@ -671,14 +697,18 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
     _intent: paymentIntentId,
     _net: stillPaidCents,
   })
-  if (tournamentError) throw tournamentError
-  const tournamentRefund = (tournamentRows ?? [])[0]
+  // Before the tournament payment migration is applied the function does not
+  // exist yet (PostgREST PGRST202, Postgres 42883). That is "not a tournament
+  // payment": fall through, so donation and sponsor refunds keep working.
+  const refundFunctionMissing = tournamentError?.code === 'PGRST202' || tournamentError?.code === '42883'
+  if (tournamentError && !refundFunctionMissing) throw tournamentError
+  const tournamentRefund = refundFunctionMissing ? undefined : (tournamentRows ?? [])[0]
   if (tournamentRefund?.found) {
     // Stripe can redeliver this event; only a refund that changed the record is news.
     if (tournamentRefund.changed) {
       const { data: checkout } = await supabase
         .from('tournament_checkouts')
-        .select('tournament_id, athlete_ids')
+        .select('tournament_id, athlete_ids, registration_ids')
         .eq('stripe_payment_intent_id', paymentIntentId)
         .maybeSingle()
       const names = await tournamentNames(tournamentRefund.payer_id, checkout?.athlete_ids ?? [])
@@ -689,7 +719,9 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
           tournamentName: tournamentRefund.tournament_name ?? 'a tournament',
           tournamentId: checkout?.tournament_id ?? null,
           refundedCents: tournamentRefund.refunded_cents ?? 0,
-          full: stillPaidCents <= 0,
+          partial: stillPaidCents > 0,
+          // A partial refund leaves the entries as they were; only a full one is read back.
+          entries: stillPaidCents > 0 ? null : await refundedEntryState(checkout?.registration_ids ?? []),
         })
       )
     }
@@ -736,6 +768,34 @@ async function familyNames(parentId: string | null, athleteId: string | null) {
     parent: (parent?.full_name as string | null | undefined) ?? null,
     wrestler: athlete ? `${athlete.first_name} ${athlete.last_name}` : null,
   }
+}
+
+/**
+ * What a refunded checkout's entries actually show now, read back after the
+ * refund was recorded, so the notice never says "payment due" for an entry
+ * another card payment or an admin's mark still covers. null when the read
+ * fails: the refund is already recorded, so the notice still goes out (a
+ * redelivered event would report "unchanged" and send nothing).
+ */
+async function refundedEntryState(registrationIds: string[]) {
+  const state = { nowDue: 0, paidByOtherCard: 0, markedByAdmin: 0, removed: 0 }
+  if (!registrationIds.length) return state
+  const { data, error } = await createAdminSupabase()
+    .from('tournament_registrations')
+    .select('id, paid_cents, payment_method')
+    .in('id', registrationIds)
+  if (error) {
+    console.error('Refunded tournament entries unreadable:', error.message)
+    return null
+  }
+  const rows = data ?? []
+  for (const r of rows) {
+    if (r.payment_method === 'card') state.paidByOtherCard++
+    else if (r.payment_method) state.markedByAdmin++
+    else state.nowDue++
+  }
+  state.removed = registrationIds.length - rows.length
+  return state
 }
 
 /** The payer's name and the wrestlers' names for a tournament notice. Never throws. */
@@ -862,6 +922,9 @@ async function sendTournamentReceiptEmail(params: {
   amountPaidCents: number
   tournamentName: string
   wrestlerNames: string[]
+  // Entries this payment marked paid. 0 means none was (removed before
+  // payment, or already marked cash, check or waived): the club follows up.
+  entriesMarked: number
   sessionId: string
 }) {
   const resend = getResend()
@@ -869,6 +932,7 @@ async function sendTournamentReceiptEmail(params: {
 
   const amount = formatCents(params.amountPaidCents)
   const who = params.wrestlerNames.length ? ` for ${escapeHtml(params.wrestlerNames.join(', '))}` : ''
+  const entryLine = params.entriesMarked > 0 ? 'Your entry is paid.' : 'The club will contact you about this entry.'
 
   await sendReceiptEmail(
     () =>
@@ -876,7 +940,7 @@ async function sendTournamentReceiptEmail(params: {
         from: FROM_ADDRESS,
         to: [params.to],
         subject: `${ORG.shortName} - Tournament entry payment received`,
-        html: `<p>Thank you! We received your payment of <strong>${amount}</strong>${who}.</p><p>Tournament: ${escapeHtml(params.tournamentName)}. Your entry is paid.</p><p>Need to change or cancel an entry? Reply to this email or contact the club.</p><p style="color:#999;font-size:12px;">Reference: ${params.sessionId.slice(-12).toUpperCase()}</p>`,
+        html: `<p>Thank you! We received your payment of <strong>${amount}</strong>${who}.</p><p>Tournament: ${escapeHtml(params.tournamentName)}. ${entryLine}</p><p>Need to change or cancel an entry? Reply to this email or contact the club.</p><p style="color:#999;font-size:12px;">Reference: ${params.sessionId.slice(-12).toUpperCase()}</p>`,
       }),
     (message) => sendAlert('Tournament receipt email failed', { sessionId: params.sessionId, error: message })
   )

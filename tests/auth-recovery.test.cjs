@@ -4173,7 +4173,7 @@ const E4 = {
 const e4Money = { formatCents: (cents) => `$${(cents / 100).toFixed(2)}` }
 const e4Org = { ORG: { contactEmail: 'club@example.com', shortName: 'CLW', domain: 'clwizards.com', name: 'Example Club' } }
 
-function eng004Db(tables) {
+function eng004Db(tables, { refundFunctionMissing = false } = {}) {
   let n = 0
   const defaults = {
     tournament_registrations: { status: 'registered', fee_cents: null, paid_cents: 0, paid_at: null, payment_method: null },
@@ -4235,6 +4235,9 @@ function eng004Db(tables) {
     const checkouts = tables.tournament_checkouts ?? []
     const regs = tables.tournament_registrations ?? []
     if (name === 'record_dues_refund') return { data: [{ found: false, changed: false }], error: null }
+    if (name === 'record_tournament_refund' && refundFunctionMissing) {
+      return { data: null, error: { code: 'PGRST202', message: 'Could not find the function public.record_tournament_refund' } }
+    }
     if (name === 'record_tournament_payment') {
       const v = checkouts.find((c) => c.id === a._checkout)
       if (!v) return { data: null, error: { message: `Tournament checkout ${a._checkout} not found` } }
@@ -4474,8 +4477,8 @@ function eng004PaidTables() {
   }
 }
 
-function eng004Webhook(tables = eng004PaidTables()) {
-  const db = eng004Db(tables)
+function eng004Webhook(tables = eng004PaidTables(), dbOptions = {}) {
+  const db = eng004Db(tables, dbOptions)
   const alerts = [], sends = []
   class Resend { constructor() { this.emails = { send: async (message) => { sends.push(message); return { error: null } } } } }
   const notice = load('src/lib/payments/notice.ts', {
@@ -4532,6 +4535,8 @@ test('CLW-ENG-004: a paid checkout marks the entries paid by card and sends one 
   assert.match(receipt.subject, /Tournament entry payment received/)
   assert.match(receipt.html, /\$50\.00.*Ava Example, Max Example/)
   assert.doesNotMatch(receipt.html, /donation|tax-deductible|501\(c\)/i)
+  assert.match(receipt.html, /Your entry is paid\./)
+  assert.doesNotMatch(receipt.html, /The club will contact you/)
 })
 
 test('CLW-ENG-004: unpaid bank payments, overpayments, missing entries and a second payment on a paid checkout each alert the club', async () => {
@@ -4554,6 +4559,17 @@ test('CLW-ENG-004: unpaid bank payments, overpayments, missing entries and a sec
   assert.ok(titles.some((t) => /fewer entries paid/.test(t)), 'marked-lower alert')
   assert.equal(over.alerts.find((a) => /fewer/.test(a.title)).details.markedPaid, 1)
   assert.equal(over.notices().length, 1, 'the payment itself is still announced')
+  assert.match(over.receipts()[0].html, /Your entry is paid\./, 'one of two entries was marked by this card')
+
+  // Every entry already marked cash: the receipt still goes out, but never says paid.
+  const allCash = eng004PaidTables()
+  for (const r of allCash.tournament_registrations) Object.assign(r, { paid_cents: 2500, payment_method: 'cash' })
+  const none = eng004Webhook(allCash)
+  await none.send('checkout.session.completed', none.session())
+  assert.equal(none.alerts.find((a) => /fewer/.test(a.title)).details.markedPaid, 0)
+  assert.equal(none.receipts().length, 1)
+  assert.doesNotMatch(none.receipts()[0].html, /Your entry is paid/)
+  assert.match(none.receipts()[0].html, /\$50\.00.*The club will contact you about this entry\./)
 
   // A second session paid against the same, already paid checkout.
   const twice = eng004Webhook()
@@ -4599,7 +4615,7 @@ test('CLW-ENG-004: a tournament refund sends a tournament refund notice once, ne
   await h.send('charge.refunded', charge(5000))
   refunds = h.notices().filter((m) => /^Refund:/.test(m.subject))
   assert.equal(refunds.length, 2)
-  assert.match(refunds[1].text, /refunded: \$30\.00\.\nWrestlers: Ava Example, Max Example\.\nFull refund: these entries now show payment due\.\n\nTournament roster: https:\/\/clwizards\.com\/admin\/tournaments\//)
+  assert.match(refunds[1].text, /refunded: \$30\.00\.\nWrestlers: Ava Example, Max Example\.\nFull refund\.\n2 entries now show payment due\.\n\nTournament roster: https:\/\/clwizards\.com\/admin\/tournaments\//)
   for (const m of refunds) assert.doesNotMatch(m.text + m.subject, /donation|sponsor|Dues:/i)
   assert.equal(h.tables.tournament_checkouts[0].status, 'refunded')
   for (const r of h.tables.tournament_registrations) assert.equal(r.payment_method, null)
@@ -4620,7 +4636,11 @@ test('CLW-ENG-004: the dues notice text is unchanged; tournament notices go to t
   assert.deepEqual(plain(sends[1].to), ['treasurer@example.com', 'coach@example.com'])
   assert.equal(sends[1].text, `A family paid $25.00 for 1 tournament entry at Turkey Tussle.\nWrestlers: Ava Example.\n\nTournament roster: https://clwizards.com/admin/tournaments/${E4.T1}`)
   // A tournament deleted since keeps its money record and links to the list.
-  const gone = lib.tournamentRefundNotice({ payerName: 'Pat Example', wrestlerNames: [], tournamentName: 'Old Open', tournamentId: null, refundedCents: 2500, full: true })
+  const gone = lib.tournamentRefundNotice({ payerName: 'Pat Example', wrestlerNames: [], tournamentName: 'Old Open', tournamentId: null, refundedCents: 2500, partial: false, entries: { nowDue: 0, paidByOtherCard: 0, markedByAdmin: 0, removed: 1 } })
+  assert.match(gone.lines.join('\n'), /Full refund\.\n1 entry is no longer on the roster\./)
+  const unread = lib.tournamentRefundNotice({ payerName: null, wrestlerNames: [], tournamentName: 'Old Open', tournamentId: null, refundedCents: 2500, partial: false, entries: null })
+  assert.match(unread.lines.join('\n'), /Full refund\. Check the roster for what each entry shows now\./)
+  assert.doesNotMatch(unread.lines.join('\n'), /payment due/)
   assert.deepEqual(plain(gone.link), { label: 'Tournaments', path: '/admin/tournaments' })
   assert.doesNotMatch(gone.lines.join(' ') + gone.subject, /donation|sponsor/i)
 })
@@ -4649,6 +4669,119 @@ test('CLW-ENG-004: an unpaid registration on a priced tournament is left off rem
   assert.deepEqual(plain(kids.get('o1')), [{ first_name: 'Max', last_name: 'Ray' }])
   const free = await lib.resolveRecipients({ type: 'tournament_registrants', tournamentId: 't2' })
   assert.deepEqual(plain(free.map((p) => p.id).sort()), ['g1', 'o1'])
+})
+
+// CLW-QA-002 revision (Nov 20): refund wording from the entries' real state,
+// safe reads before the migrations, the no-entry receipt, parent_id kept on
+// existing rows, and a short Stripe session.
+test('CLW-ENG-004: refunding the second of two paid checkouts on one entry never says payment due', async () => {
+  const C2 = 'eeeeeeee-0000-4000-a000-000000000002'
+  const tables = eng004PaidTables()
+  tables.tournament_checkouts.push({
+    id: C2, tournament_id: E4.T1, tournament_name: 'Turkey Tussle', payer_id: E4.P1, registration_ids: [E4.R1], athlete_ids: [E4.K1],
+    amount_cents: 2500, net_cents: 0, status: 'pending', stripe_checkout_session_id: 'cs_test_2', stripe_payment_intent_id: null,
+  })
+  const h = eng004Webhook(tables)
+  await h.send('checkout.session.completed', h.session())
+  await h.send('checkout.session.completed', h.session({ id: 'cs_test_2', payment_intent: 'pi_test_2', amount_total: 2500, metadata: { flow: 'tournament', checkout_id: C2 } }))
+  assert.ok(h.alerts.some((a) => /overpaid/.test(a.title)), 'two tabs paid for Ava')
+  // The club refunds the duplicate in full after the overpay alert.
+  await h.send('charge.refunded', { id: 'ch_test_2', payment_intent: 'pi_test_2', amount: 2500, amount_refunded: 2500 })
+  const refund = h.notices().find((m) => /^Refund:/.test(m.subject))
+  assert.match(refund.text, /Full refund\.\n1 entry still shows paid: another card payment covers it\.\n\nTournament roster:/)
+  assert.doesNotMatch(refund.text, /payment due/)
+  assert.equal(tables.tournament_registrations[0].payment_method, 'card')
+
+  // A card payment refunded where an admin had marked one entry cash.
+  const cash = eng004PaidTables()
+  Object.assign(cash.tournament_registrations[1], { paid_cents: 2500, payment_method: 'cash' })
+  const c = eng004Webhook(cash)
+  await c.send('checkout.session.completed', c.session())
+  await c.send('charge.refunded', { id: 'ch_test_1', payment_intent: 'pi_test_1', amount: 5000, amount_refunded: 5000 })
+  const mixed = c.notices().find((m) => /^Refund:/.test(m.subject))
+  assert.match(mixed.text, /Full refund\.\n1 entry now shows payment due\.\n1 entry still shows paid: a cash, check or waived mark covers it\./)
+})
+
+test('CLW-ENG-004: before the payment migration, a refund still takes the donation or sponsorship path', async () => {
+  const h = eng004Webhook(eng004PaidTables(), { refundFunctionMissing: true })
+  const res = await h.send('charge.refunded', { id: 'ch_gift', payment_intent: 'pi_gift', amount: 5000, amount_refunded: 5000, billing_details: { name: 'Ann Donor' } })
+  assert.equal(res.status, 200)
+  assert.ok(!h.alerts.some((a) => /handler failed/.test(a.title)), 'a missing function is not an error')
+  assert.ok(h.alerts.some((a) => /no matching dues record/.test(a.title)))
+  const notice = h.notices().find((m) => /^Refund:/.test(m.subject))
+  assert.equal(notice.subject, 'Refund: $50.00 to Ann Donor')
+  assert.match(notice.text, /A donation or sponsorship \(not dues\)/)
+})
+
+test('CLW-ENG-004: reminder recipients fall back to the old lookup when the payment columns are missing', async () => {
+  const tables = familyTables()
+  tables.tournaments = [{ id: 't1', entry_fee_cents: 2500 }]
+  tables.tournament_entries = []
+  tables.tournament_registrations = [{ tournament_id: 't1', athlete_id: 'k1', status: 'registered' }]
+  const base = tableDb(tables)
+  const missingColumn = {
+    eq: () => missingColumn, in: () => missingColumn,
+    then: (resolve, reject) => Promise.resolve({ data: null, error: { code: '42703', message: 'column tournament_registrations.fee_cents does not exist' } }).then(resolve, reject),
+  }
+  const client = { from: (table) => {
+    const b = base.client.from(table)
+    if (table === 'tournament_registrations') {
+      const select = b.select
+      b.select = (cols) => (/fee_cents/.test(cols) ? missingColumn : select(cols))
+    }
+    return b
+  } }
+  const lib = load('src/lib/comms/recipients.ts', {
+    '@/lib/supabase/admin': { createAdminSupabase: () => client },
+    '@/lib/tournament-registration': load('src/lib/tournament-registration.ts', {}),
+  })
+  const recipients = await lib.resolveRecipients({ type: 'tournament_registrants', tournamentId: 't1' })
+  assert.deepEqual(plain(recipients.map((p) => p.id).sort()), ['g1', 'o1'], 'the family is still reached, with no paid filter')
+})
+
+test('CLW-ENG-004: paying never moves an existing entry to the payer, and the Stripe session lasts about 30 minutes', async () => {
+  const tables = eng004CheckoutTables()
+  tables.family_guardians[0].athlete_ids = null // whole-family co-parent
+  tables.tournament_registrations.push({ id: E4.R1, tournament_id: E4.T1, athlete_id: E4.K1, parent_id: E4.P1, status: 'confirmed', fee_cents: null, paid_cents: 0, payment_method: null })
+  const h = eng004Checkout({ user: { id: E4.G1, email: 'coparent@example.com' }, tables })
+  const before = Math.floor(Date.now() / 1000)
+  const res = await h.post({ tournamentId: E4.T1, entries: [h.entry(E4.K1), h.entry(E4.K2)] })
+  assert.equal(res.status, 200)
+  const existing = tables.tournament_registrations.find((r) => r.id === E4.R1)
+  assert.equal(existing.parent_id, E4.P1, 'an existing row keeps its parent_id')
+  assert.equal(existing.status, 'confirmed')
+  assert.equal(existing.fee_cents, 2500)
+  assert.equal(existing.weight, '52')
+  const added = tables.tournament_registrations.find((r) => r.athlete_id === E4.K2)
+  assert.equal(added.parent_id, E4.G1, 'a new row is the payer\'s')
+  assert.equal(tables.tournament_registrations.length, 2)
+  assert.equal(tables.tournament_checkouts[0].payer_id, E4.G1)
+  assert.deepEqual(plain(tables.tournament_checkouts[0].registration_ids), [E4.R1, added.id])
+
+  const expires = h.sessions[0].expires_at
+  assert.ok(expires >= before + 30 * 60, 'never under Stripe\'s 30 minute minimum')
+  assert.ok(expires <= Math.floor(Date.now() / 1000) + 32 * 60, 'about 30 minutes, not Stripe\'s 24 hour default')
+  assert.equal(h.lib.sessionExpiresAt(0), 31 * 60)
+})
+
+test('CLW-ENG-004: an entry withdrawn while its payment was open is registered again by the payment, and the notice says so', async () => {
+  const tables = eng004PaidTables()
+  tables.tournament_registrations[0].status = 'withdrawn'
+  const h = eng004Webhook(tables)
+  await h.send('checkout.session.completed', h.session())
+  await h.send('checkout.session.completed', h.session())
+  const [ava, max] = tables.tournament_registrations
+  assert.equal(ava.status, 'registered', 'paid entries never sit withdrawn')
+  assert.equal(ava.payment_method, 'card')
+  assert.equal(max.status, 'registered')
+  assert.equal(h.notices().length, 1)
+  assert.match(h.notices()[0].text, /\nRe-registered by payment: Ava Example \(withdrawn while the payment was open, now registered again\)\.\n/)
+  assert.doesNotMatch(h.notices()[0].text, /Max Example \(withdrawn/)
+
+  // Nothing withdrawn: no such line.
+  const plainPay = eng004Webhook()
+  await plainPay.send('checkout.session.completed', plainPay.session())
+  assert.doesNotMatch(plainPay.notices()[0].text, /Re-registered/)
 })
 
 // ---- CLW-ENG-005: tournament sessions and tap-to-map for parents and the public Events page ----
