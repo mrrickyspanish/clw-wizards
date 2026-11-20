@@ -4819,3 +4819,13 @@ test('CLW-ENG-005: the parent card still shows the single start time before the 
   assert.ok(html.includes('Starts 8:00 AM'))
   assert.ok(html.includes('REGISTER-CONTROLS'), 'the registration block still renders')
 })
+
+// ---- Profile role guard (Nov 20): parents cannot promote themselves ----
+test('only admins or the server can change a profile role, admin level or active status', () => {
+  const sql = require('fs').readFileSync(require('path').join(__dirname, '..', 'supabase/migrations/20261120000000_keep_role_admin_only.sql'), 'utf8')
+  assert.match(sql, /before insert or update of role, admin_scope, is_active on public\.profiles/)
+  assert.match(sql, /auth\.uid\(\) is null or public\.has_role\(auth\.uid\(\), 'admin'\)/)
+  assert.match(sql, /new\.role := old\.role;\s*new\.admin_scope := old\.admin_scope;\s*new\.is_active := old\.is_active;/)
+  assert.match(sql, /new\.role := 'parent';\s*new\.admin_scope := null;/)
+  assert.match(sql, /revoke execute on function public\.keep_role_admin_only\(\) from public, anon, authenticated/)
+})
