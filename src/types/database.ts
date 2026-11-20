@@ -909,7 +909,8 @@ export type Database = {
         Returns: number
       }
       // Server only (revoked from client roles). Applies one card checkout
-      // once; applied is false when Stripe sent it again.
+      // once; applied is false when Stripe sent it again. Raises when a
+      // registration in the checkout has no locked fee_cents.
       record_tournament_payment: {
         Args: { _checkout: string; _session: string; _intent: string | null; _amount: number }
         Returns: {
@@ -919,7 +920,13 @@ export type Database = {
           tournament_name: string
           athlete_ids: string[]
           amount_cents: number
+          // A registration already showed paid or waived before this payment.
           overpay: boolean
+          // Not applied, and the checkout was settled under a different
+          // Stripe session: money taken but not recorded.
+          session_mismatch: boolean
+          // Registrations this payment marked paid by card (0 when not applied).
+          registrations_marked: number
         }[]
       }
       // Server only. _net: what the charge still holds after all refunds.

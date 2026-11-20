@@ -3899,10 +3899,21 @@ test('CLW-ENG-001: payment columns are server-only and the record functions are 
   const pay = eng001Body(sql, 'record_tournament_payment')
   assert.match(pay, /FROM public\.tournament_checkouts c WHERE c\.id = _checkout FOR UPDATE/)
   assert.match(pay, /IF v\.status <> 'pending' THEN[\s\S]*?SELECT FALSE,[\s\S]*?RETURN;/)
-  assert.match(pay, /paid_cents = coalesce\(r\.fee_cents, r\.paid_cents\),\s*paid_at = now\(\),\s*payment_method = 'card'/)
+  // QA-001 M-1(b): a card payment never overwrites a cash, check or waived mark.
+  assert.match(pay, /paid_cents = r\.fee_cents,\s*paid_at = now\(\),\s*payment_method = 'card'\s*WHERE r\.id = ANY \(v\.registration_ids\)\s*AND \(r\.payment_method IS NULL OR r\.payment_method = 'card'\);/)
+  // QA-001 L-1: report a settled checkout paid under another session, count what was marked,
+  // and refuse a registration with no locked fee.
+  assert.match(sql, /overpay BOOLEAN,\s*session_mismatch BOOLEAN, registrations_marked INTEGER\s*\) LANGUAGE plpgsql SECURITY DEFINER/)
+  assert.match(pay, /\(v\.stripe_checkout_session_id IS DISTINCT FROM _session\), 0;/)
+  assert.match(pay, /r\.fee_cents IS NULL;\s*IF FOUND THEN\s*RAISE EXCEPTION/)
+  assert.match(pay, /GET DIAGNOSTICS v_marked = ROW_COUNT;[\s\S]*?v_overpay,\s*FALSE, v_marked;/)
   const refund = eng001Body(sql, 'record_tournament_refund')
   assert.match(refund, /v_delta := v\.net_cents - v_net;\s*IF v_delta <= 0 THEN/)
   assert.match(refund, /CASE WHEN v_net = 0 THEN 'refunded' ELSE 'partially_refunded' END/)
+  // QA-001 M-1(a): a full refund keeps a registration another paid checkout still covers.
+  assert.match(refund, /r\.payment_method = 'card'\s*AND NOT EXISTS \(\s*SELECT 1 FROM public\.tournament_checkouts c2\s*WHERE c2\.id <> v\.id AND c2\.status IN \('paid', 'partially_refunded'\) AND r\.id = ANY \(c2\.registration_ids\)\s*\);/)
+  // QA-001 L-2: the trigger function is not callable by client roles.
+  assert.match(sql, /REVOKE EXECUTE ON FUNCTION public\.keep_registration_payment_server_only\(\) FROM PUBLIC, anon, authenticated;/)
   assert.match(sql, /entry_fee_cents BETWEEN 100 AND 100000/)
   assert.match(sql, /payment_method IN \('card', 'cash', 'check', 'waived'\)/)
 })
@@ -3925,6 +3936,14 @@ test('CLW-ENG-001: family_tournament_roster checks guards_athlete on both source
   assert.match(tw, /public\.guards_athlete\(e\.athlete_id\)/)
   assert.match(tw, /e\.athlete_id IS NOT NULL/)
   assert.match(tw, /'trackwrestling'::TEXT, NULL::TEXT, NULL::TEXT, NULL::TEXT/)
+  // QA-001 (ENG-002 L-1): waived first, then a missing or zero effective fee is free, then paid, else due.
+  const states = [...site.matchAll(/WHEN ([\s\S]*?) THEN '([a-z]+)'|ELSE '([a-z]+)'/g)].map((m) => m[3] ? ['ELSE', m[3]] : [m[1].trim(), m[2]])
+  assert.deepEqual(states, [
+    ["r.payment_method = 'waived'", 'waived'],
+    ['coalesce(r.fee_cents, t.entry_fee_cents, 0) = 0', 'free'],
+    ['r.paid_cents >= coalesce(r.fee_cents, t.entry_fee_cents)', 'paid'],
+    ['ELSE', 'due'],
+  ])
   for (const part of [site, tw]) {
     assert.match(part, /auth\.uid\(\) IS NOT NULL/)
     assert.match(part, /t\.date >= current_date - 30/)
