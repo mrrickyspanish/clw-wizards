@@ -18,6 +18,7 @@ import {
 import { DuesEditDialog } from './DuesEditDialog'
 import { AdminSearch } from '../AdminSearch'
 import { matchesSearch } from '@/lib/search'
+import { churchFund } from '@/lib/demo-giving'
 
 const STATUS_STYLES: Record<DuesPayment['status'], string> = {
   paid: 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold',
@@ -269,7 +270,7 @@ function ChurchGiving({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {gifts.map((d, i) => {
+              {gifts.map((d) => {
                 const giver = parentById.get(d.parent_id)
                 return (
                   <TableRow key={d.id} className="border-clw-gold/10">
@@ -277,7 +278,7 @@ function ChurchGiving({
                       {giver?.full_name ?? 'Giver'}
                       <span className="block text-sm text-clw-gray">{giver?.email ?? 'No email'}</span>
                     </TableCell>
-                    <TableCell className="text-base text-clw-gray">{CHURCH_FUNDS[i % CHURCH_FUNDS.length]}</TableCell>
+                    <TableCell className="text-base text-clw-gray">{churchFund(d.id)}</TableCell>
                     <TableCell className="text-base text-clw-white">{money(d.amount_paid_cents)}</TableCell>
                     <TableCell className="text-base text-clw-gray">{formatDate(d.due_date)}</TableCell>
                     <TableCell className="text-right">
@@ -294,4 +295,3 @@ function ChurchGiving({
   )
 }
 
-const CHURCH_FUNDS = ['Tithe', 'Offering', 'Building Fund', 'Missions']

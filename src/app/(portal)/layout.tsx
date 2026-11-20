@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { ReadOnlyBanner } from '@/components/demo/ReadOnlyBanner'
 import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
 import Link from 'next/link'
-import { Eye, LayoutDashboard, Users, FolderOpen, HandCoins, Trophy, User, UsersRound } from 'lucide-react'
+import { Eye, LayoutDashboard, Users, FolderOpen, HandCoins, MapIcon, Trophy, User, UsersRound } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 
@@ -15,7 +15,7 @@ import { ThemeScope } from '@/components/layout/ThemeScope'
 const PORTAL_NAV: NavItem[] = [
   { href: '/dashboard', label: 'Home', icon: <LayoutDashboard className="w-4 h-4" /> },
   { href: '/athletes', label: 'My Athletes', icon: <Users className="w-4 h-4" /> },
-  { href: '/tournaments', label: 'Tournaments', icon: <Trophy className="w-4 h-4" /> },
+  { href: '/tournaments', label: 'Tournaments', icon: CHURCH_READ_ONLY ? <MapIcon className="w-4 h-4" /> : <Trophy className="w-4 h-4" /> },
   { href: '/dues', label: 'Dues', icon: <HandCoins className="w-4 h-4" /> },
   { href: '/documents', label: 'Documents', icon: <FolderOpen className="w-4 h-4" /> },
   { href: '/family', label: 'Family', icon: <UsersRound className="w-4 h-4" /> },

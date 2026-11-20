@@ -177,14 +177,14 @@ export default async function AdminFamiliesPage({
                       <Link href={`/admin/families/${family.id}`} className="inline-block py-1 font-medium text-clw-white hover:text-clw-gold">
                         {family.full_name ?? 'Unnamed parent'}
                       </Link>
-                      <span className="block text-sm text-clw-gray/70">{family.email ?? '—'}</span>
+                      <span className="block text-sm text-clw-gray/70">{family.email ?? (CHURCH_READ_ONLY ? 'No email' : '—')}</span>
                     </TableCell>
-                    <TableCell className="text-clw-gray">{family.phone ?? '—'}</TableCell>
+                    <TableCell className="text-clw-gray">{family.phone ?? (CHURCH_READ_ONLY ? 'Not added' : '—')}</TableCell>
                     <TableCell className="text-clw-gray">
                       {counts.total > 0
                         ? `${counts.active} active / ${counts.total} total`
                         : coParentOf.length === 0
-                          ? '—'
+                          ? CHURCH_READ_ONLY ? 'No one added yet' : '—'
                           : null}
                       {coParentOf.length > 0 && (
                         <span className="block text-sm text-clw-gray">{CHURCH_READ_ONLY ? 'Shares household with' : 'Co-parent'}: {coParentOf.join(', ')}</span>
@@ -196,7 +196,7 @@ export default async function AdminFamiliesPage({
                           opted in
                         </Badge>
                       ) : (
-                        <span className="text-clw-gray/50">—</span>
+                        <span className={CHURCH_READ_ONLY ? 'text-clw-gray' : 'text-clw-gray/50'}>{CHURCH_READ_ONLY ? 'Not set' : '—'}</span>
                       )}
                     </TableCell>
                     <TableCell>

@@ -22,6 +22,7 @@ import type { Tournament, TournamentRegistration, Practice, Athlete, ClubEvent, 
 import { wrestlerAgeDivision } from '@/lib/age-division'
 import { sessionFor, sessionsByEvent } from '@/lib/event-sessions'
 import { SeasonRegistrationCard } from './SeasonRegistrationCard'
+import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
 
 function greeting(): string {
   const h = chicagoHour()
@@ -97,7 +98,7 @@ export default async function ParentDashboardPage() {
   const fullName = profile?.full_name ?? 'Wizard family'
   const athleteRows = (athletes ?? []) as Athlete[]
   const noAthletes = athleteRows.length === 0
-  const outstandingCents = (dues ?? []).reduce((sum, d) => sum + (d.amount_cents - d.amount_paid_cents), 0)
+  const outstandingCents = CHURCH_READ_ONLY ? 0 : (dues ?? []).reduce((sum, d) => sum + (d.amount_cents - d.amount_paid_cents), 0)
 
   // Next event (registered, future)
   const registeredIds = [
@@ -147,7 +148,7 @@ export default async function ParentDashboardPage() {
       date: d.uploaded_at,
     })),
     ...((paidDues ?? []) as { updated_at: string; season: string }[]).map((d) => ({
-      label: `Paid ${d.season} dues`,
+      label: CHURCH_READ_ONLY ? 'Gave to the church' : `Paid ${d.season} dues`,
       date: d.updated_at,
     })),
   ]

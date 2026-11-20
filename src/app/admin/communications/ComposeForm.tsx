@@ -400,7 +400,8 @@ export function ComposeForm({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {(Object.keys(AUDIENCE_LABELS) as AudienceKind[]).map((kind) => (
+            {/* Church demo: no balance or paperwork audiences (giving is gifts only; member Documents is hidden). */}
+            {(Object.keys(AUDIENCE_LABELS) as AudienceKind[]).filter((kind) => !CHURCH_READ_ONLY || (kind !== 'outstanding_dues' && kind !== 'missing_documents')).map((kind) => (
               <SelectItem key={kind} value={kind}>
                 {AUDIENCE_LABELS[kind]}
               </SelectItem>

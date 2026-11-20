@@ -30,7 +30,7 @@ function Detail({ label, value }: { label: string; value: string | null }) {
   return (
     <div>
       <dt className="text-xs uppercase tracking-wide text-clw-gray/70">{label}</dt>
-      <dd className="text-clw-white">{value || '—'}</dd>
+      <dd className="text-clw-white">{value || (CHURCH_READ_ONLY ? 'Not added' : '—')}</dd>
     </div>
   )
 }

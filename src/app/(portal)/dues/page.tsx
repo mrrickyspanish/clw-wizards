@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { DuesPayControls } from './DuesPayControls'
 import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
+import { churchFund } from '@/lib/demo-giving'
 
 const STATUS_STYLES: Record<DuesPayment['status'], string> = {
   paid: 'border-clw-gold/40 bg-clw-gold/10 text-clw-gold-ink',
@@ -140,7 +141,6 @@ export default async function DuesPage({
   )
 }
 
-const CHURCH_FUNDS = ['Tithe', 'Offering', 'Building Fund', 'Missions']
 
 function ChurchMemberGiving({ rows }: { rows: DuesPayment[] }) {
   const gifts = rows.filter((d) => d.amount_paid_cents > 0)
@@ -165,11 +165,11 @@ function ChurchMemberGiving({ rows }: { rows: DuesPayment[] }) {
         </div>
       ) : (
         <div className="space-y-3">
-          {gifts.map((d, i) => (
+          {gifts.map((d) => (
             <Card key={d.id} className="border-clw-gold/10 bg-clw-black-3">
               <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
                 <div>
-                  <p className="text-base font-medium text-clw-white">{CHURCH_FUNDS[i % CHURCH_FUNDS.length]}</p>
+                  <p className="text-base font-medium text-clw-white">{churchFund(d.id)}</p>
                   <p className="text-base text-clw-gray">
                     {money(d.amount_paid_cents)}
                     {formatDate(d.due_date) && ` · given ${formatDate(d.due_date)}`}
