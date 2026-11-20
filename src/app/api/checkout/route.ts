@@ -11,6 +11,7 @@ import { duesCheckoutAmount } from '@/lib/payments/dues-amount'
 import { DONATIONS_ENABLED, DONATIONS_COMING_SOON_BODY } from '@/config/donations'
 import type { SponsorTier } from '@/types/database'
 import { DEMO_MODE } from '@/lib/demo'
+import type { TournamentCheckoutBody } from '@/lib/payments/tournament-checkout'
 
 interface DuesCheckoutBody {
   flow: 'dues'
@@ -39,7 +40,7 @@ interface SponsorCheckoutBody {
   returnPath?: string
 }
 
-type CheckoutBody = DuesCheckoutBody | DonationCheckoutBody | SponsorCheckoutBody
+type CheckoutBody = DuesCheckoutBody | DonationCheckoutBody | SponsorCheckoutBody | TournamentCheckoutBody
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -155,6 +156,7 @@ export async function POST(request: Request) {
     if (body.flow === 'dues') return await checkoutDues(stripe, body, siteOrigin)
     if (body.flow === 'donation') return await checkoutDonation(stripe, body, siteOrigin)
     if (body.flow === 'sponsor') return await checkoutSponsor(stripe, body, siteOrigin)
+    if (body.flow === 'tournament') return await checkoutTournamentEntries(stripe, body, siteOrigin)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     // A rotated, revoked or test-mode key is the single most common reason a
@@ -243,6 +245,25 @@ async function checkoutDues(stripe: Stripe, body: DuesCheckoutBody, siteOrigin: 
   })
 
   return NextResponse.json({ url: session.url })
+}
+
+/**
+ * In-house tournament entries (B4). The checks, the price lock, the checkout
+ * record and the Stripe session live in lib/payments/tournament-checkout.ts.
+ * It is loaded only for this flow, so the dues, donation and sponsor paths
+ * keep exactly the imports they had.
+ */
+async function checkoutTournamentEntries(stripe: Stripe, body: TournamentCheckoutBody, siteOrigin: string) {
+  const { checkoutTournament } = await import('@/lib/payments/tournament-checkout')
+  const returnPath = safeReturnPath(body.returnPath, '/tournaments')
+  const result = await checkoutTournament({
+    stripe,
+    body,
+    successUrl: returnUrl(siteOrigin, returnPath, 'checkout', 'success'),
+    cancelUrl: returnUrl(siteOrigin, returnPath, 'checkout', 'cancelled'),
+  })
+  if (!result.ok) return checkoutError(result.error, result.code, result.status)
+  return NextResponse.json({ url: result.url })
 }
 
 async function checkoutDonation(stripe: Stripe, body: DonationCheckoutBody, siteOrigin: string) {

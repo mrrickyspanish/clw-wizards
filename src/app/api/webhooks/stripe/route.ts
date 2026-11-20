@@ -7,7 +7,14 @@ import { sendAlert } from '@/lib/alerts'
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { formatCents } from '@/lib/format/money'
 import { ORG } from '@/config/org.config'
-import { duesPaymentNotice, giftNotice, moneyOutNotice, sendPaymentNotice } from '@/lib/payments/notice'
+import {
+  duesPaymentNotice,
+  giftNotice,
+  moneyOutNotice,
+  sendPaymentNotice,
+  tournamentPaymentNotice,
+  tournamentRefundNotice,
+} from '@/lib/payments/notice'
 
 const ADMIN_EMAIL = process.env.ALERT_EMAIL ?? ORG.contactEmail
 
@@ -46,12 +53,18 @@ export async function POST(request: Request) {
       case 'checkout.session.async_payment_succeeded': {
         const session = event.data.object as Stripe.Checkout.Session
         if (session.metadata?.flow === 'dues') await handleDuesFlow(session)
+        else if (session.metadata?.flow === 'tournament') await handleTournamentFlow(session)
         break
       }
       case 'checkout.session.async_payment_failed': {
         const session = event.data.object as Stripe.Checkout.Session
         if (session.metadata?.flow === 'dues') {
           await sendAlert('Dues bank payment failed', { sessionId: session.id, duesId: session.metadata?.dues_id })
+        } else if (session.metadata?.flow === 'tournament') {
+          await sendAlert('Tournament entry bank payment failed: the entries still show payment due', {
+            sessionId: session.id,
+            checkoutId: session.metadata?.checkout_id,
+          })
         }
         break
       }
@@ -61,6 +74,7 @@ export async function POST(request: Request) {
         if (flow === 'dues') await handleDuesFlow(session)
         else if (flow === 'donation') await handleDonationFlow(session)
         else if (flow === 'sponsor') await handleSponsorFlow(session)
+        else if (flow === 'tournament') await handleTournamentFlow(session)
         else console.warn('Stripe checkout.session.completed with unrecognized flow:', flow, session.id)
         break
       }
@@ -185,6 +199,140 @@ async function handleDuesFlow(session: Stripe.Checkout.Session) {
       amountPaidCents,
       status: dues.status,
       remainingCents: Math.max(0, dues.amount_cents - dues.amount_paid_cents),
+      sessionId: session.id,
+    })
+  }
+}
+
+/**
+ * In-house tournament entries (B4). The checkout route made one
+ * tournament_checkouts row per Stripe session and put its id in the metadata.
+ * record_tournament_payment applies it once: a repeated event comes back
+ * applied = false and sends nothing.
+ */
+async function handleTournamentFlow(session: Stripe.Checkout.Session) {
+  const supabase = createAdminSupabase()
+  const checkoutId = session.metadata?.checkout_id
+  const amountPaidCents = session.amount_total ?? 0
+
+  if (!checkoutId) {
+    throw new Error(`Stripe tournament checkout ${session.id} is missing checkout_id metadata.`)
+  }
+  if (amountPaidCents <= 0) {
+    throw new Error(`Stripe tournament checkout ${session.id} has an invalid payment amount.`)
+  }
+  if (session.payment_status !== 'paid') {
+    await sendAlert('Tournament entry payment started but not yet received', {
+      sessionId: session.id,
+      checkoutId,
+      paymentStatus: session.payment_status,
+      amount: formatCents(amountPaidCents),
+    })
+    return
+  }
+
+  const { data: stored, error: storedError } = await supabase
+    .from('tournament_checkouts')
+    .select('id, status, stripe_checkout_session_id, registration_ids')
+    .eq('id', checkoutId)
+    .maybeSingle()
+  if (storedError) throw new Error(`Could not read tournament checkout ${checkoutId}: ${storedError.message}`)
+  if (!stored) {
+    throw new Error(`Tournament payment ${session.id} was taken but checkout ${checkoutId} does not exist.`)
+  }
+  // The function would quietly store this session over the one saved at
+  // checkout. That should never happen (one row per session), so say so.
+  if (stored.status === 'pending' && stored.stripe_checkout_session_id && stored.stripe_checkout_session_id !== session.id) {
+    await sendAlert('Tournament payment arrived under a different Stripe session than the checkout saved', {
+      checkoutId,
+      savedSessionId: stored.stripe_checkout_session_id,
+      paidSessionId: session.id,
+    })
+  }
+
+  const paymentIntentId =
+    typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id ?? null
+
+  const { data: rows, error } = await supabase.rpc('record_tournament_payment', {
+    _checkout: checkoutId,
+    _session: session.id,
+    _intent: paymentIntentId,
+    _amount: amountPaidCents,
+  })
+  // Money was taken and is not recorded yet. Failing makes Stripe retry, and
+  // the handler's alert tells the club why (for example a registration with
+  // no locked price).
+  if (error) throw new Error(`Tournament payment ${session.id} was taken but could not be recorded: ${error.message}`)
+  const result = (rows ?? [])[0]
+  if (!result) throw new Error(`Tournament payment ${session.id} was taken but checkout ${checkoutId} returned nothing.`)
+
+  if (!result.applied) {
+    // Stripe sent the same payment again: nothing to do. A different session
+    // on a settled checkout is a second payment that nothing recorded.
+    if (result.session_mismatch) {
+      await sendAlert('Tournament payment received for a checkout that was already paid: refund or reconcile in Stripe', {
+        checkoutId,
+        tournament: result.tournament_name,
+        sessionId: session.id,
+        amount: formatCents(amountPaidCents),
+      })
+    }
+    return
+  }
+
+  if (amountPaidCents !== result.amount_cents) {
+    await sendAlert('Tournament payment amount differs from the checkout', {
+      checkoutId,
+      tournament: result.tournament_name,
+      expected: formatCents(result.amount_cents),
+      paid: formatCents(amountPaidCents),
+      sessionId: session.id,
+    })
+  }
+  if (result.overpay) {
+    await sendAlert('Tournament entry overpaid: refund the extra in Stripe', {
+      checkoutId,
+      tournament: result.tournament_name,
+      paid: formatCents(amountPaidCents),
+      detail: 'At least one entry already showed paid, cash, check or waived before this card payment.',
+      sessionId: session.id,
+    })
+  }
+  const expectedEntries = stored.registration_ids?.length ?? result.athlete_ids.length
+  if (result.registrations_marked < expectedEntries) {
+    await sendAlert('Tournament payment marked fewer entries paid than it covers', {
+      checkoutId,
+      tournament: result.tournament_name,
+      covers: expectedEntries,
+      markedPaid: result.registrations_marked,
+      detail: 'An entry was removed before payment, or an admin had already marked it cash, check or waived. Check the roster.',
+      sessionId: session.id,
+    })
+  }
+
+  const names = await tournamentNames(result.payer_id, result.athlete_ids)
+  try {
+    await sendPaymentNotice(
+      tournamentPaymentNotice({
+        payerName: names.payer,
+        wrestlerNames: names.wrestlers,
+        entries: expectedEntries,
+        tournamentName: result.tournament_name,
+        tournamentId: result.tournament_id,
+        paidCents: amountPaidCents,
+      })
+    )
+  } catch (err) {
+    console.error('Tournament payment notice failed:', err)
+  }
+
+  const customerEmail = session.customer_details?.email ?? session.customer_email
+  if (customerEmail) {
+    await sendTournamentReceiptEmail({
+      to: customerEmail,
+      amountPaidCents,
+      tournamentName: result.tournament_name,
+      wrestlerNames: names.wrestlers,
       sessionId: session.id,
     })
   }
@@ -517,6 +665,37 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
     return
   }
 
+  // A tournament entry payment (B4). Checked before the donation and
+  // sponsorship fallback below, so it is never reported as one of those.
+  const { data: tournamentRows, error: tournamentError } = await supabase.rpc('record_tournament_refund', {
+    _intent: paymentIntentId,
+    _net: stillPaidCents,
+  })
+  if (tournamentError) throw tournamentError
+  const tournamentRefund = (tournamentRows ?? [])[0]
+  if (tournamentRefund?.found) {
+    // Stripe can redeliver this event; only a refund that changed the record is news.
+    if (tournamentRefund.changed) {
+      const { data: checkout } = await supabase
+        .from('tournament_checkouts')
+        .select('tournament_id, athlete_ids')
+        .eq('stripe_payment_intent_id', paymentIntentId)
+        .maybeSingle()
+      const names = await tournamentNames(tournamentRefund.payer_id, checkout?.athlete_ids ?? [])
+      await sendPaymentNotice(
+        tournamentRefundNotice({
+          payerName: names.payer,
+          wrestlerNames: names.wrestlers,
+          tournamentName: tournamentRefund.tournament_name ?? 'a tournament',
+          tournamentId: checkout?.tournament_id ?? null,
+          refundedCents: tournamentRefund.refunded_cents ?? 0,
+          full: stillPaidCents <= 0,
+        })
+      )
+    }
+    return
+  }
+
   await sendPaymentNotice(
     moneyOutNotice({ kind: 'refund', who: charge.billing_details?.name ?? charge.receipt_email ?? null, amountCents: charge.amount_refunded, detail: 'A donation or sponsorship (not dues). Check the Stripe dashboard.' })
   )
@@ -556,6 +735,27 @@ async function familyNames(parentId: string | null, athleteId: string | null) {
   return {
     parent: (parent?.full_name as string | null | undefined) ?? null,
     wrestler: athlete ? `${athlete.first_name} ${athlete.last_name}` : null,
+  }
+}
+
+/** The payer's name and the wrestlers' names for a tournament notice. Never throws. */
+async function tournamentNames(payerId: string | null, athleteIds: string[]) {
+  try {
+    const supabase = createAdminSupabase()
+    const [{ data: payer }, { data: athletes }] = await Promise.all([
+      payerId ? supabase.from('profiles').select('full_name').eq('id', payerId).maybeSingle() : Promise.resolve({ data: null }),
+      athleteIds.length
+        ? supabase.from('athletes').select('id, first_name, last_name').in('id', athleteIds)
+        : Promise.resolve({ data: [] as { id: string; first_name: string; last_name: string }[] }),
+    ])
+    const byId = new Map((athletes ?? []).map((a) => [a.id, `${a.first_name} ${a.last_name}`]))
+    return {
+      payer: (payer?.full_name as string | null | undefined) ?? null,
+      wrestlers: athleteIds.map((id) => byId.get(id)).filter((name): name is string => Boolean(name)),
+    }
+  } catch (err) {
+    console.error('Tournament notice names unavailable:', err)
+    return { payer: null, wrestlers: [] as string[] }
   }
 }
 
@@ -649,6 +849,36 @@ async function sendDuesConfirmationEmail(params: {
         html: `<p>Thank you! We received your payment of <strong>${amount}</strong>.</p><p>${statusLine}</p><p style="color:#999;font-size:12px;">Reference: ${params.sessionId.slice(-12).toUpperCase()}</p>`,
       }),
     (message) => sendAlert('Dues confirmation email failed', { sessionId: params.sessionId, error: message })
+  )
+}
+
+function escapeHtml(text: string) {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+/** A plain payment receipt for tournament entries: not a gift, so no tax wording. */
+async function sendTournamentReceiptEmail(params: {
+  to: string
+  amountPaidCents: number
+  tournamentName: string
+  wrestlerNames: string[]
+  sessionId: string
+}) {
+  const resend = getResend()
+  if (!resend) return
+
+  const amount = formatCents(params.amountPaidCents)
+  const who = params.wrestlerNames.length ? ` for ${escapeHtml(params.wrestlerNames.join(', '))}` : ''
+
+  await sendReceiptEmail(
+    () =>
+      resend.emails.send({
+        from: FROM_ADDRESS,
+        to: [params.to],
+        subject: `${ORG.shortName} - Tournament entry payment received`,
+        html: `<p>Thank you! We received your payment of <strong>${amount}</strong>${who}.</p><p>Tournament: ${escapeHtml(params.tournamentName)}. Your entry is paid.</p><p>Need to change or cancel an entry? Reply to this email or contact the club.</p><p style="color:#999;font-size:12px;">Reference: ${params.sessionId.slice(-12).toUpperCase()}</p>`,
+      }),
+    (message) => sendAlert('Tournament receipt email failed', { sessionId: params.sessionId, error: message })
   )
 }
 

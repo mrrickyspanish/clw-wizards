@@ -1,7 +1,7 @@
 /**
  * The single browser-side entry point for every "start a payment" button on
- * this site: season dues, club dues, one-time donations, monthly boosters and
- * corporate sponsorships.
+ * this site: season dues, club dues, one-time donations, monthly boosters,
+ * corporate sponsorships and in-house tournament entries.
  *
  * It exists because all four call sites had independently written this:
  *
@@ -23,7 +23,9 @@
  */
 
 export interface CheckoutRequest {
-  flow: 'dues' | 'donation' | 'sponsor'
+  // 'tournament': { tournamentId, entries: [{ athleteId, weight, division, grade? }], returnPath? }.
+  // Never an amount: the server charges the tournament's fee per wrestler.
+  flow: 'dues' | 'donation' | 'sponsor' | 'tournament'
   [key: string]: unknown
 }
 
