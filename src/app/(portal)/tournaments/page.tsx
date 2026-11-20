@@ -13,7 +13,7 @@ import type { Tournament, Athlete, TournamentRegistration, TournamentSession } f
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { RegisterControls, type RegistrationState } from './RegisterControls'
+import { RegisterControls, RegisterAndPayForm, type EntryAthlete, type RegistrationState } from './RegisterControls'
 import { TournamentFlier } from '@/components/events/TournamentFlier'
 
 const STATUS_STYLES: Record<Tournament['status'], string> = {
@@ -33,6 +33,19 @@ function formatDate(value: string) {
 }
 
 type SessionRow = Pick<TournamentSession, 'id' | 'tournament_id' | 'start_time' | 'divisions' | 'sort_order'>
+type RegistrationRow = Pick<
+  TournamentRegistration,
+  | 'id'
+  | 'tournament_id'
+  | 'athlete_id'
+  | 'status'
+  | 'fee_cents'
+  | 'paid_cents'
+  | 'payment_method'
+  | 'weight'
+  | 'division'
+  | 'grade'
+>
 
 /** Where the tournament is, as two lines: the venue, then the street and town. */
 function venueLines(t: Pick<Tournament, 'location' | 'street_address' | 'city' | 'state'>) {
@@ -103,20 +116,27 @@ export default async function TournamentsPage() {
   const familyOwnerIds = await resolveFamilyOwnerIds(supabase, userId)
   const [{ data: tournaments, error }, { data: athletes }] = await Promise.all([
     supabase.from('tournaments').select('*').gte('date', today).order('date', { ascending: true }),
-    supabase.from('athletes').select('id, first_name, last_name, active').in('parent_id', familyOwnerIds),
+    supabase
+      .from('athletes')
+      .select('id, first_name, last_name, active, date_of_birth, age_division')
+      .in('parent_id', familyOwnerIds),
   ])
 
-  const allAthletes = (athletes ?? []) as Pick<Athlete, 'id' | 'first_name' | 'last_name' | 'active'>[]
+  const allAthletes = (athletes ?? []) as Pick<
+    Athlete,
+    'id' | 'first_name' | 'last_name' | 'active' | 'date_of_birth' | 'age_division'
+  >[]
   const athleteIds = allAthletes.map((a) => a.id)
 
   // Registrations resolve by the family's wrestlers, so a co-guardian sees the
   // whole family's sign-ups (RLS: treg_guardian_all) — not just their own.
+  // The payment columns and entry details feed Register and pay (B4).
   const { data: registrations } = athleteIds.length
     ? await supabase
         .from('tournament_registrations')
-        .select('id, tournament_id, athlete_id, status')
+        .select('id, tournament_id, athlete_id, status, fee_cents, paid_cents, payment_method, weight, division, grade')
         .in('athlete_id', athleteIds)
-    : { data: [] as Pick<TournamentRegistration, 'id' | 'tournament_id' | 'athlete_id' | 'status'>[] }
+    : { data: [] as RegistrationRow[] }
 
   const tournamentRows = (tournaments ?? []) as Tournament[]
   // Sessions (B2). Before their migration runs this read fails, and each card
@@ -132,15 +152,46 @@ export default async function TournamentsPage() {
   const athleteRows = allAthletes.filter((a) => a.active)
   const athleteOptions = athleteRows.map((a) => ({ id: a.id, name: `${a.first_name} ${a.last_name}` }))
 
+  // Register and pay (B4) starts each wrestler's grade from their latest
+  // season enrollment that has one (RLS: family_read_season_enrollments).
+  // Read only when a tournament takes payment here.
+  const takesPayment = (t: Tournament) => t.status === 'open' && !t.external_registration_url && t.entry_fee_cents != null
+  const { data: enrollmentData } =
+    athleteIds.length && tournamentRows.some(takesPayment)
+      ? await supabase
+          .from('season_enrollments')
+          .select('athlete_id, grade, submitted_at')
+          .in('athlete_id', athleteIds)
+          .order('submitted_at', { ascending: false })
+      : { data: [] as { athlete_id: string; grade: string | null; submitted_at: string }[] }
+  const gradeByAthlete = new Map<string, string>()
+  for (const e of (enrollmentData ?? []) as { athlete_id: string; grade: string | null }[]) {
+    const grade = e.grade?.trim()
+    if (grade && !gradeByAthlete.has(e.athlete_id)) gradeByAthlete.set(e.athlete_id, grade)
+  }
+  const entryAthletes: EntryAthlete[] = athleteRows.map((a) => ({
+    id: a.id,
+    name: `${a.first_name} ${a.last_name}`,
+    dateOfBirth: a.date_of_birth ?? null,
+    ageDivision: a.age_division ?? null,
+    grade: gradeByAthlete.get(a.id) ?? null,
+  }))
+
   // Index registrations by tournament, then by athlete, for quick lookup in the
   // per-tournament controls.
   const regsByTournament = new Map<string, Record<string, RegistrationState>>()
-  for (const r of (registrations ?? []) as Pick<
-    TournamentRegistration,
-    'id' | 'tournament_id' | 'athlete_id' | 'status'
-  >[]) {
+  for (const r of (registrations ?? []) as RegistrationRow[]) {
     const byAthlete = regsByTournament.get(r.tournament_id) ?? {}
-    byAthlete[r.athlete_id] = { id: r.id, status: r.status }
+    byAthlete[r.athlete_id] = {
+      id: r.id,
+      status: r.status,
+      feeCents: r.fee_cents ?? null,
+      paidCents: r.paid_cents ?? 0,
+      paymentMethod: r.payment_method ?? null,
+      weight: r.weight ?? null,
+      division: r.division ?? null,
+      grade: r.grade ?? null,
+    }
     regsByTournament.set(r.tournament_id, byAthlete)
   }
 
@@ -221,6 +272,15 @@ export default async function TournamentsPage() {
                     {registerButtonLabel(t.external_platform, t.external_registration_url)} <ExternalLink className="ml-1.5 h-3 w-3" />
                   </a>
                 </Button>
+              ) : takesPayment(t) && t.entry_fee_cents != null ? (
+                // A cost is set: pick wrestlers, enter weights, pay through Stripe (B4).
+                <RegisterAndPayForm
+                  tournamentId={t.id}
+                  feeCents={t.entry_fee_cents}
+                  athletes={entryAthletes}
+                  registrations={regsByTournament.get(t.id) ?? {}}
+                  showReturnFallback={tournamentRows.find(takesPayment)?.id === t.id}
+                />
               ) : t.status === 'open' ? (
                 <RegisterControls
                   tournamentId={t.id}
