@@ -4,6 +4,12 @@ export type RegistrationPaymentMethod = 'card' | 'cash' | 'check' | 'waived'
 export type RegistrationPaymentState = 'withdrawn' | 'free' | 'paid' | 'waived' | 'due'
 
 export type RegistrationPaymentInput = {
+  /**
+   * The EFFECTIVE fee: the registration's own fee_cents when set, otherwise the
+   * tournament's entry_fee_cents. A parent's registration keeps fee_cents NULL until
+   * checkout locks it, so passing the row value alone would read an unpaid entry as free.
+   * Matches coalesce(r.fee_cents, t.entry_fee_cents) in family_tournament_roster().
+   */
   feeCents: number | null | undefined
   paidCents: number | null | undefined
   paymentMethod: RegistrationPaymentMethod | null | undefined
@@ -17,14 +23,16 @@ export const MIN_WEIGHT_LBS = 30
 export const MAX_WEIGHT_LBS = 300
 
 /**
- * 'withdrawn' for a withdrawn registration; otherwise 'free' when there is no fee,
- * 'waived' when an admin waived it, 'paid' when the fee is covered, and 'due' otherwise.
+ * 'withdrawn' for a withdrawn registration; otherwise, in the same order as the SQL in
+ * family_tournament_roster(): 'waived' when an admin waived it, 'free' when the effective
+ * fee is missing or 0, 'paid' when the fee is covered, and 'due' otherwise.
+ * `feeCents` must be the effective fee (row fee, else tournament entry fee).
  */
 export function registrationPaymentState(input: RegistrationPaymentInput): RegistrationPaymentState {
   if (input.status === 'withdrawn') return 'withdrawn'
+  if (input.paymentMethod === 'waived') return 'waived'
   const fee = input.feeCents ?? 0
   if (!(fee > 0)) return 'free'
-  if (input.paymentMethod === 'waived') return 'waived'
   if ((input.paidCents ?? 0) >= fee) return 'paid'
   return 'due'
 }

@@ -26,9 +26,15 @@ export function spotsLine(filled: number, allotted: number | null | undefined): 
 /**
  * Wrestlers taking a club spot: each matched athlete once across the TrackWrestling
  * roster and site registrations, plus each unmatched TrackWrestling row on its own.
- * Site registrations count only when countsAsRegistered() says so.
+ * Site registrations count only when countsAsRegistered() says so, judged against the
+ * effective fee: the row's fee_cents when set, otherwise `entryFeeCents` (the tournament's
+ * entry_fee_cents; null when the tournament takes no in-house payment).
  */
-export function distinctRegisteredCount(entries: SpotEntryInput[], registrations: SpotRegistrationInput[]): number {
+export function distinctRegisteredCount(
+  entries: SpotEntryInput[],
+  registrations: SpotRegistrationInput[],
+  entryFeeCents: number | null | undefined,
+): number {
   const athletes = new Set<string>()
   let unmatched = 0
   for (const e of entries) {
@@ -37,7 +43,7 @@ export function distinctRegisteredCount(entries: SpotEntryInput[], registrations
   }
   for (const r of registrations) {
     const counts = countsAsRegistered({
-      feeCents: r.fee_cents,
+      feeCents: r.fee_cents ?? entryFeeCents,
       paidCents: r.paid_cents,
       paymentMethod: r.payment_method,
       status: r.status,
