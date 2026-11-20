@@ -100,6 +100,6 @@ source keeps the club's words.
     creative-eye-agent-os `evidence/2026-11-16-ai-sample-photography.md`). No
     real concert frames: the recap still needs PR ministry sign-off.
   - The Page Editor login exists only after a church reset at `/demo-reset`.
-- **Open:**
+- **Open:** nothing known.
   - Fixed (Nov 20): a Ministry Admin opening another household by a direct
     `/admin/families/<id>` address now gets 404, matching the Members list.
