@@ -474,7 +474,7 @@ export function TournamentDialog({
               <option value="Elite / Invite-only" />
             </datalist>
             <p className="text-sm text-clw-gray">
-              A difficulty grade so parents can judge readiness — every eligible group can still sign up.
+              A difficulty grade so parents can judge readiness. Every eligible group can still sign up.
             </p>
           </div>
 

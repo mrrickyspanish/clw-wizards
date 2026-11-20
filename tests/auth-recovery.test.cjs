@@ -4842,12 +4842,13 @@ const ENG003_R = '55555555-5555-4555-a555-555555555555'
 // rpc lands in `log` in order, with its operation, values and filters.
 function eng003Harness({ role = 'admin', tables = {}, rpcError = null, failTable = null } = {}) {
   const log = []
-  const data = { profiles: [{ id: 'me', role, is_active: true }], ...tables }
+  const data = { profiles: [{ id: 'me', role, is_active: true, full_name: 'Coach Test' }], ...tables }
   const from = (table) => {
     const call = { kind: 'table', table, op: 'select', values: null, filters: [], onConflict: null }
     log.push(call)
     const rows = () => (data[table] ?? []).filter((r) => call.filters.every(([o, k, v]) =>
-      o === 'eq' ? r[k] === v : o === 'gt' ? r[k] > v : o === 'is' ? (r[k] ?? null) === v : o === 'in' ? v.includes(r[k]) : true))
+      o === 'eq' ? r[k] === v : o === 'gt' ? r[k] > v : o === 'is' ? (r[k] ?? null) === v : o === 'in' ? v.includes(r[k])
+        : o === 'cs' ? Array.isArray(r[k]) && v.every((x) => r[k].includes(x)) : true))
     const run = () => {
       if (failTable === table) return { data: null, error: { message: 'boom' } }
       if (call.op === 'insert') { const row = { id: 'new-id', ...call.values }; (data[table] ??= []).push(row); return { data: [row], error: null } }
@@ -4867,6 +4868,7 @@ function eng003Harness({ role = 'admin', tables = {}, rpcError = null, failTable
       gt: (k, v) => { call.filters.push(['gt', k, v]); return b },
       is: (k, v) => { call.filters.push(['is', k, v]); return b },
       in: (k, v) => { call.filters.push(['in', k, v]); return b },
+      contains: (k, v) => { call.filters.push(['cs', k, v]); return b },
       single: one, maybeSingle: one,
       then: (resolve, reject) => Promise.resolve(run()).then(resolve, reject),
     }
@@ -5000,6 +5002,7 @@ test('CLW-ENG-003: non-admins are refused by every admin tournament action, incl
       await h.actions.deleteTournament(ENG003_T),
       await h.actions.markRegistrationPaid(ENG003_R, 'cash'),
       await h.actions.waiveRegistrationFee(ENG003_R),
+      await h.actions.clearManualPayment(ENG003_R),
     ]) assert.deepEqual(plain(res), { ok: false, error: 'Admin access required.' })
     assert.deepEqual(h.writes(), [], `${role}: nothing written`)
     assert.ok(h.log.every((c) => c.table === 'profiles'), `${role}: only the role check ran`)
@@ -5162,6 +5165,97 @@ test('CLW-ENG-003: the admin tournament files never fetch TrackWrestling and hav
   assert.doesNotMatch(dialog, /\.from\('(tournaments|tournament_admin_details|tournament_sessions)'\)/)
   assert.match(dialog, /placeholder="e\.g\. Tots, Bantam, Intermediate"/)
   assert.match(dialog, /Add a session/)
+})
+
+// CLW-QA-002 revision: delete guard for open or paid card checkouts, Clear payment, copy fixes.
+test('CLW-ENG-003: delete refuses while a family is paying by card (pending under 24 hours) or has paid', async () => {
+  const hoursAgo = (h) => new Date(Date.now() - h * 3600 * 1000).toISOString()
+  const run = async (checkouts, opts = {}) => {
+    const h = eng003Harness({ ...opts, tables: { tournaments: [{ id: ENG003_T }], tournament_registrations: [], tournament_checkouts: checkouts } })
+    return { h, res: await h.actions.deleteTournament(ENG003_T) }
+  }
+  const co = (status, created_at, tournament_id = ENG003_T) => ({ id: `c-${status}-${created_at}`, tournament_id, status, created_at })
+
+  for (const rows of [[co('pending', hoursAgo(1))], [co('paid', hoursAgo(100))], [co('partially_refunded', hoursAgo(100))]]) {
+    const { h, res } = await run(rows)
+    assert.equal(res.ok, false, rows[0].status)
+    assert.match(res.error, /paying for this tournament right now, or has paid\. Set its status to Cancelled instead/)
+    assert.equal(h.data.tournaments.length, 1, 'not deleted')
+    const read = h.log.find((c) => c.table === 'tournament_checkouts')
+    assert.deepEqual(plain(read.filters), [['eq', 'tournament_id', ENG003_T], ['in', 'status', ['pending', 'paid', 'partially_refunded']]])
+  }
+  // An expired pending checkout, a refunded one, or another tournament's: the delete goes ahead.
+  for (const rows of [[co('pending', hoursAgo(25))], [co('refunded', hoursAgo(1))], [co('paid', hoursAgo(1), 'other')]]) {
+    const { h, res } = await run(rows)
+    assert.equal(res.ok, true, JSON.stringify(rows))
+    assert.equal(h.data.tournaments.length, 0)
+  }
+  // The checkout read fails: nothing is deleted.
+  const { h, res } = await run([], { failTable: 'tournament_checkouts' })
+  assert.equal(res.ok, false)
+  assert.match(res.error, /Could not check/)
+  assert.equal(h.data.tournaments.length, 1)
+})
+
+test('CLW-ENG-003: Clear payment undoes a cash, check or waived mark, never a card payment, and leaves a note', async () => {
+  const reg = (extra = {}) => ({ id: ENG003_R, tournament_id: ENG003_T, status: 'registered', fee_cents: 2500, paid_cents: 2500, payment_method: 'cash', payment_note: null, ...extra })
+  const harness = (r, checkouts = [], opts = {}) => eng003Harness({ ...opts, tables: { tournament_registrations: [r], tournament_checkouts: checkouts } })
+
+  const cash = harness(reg())
+  assert.equal((await cash.actions.clearManualPayment(ENG003_R)).ok, true)
+  const u = cash.log.find((c) => c.op === 'update')
+  assert.equal(u.table, 'tournament_registrations')
+  assert.deepEqual(Object.keys(u.values).sort(), ['paid_at', 'paid_cents', 'payment_method', 'payment_note'], 'fee_cents stays locked')
+  assert.equal(u.values.paid_cents, 0)
+  assert.equal(u.values.paid_at, null)
+  assert.equal(u.values.payment_method, null)
+  assert.match(u.values.payment_note, /^Cleared cash mark by Coach Test on \d{4}-\d\d-\d\d\.$/)
+  assert.deepEqual(u.filters, [['eq', 'id', ENG003_R], ['eq', 'paid_cents', 2500], ['eq', 'payment_method', 'cash']], 'only if unchanged since read')
+  const cover = cash.log.find((c) => c.table === 'tournament_checkouts')
+  assert.deepEqual(plain(cover.filters), [['cs', 'registration_ids', [ENG003_R]], ['in', 'status', ['paid', 'partially_refunded']]])
+
+  // A waived mark clears too; an older note is kept after the trace, within 200 characters.
+  const waived = harness(reg({ paid_cents: 0, payment_method: 'waived', payment_note: 'x'.repeat(250) }))
+  assert.equal((await waived.actions.clearManualPayment(ENG003_R)).ok, true)
+  const note = waived.log.find((c) => c.op === 'update').values.payment_note
+  assert.match(note, /^Cleared waived mark by Coach Test on /)
+  assert.equal(note.length, 200)
+
+  const refusals = [
+    [reg({ payment_method: 'card' }), [], /refund in Stripe/],
+    [reg({ payment_method: null, paid_cents: 0 }), [], /no cash, check or waived mark/],
+    [reg({ payment_method: 'check' }), [{ id: 'c1', registration_ids: [ENG003_R], status: 'paid' }], /card payment also covers this entry/],
+    [reg(), [{ id: 'c1', registration_ids: ['x', ENG003_R], status: 'partially_refunded' }], /card payment also covers this entry/],
+  ]
+  for (const [r, checkouts, message] of refusals) {
+    const h = harness(r, checkouts)
+    const res = await h.actions.clearManualPayment(ENG003_R)
+    assert.equal(res.ok, false)
+    assert.match(res.error, message)
+    assert.deepEqual(h.writes(), [])
+  }
+  // A refunded checkout does not block; a failed checkout read does.
+  assert.equal((await harness(reg(), [{ id: 'c1', registration_ids: [ENG003_R], status: 'refunded' }]).actions.clearManualPayment(ENG003_R)).ok, true)
+  const broken = harness(reg(), [], { failTable: 'tournament_checkouts' })
+  assert.equal((await broken.actions.clearManualPayment(ENG003_R)).ok, false)
+  assert.deepEqual(broken.writes(), [])
+  assert.equal((await harness(reg()).actions.clearManualPayment('not-a-uuid')).ok, false)
+
+  // The roster offers Clear payment only for manual marks, with a text-base confirm.
+  const page = fs.readFileSync(path.join(__dirname, '..', 'src/app/admin/tournaments/[id]/page.tsx'), 'utf8')
+  assert.match(page, /manualMark: r\.payment_method === 'cash' \|\| r\.payment_method === 'check' \|\| r\.payment_method === 'waived'/)
+  const ui = fs.readFileSync(path.join(__dirname, '..', 'src/app/admin/tournaments/[id]/SitePaymentActions.tsx'), 'utf8')
+  assert.equal((ui.match(/<AlertDialogDescription className="text-base">/g) || []).length, 2)
+})
+
+test('CLW-ENG-003: delete dialog copy is text-base and the competition level help has no em dash', () => {
+  const dir = path.join(__dirname, '..', 'src', 'app', 'admin', 'tournaments')
+  assert.match(fs.readFileSync(path.join(dir, 'DeleteTournamentButton.tsx'), 'utf8'), /<AlertDialogDescription className="text-base">/)
+  const dialog = fs.readFileSync(path.join(dir, 'TournamentDialog.tsx'), 'utf8')
+  assert.match(dialog, /A difficulty grade so parents can judge readiness\. Every eligible group can still sign up\./)
+  for (const f of ['TournamentDialog.tsx', 'DeleteTournamentButton.tsx', 'actions.ts', 'tournament-admin.ts', '[id]/SitePaymentActions.tsx']) {
+    assert.doesNotMatch(fs.readFileSync(path.join(dir, f), 'utf8'), /[\u2013\u2014]/, `${f}: no em or en dash`)
+  }
 })
 
 // ---- CLW-ENG-006: Parent "Tournament rosters" page, own kids only (B7) ----

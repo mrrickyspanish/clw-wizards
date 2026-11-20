@@ -68,8 +68,8 @@ async function adminClient() {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return null
-  const { data: profile } = await supabase.from('profiles').select('role, is_active').eq('id', user.id).single()
-  return profile?.role === 'admin' && profile.is_active ? { supabase, userId: user.id } : null
+  const { data: profile } = await supabase.from('profiles').select('role, is_active, full_name').eq('id', user.id).single()
+  return profile?.role === 'admin' && profile.is_active ? { supabase, userId: user.id, name: profile.full_name ?? null } : null
 }
 
 type Supabase = Awaited<ReturnType<typeof createServerSupabase>>
@@ -220,12 +220,33 @@ export async function deleteTournament(id: string): Promise<ActionResult> {
     }
   }
 
+  // A family may be paying right now (Stripe keeps a checkout open for up to
+  // 24 hours) or has paid by card. Deleting would leave that money pointing at
+  // nothing, so keep the tournament.
+  const { data: checkouts, error: checkoutError } = await supabase
+    .from('tournament_checkouts')
+    .select('id, status, created_at')
+    .eq('tournament_id', id)
+    .in('status', ['pending', 'paid', 'partially_refunded'])
+  if (checkoutError) return { ok: false, error: 'Could not check this tournament for card payments. Try again.' }
+  const openSince = Date.now() - CHECKOUT_OPEN_MS
+  const live = (checkouts ?? []).some((c) => c.status !== 'pending' || Date.parse(c.created_at) >= openSince)
+  if (live) {
+    return {
+      ok: false,
+      error: 'A family is paying for this tournament right now, or has paid. Set its status to Cancelled instead.',
+    }
+  }
+
   const { error } = await supabase.from('tournaments').delete().eq('id', id)
   if (error) return { ok: false, error: error.message }
 
   revalidatePath('/admin/tournaments')
   return { ok: true }
 }
+
+// Stripe's default checkout session lifetime.
+const CHECKOUT_OPEN_MS = 24 * 60 * 60 * 1000
 
 // "Mark paid (cash or check)" and "Waive fee" on the roster page (B4). The
 // admin's own client writes the payment columns; the database trigger lets an
@@ -278,4 +299,56 @@ export async function markRegistrationPaid(registrationId: string, method: 'cash
 
 export async function waiveRegistrationFee(registrationId: string): Promise<ActionResult> {
   return recordManualPayment(registrationId, 'waived')
+}
+
+// "Clear payment": undoes a cash, check or waived mark made by mistake. Never
+// a card payment (those change only through a refund in Stripe, which the
+// webhook records), and never while a card payment also covers the entry,
+// because that card money would then be hidden. There is no audit table, so
+// the note on the registration records who cleared it and when.
+export async function clearManualPayment(registrationId: string): Promise<ActionResult> {
+  const admin = await adminClient()
+  if (!admin) return { ok: false, error: ADMIN_ONLY }
+  if (!z.string().uuid().safeParse(registrationId).success) return { ok: false, error: 'Registration not found.' }
+  const { supabase, name } = admin
+
+  const { data: reg } = await supabase
+    .from('tournament_registrations')
+    .select('id, tournament_id, paid_cents, payment_method, payment_note')
+    .eq('id', registrationId)
+    .maybeSingle()
+  if (!reg) return { ok: false, error: 'Registration not found.' }
+  const mark = reg.payment_method
+  if (mark === 'card') return { ok: false, error: 'Card payments change only through a refund in Stripe.' }
+  if (mark !== 'cash' && mark !== 'check' && mark !== 'waived') {
+    return { ok: false, error: 'There is no cash, check or waived mark to clear.' }
+  }
+
+  const { data: covering, error: coverError } = await supabase
+    .from('tournament_checkouts')
+    .select('id')
+    .contains('registration_ids', [reg.id])
+    .in('status', ['paid', 'partially_refunded'])
+  if (coverError) return { ok: false, error: 'Could not check for card payments on this entry. Try again.' }
+  if ((covering ?? []).length > 0) {
+    return { ok: false, error: 'A card payment also covers this entry. Refund one of them in Stripe or keep the mark.' }
+  }
+
+  const day = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })
+  const trace = `Cleared ${mark} mark by ${name || 'an admin'} on ${day}.`
+  const note = (reg.payment_note ? `${trace} ${reg.payment_note}` : trace).slice(0, 200)
+  // Only if nothing changed since it was read; fee_cents stays locked.
+  const { data: changed, error } = await supabase
+    .from('tournament_registrations')
+    .update({ paid_cents: 0, paid_at: null, payment_method: null, payment_note: note })
+    .eq('id', reg.id)
+    .eq('paid_cents', reg.paid_cents)
+    .eq('payment_method', mark)
+    .select('id')
+  if (error) return { ok: false, error: 'Could not save that. Try again.' }
+  if (!changed || changed.length === 0) return { ok: false, error: 'This entry changed while you were looking. Refresh the page and try again.' }
+
+  revalidatePath(`/admin/tournaments/${reg.tournament_id}`)
+  revalidatePath('/admin/tournaments')
+  return { ok: true }
 }
