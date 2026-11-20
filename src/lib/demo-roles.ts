@@ -104,9 +104,11 @@ export const CHURCH_ROLES: ChurchRole[] = [
     last: 'Morgan',
     scope: 'limited',
     label: 'Ministry Staff',
-    can: 'The day-to-day tools: members, sign-ups, meetings, retreats, giving and communications.',
-    cannot: 'Website content or the admin team.',
+    can: 'The day-to-day tools: members, sign-ups, meetings, retreats and communications.',
+    cannot: 'Giving, website content or the admin team.',
     home: '/admin',
+    // Giving is only for the person responsible for it (SBC, Nov 20).
+    deny: ['/admin/dues'],
     settings: true,
   },
 ]

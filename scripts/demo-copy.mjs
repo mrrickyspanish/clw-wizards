@@ -115,6 +115,14 @@ const RULES = [
 // wrestlers, dues...) are relabeled by demo-church.mjs, on screen text only.
 const CHURCH = process.env.NEXT_PUBLIC_DEMO_FLAVOR === 'church'
 const CHURCH_RULES = [
+  // A member's own people read as a household (SBC, Nov 20).
+  ["label: 'My Athletes'", "label: 'Household Members'"],
+  ["href: '/athletes', label: 'Athletes'", "href: '/athletes', label: 'Members'"],
+  ['>My Athletes</h1>', '>Household Members</h1>'],
+  ['Your registered wrestlers and their details.', 'The people in your household and their details.'],
+  ['No wrestlers added yet', 'No one added yet'],
+  ['Add your first wrestler to register for practices and tournaments and to upload their documents.', 'Add the people in your household to sign them up for ministries and retreats.'],
+  ['Add wrestler', 'Add household member'],
   // The member sign-up form's season options (stored and checked from this one
   // list, so label and value change together).
   [/Will wrestle [^'"]*?IKWF during the season and IKWF state series/g, 'Will serve every week this season'],
