@@ -1,0 +1,91 @@
+# Second Baptist Church of Elgin: staff dashboard demo
+
+A handoff for whichever Claude session works on the SBC demo. Everything SBC
+lives on this branch (`claude/sbc-church-demo`). The CLW Wizards session no
+longer takes SBC requests, so do the work here and ask RJ for approvals in
+your own chat.
+
+## Rules that never bend
+
+- Work only on branch `claude/sbc-church-demo`. Never push to `main`, and
+  never merge this branch into anything.
+- Use only the Homefield Demo database (Supabase project
+  `qokgompkyqyjasidmwnr`). Never touch the club's database
+  (`nerrrzuocgaohrzurnny`). The app refuses to run against it
+  (`demoProblems` in `src/lib/demo.ts`).
+- Invented people only. No real member, child, gift or contact.
+- Read-only stays on. Nothing a visitor does may save.
+- Don't change Vercel settings: no protection, domains or production env.
+  Branch env vars already exist. If you need a new one, ask RJ to add it,
+  scoped to Preview on this branch only.
+- Don't ask for passwords or keys in chat, and don't print any that turn up.
+
+## Where it lives
+
+- **Preview:**
+  `https://clw-wizards-git-claude-sbc-church-demo-creativeeyemm.vercel.app`.
+  It sits behind Vercel Authentication; RJ shares it with a share link. Every
+  push to this branch redeploys it.
+- **Entry:** `/demo` shows one button per staff role plus a member view, and
+  `/demo/enter?as=<key>` signs in with no password. Public pages redirect to
+  `/demo`.
+- **Branch env vars** (Preview, this branch only): `NEXT_PUBLIC_DEMO_MODE=1`,
+  `NEXT_PUBLIC_DEMO_FLAVOR=church`, the demo database's URL and anon key,
+  `SUPABASE_SERVICE_ROLE_KEY` (sensitive) and `DEMO_PASSWORD` (sensitive; RJ
+  has it).
+- **The database is shared with the Mohegan Valley wrestling demo.** Resetting
+  that one at `/demo-reset` on its own branch wipes the church logins. Fix:
+  run the church reset at `/demo-reset` on this preview, which needs
+  `DEMO_PASSWORD`.
+
+## How the reskin works
+
+The church demo is the wrestling club app relabeled at build time. The repo's
+source keeps the club's words.
+
+- `npm run build` runs `prebuild`:
+  - `scripts/demo-assets.mjs` swaps the photos.
+  - `scripts/demo-copy.mjs` rewrites names. Its `CHURCH_RULES` are for exact
+    phrases.
+  - `scripts/demo-church.mjs` relabels on-screen words only, using the
+    TypeScript parser: Parents become Members, Wrestlers Participants,
+    Practice groups Ministries, Dues Giving, Tournaments Retreats & Trips.
+  - The scripts only touch a build copy: on Vercel, or locally with
+    `--root <copy>`. Never your checkout.
+- **Look:** `src/config/org.config.ts` (`SECOND_BAPTIST_DEMO`) holds the name
+  and navy and gold colors. Larger type for older staff is in
+  `src/app/globals.css` under `html[data-demo='church']`.
+- **Read-only, app side:** `src/lib/demo-readonly.ts`. Every Supabase client
+  gets a fetch wrapper that refuses writes with "Read-only demo: changes are
+  not saved."
+- **Read-only, database side:** `scripts/demo-church-readonly.sql`. It is
+  applied to the demo database only, deliberately not as a migration. Re-run
+  it if you add a table.
+- **Roles:** `src/lib/demo-roles.ts` is one list driving the menu, page
+  access (middleware), the entry screen and the reset's logins. Add a role
+  there, push, then run the church reset so its login exists.
+- **Sample data:** `src/lib/demo-seed-church.ts`.
+
+## Checks before you push
+
+- `npx tsc --noEmit`, `npm run lint` and `npm run test:auth` (every module the
+  middleware imports needs a default mock in `tests/auth-recovery.test.cjs`).
+- After the preview redeploys, sign in through each role on `/demo`.
+  - Confirm each role sees only its pages.
+  - Confirm a save shows the read-only message.
+  - Confirm the database is unchanged (row counts before and after).
+
+## Status (Nov 20)
+
+- **Done:**
+  - Six staff roles: Church Admin, Communications, Giving Admin, Group Admin
+    (Music Ministry), Group Note Sender (Grief & Recovery) and Ministry Staff.
+  - Giving is visible only to Giving Admin.
+  - The member menu reads Household Members.
+  - No password, and read-only everywhere.
+- **Open:**
+  - The "Pages" mock (Insert New Page, three templates, editor, approval
+    queue, Page Editor role), approved by RJ in the SBC chat. Its spec is in
+    that chat.
+  - Known gap: a Group Admin can open other households through a direct
+    `/admin/families/<id>` address.
