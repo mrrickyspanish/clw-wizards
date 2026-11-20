@@ -4045,6 +4045,20 @@ test('CLW-ENG-001: payment columns are server-only and the record functions are 
   assert.match(refund, /r\.payment_method = 'card'\s*AND NOT EXISTS \(\s*SELECT 1 FROM public\.tournament_checkouts c2\s*WHERE c2\.id <> v\.id AND c2\.status IN \('paid', 'partially_refunded'\) AND r\.id = ANY \(c2\.registration_ids\)\s*\);/)
   // QA-001 L-2: the trigger function is not callable by client roles.
   assert.match(sql, /REVOKE EXECUTE ON FUNCTION public\.keep_registration_payment_server_only\(\) FROM PUBLIC, anon, authenticated;/)
+  // QA-001 round 2 L-1: both functions lock the checkout's registrations in id order,
+  // after their no-op early return and before any read or write of those rows.
+  const regLock = "PERFORM 1 FROM public.tournament_registrations r WHERE r.id = ANY (v.registration_ids) ORDER BY r.id FOR UPDATE;"
+  const lockAt = (fnBody) => fnBody.indexOf(regLock)
+  for (const [name, fnBody, earlyReturn, firstUse] of [
+    ['record_tournament_payment', pay, /IF v\.status <> 'pending' THEN[\s\S]*?END IF;/, /r\.fee_cents IS NULL/],
+    ['record_tournament_refund', refund, /IF v_delta <= 0 THEN[\s\S]*?END IF;/, /UPDATE public\.tournament_checkouts c SET/],
+  ]) {
+    assert.equal(fnBody.split(regLock).length, 2, `${name} locks its registrations exactly once`)
+    const early = earlyReturn.exec(fnBody)
+    assert.ok(early && lockAt(fnBody) > early.index + early[0].length, `${name} locks after its early return`)
+    assert.ok(lockAt(fnBody) < firstUse.exec(fnBody).index, `${name} locks before reading or writing`)
+    assert.ok(lockAt(fnBody) < fnBody.search(/UPDATE public\.tournament_registrations/), `${name} locks before updating registrations`)
+  }
   assert.match(sql, /entry_fee_cents BETWEEN 100 AND 100000/)
   assert.match(sql, /payment_method IN \('card', 'cash', 'check', 'waived'\)/)
 })

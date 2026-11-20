@@ -156,6 +156,12 @@ BEGIN
     RETURN;
   END IF;
 
+  -- Lock this checkout's registrations, always in id order, before reading or
+  -- writing them, so two payments or refunds that share a registration run
+  -- one after the other (and never deadlock) instead of each acting on a
+  -- stale view of the other.
+  PERFORM 1 FROM public.tournament_registrations r WHERE r.id = ANY (v.registration_ids) ORDER BY r.id FOR UPDATE;
+
   PERFORM 1 FROM public.tournament_registrations r
   WHERE r.id = ANY (v.registration_ids) AND r.fee_cents IS NULL;
   IF FOUND THEN
@@ -218,6 +224,12 @@ BEGIN
     RETURN QUERY SELECT TRUE, FALSE, v.payer_id, v.tournament_name, 0;
     RETURN;
   END IF;
+
+  -- Same lock, same order as record_tournament_payment: a second full refund
+  -- of a shared registration waits here, then sees the first one's committed
+  -- status in the NOT EXISTS check below, so the registration is cleared once
+  -- no paid checkout covers it any more.
+  PERFORM 1 FROM public.tournament_registrations r WHERE r.id = ANY (v.registration_ids) ORDER BY r.id FOR UPDATE;
 
   UPDATE public.tournament_checkouts c SET
     net_cents = v_net,
