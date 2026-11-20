@@ -3764,3 +3764,115 @@ test('a demo refuses to run against the live club database, as production, or wi
   assert.match(demo.demoProblems({ NEXT_PUBLIC_SUPABASE_URL: 'https://abcdemo.supabase.co', VERCEL_ENV: 'production' }).join(' '), /production/)
   assert.match(demo.demoProblems({}).join(' '), /No demo database/)
 })
+
+// ---- CLW-ENG-002: pure helpers ----
+const mapsLib = load('src/lib/maps.ts', {})
+const tRegLib = load('src/lib/tournament-registration.ts', {})
+const tSessionsLib = load('src/lib/tournament-sessions.ts', { '@/lib/practice': practiceLib })
+const tSpotsLib = load('src/lib/tournament-spots.ts', { '@/lib/tournament-registration': tRegLib })
+
+test('mapsUrl uses the street when set, the venue otherwise, skips blanks, and is null with nothing usable', () => {
+  const base = 'https://www.google.com/maps/search/?api=1&query='
+  assert.equal(mapsLib.mapsUrl({ venue: 'Big Gym', street: '100 Main St', city: 'Crystal Lake', state: 'IL' }), base + encodeURIComponent('100 Main St, Crystal Lake, IL'))
+  assert.equal(mapsLib.mapsUrl({ venue: 'Big Gym', street: '  ', city: 'Crystal Lake', state: 'IL' }), base + encodeURIComponent('Big Gym, Crystal Lake, IL'))
+  assert.equal(mapsLib.mapsUrl({ venue: 'Big  Gym & Annex', city: null, state: ' IL ' }), base + 'Big%20Gym%20%26%20Annex%2C%20IL')
+  assert.equal(mapsLib.mapsUrl({ venue: ' ', street: null, city: '', state: undefined }), null)
+  assert.equal(mapsLib.mapsUrl({}), null)
+})
+
+test('normalizeSessions sorts, drops empty rows, trims divisions, and rejects bad times or more than 5', () => {
+  const ok = tSessionsLib.normalizeSessions([
+    { start_time: '12:30', divisions: ' Intermediate, Novice ' },
+    { start_time: '', divisions: '   ' },
+    { start_time: '08:00', divisions: '6u, 8u, 10u' },
+    { start_time: '08:00', divisions: '' },
+  ])
+  assert.deepEqual(plain(ok), { ok: true, sessions: [
+    { start_time: '08:00', divisions: '6u, 8u, 10u', sort_order: 0 },
+    { start_time: '08:00', divisions: null, sort_order: 1 },
+    { start_time: '12:30', divisions: 'Intermediate, Novice', sort_order: 2 },
+  ] })
+  const long = tSessionsLib.normalizeSessions([{ start_time: '09:00', divisions: 'x'.repeat(130) }])
+  assert.equal(long.sessions[0].divisions.length, 120)
+  assert.deepEqual(plain(tSessionsLib.normalizeSessions([])), { ok: true, sessions: [] })
+  for (const bad of ['8:00', '24:00', '12:60', '8am', 'noon']) {
+    assert.equal(tSessionsLib.normalizeSessions([{ start_time: bad, divisions: '6u' }]).ok, false, bad)
+  }
+  assert.match(tSessionsLib.normalizeSessions([{ start_time: '', divisions: 'Tots only' }]).error, /Session 1 needs a start time/)
+  const six = Array.from({ length: 6 }, (_, i) => ({ start_time: `0${i + 1}:00`, divisions: null }))
+  assert.match(tSessionsLib.normalizeSessions(six).error, /at most 5/)
+  assert.equal(tSessionsLib.normalizeSessions([...six.slice(0, 5), { start_time: ' ', divisions: '' }]).ok, true)
+})
+
+test('earliestStart and sessionLine', () => {
+  assert.equal(tSessionsLib.earliestStart([{ start_time: '13:00' }, { start_time: '07:45' }, { start_time: '09:00' }]), '07:45')
+  assert.equal(tSessionsLib.earliestStart([{ start_time: 'later' }, { start_time: null }]), null)
+  assert.equal(tSessionsLib.earliestStart([]), null)
+  assert.equal(tSessionsLib.sessionLine({ start_time: '08:00', divisions: '6u, 8u, 10u' }), '8:00 AM · 6u, 8u, 10u')
+  assert.equal(tSessionsLib.sessionLine({ start_time: '13:15', divisions: '  ' }), '1:15 PM')
+  assert.equal(tSessionsLib.sessionLine({ start_time: '00:30', divisions: null }), '12:30 AM')
+})
+
+test('spotsLine reads filled of allotted, flags overflow, and is null without an allotment', () => {
+  assert.equal(tSpotsLib.spotsLine(5, 12), '5 of 12 spots filled')
+  assert.equal(tSpotsLib.spotsLine(14, 12), '14 of 12 spots filled (2 over)')
+  assert.equal(tSpotsLib.spotsLine(12, 12), '12 of 12 spots filled')
+  assert.equal(tSpotsLib.spotsLine(0, 1), '0 of 1 spot filled')
+  assert.equal(tSpotsLib.spotsLine(-3, 4), '0 of 4 spots filled')
+  for (const none of [null, undefined, 0, -2, 2.5]) assert.equal(tSpotsLib.spotsLine(3, none), null, String(none))
+})
+
+test('distinctRegisteredCount counts each wrestler once across both sources and skips unpaid or withdrawn registrations', () => {
+  const entries = [{ athlete_id: 'a1' }, { athlete_id: 'a2' }, { athlete_id: null }, { athlete_id: null }]
+  const registrations = [
+    { athlete_id: 'a1', status: 'registered', fee_cents: null, paid_cents: 0, payment_method: null },
+    { athlete_id: 'a3', status: 'confirmed', fee_cents: 2500, paid_cents: 2500, payment_method: 'card' },
+    { athlete_id: 'a4', status: 'registered', fee_cents: 2500, paid_cents: 0, payment_method: 'waived' },
+    { athlete_id: 'a5', status: 'registered', fee_cents: 2500, paid_cents: 0, payment_method: null },
+    { athlete_id: 'a6', status: 'withdrawn', fee_cents: null, paid_cents: 0, payment_method: null },
+    { athlete_id: 'a7', status: 'no_show', fee_cents: 2500, paid_cents: 2500, payment_method: 'cash' },
+  ]
+  // a1 (both sources, once) + a2 + 2 unmatched + a3 + a4 = 6
+  assert.equal(tSpotsLib.distinctRegisteredCount(entries, registrations), 6)
+  assert.equal(tSpotsLib.distinctRegisteredCount([], []), 0)
+  assert.equal(tSpotsLib.distinctRegisteredCount([{ athlete_id: null }], [{ athlete_id: 'a1', status: 'registered' }]), 2)
+})
+
+test('registrationPaymentState and countsAsRegistered', () => {
+  const s = (feeCents, paidCents, paymentMethod, status = 'registered') => ({ feeCents, paidCents, paymentMethod, status })
+  assert.equal(tRegLib.registrationPaymentState(s(2500, 2500, 'card', 'withdrawn')), 'withdrawn')
+  assert.equal(tRegLib.registrationPaymentState(s(null, 0, null)), 'free')
+  assert.equal(tRegLib.registrationPaymentState(s(0, 0, null)), 'free')
+  assert.equal(tRegLib.registrationPaymentState(s(2500, 0, 'waived')), 'waived')
+  assert.equal(tRegLib.registrationPaymentState(s(2500, 2500, 'card')), 'paid')
+  assert.equal(tRegLib.registrationPaymentState(s(2500, 3000, 'cash', 'confirmed')), 'paid')
+  assert.equal(tRegLib.registrationPaymentState(s(2500, 1000, 'check')), 'due')
+  assert.equal(tRegLib.registrationPaymentState(s(2500, null, null)), 'due')
+  assert.equal(tRegLib.countsAsRegistered(s(null, 0, null)), true)
+  assert.equal(tRegLib.countsAsRegistered(s(2500, 2500, 'card', 'confirmed')), true)
+  assert.equal(tRegLib.countsAsRegistered(s(2500, 0, 'waived')), true)
+  assert.equal(tRegLib.countsAsRegistered(s(2500, 0, null)), false)
+  assert.equal(tRegLib.countsAsRegistered(s(null, 0, null, 'withdrawn')), false)
+  assert.equal(tRegLib.countsAsRegistered(s(2500, 2500, 'card', 'no_show')), false)
+})
+
+test('checkoutTotal multiplies within limits and refuses out-of-range fees or counts', () => {
+  assert.equal(tRegLib.checkoutTotal(2500, 3), 7500)
+  assert.equal(tRegLib.checkoutTotal(100, 1), 100)
+  assert.equal(tRegLib.checkoutTotal(100000, 10), 1000000)
+  for (const [fee, count] of [[2500, 0], [2500, 11], [2500, 1.5], [99, 1], [100001, 1], [2500.5, 1], [NaN, 1]]) {
+    assert.equal(tRegLib.checkoutTotal(fee, count), null, `${fee} x ${count}`)
+  }
+})
+
+test('parseWeight accepts 30 to 300 lbs with at most one decimal place', () => {
+  assert.equal(tRegLib.parseWeight('52'), '52')
+  assert.equal(tRegLib.parseWeight(' 52.5 lbs '), '52.5')
+  assert.equal(tRegLib.parseWeight('052.0'), '52')
+  assert.equal(tRegLib.parseWeight('30'), '30')
+  assert.equal(tRegLib.parseWeight('300'), '300')
+  assert.equal(tRegLib.parseWeight(61), '61')
+  for (const bad of ['29.9', '300.1', '52.25', '52.', '.5', 'fifty', '', '  ', '-40', '1e2', null, undefined]) {
+    assert.equal(tRegLib.parseWeight(bad), null, String(bad))
+  }
+})
