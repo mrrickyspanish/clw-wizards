@@ -27,6 +27,8 @@ export type ChurchRole = {
   group?: string
   /** Communications settings tabs (board copy, notices). */
   settings: boolean
+  /** Pages mock: full (create, publish, review), editor (create and edit drafts) or ministry (own ministry's pages, drafts). */
+  pages?: 'full' | 'editor' | 'ministry'
 }
 
 export const CHURCH_ROLES: ChurchRole[] = [
@@ -37,11 +39,12 @@ export const CHURCH_ROLES: ChurchRole[] = [
     last: 'Ellis',
     scope: 'full',
     label: 'Church Admin',
-    can: 'Members, ministries, website content, communications and the admin team.',
+    can: 'Members, ministries, website pages, communications and the admin team, and approving page changes.',
     cannot: 'Giving, unless also given the Giving Admin role.',
     home: '/admin',
     deny: ['/admin/dues'],
     settings: true,
+    pages: 'full',
   },
   {
     key: 'comms',
@@ -76,12 +79,14 @@ export const CHURCH_ROLES: ChurchRole[] = [
     last: 'Lewis',
     scope: 'limited',
     label: 'Group Admin: Music Ministry',
-    can: 'The Music Ministry member list, and messages to that ministry.',
+    can: 'The Music Ministry member list, messages to that ministry, and edits to its page (sent for approval).',
     cannot: 'Other ministries, giving, website content or the admin team.',
     home: '/admin/families',
-    allow: ['/admin/families', '/admin/communications'],
+    allow: ['/admin/families', '/admin/communications', '/admin/pages'],
+    deny: ['/admin/pages/new', '/admin/pages/review'],
     group: 'Music Ministry',
     settings: false,
+    pages: 'ministry',
   },
   {
     key: 'notes',
@@ -108,8 +113,23 @@ export const CHURCH_ROLES: ChurchRole[] = [
     cannot: 'Giving, website content or the admin team.',
     home: '/admin',
     // Giving is only for the person responsible for it (SBC, Nov 20).
-    deny: ['/admin/dues'],
+    deny: ['/admin/dues', '/admin/pages'],
     settings: true,
+  },
+  {
+    key: 'editor',
+    email: `pages@${DOMAIN}`,
+    first: 'Lena',
+    last: 'Brooks',
+    scope: 'limited',
+    label: 'Page Editor',
+    can: 'Create and edit pages from the church templates, then send them for approval.',
+    cannot: 'Publish, change the menu, members, giving or communications.',
+    home: '/admin/pages',
+    allow: ['/admin/pages'],
+    deny: ['/admin/pages/review'],
+    settings: false,
+    pages: 'editor',
   },
 ]
 

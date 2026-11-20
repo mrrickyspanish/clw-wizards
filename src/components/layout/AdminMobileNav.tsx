@@ -6,6 +6,7 @@ import { Eye,
   CalendarClock,
   ClipboardCheck,
   FileText,
+  Files,
   HandCoins,
   Handshake,
   Inbox,
@@ -20,6 +21,7 @@ import { Eye,
 
 import { ORG } from '@/config/org.config'
 import { cn } from '@/lib/utils'
+import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
 import { createBrowserSupabase } from '@/lib/supabase/browser'
 import {
   Sheet,
@@ -42,6 +44,8 @@ const ADMIN_ITEMS = [
   { href: '/admin/dues', label: 'Dues', icon: HandCoins },
   { href: '/admin/sponsors', label: 'Sponsors', icon: Handshake },
   { href: '/admin/content', label: 'Website content', icon: FileText, fullOnly: true },
+  // Church demo only: the Pages mock (SBC, Nov 20).
+  ...(CHURCH_READ_ONLY ? [{ href: '/admin/pages', label: 'Pages', icon: Files, fullOnly: false }] : []),
   { href: '/admin/communications', label: 'Communications', icon: Megaphone },
   { href: '/admin/team', label: 'Admin team', icon: ShieldCheck, fullOnly: true },
   { href: '/dashboard', label: 'Parent view', icon: Eye, fullOnly: true },

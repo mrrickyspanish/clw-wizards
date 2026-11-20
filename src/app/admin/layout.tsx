@@ -1,11 +1,13 @@
 import type { Metadata } from 'next'
 import { ReadOnlyBanner } from '@/components/demo/ReadOnlyBanner'
 import { churchAllows, churchRoleFor } from '@/lib/demo-roles'
+import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
 import {
   CalendarClock,
   ClipboardCheck,
   Eye,
   FileText,
+  Files,
   HandCoins,
   Handshake,
   Inbox,
@@ -25,7 +27,7 @@ import { AdminMobileNav } from '@/components/layout/AdminMobileNav'
 
 // `fullOnly` items are shown only to full admins; limited admins never see the
 // website-content editor or the team manager (and middleware blocks the routes).
-type AdminNavItem = NavItem & { fullOnly?: boolean }
+type AdminNavItem = NavItem & { fullOnly?: boolean; churchOnly?: boolean }
 
 const ADMIN_NAV: AdminNavItem[] = [
   { href: '/admin', label: 'Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -37,6 +39,8 @@ const ADMIN_NAV: AdminNavItem[] = [
   { href: '/admin/dues', label: 'Dues', icon: <HandCoins className="w-4 h-4" /> },
   { href: '/admin/sponsors', label: 'Sponsors', icon: <Handshake className="w-4 h-4" /> },
   { href: '/admin/content', label: 'Website content', icon: <FileText className="w-4 h-4" />, fullOnly: true },
+  // Church demo only: the Pages mock (SBC, Nov 20). Role access is narrowed by demo-roles.
+  { href: '/admin/pages', label: 'Pages', icon: <Files className="w-4 h-4" />, churchOnly: true },
   { href: '/admin/communications', label: 'Communications', icon: <Megaphone className="w-4 h-4" /> },
   { href: '/admin/team', label: 'Admin team', icon: <ShieldCheck className="w-4 h-4" />, fullOnly: true },
   // The parent pages as families see them (an empty family for an admin).
@@ -56,7 +60,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // Church demo staff roles narrow the menu further (SBC, Nov 20).
   const churchRole = churchRoleFor(auth.user?.email)
   const navItems: NavItem[] = ADMIN_NAV.filter(
-    (item) => (isFullAdmin || !item.fullOnly) && (!churchRole || churchAllows(churchRole, item.href))
+    (item) =>
+      (isFullAdmin || !item.fullOnly) && (!item.churchOnly || CHURCH_READ_ONLY) && (!churchRole || churchAllows(churchRole, item.href))
   ).map((item) => ({
     href: item.href,
     label: item.label,

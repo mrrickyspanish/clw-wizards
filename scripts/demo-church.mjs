@@ -33,7 +33,7 @@ if (rootArg === -1 && process.env.VERCEL !== '1') {
   process.exit(0)
 }
 
-const SKIP = new Set(['src/config/org.config.ts', 'src/lib/demo.ts', 'src/lib/demo-seed.ts', 'src/lib/demo-seed-church.ts'])
+const SKIP = new Set(['src/config/org.config.ts', 'src/lib/demo.ts', 'src/lib/demo-seed.ts', 'src/lib/demo-seed-church.ts', 'src/lib/demo-pages.ts'])
 
 // Any text: phrases and capitalised words. Order matters: longer phrases first,
 // and "Group" becomes "Ministry" before "Coach" becomes "Group Leader".
@@ -220,7 +220,8 @@ async function* sourceFiles(dir) {
 let changed = 0
 for await (const file of sourceFiles(path.join(root, 'src'))) {
   const rel = path.relative(root, file).split(path.sep).join('/')
-  if (SKIP.has(rel) || rel.startsWith('src/app/api/')) continue
+  // The church Pages mock is written in church words already (SBC, Nov 20).
+  if (SKIP.has(rel) || rel.startsWith('src/app/api/') || rel.startsWith('src/app/admin/pages/')) continue
   const before = await readFile(file, 'utf8')
   const after = rewrite(file, before)
   if (after !== before) {

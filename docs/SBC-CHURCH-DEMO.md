@@ -83,9 +83,20 @@ source keeps the club's words.
   - Giving is visible only to Giving Admin.
   - The member menu reads Household Members.
   - No password, and read-only everywhere.
+- **Pages mock (Nov 20, built in the SBC session):**
+  - `/admin/pages` list, `/admin/pages/new` (Insert New Page), `/admin/pages/edit`
+    (slot editor with live phone/desktop preview) and `/admin/pages/review`
+    (approval queue, Church Admin only). Front-end only: sample pages live in
+    `src/lib/demo-pages.ts`, no database tables, nothing saves.
+  - Three templates: Story page, Get Involved page, Announcement. Spec:
+    `projects/sbc-digital-platform/outputs/38-page-builder-spec.md` in
+    creative-eye-agent-os.
+  - Access (`pages` on each role in `demo-roles.ts`): Church Admin full;
+    Page Editor (new role, `pages@sbc-demo.example`) creates and edits drafts;
+    Group Admin edits only Music Ministry's page; others have no Pages item.
+  - The files are written in church words and are skipped by
+    `scripts/demo-church.mjs`. Photos are in `public/images/sbc-pages/`.
+  - The Page Editor login exists only after a church reset at `/demo-reset`.
 - **Open:**
-  - The "Pages" mock (Insert New Page, three templates, editor, approval
-    queue, Page Editor role), approved by RJ in the SBC chat. Its spec is in
-    that chat.
   - Known gap: a Group Admin can open other households through a direct
     `/admin/families/<id>` address.
