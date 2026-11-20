@@ -173,6 +173,22 @@ tables.athletes.find((a) => a.first_name === 'Lily').usa_wrestling_card_number =
 tables.tournaments.find((t) => t.id === id('t', 1)).street_address = '12345 West Longname Memorial Boulevard, Building C'
 for (const t of tables.tournaments) t.street_address ??= null
 // ---- end CLW-ENG-005 ----
+// ---- CLW-ENG-007: made-up in-house tournaments for Register and pay ----
+// One open with a cost ($40 per wrestler: Tommy paid by card, Tina's entry saved
+// but not paid yet) and one open and free (Tommy registered). Every other
+// tournament has no cost.
+for (const t of tables.tournaments) t.entry_fee_cents ??= null
+tables.tournaments.push(
+  { ...base, id: id('t', 7), name: 'Wizards Winter Classic In-House Tournament', date: '2026-12-12', start_time: '09:00', location: 'Wizards Facility', street_address: null, city: 'Crystal Lake', state: 'IL', status: 'open', external_registration_url: null, competition_level: null, weigh_in_date: null, weigh_in_time: null, weigh_in_location: null, practice_groups: [], notes: null, external_platform: 'internal', image_url: null, entry_fee_cents: 4000 },
+  { ...base, id: id('t', 8), name: 'Holiday Fun Scrimmage', date: '2026-12-19', start_time: '10:00', location: 'Wizards Facility', street_address: null, city: 'Crystal Lake', state: 'IL', status: 'open', external_registration_url: null, competition_level: null, weigh_in_date: null, weigh_in_time: null, weigh_in_location: null, practice_groups: [], notes: null, external_platform: 'internal', image_url: null, entry_fee_cents: null },
+)
+const eng007Reg = (n, t, kid, over) => ({ id: id('j', 70 + n), tournament_id: t, athlete_id: kid, parent_id: PARENT, status: 'registered', registered_at: T, confirmed_at: null, notes: null, weight: null, division: null, grade: null, fee_cents: null, paid_cents: 0, paid_at: null, payment_method: null, payment_note: null, ...over })
+tables.tournament_registrations.push(
+  eng007Reg(1, id('t', 7), id('k', 1), { weight: '62', division: 'Bantam', grade: '3rd', fee_cents: 4000, paid_cents: 4000, paid_at: T, payment_method: 'card' }),
+  eng007Reg(2, id('t', 7), id('k', 2), { weight: '48', division: 'Tot', grade: '3rd', fee_cents: 4000 }),
+  eng007Reg(3, id('t', 8), id('k', 1), {}),
+)
+// ---- end CLW-ENG-007 ----
 
 // ---- CLW-ENG-003: made-up site registrations for the admin roster ----
 // The Turkey Tussle costs $25 a wrestler and has a street address. Its site

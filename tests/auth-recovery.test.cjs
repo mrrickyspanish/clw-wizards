@@ -5299,3 +5299,375 @@ test('CLW-ENG-006: desktop nav, dashboard tile, robots and the layout sweep list
   assert.match(blocks[1], /fn === 'family_tournament_roster'/)
   assert.doesNotMatch(blocks.join('\n'), /@[a-z0-9-]+\.[a-z]/i, 'no email addresses')
 })
+
+// ---- CLW-ENG-007: parent register and pay screen, and withdraw rules ----
+// Made-up people only. The Supabase stand-in models the row-level security the
+// actions run under: athletes are visible only to someone who guards them,
+// a registration write for an unguarded wrestler is refused (42501), and an
+// update the database will not allow matches 0 rows.
+const e7React = require('react')
+const { renderToStaticMarkup: e7Render } = require('react-dom/server')
+const E7 = {
+  T_FREE: 'f7000000-0000-4000-a000-000000000001',
+  T_PAID: 'f7000000-0000-4000-a000-000000000002',
+  OWNER: 'f7000000-0000-4000-b000-000000000001',
+  LIMITED: 'f7000000-0000-4000-b000-000000000002',
+  WHOLE: 'f7000000-0000-4000-b000-000000000003',
+  STRANGER: 'f7000000-0000-4000-b000-000000000004',
+  K1: 'f7000000-0000-4000-c000-000000000001',
+  K2: 'f7000000-0000-4000-c000-000000000002',
+  R1: 'f7000000-0000-4000-d000-000000000001',
+  R2: 'f7000000-0000-4000-d000-000000000002',
+}
+const e7MoneyLib = load('src/lib/format/money.ts', {})
+
+function e7Db(userId, seed = {}, fail = {}) {
+  const tables = {
+    tournaments: [
+      { id: E7.T_FREE, status: 'open', external_registration_url: null, entry_fee_cents: null },
+      { id: E7.T_PAID, status: 'open', external_registration_url: null, entry_fee_cents: 4000 },
+    ],
+    athletes: [
+      { id: E7.K1, parent_id: E7.OWNER },
+      { id: E7.K2, parent_id: E7.OWNER },
+    ],
+    // One co-parent linked to K1 only (club-locked), one to the whole family.
+    family_guardians: [
+      { owner_id: E7.OWNER, guardian_id: E7.LIMITED, athlete_ids: [E7.K1], locked: true },
+      { owner_id: E7.OWNER, guardian_id: E7.WHOLE, athlete_ids: null, locked: false },
+    ],
+    tournament_registrations: [],
+    ...seed,
+  }
+  const guards = (athleteId) => {
+    const a = tables.athletes.find((x) => x.id === athleteId)
+    if (!a) return false
+    return a.parent_id === userId || tables.family_guardians.some((g) => g.owner_id === a.parent_id && g.guardian_id === userId && (g.athlete_ids === null || g.athlete_ids.includes(a.id)))
+  }
+  const writes = []
+  const from = (table) => {
+    const filters = []
+    let op = 'select', values = null, conflict = null
+    const list = () => (tables[table] ??= [])
+    const matches = (r) => filters.every(([o, k, v]) => (o === 'eq' ? r[k] === v : o === 'in' ? v.includes(r[k]) : o === 'is' ? (r[k] ?? null) === v : true))
+    const visible = (r) => (table === 'athletes' || table === 'tournament_registrations' ? guards(r.athlete_id ?? r.id) : table === 'family_guardians' ? r.guardian_id === userId : true)
+    const run = () => {
+      if (op === 'upsert') {
+        writes.push({ table, op, values: plain(values), conflict })
+        if (fail.upsert) return { data: null, error: fail.upsert }
+        if (values.some((v) => !guards(v.athlete_id))) return { data: null, error: { code: '42501', message: 'new row violates row-level security policy for table "tournament_registrations"' } }
+        if (fail.upsertZero) return { data: [], error: null }
+        const keys = conflict.split(',')
+        const out = values.map((v) => {
+          const row = list().find((r) => keys.every((k) => r[k] === v[k]))
+          if (row) return Object.assign(row, v)
+          const added = { id: `reg-${list().length + 1}`, paid_cents: 0, payment_method: null, fee_cents: null, ...v }
+          list().push(added)
+          return added
+        })
+        return { data: out.map((r) => ({ id: r.id })), error: null }
+      }
+      if (op === 'update') {
+        writes.push({ table, op, values: plain(values), filters: plain(filters) })
+        if (fail.update) return { data: null, error: fail.update }
+        const hit = fail.updateZero ? [] : list().filter((r) => visible(r) && matches(r))
+        hit.forEach((r) => Object.assign(r, values))
+        return { data: hit.map((r) => ({ id: r.id })), error: null }
+      }
+      if (fail.read === table) return { data: null, error: { message: 'read failed' } }
+      return { data: list().filter((r) => visible(r) && matches(r)).map((r) => ({ ...r })), error: null }
+    }
+    const one = async () => { const r = run(); return { data: r.data?.[0] ?? null, error: r.error } }
+    const b = {
+      select: () => b,
+      upsert: (v, o) => { op = 'upsert'; values = v; conflict = o.onConflict; return b },
+      update: (v) => { op = 'update'; values = v; return b },
+      eq: (k, v) => { filters.push(['eq', k, v]); return b },
+      in: (k, v) => { filters.push(['in', k, v]); return b },
+      is: (k, v) => { filters.push(['is', k, v]); return b },
+      order: () => b, maybeSingle: one, single: one,
+      then: (resolve, reject) => Promise.resolve(run()).then(resolve, reject),
+    }
+    return b
+  }
+  return { tables, writes, client: { auth: { getUser: async () => ({ data: { user: userId ? { id: userId } : null } }) }, from } }
+}
+
+function e7Actions(db) {
+  const server = { createServerSupabase: async () => db.client }
+  const checkoutLib = load('src/lib/payments/tournament-checkout.ts', {
+    '@/lib/supabase/server': server,
+    '@/lib/supabase/admin': { createAdminSupabase: () => { throw new Error('the portal actions never use the service role') } },
+    '@/config/org.config': { ORG: { shortName: 'CLW' } },
+    '@/lib/tournament-registration': tRegLib,
+  })
+  const revalidated = []
+  const mod = load('src/app/(portal)/tournaments/actions.ts', {
+    'next/cache': { revalidatePath: (p) => revalidated.push(p) },
+    '@/lib/supabase/server': server,
+    '@/lib/payments/tournament-checkout': checkoutLib,
+  })
+  return { ...mod, revalidated, checkoutLib }
+}
+
+const e7Stub = (tag) => ({ children, className, ...rest }) => e7React.createElement(tag, { className, 'data-variant': rest.variant }, children)
+function e7Form(search = '') {
+  const calls = []
+  const mod = load('src/app/(portal)/tournaments/RegisterAndPayForm.tsx', {
+    'next/navigation': { useRouter: () => ({ refresh: () => {} }), useSearchParams: () => new URLSearchParams(search) },
+    'lucide-react': { CheckCircle2: () => null, Info: () => null },
+    './actions': { withdrawRegistration: async () => ({ ok: true }) },
+    '@/components/ui/button': { Button: e7Stub('button') },
+    '@/components/ui/badge': { Badge: e7Stub('span') },
+    '@/components/ui/input': { Input: (p) => e7React.createElement('input', { id: p.id, value: p.value, readOnly: true, className: p.className }) },
+    '@/lib/checkout-client': { startCheckout: async (body) => { calls.push(body); return { ok: false, message: 'stub' } } },
+    '@/lib/format/money': e7MoneyLib,
+    '@/lib/age-division': ageDivision,
+    '@/lib/tournament-registration': tRegLib,
+  })
+  return { mod, calls }
+}
+
+test('CLW-ENG-007: owners and linked co-parents register a guarded wrestler on a free tournament; anyone else is refused', async () => {
+  // Owner: today's free sign-up, exactly as before.
+  let db = e7Db(E7.OWNER)
+  let actions = e7Actions(db)
+  assert.deepEqual(plain(await actions.registerAthletes({ tournamentId: E7.T_FREE, athleteIds: [E7.K1, E7.K2] })), { ok: true })
+  assert.deepEqual(db.writes[0].values.map((v) => v.status), ['registered', 'registered'])
+  assert.ok(db.writes[0].values.every((v) => v.parent_id === E7.OWNER && Object.keys(v).sort().join() === 'athlete_id,parent_id,status,tournament_id'))
+  assert.equal(db.writes[0].conflict, 'tournament_id,athlete_id')
+  assert.deepEqual(actions.revalidated, ['/tournaments'])
+
+  // Co-parent on a limited (and locked) link: the covered wrestler works...
+  db = e7Db(E7.LIMITED)
+  actions = e7Actions(db)
+  assert.deepEqual(plain(await actions.registerAthletes({ tournamentId: E7.T_FREE, athleteIds: [E7.K1] })), { ok: true })
+  assert.equal(db.tables.tournament_registrations[0].athlete_id, E7.K1)
+  // ...the uncovered one is refused before any write.
+  db = e7Db(E7.LIMITED)
+  actions = e7Actions(db)
+  const refused = plain(await actions.registerAthletes({ tournamentId: E7.T_FREE, athleteIds: [E7.K2] }))
+  assert.deepEqual(refused, { ok: false, error: 'One or more athletes are not on your roster.' })
+  assert.equal(db.writes.length, 0)
+
+  // A whole-family co-parent covers every wrestler (this used to fail: the action only accepted parent_id = me).
+  db = e7Db(E7.WHOLE)
+  actions = e7Actions(db)
+  assert.deepEqual(plain(await actions.registerAthletes({ tournamentId: E7.T_FREE, athleteIds: [E7.K1, E7.K2] })), { ok: true })
+
+  // A stranger is refused.
+  db = e7Db(E7.STRANGER)
+  assert.equal((await e7Actions(db).registerAthletes({ tournamentId: E7.T_FREE, athleteIds: [E7.K1] })).ok, false)
+  assert.equal(db.writes.length, 0)
+
+  // A tournament with a cost goes through Register and pay, never the free action.
+  db = e7Db(E7.OWNER)
+  const priced = plain(await e7Actions(db).registerAthletes({ tournamentId: E7.T_PAID, athleteIds: [E7.K1] }))
+  assert.equal(priced.ok, false)
+  assert.match(priced.error, /takes payment/)
+  assert.equal(db.writes.length, 0)
+})
+
+test('CLW-ENG-007: register handles a permission-denied write and a write that saved nothing', async () => {
+  let db = e7Db(E7.OWNER, {}, { upsert: { code: '42501', message: 'new row violates row-level security policy' } })
+  assert.deepEqual(plain(await e7Actions(db).registerAthletes({ tournamentId: E7.T_FREE, athleteIds: [E7.K1] })), { ok: false, error: 'One or more athletes are not on your roster.' })
+  db = e7Db(E7.OWNER, {}, { upsertZero: true })
+  const zero = plain(await e7Actions(db).registerAthletes({ tournamentId: E7.T_FREE, athleteIds: [E7.K1] }))
+  assert.equal(zero.ok, false)
+  assert.match(zero.error, /not saved/)
+  db = e7Db(E7.OWNER, {}, { read: 'athletes' })
+  assert.match((await e7Actions(db).registerAthletes({ tournamentId: E7.T_FREE, athleteIds: [E7.K1] })).error, /Could not check/)
+  assert.equal(db.writes.length, 0)
+})
+
+test('CLW-ENG-007: a paid entry cannot be withdrawn from the portal; an unpaid one can, by the owner or a linked co-parent', async () => {
+  const reg = (id, athlete, over = {}) => ({ id, tournament_id: E7.T_PAID, athlete_id: athlete, parent_id: E7.OWNER, status: 'registered', fee_cents: 4000, paid_cents: 0, payment_method: null, ...over })
+  const A5 = 'Paid entries are withdrawn by the club. Contact the club to change this.'
+  for (const paid of [{ paid_cents: 4000, payment_method: 'card' }, { paid_cents: 4000, payment_method: 'cash' }, { paid_cents: 0, payment_method: 'waived' }, { paid_cents: 1000, payment_method: null }]) {
+    const db = e7Db(E7.OWNER, { tournament_registrations: [reg(E7.R1, E7.K1, paid)] })
+    assert.deepEqual(plain(await e7Actions(db).withdrawRegistration({ registrationId: E7.R1 })), { ok: false, error: A5 }, JSON.stringify(paid))
+    assert.equal(db.writes.length, 0)
+    assert.equal(db.tables.tournament_registrations[0].status, 'registered')
+  }
+  // The refusal uses ENG-004's entryIsLocked, not a copy of it.
+  assert.match(fs.readFileSync(path.join(__dirname, '..', 'src/app/(portal)/tournaments/actions.ts'), 'utf8'), /import \{ entryIsLocked \} from '@\/lib\/payments\/tournament-checkout'/)
+
+  // A co-parent on a limited link withdraws the covered wrestler's unpaid entry
+  // even though the owner created it (the old parent_id filter matched nothing).
+  let db = e7Db(E7.LIMITED, { tournament_registrations: [reg(E7.R1, E7.K1), reg(E7.R2, E7.K2)] })
+  let actions = e7Actions(db)
+  assert.deepEqual(plain(await actions.withdrawRegistration({ registrationId: E7.R1 })), { ok: true })
+  assert.equal(db.tables.tournament_registrations[0].status, 'withdrawn')
+  // The update only matches a row still unpaid, so a payment landing meanwhile is never undone.
+  assert.deepEqual(db.writes[0].filters, [['eq', 'id', E7.R1], ['eq', 'paid_cents', 0], ['is', 'payment_method', null]])
+  assert.ok(!db.writes[0].filters.some(([, k]) => k === 'parent_id'))
+  // The uncovered wrestler's entry is not even visible to them.
+  assert.deepEqual(plain(await actions.withdrawRegistration({ registrationId: E7.R2 })), { ok: false, error: 'Registration not found.' })
+  assert.equal(db.tables.tournament_registrations[1].status, 'registered')
+
+  // 0 rows changed (the database refused quietly, or it became paid) and a permission error both read plainly.
+  db = e7Db(E7.OWNER, { tournament_registrations: [reg(E7.R1, E7.K1)] }, { updateZero: true })
+  assert.match((await e7Actions(db).withdrawRegistration({ registrationId: E7.R1 })).error, /could not be withdrawn/)
+  db = e7Db(E7.OWNER, { tournament_registrations: [reg(E7.R1, E7.K1)] }, { update: { code: '42501', message: 'permission denied for table tournament_registrations' } })
+  assert.deepEqual(plain(await e7Actions(db).withdrawRegistration({ registrationId: E7.R1 })), { ok: false, error: 'One or more athletes are not on your roster.' })
+  db = e7Db(null)
+  assert.deepEqual(plain(await e7Actions(db).withdrawRegistration({ registrationId: E7.R1 })), { ok: false, error: 'Not signed in' })
+})
+
+test('CLW-ENG-007: the checkout request carries no amount, and the total is the fee times the wrestlers picked', () => {
+  const { mod } = e7Form()
+  const body = plain(mod.buildCheckoutBody(E7.T_PAID, [
+    { athleteId: E7.K1, draft: { weight: ' 62 lbs ', division: ' Bantam ', grade: '3rd' } },
+    { athleteId: E7.K2, draft: { weight: '48.5', division: 'Tot', grade: ' ' } },
+  ]))
+  assert.deepEqual(Object.keys(body).sort(), ['entries', 'flow', 'returnPath', 'tournamentId'])
+  assert.deepEqual(body, {
+    flow: 'tournament', tournamentId: E7.T_PAID, returnPath: '/tournaments',
+    entries: [{ athleteId: E7.K1, weight: '62', division: 'Bantam', grade: '3rd' }, { athleteId: E7.K2, weight: '48.5', division: 'Tot' }],
+  })
+  assert.doesNotMatch(JSON.stringify(body), /amount|cents|price|total/i)
+  // The form sends exactly that body and nothing else.
+  const src = fs.readFileSync(path.join(__dirname, '..', 'src/app/(portal)/tournaments/RegisterAndPayForm.tsx'), 'utf8')
+  assert.match(src, /startCheckout\(\s*buildCheckoutBody\(/)
+  assert.equal((src.match(/startCheckout\(/g) || []).length, 1)
+
+  // Total and button text come from ENG-002's checkoutTotal and the database fee.
+  for (const n of [1, 2, 3, 10]) assert.equal(mod.selectionTotal(4000, n), 4000 * n)
+  assert.equal(mod.selectionTotal(4000, 0), null)
+  assert.equal(mod.selectionTotal(4000, 11), null, 'over the per-checkout limit')
+  assert.equal(mod.payButtonLabel(4000, 2), 'Register and pay $80.00')
+  assert.equal(mod.payButtonLabel(2550, 3), 'Register and pay $76.50')
+  assert.equal(mod.payButtonLabel(4000, 0), 'Register and pay')
+
+  // Weight is required and checked with parseWeight; division is required.
+  assert.equal(mod.draftProblem('Kid', { weight: '62', division: 'Bantam', grade: '' }), null)
+  assert.match(mod.draftProblem('Kid', { weight: '', division: 'Bantam', grade: '' }), /Kid's weight/)
+  assert.match(mod.draftProblem('Kid', { weight: '400', division: 'Bantam', grade: '' }), /weight/)
+  assert.match(mod.draftProblem('Kid', { weight: '62', division: '  ', grade: '' }), /division/)
+})
+
+test('CLW-ENG-007: division starts from the age division and grade from the season enrollment, unless the entry already has them', () => {
+  const { mod } = e7Form()
+  const kid = { id: E7.K1, name: 'Kid One', dateOfBirth: '2018-01-08', ageDivision: null, grade: '3rd' }
+  assert.deepEqual(plain(mod.defaultDraft(kid, undefined)), { weight: '', division: 'Bantam', grade: '3rd' })
+  assert.deepEqual(plain(mod.defaultDraft({ ...kid, ageDivision: 'novice' }, undefined)), { weight: '', division: 'Novice', grade: '3rd' })
+  assert.deepEqual(plain(mod.defaultDraft({ ...kid, dateOfBirth: null, grade: null }, undefined)), { weight: '', division: '', grade: '' })
+  // Pay now on an unpaid entry starts from what the family entered before.
+  assert.deepEqual(plain(mod.defaultDraft(kid, { id: E7.R1, status: 'registered', weight: '61', division: 'Boys 8u', grade: '2nd' })), { weight: '61', division: 'Boys 8u', grade: '2nd' })
+})
+
+test('CLW-ENG-007: each wrestler shows Paid, Waived, Payment due with Pay now, Registered (free) or Withdrawn, and the page lock matches the server lock', () => {
+  const { mod } = e7Form()
+  const kids = ['Ann', 'Ben', 'Cal', 'Dee', 'Eve', 'Flo'].map((n, i) => ({ id: `k${i}`, name: `${n} Example`, dateOfBirth: '2017-05-05', ageDivision: null, grade: null }))
+  const regs = {
+    k0: { id: 'r0', status: 'registered', feeCents: 4000, paidCents: 4000, paymentMethod: 'card' },
+    k1: { id: 'r1', status: 'confirmed', feeCents: null, paidCents: 0, paymentMethod: 'waived' },
+    k2: { id: 'r2', status: 'registered', feeCents: null, paidCents: 0, paymentMethod: null, weight: '70' },
+    k3: { id: 'r3', status: 'registered', feeCents: 0, paidCents: 0, paymentMethod: null },
+    k4: { id: 'r4', status: 'withdrawn', feeCents: 4000, paidCents: 0, paymentMethod: null },
+  }
+  const html = e7Render(e7React.createElement(mod.RegisterAndPayForm, { tournamentId: E7.T_PAID, feeCents: 4000, athletes: kids, registrations: regs }))
+  assert.ok(html.includes('Cost per wrestler: <span class="font-semibold text-clw-gold-ink">$40.00</span>'))
+  const row = (name) => html.slice(html.indexOf(name), html.indexOf('</li>', html.indexOf(name)))
+  assert.match(row('Ann Example'), />Paid</)
+  assert.match(row('Ben Example'), />Waived</)
+  // An unlocked fee (null) is judged against the tournament fee: payment due, with Pay now and the price.
+  assert.match(row('Cal Example'), />Payment due</)
+  assert.match(row('Cal Example'), />Pay now \$40\.00</)
+  assert.match(row('Dee Example'), />Registered \(free\)</)
+  assert.match(row('Eve Example'), />Withdrawn</)
+  assert.doesNotMatch(row('Flo Example'), /data-variant="outline"/, 'not registered: no state badge')
+  // Paid and waived entries cannot be picked or withdrawn; the A5 line says why.
+  for (const n of ['Ann', 'Ben']) assert.doesNotMatch(row(`${n} Example`), /type="checkbox"|Withdraw|Pay now/)
+  for (const n of ['Cal', 'Eve', 'Flo']) assert.match(html, new RegExp(`type="checkbox"[^>]*/><span[^>]*>${n} Example`))
+  assert.ok(html.includes(mod.PAID_ENTRY_NOTE))
+  assert.equal(mod.PAID_ENTRY_NOTE, 'Paid entries are withdrawn by the club. Contact the club to change this.')
+  assert.ok(fs.readFileSync(path.join(__dirname, '..', 'src/app/(portal)/tournaments/actions.ts'), 'utf8').includes(`'${mod.PAID_ENTRY_NOTE}'`), 'the server refusal uses the same words')
+  // Nothing picked yet: the button cannot start a checkout.
+  assert.match(html, /<button[^>]*>Register and pay<\/button>/)
+  assert.ok(html.includes('Pick the wrestlers to register.'))
+
+  // The page's lock copy agrees with ENG-004's entryIsLocked on every case.
+  const lib = e7Actions(e7Db(E7.OWNER)).checkoutLib
+  for (const r of [{ paid_cents: 0, payment_method: null }, { paid_cents: 1, payment_method: null }, { paid_cents: 0, payment_method: 'waived' }, { paid_cents: 0, payment_method: 'cash' }, { paid_cents: 4000, payment_method: 'card' }]) {
+    assert.equal(mod.isEntryLocked({ paidCents: r.paid_cents, paymentMethod: r.payment_method }), lib.entryIsLocked(r), JSON.stringify(r))
+  }
+  // Body copy and buttons follow the CLAUDE.md floors: no text-xs, and text-sm only on the state badges.
+  assert.doesNotMatch(html, /text-xs/)
+  for (const m of html.matchAll(/<(\w+)[^>]*class="([^"]*\btext-sm\b[^"]*)"/g)) assert.equal(m[1], 'span', m[0])
+})
+
+test('CLW-ENG-007: back from Stripe, the card says the payment is in or that nothing was charged', () => {
+  const props = { tournamentId: E7.T_PAID, feeCents: 4000, athletes: [{ id: 'k0', name: 'Ann Example', dateOfBirth: null, ageDivision: null, grade: null }], registrations: {} }
+  const ok = e7Form('checkout=success').mod
+  assert.ok(e7Render(e7React.createElement(ok.RegisterAndPayForm, { ...props, showReturnFallback: true })).includes('Payment received. It can take a minute to show here.'))
+  // Only one card carries the message when the browser does not remember which one was paid.
+  assert.ok(!e7Render(e7React.createElement(ok.RegisterAndPayForm, props)).includes('Payment received'))
+  const cancelled = e7Render(e7React.createElement(e7Form('checkout=cancelled').mod.RegisterAndPayForm, { ...props, showReturnFallback: true }))
+  assert.ok(cancelled.includes('nothing was charged'))
+  assert.ok(cancelled.includes('not registered until the entry is paid'))
+  assert.ok(!e7Render(e7React.createElement(e7Form('').mod.RegisterAndPayForm, { ...props, showReturnFallback: true })).includes('role="status"'))
+})
+
+test('CLW-ENG-007: the Tournaments page sends priced in-house tournaments to Register and pay and keeps free and outside ones as they were', async () => {
+  const seen = { pay: [], free: [] }
+  const supabase = eng005Supabase({
+    tournaments: [
+      eng005Tournament({ id: 'tp', name: 'Paid Open', external_registration_url: null, entry_fee_cents: 4000 }),
+      eng005Tournament({ id: 'tf', name: 'Free Duals', external_registration_url: null, entry_fee_cents: null }),
+      eng005Tournament({ id: 'tx', name: 'Outside Classic', external_registration_url: 'https://www.trackwrestling.com/x', entry_fee_cents: 4000 }),
+      eng005Tournament({ id: 'tc', name: 'Closed Cup', external_registration_url: null, entry_fee_cents: 4000, status: 'closed' }),
+    ],
+    athletes: [
+      { id: 'k1', first_name: 'Ann', last_name: 'Example', active: true, date_of_birth: '2018-01-08', age_division: null },
+      { id: 'k2', first_name: 'Old', last_name: 'Example', active: false, date_of_birth: '2012-01-01', age_division: null },
+    ],
+    tournament_registrations: [
+      { id: 'r1', tournament_id: 'tp', athlete_id: 'k1', status: 'registered', fee_cents: 4000, paid_cents: 4000, payment_method: 'card', weight: '62', division: 'Bantam', grade: '3rd' },
+      { id: 'r2', tournament_id: 'tf', athlete_id: 'k1', status: 'registered', fee_cents: null, paid_cents: 0, payment_method: null, weight: null, division: null, grade: null },
+    ],
+    // Newest first, as the page asks: the newest enrollment with a grade wins.
+    season_enrollments: [
+      { athlete_id: 'k1', grade: null, submitted_at: '2026-10-01T00:00:00Z' },
+      { athlete_id: 'k1', grade: ' 3rd ', submitted_at: '2026-09-01T00:00:00Z' },
+      { athlete_id: 'k1', grade: '2nd', submitted_at: '2025-09-01T00:00:00Z' },
+    ],
+    tournament_sessions: [],
+  })
+  const el = (tag) => ({ children, className }) => e7React.createElement(tag, { className }, children)
+  const mod = load('src/app/(portal)/tournaments/page.tsx', {
+    'next/link': { __esModule: true, default: (p) => e7React.createElement('a', { href: p.href }, p.children) },
+    '@/lib/tournament-status': load('src/lib/tournament-status.ts', {}),
+    '@/lib/supabase/server': { createServerSupabase: async () => supabase },
+    '@/lib/family': { resolveFamilyOwnerIds: async () => ['parent-1'] },
+    '@/lib/chicago-time': { chicagoDateString: () => '2026-11-01' },
+    '@/lib/practice': practiceLib,
+    '@/lib/maps': mapsLib,
+    '@/lib/tournament-sessions': tSessionsLib,
+    '@/lib/club-calendar': clubCalLib,
+    '@/components/ui/badge': { Badge: el('span') },
+    '@/components/ui/button': { Button: ({ children }) => children },
+    '@/components/ui/card': { Card: el('section'), CardContent: el('div'), CardHeader: el('header'), CardTitle: el('h3') },
+    './RegisterControls': {
+      RegisterControls: (p) => { seen.free.push(plain(p)); return e7React.createElement('div', null, 'FREE-CONTROLS') },
+      RegisterAndPayForm: (p) => { seen.pay.push(plain(p)); return e7React.createElement('div', null, 'PAY-FORM') },
+    },
+    '@/components/events/TournamentFlier': { TournamentFlier: () => null },
+  })
+  const html = e7Render(await mod.default())
+  assert.equal((html.match(/PAY-FORM/g) || []).length, 1)
+  assert.equal((html.match(/FREE-CONTROLS/g) || []).length, 1)
+  assert.match(html, /href="https:\/\/www\.trackwrestling\.com\/x"/)
+  assert.ok(html.includes('Registration is closed.'))
+  const [pay] = seen.pay
+  assert.equal(pay.tournamentId, 'tp')
+  assert.equal(pay.feeCents, 4000, 'the price shown is the database fee')
+  assert.equal(pay.showReturnFallback, true)
+  assert.deepEqual(pay.athletes, [{ id: 'k1', name: 'Ann Example', dateOfBirth: '2018-01-08', ageDivision: null, grade: '3rd' }], 'active wrestlers only, grade from the newest enrollment that has one')
+  assert.deepEqual(pay.registrations.k1, { id: 'r1', status: 'registered', feeCents: 4000, paidCents: 4000, paymentMethod: 'card', weight: '62', division: 'Bantam', grade: '3rd' })
+  const [free] = seen.free
+  assert.equal(free.tournamentId, 'tf')
+  assert.deepEqual(free.athletes, [{ id: 'k1', name: 'Ann Example' }])
+  assert.equal(free.registrations.k1.id, 'r2')
+  assert.ok(supabase.reads.includes('season_enrollments'))
+})
