@@ -103,6 +103,24 @@ const tables = {
     { id: id('e', 2), tournament_id: id('t', 1), athlete_id: id('k', 2), external_name: 'Christopher Longname-Example II (6th)', division: 'Boys 12u', weight: '135', grade: '6th', paid: false, submitted: null, source: 'trackwrestling', imported_at: T, imported_by: null },
     { id: id('e', 3), tournament_id: id('t', 1), athlete_id: null, external_name: 'Unmatched Kid With A Very Long Name', division: 'Girls 8u', weight: '68', grade: null, paid: true, submitted: null, source: 'trackwrestling', imported_at: T, imported_by: null },
   ],
+  // ---- CLW-ENG-001: made-up rows for the new tournament tables ----
+  // Sessions: the Turkey Tussle runs in two sessions, one with a long division list.
+  tournament_sessions: [
+    { id: id('h', 1), tournament_id: id('t', 1), start_time: '08:00', divisions: 'Tots, Bantam, Intermediate', sort_order: 0, created_at: T },
+    { id: id('h', 2), tournament_id: id('t', 1), start_time: '13:30', divisions: 'Novice, Senior, and any wrestler moving up a division this season', sort_order: 1, created_at: T },
+  ],
+  // Admin only (the real table has no parent or public access): a club link and spots
+  // on the Turkey Tussle, spots only on the Spring Open.
+  tournament_admin_details: [
+    { tournament_id: id('t', 1), club_registrations_url: 'https://example.com/club-registrations', spots_allotted: 12, updated_at: T, updated_by: ADMIN },
+    { tournament_id: id('t', 3), club_registrations_url: null, spots_allotted: 20, updated_at: T, updated_by: ADMIN },
+  ],
+  // One paid card checkout for two of Pat's wrestlers. The registration ids are made up;
+  // add matching tournament_registrations rows when a page needs them.
+  tournament_checkouts: [
+    { id: id('i', 1), tournament_id: id('t', 1), tournament_name: 'Turkey Tussle Open With A Long Tournament Name', payer_id: PARENT, registration_ids: [id('j', 1), id('j', 2)], athlete_ids: [id('k', 1), id('k', 2)], amount_cents: 5000, net_cents: 5000, stripe_checkout_session_id: 'cs_test_qa_1', stripe_payment_intent_id: 'pi_test_qa_1', status: 'paid', created_at: T, paid_at: T },
+  ],
+  // ---- end CLW-ENG-001 ----
   communication_log: [
     { id: id('l', 1), channel: 'email', comm_type: 'custom', recipient_id: PARENT, recipient_email: 'pat@example.com', recipient_phone: null, tournament_id: null, subject: 'Practice starts Nov 2', body_preview: 'See you there', status: 'sent', sent_at: '2026-10-05T14:00:00Z', external_id: null, blast_id: id('z', 1) },
   ],

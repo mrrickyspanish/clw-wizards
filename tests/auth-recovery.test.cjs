@@ -3876,3 +3876,225 @@ test('parseWeight accepts 30 to 300 lbs with at most one decimal place', () => {
     assert.equal(tRegLib.parseWeight(bad), null, String(bad))
   }
 })
+
+// ---- CLW-ENG-001: Schema foundation for B2-B7 ----
+// Static checks on the four new migrations, the types and the QA mock. The
+// same rules were also replayed on a fresh local Postgres (see the task notes).
+const ENG001_MIGRATIONS = [
+  '20261120000001_tournament_sessions_and_address.sql',
+  '20261120000002_tournament_admin_details.sql',
+  '20261120000003_tournament_payments.sql',
+  '20261120000004_family_tournament_roster.sql',
+  // Operator decision (Nov 20): fixes F1 and F2 from the first review.
+  '20261120000005_tournament_registration_guards.sql',
+]
+const eng001Dir = path.join(__dirname, '..', 'supabase', 'migrations')
+// The SQL with -- comments removed, so prose in comments never satisfies or trips a check.
+const eng001Sql = (file) => fs.readFileSync(path.join(eng001Dir, file), 'utf8').replace(/--[^\n]*/g, '')
+// The SQL outside function bodies (what runs at migration time).
+const eng001Outside = (sql) => sql.replace(/\$\$[\s\S]*?\$\$/g, '$$$$ $$$$')
+const eng001Body = (sql, fn) => {
+  const m = new RegExp(`FUNCTION public\\.${fn}\\([\\s\\S]*?\\$\\$([\\s\\S]*?)\\$\\$`, 'i').exec(sql)
+  assert.ok(m, `function ${fn} not found`)
+  return m[1]
+}
+const eng001Policies = (sql, table) => (sql.match(/CREATE POLICY[\s\S]*?;/gi) || []).filter((p) => new RegExp(`ON public\\.${table}\\b`, 'i').test(p))
+const eng001Columns = (sql, table) => {
+  const m = new RegExp(`CREATE TABLE public\\.${table} \\(([\\s\\S]*?)\\n\\);`, 'i').exec(sql)
+  assert.ok(m, `table ${table} not found`)
+  return [...m[1].matchAll(/^ {2}([a-z_]+) [A-Z]/gm)].map((c) => c[1]).sort()
+}
+const eng001TypeKeys = (ts, name) => {
+  const m = new RegExp(`export type ${name} = \\{([\\s\\S]*?)\\n\\}`).exec(ts)
+  assert.ok(m, `type ${name} not found`)
+  return [...m[1].matchAll(/^ {2}([a-z_]+)\??:/gm)].map((c) => c[1]).sort()
+}
+
+test('CLW-ENG-001: exactly the five new migrations exist and every new table has RLS on', () => {
+  const ours = fs.readdirSync(eng001Dir).filter((f) => f.startsWith('20261120'))
+  assert.deepEqual(ours.sort(), ENG001_MIGRATIONS)
+  const tables = []
+  for (const file of ENG001_MIGRATIONS) {
+    const sql = eng001Sql(file)
+    for (const [, table] of sql.matchAll(/CREATE TABLE public\.([a-z_]+)/gi)) {
+      tables.push(table)
+      assert.match(sql, new RegExp(`ALTER TABLE public\\.${table} ENABLE ROW LEVEL SECURITY`, 'i'), `${table} has no RLS`)
+    }
+  }
+  assert.deepEqual(tables.sort(), ['tournament_admin_details', 'tournament_checkouts', 'tournament_sessions'])
+})
+
+test('CLW-ENG-001: the migrations are additive only', () => {
+  for (const file of ENG001_MIGRATIONS) {
+    const outside = eng001Outside(eng001Sql(file))
+    assert.doesNotMatch(outside, /\bDROP\b/i, `${file} drops something`)
+    assert.doesNotMatch(outside, /\bTRUNCATE\b/i, file)
+    assert.doesNotMatch(outside, /ALTER\s+COLUMN[\s\S]*?\bTYPE\b/i, `${file} changes a column type`)
+    assert.doesNotMatch(outside, /\bUPDATE\s+[a-z_.]+\s+(?:[a-z]+\s+)?SET\b/i, `${file} updates existing rows`)
+    assert.doesNotMatch(outside, /\bDELETE\s+FROM\b/i, `${file} deletes existing rows`)
+    assert.doesNotMatch(outside, /\bINSERT\s+INTO\b/i, `${file} writes rows at migration time`)
+  }
+  // The one DELETE in a function body touches only the new sessions table.
+  const deletes = ENG001_MIGRATIONS.flatMap((f) => eng001Sql(f).match(/DELETE\s+FROM\s+[a-z_.]+/gi) || [])
+  assert.deepEqual(deletes, ['DELETE FROM public.tournament_sessions'])
+})
+
+test('CLW-ENG-001: sessions are public to read, admin to write, and replaced in one admin-only step', () => {
+  const sql = eng001Sql(ENG001_MIGRATIONS[0])
+  assert.deepEqual(eng001Columns(sql, 'tournament_sessions'), ['created_at', 'divisions', 'id', 'sort_order', 'start_time', 'tournament_id'])
+  assert.match(sql, /tournament_id UUID NOT NULL REFERENCES public\.tournaments\(id\) ON DELETE CASCADE/)
+  assert.match(sql, /CREATE INDEX [a-z_]+ ON public\.tournament_sessions \(tournament_id\)/)
+  assert.match(sql, /char_length\(divisions\) <= 120/)
+  assert.match(sql, /char_length\(street_address\) <= 200/)
+  const policies = eng001Policies(sql, 'tournament_sessions')
+  assert.equal(policies.length, 2)
+  assert.ok(policies.some((p) => /FOR SELECT USING \(true\)/.test(p)))
+  assert.ok(policies.some((p) => /FOR ALL USING \(public\.has_role\(auth\.uid\(\), 'admin'\)\) WITH CHECK \(public\.has_role\(auth\.uid\(\), 'admin'\)\)/.test(p)))
+  assert.match(sql, /replace_tournament_sessions\(p_tournament UUID, p_sessions JSONB\)\s*RETURNS INTEGER LANGUAGE plpgsql SECURITY INVOKER/)
+  const body = eng001Body(sql, 'replace_tournament_sessions')
+  assert.match(body, /IF NOT public\.has_role\(auth\.uid\(\), 'admin'\) THEN\s*RAISE EXCEPTION/)
+  assert.match(body, /jsonb_array_length\(p_sessions\) > 5/)
+  assert.match(body, /IF n > 0 THEN[\s\S]*min\(s\.start_time\)[\s\S]*UPDATE public\.tournaments SET start_time = v_first/)
+  assert.match(sql, /REVOKE EXECUTE ON FUNCTION public\.replace_tournament_sessions\(UUID, JSONB\) FROM PUBLIC, anon;/)
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.replace_tournament_sessions\(UUID, JSONB\) TO authenticated;/)
+})
+
+test('CLW-ENG-001: tournament_admin_details is admin-only with no anon grant', () => {
+  const sql = eng001Sql(ENG001_MIGRATIONS[1])
+  const policies = eng001Policies(sql, 'tournament_admin_details')
+  assert.equal(policies.length, 1)
+  for (const p of policies) {
+    const clauses = [...p.matchAll(/(?:USING|WITH CHECK) \(([\s\S]*?\))\)/g)].map((c) => c[1])
+    assert.equal(clauses.length, 2, 'needs both USING and WITH CHECK')
+    for (const c of clauses) assert.equal(c, "public.has_role(auth.uid(), 'admin')")
+    assert.doesNotMatch(p, /\bTO\s+(anon|public)\b|staff|parent/i)
+  }
+  assert.match(sql, /REVOKE ALL ON TABLE public\.tournament_admin_details FROM anon;/)
+  assert.doesNotMatch(sql, /GRANT[^;]*tournament_admin_details[^;]*TO[^;]*anon/i)
+  assert.match(sql, /tournament_id UUID PRIMARY KEY REFERENCES public\.tournaments\(id\) ON DELETE CASCADE/)
+  assert.match(sql, /club_registrations_url LIKE 'https:\/\/%'/)
+  assert.match(sql, /spots_allotted BETWEEN 1 AND 500/)
+  assert.match(sql, /updated_by UUID REFERENCES public\.profiles\(id\) ON DELETE SET NULL/)
+})
+
+test('CLW-ENG-001: payment columns are server-only and the record functions are server-only and idempotent', () => {
+  const sql = eng001Sql(ENG001_MIGRATIONS[2])
+  assert.match(sql, /CREATE TRIGGER keep_registration_payment_server_only\s+BEFORE INSERT OR UPDATE ON public\.tournament_registrations\s+FOR EACH ROW EXECUTE FUNCTION public\.keep_registration_payment_server_only\(\);/)
+  assert.match(sql, /keep_registration_payment_server_only\(\)\s*RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER/)
+  const trigger = eng001Body(sql, 'keep_registration_payment_server_only')
+  assert.match(trigger, /IF auth\.uid\(\) IS NULL OR public\.has_role\(auth\.uid\(\), 'admin'\) THEN\s*RETURN NEW;/)
+  const [insert, update] = trigger.split(/\bELSE\b/)
+  const defaults = { fee_cents: 'NULL', paid_cents: '0', paid_at: 'NULL', payment_method: 'NULL', payment_note: 'NULL' }
+  for (const [col, value] of Object.entries(defaults)) {
+    assert.match(insert, new RegExp(`NEW\\.${col} := ${value};`), `INSERT branch misses ${col}`)
+    assert.match(update, new RegExp(`NEW\\.${col} := OLD\\.${col};`), `UPDATE branch misses ${col}`)
+  }
+  // A parent cannot move a (paid) registration to another tournament or wrestler.
+  assert.match(update, /NEW\.tournament_id := OLD\.tournament_id;/)
+  assert.match(update, /NEW\.athlete_id := OLD\.athlete_id;/)
+
+  for (const fn of ['record_tournament_payment\\(UUID, TEXT, TEXT, INTEGER\\)', 'record_tournament_refund\\(TEXT, INTEGER\\)']) {
+    assert.match(sql, new RegExp(`REVOKE EXECUTE ON FUNCTION public\\.${fn} FROM PUBLIC, anon, authenticated;`))
+  }
+  assert.doesNotMatch(sql, /GRANT EXECUTE ON FUNCTION public\.record_tournament/i)
+  assert.match(sql, /stripe_checkout_session_id TEXT UNIQUE,/)
+  assert.match(sql, /stripe_payment_intent_id TEXT UNIQUE,/)
+  // Money rows outlive a deleted tournament.
+  assert.match(sql, /tournament_id UUID REFERENCES public\.tournaments\(id\) ON DELETE SET NULL,\s*tournament_name TEXT NOT NULL/)
+  assert.match(sql, /payer_id UUID REFERENCES public\.profiles\(id\) ON DELETE SET NULL/)
+  // Clients only read checkouts: admins all, a payer their own. Nobody writes through the API.
+  const policies = eng001Policies(sql, 'tournament_checkouts')
+  assert.equal(policies.length, 2)
+  for (const p of policies) assert.match(p, /FOR SELECT TO authenticated USING/)
+  assert.match(sql, /REVOKE ALL ON TABLE public\.tournament_checkouts FROM anon;/)
+
+  const pay = eng001Body(sql, 'record_tournament_payment')
+  assert.match(pay, /FROM public\.tournament_checkouts c WHERE c\.id = _checkout FOR UPDATE/)
+  assert.match(pay, /IF v\.status <> 'pending' THEN[\s\S]*?SELECT FALSE,[\s\S]*?RETURN;/)
+  assert.match(pay, /paid_cents = coalesce\(r\.fee_cents, r\.paid_cents\),\s*paid_at = now\(\),\s*payment_method = 'card'/)
+  const refund = eng001Body(sql, 'record_tournament_refund')
+  assert.match(refund, /v_delta := v\.net_cents - v_net;\s*IF v_delta <= 0 THEN/)
+  assert.match(refund, /CASE WHEN v_net = 0 THEN 'refunded' ELSE 'partially_refunded' END/)
+  assert.match(sql, /entry_fee_cents BETWEEN 100 AND 100000/)
+  assert.match(sql, /payment_method IN \('card', 'cash', 'check', 'waived'\)/)
+})
+
+test('CLW-ENG-001: family_tournament_roster checks guards_athlete on both sources and never returns TrackWrestling names', () => {
+  const sql = eng001Sql(ENG001_MIGRATIONS[3])
+  assert.match(sql, /family_tournament_roster\(\)\s*RETURNS TABLE \([\s\S]*?\) LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS/)
+  const returns = /RETURNS TABLE \(([\s\S]*?)\) LANGUAGE/.exec(sql)[1]
+  assert.deepEqual([...returns.matchAll(/^ {2}([a-z_]+) /gm)].map((c) => c[1]), [
+    'tournament_id', 'tournament_name', 'date', 'location', 'city', 'state', 'street_address', 'athlete_id',
+    'athlete_first_name', 'athlete_last_name', 'source', 'division', 'weight', 'registration_state',
+  ])
+  const body = eng001Body(sql, 'family_tournament_roster')
+  const [site, tw] = body.split(/\bUNION ALL\b/)
+  assert.ok(site && tw, 'two sources joined by UNION ALL')
+  assert.match(site, /FROM public\.tournament_registrations r/)
+  assert.match(site, /public\.guards_athlete\(r\.athlete_id\)/)
+  assert.match(site, /r\.status IN \('registered', 'confirmed'\)/)
+  assert.match(tw, /FROM public\.tournament_entries e/)
+  assert.match(tw, /public\.guards_athlete\(e\.athlete_id\)/)
+  assert.match(tw, /e\.athlete_id IS NOT NULL/)
+  assert.match(tw, /'trackwrestling'::TEXT, NULL::TEXT, NULL::TEXT, NULL::TEXT/)
+  for (const part of [site, tw]) {
+    assert.match(part, /auth\.uid\(\) IS NOT NULL/)
+    assert.match(part, /t\.date >= current_date - 30/)
+    const selectList = /SELECT([\s\S]*?)\bFROM\b/.exec(part)[1]
+    assert.doesNotMatch(selectList, /external_name|imported_by|e\.division|e\.weight|e\.grade|e\.paid/)
+  }
+  assert.doesNotMatch(body, /external_name|imported_by/)
+  assert.doesNotMatch(body, /has_role/, 'no admin bypass')
+  assert.match(sql, /REVOKE EXECUTE ON FUNCTION public\.family_tournament_roster\(\) FROM PUBLIC, anon;/)
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.family_tournament_roster\(\) TO authenticated;/)
+  assert.doesNotMatch(sql, /GRANT[^;]*family_tournament_roster[^;]*anon/i)
+})
+
+test('CLW-ENG-001: database.ts types match the new tables, columns and functions', () => {
+  const ts = fs.readFileSync(path.join(__dirname, '..', 'src', 'types', 'database.ts'), 'utf8')
+  const sql = (n) => eng001Sql(ENG001_MIGRATIONS[n])
+  assert.deepEqual(eng001TypeKeys(ts, 'TournamentSession'), eng001Columns(sql(0), 'tournament_sessions'))
+  assert.deepEqual(eng001TypeKeys(ts, 'TournamentAdminDetails'), eng001Columns(sql(1), 'tournament_admin_details'))
+  assert.deepEqual(eng001TypeKeys(ts, 'TournamentCheckout'), eng001Columns(sql(2), 'tournament_checkouts'))
+  const tournament = eng001TypeKeys(ts, 'Tournament')
+  for (const col of ['street_address', 'entry_fee_cents']) assert.ok(tournament.includes(col), `Tournament.${col}`)
+  const registration = eng001TypeKeys(ts, 'TournamentRegistration')
+  const added = [...sql(2).matchAll(/ADD COLUMN ([a-z_]+)/g)].map((c) => c[1]).filter((c) => c !== 'entry_fee_cents')
+  assert.deepEqual(added, ['weight', 'division', 'grade', 'fee_cents', 'paid_cents', 'paid_at', 'payment_method', 'payment_note'])
+  for (const col of added) assert.ok(registration.includes(col), `TournamentRegistration.${col}`)
+  for (const name of ['tournament_sessions', 'tournament_admin_details', 'tournament_checkouts']) {
+    assert.match(ts, new RegExp(`\\n {6}${name}: \\{\\n {8}Row: `), `Tables.${name}`)
+  }
+  for (const fn of ['replace_tournament_sessions', 'record_tournament_payment', 'record_tournament_refund', 'family_tournament_roster']) {
+    assert.match(ts, new RegExp(`\\n {6}${fn}: \\{\\n {8}Args: `), `Functions.${fn}`)
+  }
+})
+
+test('CLW-ENG-001: registration guards are restrictive: only guardians or admins write, and only admins delete paid rows', () => {
+  const sql = eng001Sql(ENG001_MIGRATIONS[4])
+  const policies = eng001Policies(sql, 'tournament_registrations')
+  assert.equal(policies.length, 3)
+  for (const p of policies) {
+    assert.match(p, /AS RESTRICTIVE FOR (INSERT|UPDATE|DELETE)\b/, 'every new policy is restrictive')
+    assert.doesNotMatch(p, /\bTO\s+[a-z_]+/i, 'applies to every role (the service role bypasses RLS)')
+  }
+  const byCmd = (cmd) => policies.find((p) => new RegExp(`AS RESTRICTIVE FOR ${cmd}\\b`).test(p))
+  const guard = "public.has_role(auth.uid(), 'admin') OR public.guards_athlete(athlete_id)"
+  const clauses = (p) => [...p.matchAll(/(USING|WITH CHECK) \(([\s\S]*?)\)\s*(?=USING|WITH CHECK|;)/g)].map((c) => [c[1], c[2].replace(/\s+/g, ' ')])
+  assert.deepEqual(clauses(byCmd('INSERT')), [['WITH CHECK', guard]])
+  assert.deepEqual(clauses(byCmd('UPDATE')), [['USING', guard], ['WITH CHECK', guard]])
+  assert.deepEqual(clauses(byCmd('DELETE')), [['USING', "public.has_role(auth.uid(), 'admin') OR (paid_cents = 0 AND payment_method IS NULL)"]])
+  // Additive: the original permissive policies are left in place.
+  assert.doesNotMatch(sql, /DROP POLICY|ALTER POLICY/i)
+})
+
+test('CLW-ENG-001: the QA mock has made-up rows for the three new tables', () => {
+  const mock = fs.readFileSync(path.join(__dirname, '..', '.claude', 'skills', 'wizards-request', 'qa', 'mock.cjs'), 'utf8')
+  new vm.Script(mock) // parses
+  const block = /\/\/ ---- CLW-ENG-001:[\s\S]*?\/\/ ---- end CLW-ENG-001 ----/.exec(mock)
+  assert.ok(block, 'delimited CLW-ENG-001 block')
+  for (const table of ['tournament_sessions', 'tournament_admin_details', 'tournament_checkouts']) {
+    assert.match(block[0], new RegExp(`\\n {2}${table}: \\[\\n {4}\\{`), table)
+  }
+  assert.doesNotMatch(block[0], /@(?!example\.com)[a-z0-9-]+\.[a-z]/i, 'no real email addresses')
+})
