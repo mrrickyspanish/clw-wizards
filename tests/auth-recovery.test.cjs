@@ -4136,3 +4136,337 @@ test('CLW-ENG-001: the QA mock has made-up rows for the three new tables', () =>
   }
   assert.doesNotMatch(block[0], /@(?!example\.com)[a-z0-9-]+\.[a-z]/i, 'no real email addresses')
 })
+
+// ---- CLW-ENG-003: Admin tournament surfaces (B2 sessions, B3 address, B4 cost and paid view, B5 club link, B6 spots) ----
+const eng003AdminLib = load('src/app/admin/tournaments/tournament-admin.ts', {
+  '@/lib/tw-roster': twLib,
+  '@/lib/tournament-registration': tRegLib,
+})
+const ENG003_T = '44444444-4444-4444-a444-444444444444'
+const ENG003_R = '55555555-5555-4555-a555-555555555555'
+
+// A recording stand-in for the Supabase server client: every table call and
+// rpc lands in `log` in order, with its operation, values and filters.
+function eng003Harness({ role = 'admin', tables = {}, rpcError = null, failTable = null } = {}) {
+  const log = []
+  const data = { profiles: [{ id: 'me', role, is_active: true }], ...tables }
+  const from = (table) => {
+    const call = { kind: 'table', table, op: 'select', values: null, filters: [], onConflict: null }
+    log.push(call)
+    const rows = () => (data[table] ?? []).filter((r) => call.filters.every(([o, k, v]) =>
+      o === 'eq' ? r[k] === v : o === 'gt' ? r[k] > v : o === 'is' ? (r[k] ?? null) === v : o === 'in' ? v.includes(r[k]) : true))
+    const run = () => {
+      if (failTable === table) return { data: null, error: { message: 'boom' } }
+      if (call.op === 'insert') { const row = { id: 'new-id', ...call.values }; (data[table] ??= []).push(row); return { data: [row], error: null } }
+      if (call.op === 'upsert') { (data[table] ??= []).push({ ...call.values }); return { data: [call.values], error: null } }
+      if (call.op === 'update') { const hit = rows(); hit.forEach((r) => Object.assign(r, call.values)); return { data: hit.map((r) => ({ id: r.id })), error: null } }
+      if (call.op === 'delete') { const hit = rows(); data[table] = (data[table] ?? []).filter((r) => !hit.includes(r)); return { data: null, error: null } }
+      return { data: rows(), error: null }
+    }
+    const one = async () => { const r = run(); return { data: Array.isArray(r.data) ? r.data[0] ?? null : r.data, error: r.error } }
+    const b = {
+      select: () => b, order: () => b, limit: () => b,
+      insert: (v) => { call.op = 'insert'; call.values = v; return b },
+      update: (v) => { call.op = 'update'; call.values = v; return b },
+      upsert: (v, o) => { call.op = 'upsert'; call.values = v; call.onConflict = o?.onConflict ?? null; return b },
+      delete: () => { call.op = 'delete'; return b },
+      eq: (k, v) => { call.filters.push(['eq', k, v]); return b },
+      gt: (k, v) => { call.filters.push(['gt', k, v]); return b },
+      is: (k, v) => { call.filters.push(['is', k, v]); return b },
+      in: (k, v) => { call.filters.push(['in', k, v]); return b },
+      single: one, maybeSingle: one,
+      then: (resolve, reject) => Promise.resolve(run()).then(resolve, reject),
+    }
+    return b
+  }
+  const client = {
+    from,
+    rpc: async (name, args) => {
+      log.push({ kind: 'rpc', name, args })
+      return rpcError ? { data: null, error: { message: rpcError } } : { data: args.p_sessions.length, error: null }
+    },
+    auth: { getUser: async () => ({ data: { user: { id: 'me' } } }) },
+  }
+  const actions = load('src/app/admin/tournaments/actions.ts', {
+    'next/cache': { revalidatePath: () => {} },
+    '@/lib/supabase/server': { createServerSupabase: async () => client },
+    '@/config/org.config': { ORG: { practiceGroups: ['Group 1', 'Group 2'] } },
+    '@/lib/tournament-sessions': tSessionsLib,
+    '@/lib/tournament-registration': tRegLib,
+    './tournament-admin': eng003AdminLib,
+  })
+  const writes = () => log.filter((c) => c.kind === 'rpc' || c.op !== 'select')
+  return { actions, log, data, writes }
+}
+
+const eng003Form = (extra = {}) => ({
+  name: 'Made Up Open', date: '2026-12-12', location: 'Big Gym', city: 'Crystal Lake', state: 'il', status: 'open',
+  sessions: [{ start_time: '09:00', divisions: '' }], practice_groups: [], ...extra,
+})
+const ENG003_ADMIN_ONLY_KEYS = ['club_registrations_url', 'spots_allotted', 'entry_fee', 'sessions']
+
+test('CLW-ENG-003: saving a tournament converts dollars to cents and keeps the club link and spots out of the tournaments row', async () => {
+  const h = eng003Harness()
+  const res = await h.actions.createTournament(eng003Form({
+    street_address: ' 100 Main St ',
+    entry_fee: '$25.50',
+    club_registrations_url: 'https://www.trackwrestling.com/tw/club.jsp?tournamentGroupId=77&twSessionId=abc123',
+    spots_allotted: '12',
+    sessions: [{ start_time: '13:30', divisions: 'Novice, Senior' }, { start_time: '08:00', divisions: 'Tots, Bantam' }, { start_time: '', divisions: '' }],
+  }))
+  assert.deepEqual(plain(res), { ok: true, id: 'new-id' })
+  const insert = h.log.find((c) => c.table === 'tournaments' && c.op === 'insert')
+  assert.equal(insert.values.entry_fee_cents, 2550)
+  assert.equal(insert.values.street_address, '100 Main St')
+  assert.equal(insert.values.state, 'IL')
+  assert.equal(insert.values.start_time, '08:00', 'start_time is the earliest session')
+  for (const key of ENG003_ADMIN_ONLY_KEYS) assert.equal(key in insert.values, false, `${key} is not a tournaments column`)
+  assert.doesNotMatch(JSON.stringify(insert.values), /trackwrestling|twSessionId|"12"/, 'no admin-only value in the public row')
+
+  // Sessions: saved after the tournament row, sorted by time, through the RPC.
+  const order = h.writes().map((c) => (c.kind === 'rpc' ? `rpc:${c.name}` : `${c.op}:${c.table}`))
+  assert.deepEqual(order, ['insert:tournaments', 'rpc:replace_tournament_sessions', 'upsert:tournament_admin_details'])
+  const rpc = h.log.find((c) => c.kind === 'rpc')
+  assert.deepEqual(plain(rpc.args), {
+    p_tournament: 'new-id',
+    p_sessions: [{ start_time: '08:00', divisions: 'Tots, Bantam' }, { start_time: '13:30', divisions: 'Novice, Senior' }],
+  })
+  // Club link (cleaned of the copier's session code) and spots go to the admin-only table.
+  const upsert = h.log.find((c) => c.op === 'upsert')
+  assert.equal(upsert.onConflict, 'tournament_id')
+  assert.deepEqual(plain(upsert.values), {
+    tournament_id: 'new-id',
+    club_registrations_url: 'https://www.trackwrestling.com/tw/club.jsp?tournamentGroupId=77',
+    spots_allotted: 12,
+    updated_by: 'me',
+  })
+
+  // Edit: same split; blank admin fields clear the admin row; one session with
+  // blank divisions behaves like the old single start time.
+  const e = eng003Harness()
+  const upd = await e.actions.updateTournament(ENG003_T, eng003Form({ entry_fee: '', club_registrations_url: ' ', spots_allotted: '' }))
+  assert.equal(upd.ok, true)
+  const update = e.log.find((c) => c.table === 'tournaments' && c.op === 'update')
+  assert.equal(update.values.entry_fee_cents, null)
+  assert.equal(update.values.start_time, '09:00')
+  for (const key of ENG003_ADMIN_ONLY_KEYS) assert.equal(key in update.values, false, `${key} is not a tournaments column`)
+  assert.deepEqual(plain(e.log.find((c) => c.kind === 'rpc').args.p_sessions), [{ start_time: '09:00', divisions: null }])
+  const del = e.log.find((c) => c.table === 'tournament_admin_details')
+  assert.equal(del.op, 'delete')
+  assert.deepEqual(del.filters, [['eq', 'tournament_id', ENG003_T]])
+
+  // An edit that clears every session clears the start time and the session rows.
+  const c = eng003Harness()
+  await c.actions.updateTournament(ENG003_T, eng003Form({ sessions: [{ start_time: '', divisions: ' ' }] }))
+  assert.equal(c.log.find((x) => x.op === 'update').values.start_time, null)
+  assert.deepEqual(plain(c.log.find((x) => x.kind === 'rpc').args.p_sessions), [])
+})
+
+test('CLW-ENG-003: bad cost, spots, link or sessions are refused before anything is written', async () => {
+  const cases = [
+    [{ entry_fee: 'abc' }, /amount/],
+    [{ entry_fee: '0.50' }, /between \$1 and \$1,000/],
+    [{ entry_fee: '1000.01' }, /between \$1 and \$1,000/],
+    [{ spots_allotted: '501' }, /1 to 500/],
+    [{ spots_allotted: '2.5' }, /whole number/],
+    [{ club_registrations_url: 'http://www.trackwrestling.com/x' }, /https:\/\//],
+    [{ club_registrations_url: 'not a link' }, /https:\/\//],
+    [{ sessions: [{ start_time: '25:00', divisions: '' }] }, /start time/],
+    [{ sessions: Array.from({ length: 6 }, (_, i) => ({ start_time: `0${i + 1}:00`, divisions: '' })) }, /at most 5/],
+    [{ street_address: 'x'.repeat(201) }, /200 characters/],
+  ]
+  for (const [extra, message] of cases) {
+    const h = eng003Harness()
+    const res = await h.actions.createTournament(eng003Form(extra))
+    assert.equal(res.ok, false, JSON.stringify(extra).slice(0, 60))
+    assert.match(res.error, message)
+    assert.deepEqual(h.writes(), [], 'nothing written')
+  }
+})
+
+test('CLW-ENG-003: a sessions save that fails is shown, and the new tournament id comes back so a retry edits it', async () => {
+  const h = eng003Harness({ rpcError: 'Bad session list' })
+  const res = await h.actions.createTournament(eng003Form({ spots_allotted: '8' }))
+  assert.equal(res.ok, false)
+  assert.equal(res.id, 'new-id')
+  assert.match(res.error, /tournament saved, but: The sessions did not save \(Bad session list\)/)
+  assert.equal(h.log.filter((c) => c.op === 'upsert').length, 1, 'admin details still attempted')
+  // A new tournament with no sessions does not call the RPC at all.
+  const none = eng003Harness()
+  await none.actions.createTournament(eng003Form({ sessions: [] }))
+  assert.equal(none.log.some((c) => c.kind === 'rpc'), false)
+})
+
+test('CLW-ENG-003: non-admins are refused by every admin tournament action, including the admin-details upsert', async () => {
+  for (const role of ['parent', 'staff']) {
+    const h = eng003Harness({ role, tables: { tournament_registrations: [{ id: ENG003_R, tournament_id: ENG003_T, status: 'registered', fee_cents: null, paid_cents: 0, payment_method: null }] } })
+    const form = eng003Form({ club_registrations_url: 'https://www.trackwrestling.com/x', spots_allotted: '10' })
+    for (const res of [
+      await h.actions.createTournament(form),
+      await h.actions.updateTournament(ENG003_T, form),
+      await h.actions.deleteTournament(ENG003_T),
+      await h.actions.markRegistrationPaid(ENG003_R, 'cash'),
+      await h.actions.waiveRegistrationFee(ENG003_R),
+    ]) assert.deepEqual(plain(res), { ok: false, error: 'Admin access required.' })
+    assert.deepEqual(h.writes(), [], `${role}: nothing written`)
+    assert.ok(h.log.every((c) => c.table === 'profiles'), `${role}: only the role check ran`)
+  }
+  // An inactive admin is refused too.
+  const gone = eng003Harness()
+  gone.data.profiles[0].is_active = false
+  assert.equal((await gone.actions.updateTournament(ENG003_T, eng003Form())).ok, false)
+})
+
+test('CLW-ENG-003: delete refuses a tournament with a paid registration', async () => {
+  const paid = eng003Harness({ tables: { tournament_registrations: [
+    { id: 'r1', tournament_id: ENG003_T, paid_cents: 0 },
+    { id: 'r2', tournament_id: ENG003_T, paid_cents: 2500 },
+  ] } })
+  const res = await paid.actions.deleteTournament(ENG003_T)
+  assert.equal(res.ok, false)
+  assert.match(res.error, /paid for this tournament, so it cannot be deleted/)
+  assert.equal(paid.log.some((c) => c.table === 'tournaments' && c.op === 'delete'), false)
+  const check = paid.log.find((c) => c.table === 'tournament_registrations')
+  assert.deepEqual(check.filters, [['eq', 'tournament_id', ENG003_T], ['gt', 'paid_cents', 0]])
+
+  // Unpaid or waived rows only: the delete goes ahead.
+  const unpaid = eng003Harness({ tables: { tournament_registrations: [{ id: 'r1', tournament_id: ENG003_T, paid_cents: 0, payment_method: 'waived' }], tournaments: [{ id: ENG003_T }] } })
+  assert.equal((await unpaid.actions.deleteTournament(ENG003_T)).ok, true)
+  assert.equal(unpaid.data.tournaments.length, 0)
+
+  // If the check itself fails, nothing is deleted.
+  const broken = eng003Harness({ failTable: 'tournament_registrations', tables: { tournaments: [{ id: ENG003_T }] } })
+  assert.equal((await broken.actions.deleteTournament(ENG003_T)).ok, false)
+  assert.equal(broken.data.tournaments.length, 1)
+})
+
+test('CLW-ENG-003: admins mark a due entry paid by cash or check, or waive it, through their own client', async () => {
+  const reg = (extra = {}) => ({ id: ENG003_R, tournament_id: ENG003_T, status: 'registered', fee_cents: null, paid_cents: 0, payment_method: null, ...extra })
+  const harness = (r, fee = 2500) => eng003Harness({ tables: { tournament_registrations: [r], tournaments: [{ id: ENG003_T, entry_fee_cents: fee }] } })
+
+  const cash = harness(reg())
+  assert.equal((await cash.actions.markRegistrationPaid(ENG003_R, 'cash')).ok, true)
+  const u = cash.log.find((c) => c.op === 'update')
+  assert.equal(u.table, 'tournament_registrations')
+  assert.deepEqual(Object.keys(u.values).sort(), ['fee_cents', 'paid_at', 'paid_cents', 'payment_method'])
+  assert.equal(u.values.fee_cents, 2500, 'locks the effective fee')
+  assert.equal(u.values.paid_cents, 2500)
+  assert.equal(u.values.payment_method, 'cash')
+  assert.match(u.values.paid_at, /^\d{4}-\d\d-\d\dT/)
+  // Only if the row is still as it was read.
+  assert.deepEqual(u.filters, [['eq', 'id', ENG003_R], ['eq', 'paid_cents', 0], ['is', 'payment_method', null]])
+
+  const check = harness(reg({ fee_cents: 3000 }))
+  await check.actions.markRegistrationPaid(ENG003_R, 'check')
+  assert.equal(check.log.find((c) => c.op === 'update').values.paid_cents, 3000, 'a locked fee wins over the tournament fee')
+
+  const waive = harness(reg())
+  assert.equal((await waive.actions.waiveRegistrationFee(ENG003_R)).ok, true)
+  const w = waive.log.find((c) => c.op === 'update').values
+  assert.equal(w.payment_method, 'waived')
+  assert.equal('paid_cents' in w, false, 'waiving records no money')
+  assert.ok(w.paid_at)
+
+  const refusals = [
+    [reg({ paid_cents: 2500, payment_method: 'card', fee_cents: 2500 }), 2500, 'cash', /already paid/],
+    [reg({ payment_method: 'waived' }), 2500, 'check', /already waived/],
+    [reg({ status: 'withdrawn' }), 2500, 'cash', /withdrawn/],
+    [reg(), null, 'cash', /no cost/],
+    [reg(), 2500, 'card', /cash or check/],
+  ]
+  for (const [r, fee, method, message] of refusals) {
+    const h = harness(r, fee)
+    const res = await h.actions.markRegistrationPaid(ENG003_R, method)
+    assert.equal(res.ok, false)
+    assert.match(res.error, message)
+    assert.deepEqual(h.writes(), [])
+  }
+  const bad = harness(reg())
+  assert.equal((await bad.actions.waiveRegistrationFee('not-a-uuid')).ok, false)
+  assert.deepEqual(bad.writes(), [])
+})
+
+test('CLW-ENG-003: spots count each wrestler once across the TrackWrestling list and paid site registrations', () => {
+  const entries = [{ athlete_id: 'k1' }, { athlete_id: 'k2' }, { athlete_id: null }]
+  const regs = [
+    { athlete_id: 'k1', status: 'registered', fee_cents: 2500, paid_cents: 2500, payment_method: 'card' }, // also on TrackWrestling
+    { athlete_id: 'k3', status: 'registered', fee_cents: null, paid_cents: 0, payment_method: null }, // due: not counted
+    { athlete_id: 'k4', status: 'confirmed', fee_cents: null, paid_cents: 0, payment_method: 'waived' },
+    { athlete_id: 'k5', status: 'withdrawn', fee_cents: 2500, paid_cents: 2500, payment_method: 'cash' },
+  ]
+  const filled = tSpotsLib.distinctRegisteredCount(entries, regs, 2500)
+  assert.equal(filled, 4) // k1, k2, k4 and the unmatched row
+  assert.equal(tSpotsLib.spotsLine(filled, 3), '4 of 3 spots filled (1 over)')
+  assert.equal(tSpotsLib.distinctRegisteredCount(entries, regs, null), 5, 'no tournament fee: the unlocked row is free')
+  // Both admin pages count with the tournament's entry fee, the same rule as the family roster.
+  for (const file of ['src/app/admin/tournaments/page.tsx', 'src/app/admin/tournaments/[id]/page.tsx']) {
+    const src = fs.readFileSync(path.join(__dirname, '..', file), 'utf8')
+    assert.match(src, /distinctRegisteredCount\(entries, \w+, t\.entry_fee_cents\)/, file)
+    assert.match(src, /spotsLine\(filled, /, file)
+  }
+})
+
+test('CLW-ENG-003: form helpers read sessions, cost, link and spots the way admins type them', () => {
+  const L = eng003AdminLib
+  assert.equal(L.toSessionTime('08:00'), '08:00')
+  assert.equal(L.toSessionTime('8:00 AM'), '08:00')
+  assert.equal(L.toSessionTime('12:30 pm'), '12:30')
+  assert.equal(L.toSessionTime('12:15 AM'), '00:15')
+  assert.equal(L.toSessionTime('17:45:00'), '17:45')
+  assert.equal(L.toSessionTime('noon'), '')
+  assert.equal(L.toSessionTime(null), '')
+  assert.equal(L.toSessionTime('13:00 PM'), '')
+  assert.equal(L.centsToDollarInput(2500), '25')
+  assert.equal(L.centsToDollarInput(2550), '25.50')
+  assert.equal(L.centsToDollarInput(null), '')
+  assert.deepEqual(plain(L.parseEntryFee(' ')), { ok: true, cents: null })
+  assert.deepEqual(plain(L.parseEntryFee('$1,000')), { ok: true, cents: 100000 })
+  assert.deepEqual(plain(L.parseEntryFee('1')), { ok: true, cents: 100 })
+  assert.equal(L.parseEntryFee('0').ok, false)
+  assert.deepEqual(plain(L.parseSpots('')), { ok: true, spots: null })
+  assert.deepEqual(plain(L.parseSpots(' 500 ')), { ok: true, spots: 500 })
+  assert.equal(L.parseSpots('0').ok, false)
+  assert.equal(L.parseSpots('-3').ok, false)
+  assert.deepEqual(plain(L.parseClubLink('')), { ok: true, url: null })
+  assert.deepEqual(plain(L.parseClubLink('https://example.com/club')), { ok: true, url: 'https://example.com/club' })
+  assert.equal(L.parseClubLink('https://example.com/' + 'x'.repeat(500)).ok, false)
+})
+
+test('CLW-ENG-003: roster payment labels and the spreadsheet include site registrations with a Source column', () => {
+  const L = eng003AdminLib
+  assert.equal(L.paymentLabel('paid', 'card'), 'Paid by card')
+  assert.equal(L.paymentLabel('paid', 'cash'), 'Paid by cash')
+  assert.equal(L.paymentLabel('paid', 'check'), 'Paid by check')
+  assert.equal(L.paymentLabel('waived', 'waived'), 'Waived')
+  assert.equal(L.paymentLabel('due', null), 'Payment due')
+  assert.equal(L.paymentLabel('free', null), 'Free')
+  const csv = L.combinedRosterCsv({ name: 'Classic, Winter', date: '2026-12-12' }, [
+    { source: 'trackwrestling', division: 'Boys 8u', weight: '52', wrestler: 'Axel Ray', externalName: 'Axel Ray (2nd)', paid: 'No' },
+    { source: 'site', division: null, weight: '60', wrestler: '=Evil Kid', externalName: null, paid: 'Payment due' },
+  ]).split('\n')
+  assert.equal(csv[0], 'Tournament,Date,Division,Weight,Wrestler,Name on TrackWrestling,Paid,Source')
+  assert.equal(csv[1], '"Classic, Winter",2026-12-12,Boys 8u,52,Axel Ray,Axel Ray (2nd),No,TrackWrestling')
+  assert.equal(csv[2], `"Classic, Winter",2026-12-12,,60,'=Evil Kid,,Payment due,Our site`)
+  // The roster page passes site rows to the print view and the spreadsheet.
+  const page = fs.readFileSync(path.join(__dirname, '..', 'src/app/admin/tournaments/[id]/page.tsx'), 'utf8')
+  assert.match(page, /source: 'site' as const/)
+  assert.match(page, /<RosterTools tournament=\{\{ name: t\.name, date: t\.date \}\} rows=\{rosterRows\} \/>/)
+  assert.match(page, /\{rosterRows\.map\(\(r, i\) =>/, 'print view lists both sources')
+  assert.match(page, /Open club registrations on TrackWrestling/)
+  assert.match(page, /href=\{clubUrl\}\s*target="_blank"\s*rel="noopener noreferrer"\s*className="[^"]*min-h-11/, 'club link opens a new tab with a 44px tap target')
+})
+
+test('CLW-ENG-003: the admin tournament files never fetch TrackWrestling and have no text-xs', () => {
+  const dir = path.join(__dirname, '..', 'src', 'app', 'admin', 'tournaments')
+  const files = ['TournamentDialog.tsx', 'actions.ts', 'page.tsx', 'DeleteTournamentButton.tsx', 'tournament-admin.ts', '[id]/page.tsx', '[id]/RosterTools.tsx', '[id]/SitePaymentActions.tsx']
+  for (const f of files) {
+    const src = fs.readFileSync(path.join(dir, f), 'utf8')
+    assert.doesNotMatch(src, /\bfetch\s*\(/, `${f}: no fetch (the site never fetches TrackWrestling)`)
+    assert.doesNotMatch(src, /\btext-xs\b/, `${f}: no text-xs`)
+  }
+  // The dialog writes the admin-only fields only through the server action.
+  const dialog = fs.readFileSync(path.join(dir, 'TournamentDialog.tsx'), 'utf8')
+  assert.doesNotMatch(dialog, /\.from\('(tournaments|tournament_admin_details|tournament_sessions)'\)/)
+  assert.match(dialog, /placeholder="e\.g\. Tots, Bantam, Intermediate"/)
+  assert.match(dialog, /Add a session/)
+})
