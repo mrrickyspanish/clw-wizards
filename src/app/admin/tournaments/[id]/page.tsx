@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button'
 import { paymentLabel, type CombinedRosterRow } from '../tournament-admin'
 import { RosterPaste } from './RosterPaste'
 import { RosterTools } from './RosterTools'
-import { SitePaymentActions } from './SitePaymentActions'
+import { ClearPaymentAction, SitePaymentActions } from './SitePaymentActions'
 
 export const dynamic = 'force-dynamic'
 
@@ -129,6 +129,9 @@ export default async function TournamentRosterPage({ params }: { params: Promise
         label: paymentLabel(state, r.payment_method),
         fee: fee ?? 0,
         paidByCard: state === 'paid' && r.payment_method === 'card',
+        // A cash, check or waived mark an admin can clear (never a card payment).
+        manualMark: r.payment_method === 'cash' || r.payment_method === 'check' || r.payment_method === 'waived' ? r.payment_method : null,
+        note: r.payment_note,
       }
     })
   )
@@ -289,11 +292,13 @@ export default async function TournamentRosterPage({ params }: { params: Promise
                       {r.paidByCard ? 'Paid by' : 'Parent:'} {r.parent}
                     </span>
                   )}
+                  {r.note && <span className="block text-base text-clw-gray">Note: {r.note}</span>}
                 </span>
                 <Badge variant="outline" className={`whitespace-nowrap ${PAYMENT_STYLES[r.state]}`}>
                   {r.label}
                 </Badge>
                 {r.state === 'due' && <SitePaymentActions registrationId={r.id} wrestler={r.wrestler} amount={dollars(r.fee)} />}
+                {r.manualMark && <ClearPaymentAction registrationId={r.id} wrestler={r.wrestler} mark={r.manualMark} />}
               </li>
             ))}
           </ul>
