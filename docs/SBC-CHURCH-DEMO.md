@@ -116,6 +116,11 @@ source keeps the club's words.
   - "Participant" now reads "household member" (or "People" as a heading) in
     `demo-church.mjs`. Other church-only wording is behind `CHURCH_READ_ONLY`
     in the page itself, so the club build is unchanged.
+  - Critic follow-up (commits 5df2f44, 107af9b, 95c3f6f): Giving "Edit" is a
+    gift form; no club fields on household members; a ministry admin's
+    household view is view-only and shows only its ministry; Admin team shows
+    role names; hidden pages redirect when typed in. Final live rescan clean
+    apart from the member login email.
   - Full findings: creative-eye-agent-os
     `projects/sbc-digital-platform/reviews/UX-scrub-staff-demo-2026-11-20.md`.
 - **Open:** nothing known.
