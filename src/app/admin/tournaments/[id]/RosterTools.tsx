@@ -2,15 +2,14 @@
 
 import { Download, Printer } from 'lucide-react'
 
-import { rosterCsv } from '@/lib/tw-roster'
 import { Button } from '@/components/ui/button'
+import { combinedRosterCsv, type CombinedRosterRow } from '../tournament-admin'
 
-type Row = { division: string | null; weight: string | null; wrestler: string; externalName: string; paid: boolean }
-
-// Print and spreadsheet copies of the roster, for coaches.
-export function RosterTools({ tournament, rows }: { tournament: { name: string; date: string }; rows: Row[] }) {
+// Print and spreadsheet copies of the roster, for coaches: the pasted
+// TrackWrestling list and the families who registered on our site.
+export function RosterTools({ tournament, rows }: { tournament: { name: string; date: string }; rows: CombinedRosterRow[] }) {
   function download() {
-    const blob = new Blob([rosterCsv(tournament, rows)], { type: 'text/csv;charset=utf-8' })
+    const blob = new Blob([combinedRosterCsv(tournament, rows)], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url

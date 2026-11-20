@@ -3766,3 +3766,2283 @@ test('a demo refuses to run against the live club database, as production, or wi
   assert.match(demo.demoProblems({ NEXT_PUBLIC_SUPABASE_URL: 'https://abcdemo.supabase.co', VERCEL_ENV: 'production' }).join(' '), /production/)
   assert.match(demo.demoProblems({}).join(' '), /No demo database/)
 })
+
+// ---- CLW-ENG-002: pure helpers ----
+const mapsLib = load('src/lib/maps.ts', {})
+const tRegLib = load('src/lib/tournament-registration.ts', {})
+const tSessionsLib = load('src/lib/tournament-sessions.ts', { '@/lib/practice': practiceLib })
+const tSpotsLib = load('src/lib/tournament-spots.ts', { '@/lib/tournament-registration': tRegLib })
+
+test('mapsUrl uses the street when set, the venue otherwise, skips blanks, and is null with nothing usable', () => {
+  const base = 'https://www.google.com/maps/search/?api=1&query='
+  assert.equal(mapsLib.mapsUrl({ venue: 'Big Gym', street: '100 Main St', city: 'Crystal Lake', state: 'IL' }), base + encodeURIComponent('100 Main St, Crystal Lake, IL'))
+  assert.equal(mapsLib.mapsUrl({ venue: 'Big Gym', street: '  ', city: 'Crystal Lake', state: 'IL' }), base + encodeURIComponent('Big Gym, Crystal Lake, IL'))
+  assert.equal(mapsLib.mapsUrl({ venue: 'Big  Gym & Annex', city: null, state: ' IL ' }), base + 'Big%20Gym%20%26%20Annex%2C%20IL')
+  assert.equal(mapsLib.mapsUrl({ venue: ' ', street: null, city: '', state: undefined }), null)
+  assert.equal(mapsLib.mapsUrl({}), null)
+})
+
+test('normalizeSessions sorts, drops empty rows, trims divisions, and rejects bad times or more than 5', () => {
+  const ok = tSessionsLib.normalizeSessions([
+    { start_time: '12:30', divisions: ' Intermediate, Novice ' },
+    { start_time: '', divisions: '   ' },
+    { start_time: '08:00', divisions: '6u, 8u, 10u' },
+    { start_time: '08:00', divisions: '' },
+  ])
+  assert.deepEqual(plain(ok), { ok: true, sessions: [
+    { start_time: '08:00', divisions: '6u, 8u, 10u', sort_order: 0 },
+    { start_time: '08:00', divisions: null, sort_order: 1 },
+    { start_time: '12:30', divisions: 'Intermediate, Novice', sort_order: 2 },
+  ] })
+  const long = tSessionsLib.normalizeSessions([{ start_time: '09:00', divisions: 'x'.repeat(130) }])
+  assert.equal(long.sessions[0].divisions.length, 120)
+  assert.deepEqual(plain(tSessionsLib.normalizeSessions([])), { ok: true, sessions: [] })
+  for (const bad of ['8:00', '24:00', '12:60', '8am', 'noon']) {
+    assert.equal(tSessionsLib.normalizeSessions([{ start_time: bad, divisions: '6u' }]).ok, false, bad)
+  }
+  assert.match(tSessionsLib.normalizeSessions([{ start_time: '', divisions: 'Tots only' }]).error, /Session 1 needs a start time/)
+  const six = Array.from({ length: 6 }, (_, i) => ({ start_time: `0${i + 1}:00`, divisions: null }))
+  assert.match(tSessionsLib.normalizeSessions(six).error, /at most 5/)
+  assert.equal(tSessionsLib.normalizeSessions([...six.slice(0, 5), { start_time: ' ', divisions: '' }]).ok, true)
+})
+
+test('earliestStart and sessionLine', () => {
+  assert.equal(tSessionsLib.earliestStart([{ start_time: '13:00' }, { start_time: '07:45' }, { start_time: '09:00' }]), '07:45')
+  assert.equal(tSessionsLib.earliestStart([{ start_time: 'later' }, { start_time: null }]), null)
+  assert.equal(tSessionsLib.earliestStart([]), null)
+  assert.equal(tSessionsLib.sessionLine({ start_time: '08:00', divisions: '6u, 8u, 10u' }), '8:00 AM · 6u, 8u, 10u')
+  assert.equal(tSessionsLib.sessionLine({ start_time: '13:15', divisions: '  ' }), '1:15 PM')
+  assert.equal(tSessionsLib.sessionLine({ start_time: '00:30', divisions: null }), '12:30 AM')
+})
+
+test('spotsLine reads filled of allotted, flags overflow, and is null without an allotment', () => {
+  assert.equal(tSpotsLib.spotsLine(5, 12), '5 of 12 spots filled')
+  assert.equal(tSpotsLib.spotsLine(14, 12), '14 of 12 spots filled (2 over)')
+  assert.equal(tSpotsLib.spotsLine(12, 12), '12 of 12 spots filled')
+  assert.equal(tSpotsLib.spotsLine(0, 1), '0 of 1 spot filled')
+  assert.equal(tSpotsLib.spotsLine(-3, 4), '0 of 4 spots filled')
+  for (const none of [null, undefined, 0, -2, 2.5]) assert.equal(tSpotsLib.spotsLine(3, none), null, String(none))
+})
+
+test('distinctRegisteredCount counts each wrestler once across both sources and skips unpaid or withdrawn registrations', () => {
+  const entries = [{ athlete_id: 'a1' }, { athlete_id: 'a2' }, { athlete_id: null }, { athlete_id: null }]
+  const registrations = [
+    { athlete_id: 'a1', status: 'registered', fee_cents: null, paid_cents: 0, payment_method: null },
+    { athlete_id: 'a3', status: 'confirmed', fee_cents: 2500, paid_cents: 2500, payment_method: 'card' },
+    { athlete_id: 'a4', status: 'registered', fee_cents: 2500, paid_cents: 0, payment_method: 'waived' },
+    { athlete_id: 'a5', status: 'registered', fee_cents: 2500, paid_cents: 0, payment_method: null },
+    { athlete_id: 'a6', status: 'withdrawn', fee_cents: null, paid_cents: 0, payment_method: null },
+    { athlete_id: 'a7', status: 'no_show', fee_cents: 2500, paid_cents: 2500, payment_method: 'cash' },
+  ]
+  // Tournament with no in-house fee: a1 (both sources, once) + a2 + 2 unmatched + a3 + a4 = 6
+  assert.equal(tSpotsLib.distinctRegisteredCount(entries, registrations, null), 6)
+  assert.equal(tSpotsLib.distinctRegisteredCount([], [], null), 0)
+  assert.equal(tSpotsLib.distinctRegisteredCount([{ athlete_id: null }], [{ athlete_id: 'a1', status: 'registered' }], null), 2)
+})
+
+test('distinctRegisteredCount judges an unlocked registration (fee_cents null) against the tournament entry fee', () => {
+  const unpaid = { athlete_id: 'a8', status: 'registered', fee_cents: null, paid_cents: 0, payment_method: null }
+  assert.equal(tSpotsLib.distinctRegisteredCount([], [unpaid], 2500), 0)
+  assert.equal(tRegLib.registrationPaymentState({ feeCents: unpaid.fee_cents ?? 2500, paidCents: 0, paymentMethod: null, status: 'registered' }), 'due')
+  assert.equal(tSpotsLib.distinctRegisteredCount([], [unpaid], null), 1)
+  const paidAtCash = { ...unpaid, paid_cents: 2500, payment_method: 'cash' }
+  assert.equal(tSpotsLib.distinctRegisteredCount([], [paidAtCash], 2500), 1)
+  const lockedFree = { ...unpaid, fee_cents: 0 }
+  assert.equal(tSpotsLib.distinctRegisteredCount([], [lockedFree], 2500), 1)
+})
+
+test('payment state matches the roster SQL order: waived before free, and a zero effective fee is free', () => {
+  assert.equal(tRegLib.registrationPaymentState({ feeCents: null, paidCents: 0, paymentMethod: 'waived', status: 'registered' }), 'waived')
+  assert.equal(tRegLib.registrationPaymentState({ feeCents: 0, paidCents: 0, paymentMethod: 'waived', status: 'confirmed' }), 'waived')
+  assert.equal(tRegLib.registrationPaymentState({ feeCents: 0, paidCents: 0, paymentMethod: null, status: 'registered' }), 'free')
+  assert.equal(tRegLib.registrationPaymentState({ feeCents: 0, paidCents: 0, paymentMethod: 'card', status: 'registered' }), 'free')
+  assert.equal(tRegLib.registrationPaymentState({ feeCents: 2500, paidCents: 2500, paymentMethod: 'waived', status: 'withdrawn' }), 'withdrawn')
+})
+
+test('registrationPaymentState and countsAsRegistered', () => {
+  const s = (feeCents, paidCents, paymentMethod, status = 'registered') => ({ feeCents, paidCents, paymentMethod, status })
+  assert.equal(tRegLib.registrationPaymentState(s(2500, 2500, 'card', 'withdrawn')), 'withdrawn')
+  assert.equal(tRegLib.registrationPaymentState(s(null, 0, null)), 'free')
+  assert.equal(tRegLib.registrationPaymentState(s(0, 0, null)), 'free')
+  assert.equal(tRegLib.registrationPaymentState(s(2500, 0, 'waived')), 'waived')
+  assert.equal(tRegLib.registrationPaymentState(s(2500, 2500, 'card')), 'paid')
+  assert.equal(tRegLib.registrationPaymentState(s(2500, 3000, 'cash', 'confirmed')), 'paid')
+  assert.equal(tRegLib.registrationPaymentState(s(2500, 1000, 'check')), 'due')
+  assert.equal(tRegLib.registrationPaymentState(s(2500, null, null)), 'due')
+  assert.equal(tRegLib.countsAsRegistered(s(null, 0, null)), true)
+  assert.equal(tRegLib.countsAsRegistered(s(2500, 2500, 'card', 'confirmed')), true)
+  assert.equal(tRegLib.countsAsRegistered(s(2500, 0, 'waived')), true)
+  assert.equal(tRegLib.countsAsRegistered(s(2500, 0, null)), false)
+  assert.equal(tRegLib.countsAsRegistered(s(null, 0, null, 'withdrawn')), false)
+  assert.equal(tRegLib.countsAsRegistered(s(2500, 2500, 'card', 'no_show')), false)
+})
+
+test('checkoutTotal multiplies within limits and refuses out-of-range fees or counts', () => {
+  assert.equal(tRegLib.checkoutTotal(2500, 3), 7500)
+  assert.equal(tRegLib.checkoutTotal(100, 1), 100)
+  assert.equal(tRegLib.checkoutTotal(100000, 10), 1000000)
+  for (const [fee, count] of [[2500, 0], [2500, 11], [2500, 1.5], [99, 1], [100001, 1], [2500.5, 1], [NaN, 1]]) {
+    assert.equal(tRegLib.checkoutTotal(fee, count), null, `${fee} x ${count}`)
+  }
+})
+
+test('parseWeight accepts 30 to 300 lbs with at most one decimal place', () => {
+  assert.equal(tRegLib.parseWeight('52'), '52')
+  assert.equal(tRegLib.parseWeight(' 52.5 lbs '), '52.5')
+  assert.equal(tRegLib.parseWeight('052.0'), '52')
+  assert.equal(tRegLib.parseWeight('30'), '30')
+  assert.equal(tRegLib.parseWeight('300'), '300')
+  assert.equal(tRegLib.parseWeight(61), '61')
+  for (const bad of ['29.9', '300.1', '52.25', '52.', '.5', 'fifty', '', '  ', '-40', '1e2', null, undefined]) {
+    assert.equal(tRegLib.parseWeight(bad), null, String(bad))
+  }
+})
+
+// ---- CLW-ENG-001: Schema foundation for B2-B7 ----
+// Static checks on the four new migrations, the types and the QA mock. The
+// same rules were also replayed on a fresh local Postgres (see the task notes).
+const ENG001_MIGRATIONS = [
+  '20261120000001_tournament_sessions_and_address.sql',
+  '20261120000002_tournament_admin_details.sql',
+  '20261120000003_tournament_payments.sql',
+  '20261120000004_family_tournament_roster.sql',
+  // Operator decision (Nov 20): fixes F1 and F2 from the first review.
+  '20261120000005_tournament_registration_guards.sql',
+]
+const eng001Dir = path.join(__dirname, '..', 'supabase', 'migrations')
+// The SQL with -- comments removed, so prose in comments never satisfies or trips a check.
+const eng001Sql = (file) => fs.readFileSync(path.join(eng001Dir, file), 'utf8').replace(/--[^\n]*/g, '')
+// The SQL outside function bodies (what runs at migration time).
+const eng001Outside = (sql) => sql.replace(/\$\$[\s\S]*?\$\$/g, '$$$$ $$$$')
+const eng001Body = (sql, fn) => {
+  const m = new RegExp(`FUNCTION public\\.${fn}\\([\\s\\S]*?\\$\\$([\\s\\S]*?)\\$\\$`, 'i').exec(sql)
+  assert.ok(m, `function ${fn} not found`)
+  return m[1]
+}
+const eng001Policies = (sql, table) => (sql.match(/CREATE POLICY[\s\S]*?;/gi) || []).filter((p) => new RegExp(`ON public\\.${table}\\b`, 'i').test(p))
+const eng001Columns = (sql, table) => {
+  const m = new RegExp(`CREATE TABLE public\\.${table} \\(([\\s\\S]*?)\\n\\);`, 'i').exec(sql)
+  assert.ok(m, `table ${table} not found`)
+  return [...m[1].matchAll(/^ {2}([a-z_]+) [A-Z]/gm)].map((c) => c[1]).sort()
+}
+const eng001TypeKeys = (ts, name) => {
+  const m = new RegExp(`export type ${name} = \\{([\\s\\S]*?)\\n\\}`).exec(ts)
+  assert.ok(m, `type ${name} not found`)
+  return [...m[1].matchAll(/^ {2}([a-z_]+)\??:/gm)].map((c) => c[1]).sort()
+}
+
+test('CLW-ENG-001: exactly the five new migrations exist and every new table has RLS on', () => {
+  const ours = fs.readdirSync(eng001Dir).filter((f) => f.startsWith('20261120') && f !== '20261120000000_keep_role_admin_only.sql')
+  assert.deepEqual(ours.sort(), ENG001_MIGRATIONS)
+  const tables = []
+  for (const file of ENG001_MIGRATIONS) {
+    const sql = eng001Sql(file)
+    for (const [, table] of sql.matchAll(/CREATE TABLE public\.([a-z_]+)/gi)) {
+      tables.push(table)
+      assert.match(sql, new RegExp(`ALTER TABLE public\\.${table} ENABLE ROW LEVEL SECURITY`, 'i'), `${table} has no RLS`)
+    }
+  }
+  assert.deepEqual(tables.sort(), ['tournament_admin_details', 'tournament_checkouts', 'tournament_sessions'])
+})
+
+test('CLW-ENG-001: the migrations are additive only', () => {
+  for (const file of ENG001_MIGRATIONS) {
+    const outside = eng001Outside(eng001Sql(file))
+    assert.doesNotMatch(outside, /\bDROP\b/i, `${file} drops something`)
+    assert.doesNotMatch(outside, /\bTRUNCATE\b/i, file)
+    assert.doesNotMatch(outside, /ALTER\s+COLUMN[\s\S]*?\bTYPE\b/i, `${file} changes a column type`)
+    assert.doesNotMatch(outside, /\bUPDATE\s+[a-z_.]+\s+(?:[a-z]+\s+)?SET\b/i, `${file} updates existing rows`)
+    assert.doesNotMatch(outside, /\bDELETE\s+FROM\b/i, `${file} deletes existing rows`)
+    assert.doesNotMatch(outside, /\bINSERT\s+INTO\b/i, `${file} writes rows at migration time`)
+  }
+  // The one DELETE in a function body touches only the new sessions table.
+  const deletes = ENG001_MIGRATIONS.flatMap((f) => eng001Sql(f).match(/DELETE\s+FROM\s+[a-z_.]+/gi) || [])
+  assert.deepEqual(deletes, ['DELETE FROM public.tournament_sessions'])
+})
+
+test('CLW-ENG-001: sessions are public to read, admin to write, and replaced in one admin-only step', () => {
+  const sql = eng001Sql(ENG001_MIGRATIONS[0])
+  assert.deepEqual(eng001Columns(sql, 'tournament_sessions'), ['created_at', 'divisions', 'id', 'sort_order', 'start_time', 'tournament_id'])
+  assert.match(sql, /tournament_id UUID NOT NULL REFERENCES public\.tournaments\(id\) ON DELETE CASCADE/)
+  assert.match(sql, /CREATE INDEX [a-z_]+ ON public\.tournament_sessions \(tournament_id\)/)
+  assert.match(sql, /char_length\(divisions\) <= 120/)
+  assert.match(sql, /char_length\(street_address\) <= 200/)
+  const policies = eng001Policies(sql, 'tournament_sessions')
+  assert.equal(policies.length, 2)
+  assert.ok(policies.some((p) => /FOR SELECT USING \(true\)/.test(p)))
+  assert.ok(policies.some((p) => /FOR ALL USING \(public\.has_role\(auth\.uid\(\), 'admin'\)\) WITH CHECK \(public\.has_role\(auth\.uid\(\), 'admin'\)\)/.test(p)))
+  assert.match(sql, /replace_tournament_sessions\(p_tournament UUID, p_sessions JSONB\)\s*RETURNS INTEGER LANGUAGE plpgsql SECURITY INVOKER/)
+  const body = eng001Body(sql, 'replace_tournament_sessions')
+  assert.match(body, /IF NOT public\.has_role\(auth\.uid\(\), 'admin'\) THEN\s*RAISE EXCEPTION/)
+  assert.match(body, /jsonb_array_length\(p_sessions\) > 5/)
+  assert.match(body, /IF n > 0 THEN[\s\S]*min\(s\.start_time\)[\s\S]*UPDATE public\.tournaments SET start_time = v_first/)
+  assert.match(sql, /REVOKE EXECUTE ON FUNCTION public\.replace_tournament_sessions\(UUID, JSONB\) FROM PUBLIC, anon;/)
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.replace_tournament_sessions\(UUID, JSONB\) TO authenticated;/)
+})
+
+test('CLW-ENG-001: tournament_admin_details is admin-only with no anon grant', () => {
+  const sql = eng001Sql(ENG001_MIGRATIONS[1])
+  const policies = eng001Policies(sql, 'tournament_admin_details')
+  assert.equal(policies.length, 1)
+  for (const p of policies) {
+    const clauses = [...p.matchAll(/(?:USING|WITH CHECK) \(([\s\S]*?\))\)/g)].map((c) => c[1])
+    assert.equal(clauses.length, 2, 'needs both USING and WITH CHECK')
+    for (const c of clauses) assert.equal(c, "public.has_role(auth.uid(), 'admin')")
+    assert.doesNotMatch(p, /\bTO\s+(anon|public)\b|staff|parent/i)
+  }
+  assert.match(sql, /REVOKE ALL ON TABLE public\.tournament_admin_details FROM anon;/)
+  assert.doesNotMatch(sql, /GRANT[^;]*tournament_admin_details[^;]*TO[^;]*anon/i)
+  assert.match(sql, /tournament_id UUID PRIMARY KEY REFERENCES public\.tournaments\(id\) ON DELETE CASCADE/)
+  assert.match(sql, /club_registrations_url LIKE 'https:\/\/%'/)
+  assert.match(sql, /spots_allotted BETWEEN 1 AND 500/)
+  assert.match(sql, /updated_by UUID REFERENCES public\.profiles\(id\) ON DELETE SET NULL/)
+})
+
+test('CLW-ENG-001: payment columns are server-only and the record functions are server-only and idempotent', () => {
+  const sql = eng001Sql(ENG001_MIGRATIONS[2])
+  assert.match(sql, /CREATE TRIGGER keep_registration_payment_server_only\s+BEFORE INSERT OR UPDATE ON public\.tournament_registrations\s+FOR EACH ROW EXECUTE FUNCTION public\.keep_registration_payment_server_only\(\);/)
+  assert.match(sql, /keep_registration_payment_server_only\(\)\s*RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER/)
+  const trigger = eng001Body(sql, 'keep_registration_payment_server_only')
+  assert.match(trigger, /IF auth\.uid\(\) IS NULL OR public\.has_role\(auth\.uid\(\), 'admin'\) THEN\s*RETURN NEW;/)
+  const [insert, update] = trigger.split(/\bELSE\b/)
+  const defaults = { fee_cents: 'NULL', paid_cents: '0', paid_at: 'NULL', payment_method: 'NULL', payment_note: 'NULL' }
+  for (const [col, value] of Object.entries(defaults)) {
+    assert.match(insert, new RegExp(`NEW\\.${col} := ${value};`), `INSERT branch misses ${col}`)
+    assert.match(update, new RegExp(`NEW\\.${col} := OLD\\.${col};`), `UPDATE branch misses ${col}`)
+  }
+  // A parent cannot move a (paid) registration to another tournament or wrestler.
+  assert.match(update, /NEW\.tournament_id := OLD\.tournament_id;/)
+  assert.match(update, /NEW\.athlete_id := OLD\.athlete_id;/)
+
+  for (const fn of ['record_tournament_payment\\(UUID, TEXT, TEXT, INTEGER\\)', 'record_tournament_refund\\(TEXT, INTEGER\\)']) {
+    assert.match(sql, new RegExp(`REVOKE EXECUTE ON FUNCTION public\\.${fn} FROM PUBLIC, anon, authenticated;`))
+  }
+  assert.doesNotMatch(sql, /GRANT EXECUTE ON FUNCTION public\.record_tournament/i)
+  assert.match(sql, /stripe_checkout_session_id TEXT UNIQUE,/)
+  assert.match(sql, /stripe_payment_intent_id TEXT UNIQUE,/)
+  // Money rows outlive a deleted tournament.
+  assert.match(sql, /tournament_id UUID REFERENCES public\.tournaments\(id\) ON DELETE SET NULL,\s*tournament_name TEXT NOT NULL/)
+  assert.match(sql, /payer_id UUID REFERENCES public\.profiles\(id\) ON DELETE SET NULL/)
+  // Clients only read checkouts: admins all, a payer their own. Nobody writes through the API.
+  const policies = eng001Policies(sql, 'tournament_checkouts')
+  assert.equal(policies.length, 2)
+  for (const p of policies) assert.match(p, /FOR SELECT TO authenticated USING/)
+  assert.match(sql, /REVOKE ALL ON TABLE public\.tournament_checkouts FROM anon;/)
+
+  const pay = eng001Body(sql, 'record_tournament_payment')
+  assert.match(pay, /FROM public\.tournament_checkouts c WHERE c\.id = _checkout FOR UPDATE/)
+  assert.match(pay, /IF v\.status <> 'pending' THEN[\s\S]*?SELECT FALSE,[\s\S]*?RETURN;/)
+  // QA-001 M-1(b): a card payment never overwrites a cash, check or waived mark.
+  assert.match(pay, /paid_cents = r\.fee_cents,\s*paid_at = now\(\),\s*payment_method = 'card'\s*WHERE r\.id = ANY \(v\.registration_ids\)\s*AND \(r\.payment_method IS NULL OR r\.payment_method = 'card'\);/)
+  // QA-001 L-1: report a settled checkout paid under another session, count what was marked,
+  // and refuse a registration with no locked fee.
+  assert.match(sql, /overpay BOOLEAN,\s*session_mismatch BOOLEAN, registrations_marked INTEGER\s*\) LANGUAGE plpgsql SECURITY DEFINER/)
+  assert.match(pay, /\(v\.stripe_checkout_session_id IS DISTINCT FROM _session\), 0;/)
+  assert.match(pay, /r\.fee_cents IS NULL;\s*IF FOUND THEN\s*RAISE EXCEPTION/)
+  assert.match(pay, /GET DIAGNOSTICS v_marked = ROW_COUNT;[\s\S]*?v_overpay,\s*FALSE, v_marked;/)
+  const refund = eng001Body(sql, 'record_tournament_refund')
+  assert.match(refund, /v_delta := v\.net_cents - v_net;\s*IF v_delta <= 0 THEN/)
+  assert.match(refund, /CASE WHEN v_net = 0 THEN 'refunded' ELSE 'partially_refunded' END/)
+  // QA-001 M-1(a): a full refund keeps a registration another paid checkout still covers.
+  assert.match(refund, /r\.payment_method = 'card'\s*AND NOT EXISTS \(\s*SELECT 1 FROM public\.tournament_checkouts c2\s*WHERE c2\.id <> v\.id AND c2\.status IN \('paid', 'partially_refunded'\) AND r\.id = ANY \(c2\.registration_ids\)\s*\);/)
+  // QA-001 L-2: the trigger function is not callable by client roles.
+  assert.match(sql, /REVOKE EXECUTE ON FUNCTION public\.keep_registration_payment_server_only\(\) FROM PUBLIC, anon, authenticated;/)
+  // QA-001 round 2 L-1: both functions lock the checkout's registrations in id order,
+  // after their no-op early return and before any read or write of those rows.
+  const regLock = "PERFORM 1 FROM public.tournament_registrations r WHERE r.id = ANY (v.registration_ids) ORDER BY r.id FOR UPDATE;"
+  const lockAt = (fnBody) => fnBody.indexOf(regLock)
+  for (const [name, fnBody, earlyReturn, firstUse] of [
+    ['record_tournament_payment', pay, /IF v\.status <> 'pending' THEN[\s\S]*?END IF;/, /r\.fee_cents IS NULL/],
+    ['record_tournament_refund', refund, /IF v_delta <= 0 THEN[\s\S]*?END IF;/, /UPDATE public\.tournament_checkouts c SET/],
+  ]) {
+    assert.equal(fnBody.split(regLock).length, 2, `${name} locks its registrations exactly once`)
+    const early = earlyReturn.exec(fnBody)
+    assert.ok(early && lockAt(fnBody) > early.index + early[0].length, `${name} locks after its early return`)
+    assert.ok(lockAt(fnBody) < firstUse.exec(fnBody).index, `${name} locks before reading or writing`)
+    assert.ok(lockAt(fnBody) < fnBody.search(/UPDATE public\.tournament_registrations/), `${name} locks before updating registrations`)
+  }
+  assert.match(sql, /entry_fee_cents BETWEEN 100 AND 100000/)
+  assert.match(sql, /payment_method IN \('card', 'cash', 'check', 'waived'\)/)
+})
+
+test('CLW-ENG-001: family_tournament_roster checks guards_athlete on both sources and never returns TrackWrestling names', () => {
+  const sql = eng001Sql(ENG001_MIGRATIONS[3])
+  assert.match(sql, /family_tournament_roster\(\)\s*RETURNS TABLE \([\s\S]*?\) LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS/)
+  const returns = /RETURNS TABLE \(([\s\S]*?)\) LANGUAGE/.exec(sql)[1]
+  assert.deepEqual([...returns.matchAll(/^ {2}([a-z_]+) /gm)].map((c) => c[1]), [
+    'tournament_id', 'tournament_name', 'date', 'location', 'city', 'state', 'street_address', 'athlete_id',
+    'athlete_first_name', 'athlete_last_name', 'source', 'division', 'weight', 'registration_state',
+    // CLW-ENG-008 (QA-003 ENG-006 L-1): the tournament's status, for the Cancelled chip.
+    'tournament_status',
+  ])
+  const body = eng001Body(sql, 'family_tournament_roster')
+  const [site, tw] = body.split(/\bUNION ALL\b/)
+  assert.ok(site && tw, 'two sources joined by UNION ALL')
+  assert.match(site, /FROM public\.tournament_registrations r/)
+  assert.match(site, /public\.guards_athlete\(r\.athlete_id\)/)
+  assert.match(site, /r\.status IN \('registered', 'confirmed'\)/)
+  assert.match(tw, /FROM public\.tournament_entries e/)
+  assert.match(tw, /public\.guards_athlete\(e\.athlete_id\)/)
+  assert.match(tw, /e\.athlete_id IS NOT NULL/)
+  assert.match(tw, /'trackwrestling'::TEXT, NULL::TEXT, NULL::TEXT, NULL::TEXT/)
+  // QA-001 (ENG-002 L-1): waived first, then a missing or zero effective fee is free, then paid, else due.
+  const states = [...site.matchAll(/WHEN ([\s\S]*?) THEN '([a-z]+)'|ELSE '([a-z]+)'/g)].map((m) => m[3] ? ['ELSE', m[3]] : [m[1].trim(), m[2]])
+  assert.deepEqual(states, [
+    ["r.payment_method = 'waived'", 'waived'],
+    ['coalesce(r.fee_cents, t.entry_fee_cents, 0) = 0', 'free'],
+    ['r.paid_cents >= coalesce(r.fee_cents, t.entry_fee_cents)', 'paid'],
+    ['ELSE', 'due'],
+  ])
+  for (const part of [site, tw]) {
+    assert.match(part, /auth\.uid\(\) IS NOT NULL/)
+    assert.match(part, /t\.date >= current_date - 30/)
+    const selectList = /SELECT([\s\S]*?)\bFROM\b/.exec(part)[1]
+    assert.doesNotMatch(selectList, /external_name|imported_by|e\.division|e\.weight|e\.grade|e\.paid/)
+  }
+  assert.doesNotMatch(body, /external_name|imported_by/)
+  assert.doesNotMatch(body, /has_role/, 'no admin bypass')
+  assert.match(sql, /REVOKE EXECUTE ON FUNCTION public\.family_tournament_roster\(\) FROM PUBLIC, anon;/)
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.family_tournament_roster\(\) TO authenticated;/)
+  assert.doesNotMatch(sql, /GRANT[^;]*family_tournament_roster[^;]*anon/i)
+})
+
+test('CLW-ENG-001: database.ts types match the new tables, columns and functions', () => {
+  const ts = fs.readFileSync(path.join(__dirname, '..', 'src', 'types', 'database.ts'), 'utf8')
+  const sql = (n) => eng001Sql(ENG001_MIGRATIONS[n])
+  assert.deepEqual(eng001TypeKeys(ts, 'TournamentSession'), eng001Columns(sql(0), 'tournament_sessions'))
+  assert.deepEqual(eng001TypeKeys(ts, 'TournamentAdminDetails'), eng001Columns(sql(1), 'tournament_admin_details'))
+  assert.deepEqual(eng001TypeKeys(ts, 'TournamentCheckout'), eng001Columns(sql(2), 'tournament_checkouts'))
+  const tournament = eng001TypeKeys(ts, 'Tournament')
+  for (const col of ['street_address', 'entry_fee_cents']) assert.ok(tournament.includes(col), `Tournament.${col}`)
+  const registration = eng001TypeKeys(ts, 'TournamentRegistration')
+  const added = [...sql(2).matchAll(/ADD COLUMN ([a-z_]+)/g)].map((c) => c[1]).filter((c) => c !== 'entry_fee_cents')
+  assert.deepEqual(added, ['weight', 'division', 'grade', 'fee_cents', 'paid_cents', 'paid_at', 'payment_method', 'payment_note'])
+  for (const col of added) assert.ok(registration.includes(col), `TournamentRegistration.${col}`)
+  for (const name of ['tournament_sessions', 'tournament_admin_details', 'tournament_checkouts']) {
+    assert.match(ts, new RegExp(`\\n {6}${name}: \\{\\n {8}Row: `), `Tables.${name}`)
+  }
+  for (const fn of ['replace_tournament_sessions', 'record_tournament_payment', 'record_tournament_refund', 'family_tournament_roster']) {
+    assert.match(ts, new RegExp(`\\n {6}${fn}: \\{\\n {8}Args: `), `Functions.${fn}`)
+  }
+})
+
+test('CLW-ENG-001: registration guards are restrictive: only guardians or admins write, and only admins delete paid rows', () => {
+  const sql = eng001Sql(ENG001_MIGRATIONS[4])
+  const policies = eng001Policies(sql, 'tournament_registrations')
+  assert.equal(policies.length, 3)
+  for (const p of policies) {
+    assert.match(p, /AS RESTRICTIVE FOR (INSERT|UPDATE|DELETE)\b/, 'every new policy is restrictive')
+    assert.doesNotMatch(p, /\bTO\s+[a-z_]+/i, 'applies to every role (the service role bypasses RLS)')
+  }
+  const byCmd = (cmd) => policies.find((p) => new RegExp(`AS RESTRICTIVE FOR ${cmd}\\b`).test(p))
+  const guard = "public.has_role(auth.uid(), 'admin') OR public.guards_athlete(athlete_id)"
+  const clauses = (p) => [...p.matchAll(/(USING|WITH CHECK) \(([\s\S]*?)\)\s*(?=USING|WITH CHECK|;)/g)].map((c) => [c[1], c[2].replace(/\s+/g, ' ')])
+  assert.deepEqual(clauses(byCmd('INSERT')), [['WITH CHECK', guard]])
+  assert.deepEqual(clauses(byCmd('UPDATE')), [['USING', guard], ['WITH CHECK', guard]])
+  assert.deepEqual(clauses(byCmd('DELETE')), [['USING', "public.has_role(auth.uid(), 'admin') OR (paid_cents = 0 AND payment_method IS NULL)"]])
+  // Additive: the original permissive policies are left in place.
+  assert.doesNotMatch(sql, /DROP POLICY|ALTER POLICY/i)
+})
+
+test('CLW-ENG-001: the QA mock has made-up rows for the three new tables', () => {
+  const mock = fs.readFileSync(path.join(__dirname, '..', '.claude', 'skills', 'wizards-request', 'qa', 'mock.cjs'), 'utf8')
+  new vm.Script(mock) // parses
+  const block = /\/\/ ---- CLW-ENG-001:[\s\S]*?\/\/ ---- end CLW-ENG-001 ----/.exec(mock)
+  assert.ok(block, 'delimited CLW-ENG-001 block')
+  for (const table of ['tournament_sessions', 'tournament_admin_details', 'tournament_checkouts']) {
+    assert.match(block[0], new RegExp(`\\n {2}${table}: \\[\\n {4}\\{`), table)
+  }
+  assert.doesNotMatch(block[0], /@(?!example\.com)[a-z0-9-]+\.[a-z]/i, 'no real email addresses')
+})
+
+// ---- CLW-ENG-004: In-house tournament checkout and Stripe webhook ----
+// Stripe, Supabase and Resend are mocked. The two database functions are
+// modeled on 20261120000003_tournament_payments.sql. Made-up people only.
+const E4 = {
+  T1: 'aaaaaaaa-0000-4000-a000-000000000001',
+  T_CLOSED: 'aaaaaaaa-0000-4000-a000-000000000002',
+  T_OUTSIDE: 'aaaaaaaa-0000-4000-a000-000000000003',
+  T_FREE: 'aaaaaaaa-0000-4000-a000-000000000004',
+  P1: 'bbbbbbbb-0000-4000-a000-000000000001',
+  P2: 'bbbbbbbb-0000-4000-a000-000000000002',
+  G1: 'bbbbbbbb-0000-4000-a000-000000000003',
+  K1: 'cccccccc-0000-4000-a000-000000000001',
+  K2: 'cccccccc-0000-4000-a000-000000000002',
+  K3: 'cccccccc-0000-4000-a000-000000000003',
+  K4: 'cccccccc-0000-4000-a000-000000000004',
+  R1: 'dddddddd-0000-4000-a000-000000000001',
+  R2: 'dddddddd-0000-4000-a000-000000000002',
+  C1: 'eeeeeeee-0000-4000-a000-000000000001',
+}
+const e4Money = { formatCents: (cents) => `$${(cents / 100).toFixed(2)}` }
+const e4Org = { ORG: { contactEmail: 'club@example.com', shortName: 'CLW', domain: 'clwizards.com', name: 'Example Club' } }
+
+function eng004Db(tables, { refundFunctionMissing = false } = {}) {
+  let n = 0
+  const defaults = {
+    tournament_registrations: { status: 'registered', fee_cents: null, paid_cents: 0, paid_at: null, payment_method: null },
+    tournament_checkouts: { status: 'pending', net_cents: 0, stripe_checkout_session_id: null, stripe_payment_intent_id: null },
+  }
+  const fresh = (table, v) => ({ id: `${table}-${++n}`, ...(defaults[table] ?? {}), ...v })
+  const from = (table) => {
+    const filters = []
+    let op = 'select', values = null, conflict = null
+    const list = () => (tables[table] ??= [])
+    const match = (r) => filters.every(([o, k, v]) =>
+      o === 'eq' ? r[k] === v : o === 'in' ? v.includes(r[k]) : o === 'is' ? (r[k] ?? null) === v : o === 'notnull' ? r[k] != null : true)
+    const run = () => {
+      if (op === 'insert') {
+        const rows = (Array.isArray(values) ? values : [values]).map((v) => fresh(table, v))
+        list().push(...rows)
+        return { data: rows, error: null }
+      }
+      if (op === 'upsert') {
+        const keys = conflict.split(',')
+        const out = values.map((v) => {
+          const row = list().find((r) => keys.every((k) => r[k] === v[k]))
+          if (row) return Object.assign(row, v)
+          const added = fresh(table, v)
+          list().push(added)
+          return added
+        })
+        return { data: out, error: null }
+      }
+      if (op === 'update') {
+        const hit = list().filter(match)
+        hit.forEach((r) => Object.assign(r, values))
+        return { data: hit, error: null }
+      }
+      if (op === 'delete') {
+        for (let i = list().length - 1; i >= 0; i--) if (match(list()[i])) list().splice(i, 1)
+        return { data: null, error: null }
+      }
+      return { data: list().filter(match).map((r) => ({ ...r })), error: null }
+    }
+    const one = async () => { const r = run(); return { data: Array.isArray(r.data) ? r.data[0] ?? null : r.data, error: r.error } }
+    const b = {
+      select: () => b,
+      insert: (v) => { op = 'insert'; values = v; return b },
+      upsert: (v, o) => { op = 'upsert'; values = v; conflict = o.onConflict; return b },
+      update: (v) => { op = 'update'; values = v; return b },
+      delete: () => { op = 'delete'; return b },
+      eq: (k, v) => { filters.push(['eq', k, v]); return b },
+      in: (k, v) => { filters.push(['in', k, v]); return b },
+      is: (k, v) => { filters.push(['is', k, v]); return b },
+      not: (k) => { filters.push(['notnull', k]); return b },
+      order: () => b, limit: () => b, maybeSingle: one, single: one,
+      then: (resolve, reject) => Promise.resolve(run()).then(resolve, reject),
+    }
+    return b
+  }
+  // record_tournament_payment and record_tournament_refund, as in the migration.
+  const rpc = async (name, a) => {
+    const checkouts = tables.tournament_checkouts ?? []
+    const regs = tables.tournament_registrations ?? []
+    if (name === 'record_dues_refund') return { data: [{ found: false, changed: false }], error: null }
+    if (name === 'record_tournament_refund' && refundFunctionMissing) {
+      return { data: null, error: { code: 'PGRST202', message: 'Could not find the function public.record_tournament_refund' } }
+    }
+    if (name === 'record_tournament_payment') {
+      const v = checkouts.find((c) => c.id === a._checkout)
+      if (!v) return { data: null, error: { message: `Tournament checkout ${a._checkout} not found` } }
+      const out = (applied, overpay, mismatch, marked) => [{
+        applied, payer_id: v.payer_id, tournament_id: v.tournament_id, tournament_name: v.tournament_name,
+        athlete_ids: v.athlete_ids, amount_cents: v.amount_cents, overpay, session_mismatch: mismatch, registrations_marked: marked,
+      }]
+      if (v.status !== 'pending') return { data: out(false, false, v.stripe_checkout_session_id !== a._session, 0), error: null }
+      const mine = regs.filter((r) => v.registration_ids.includes(r.id))
+      if (mine.some((r) => r.fee_cents == null)) {
+        return { data: null, error: { message: `Tournament checkout ${v.id} has a registration with no locked fee` } }
+      }
+      const overpay = mine.some((r) => r.paid_cents > 0 || r.payment_method != null)
+      Object.assign(v, { status: 'paid', stripe_checkout_session_id: a._session, stripe_payment_intent_id: a._intent, net_cents: a._amount })
+      let marked = 0
+      for (const r of mine) {
+        if (r.payment_method == null || r.payment_method === 'card') { Object.assign(r, { paid_cents: r.fee_cents, payment_method: 'card' }); marked++ }
+      }
+      return { data: out(true, overpay, false, marked), error: null }
+    }
+    if (name === 'record_tournament_refund') {
+      const v = checkouts.find((c) => c.stripe_payment_intent_id === a._intent)
+      if (!v) return { data: [{ found: false, changed: false, payer_id: null, tournament_name: null, refunded_cents: null }], error: null }
+      const net = Math.max(0, a._net ?? 0)
+      const delta = v.net_cents - net
+      if (delta <= 0) return { data: [{ found: true, changed: false, payer_id: v.payer_id, tournament_name: v.tournament_name, refunded_cents: 0 }], error: null }
+      Object.assign(v, { net_cents: net, status: net === 0 ? 'refunded' : 'partially_refunded' })
+      if (net === 0) {
+        for (const r of regs) {
+          const stillPaid = checkouts.some((c) => c.id !== v.id && ['paid', 'partially_refunded'].includes(c.status) && c.registration_ids.includes(r.id))
+          if (v.registration_ids.includes(r.id) && r.payment_method === 'card' && !stillPaid) Object.assign(r, { paid_cents: 0, payment_method: null })
+        }
+      }
+      return { data: [{ found: true, changed: true, payer_id: v.payer_id, tournament_name: v.tournament_name, refunded_cents: delta }], error: null }
+    }
+    throw new Error('unexpected rpc ' + name)
+  }
+  return { client: { from, rpc }, tables }
+}
+
+function eng004CheckoutTables() {
+  return {
+    tournaments: [
+      { id: E4.T1, name: 'Turkey Tussle', status: 'open', external_registration_url: null, entry_fee_cents: 2500 },
+      { id: E4.T_CLOSED, name: 'Closed Open', status: 'closed', external_registration_url: null, entry_fee_cents: 2500 },
+      { id: E4.T_OUTSIDE, name: 'Outside Open', status: 'open', external_registration_url: 'https://www.trackwrestling.com/x', entry_fee_cents: 2500 },
+      { id: E4.T_FREE, name: 'Free Open', status: 'open', external_registration_url: null, entry_fee_cents: null },
+    ],
+    athletes: [
+      { id: E4.K1, parent_id: E4.P1, first_name: 'Ava', last_name: 'Example', active: true },
+      { id: E4.K2, parent_id: E4.P1, first_name: 'Max', last_name: 'Example', active: true },
+      { id: E4.K3, parent_id: E4.P2, first_name: 'Sam', last_name: 'Sample', active: true },
+      { id: E4.K4, parent_id: E4.P1, first_name: 'Old', last_name: 'Example', active: false },
+    ],
+    family_guardians: [{ owner_id: E4.P1, guardian_id: E4.G1, athlete_ids: [E4.K1] }],
+    tournament_registrations: [],
+    tournament_checkouts: [],
+  }
+}
+
+function eng004Checkout({ user = { id: E4.P1, email: 'payer@example.com' }, tables = eng004CheckoutTables(), stripeFails = false } = {}) {
+  const sessions = [], alerts = []
+  const db = eng004Db(tables)
+  const stripe = { checkout: { sessions: {
+    create: async (args) => {
+      if (stripeFails) throw Object.assign(new Error('card processor down'), { type: 'StripeAPIError' })
+      sessions.push(args)
+      return { id: `cs_test_${sessions.length}`, url: `https://checkout.stripe.com/c/${sessions.length}` }
+    },
+    expire: async () => ({}),
+  } } }
+  const server = { createServerSupabase: async () => ({ auth: { getUser: async () => ({ data: { user } }) } }) }
+  const lib = load('src/lib/payments/tournament-checkout.ts', {
+    '@/lib/supabase/server': server,
+    '@/lib/supabase/admin': { createAdminSupabase: () => db.client },
+    '@/config/org.config': e4Org,
+    '@/lib/tournament-registration': load('src/lib/tournament-registration.ts', {}),
+  })
+  const route = load('src/app/api/checkout/route.ts', {
+    'next/server': require('next/server'),
+    '@/lib/stripe': { getStripeClient: () => stripe },
+    '@/lib/site-origin': { resolveSiteOrigin: () => ({ ok: true, origin: 'https://clwizards.com' }), siteOriginFixHint: () => '' },
+    '@/lib/alerts': { sendAlert: async (title, details) => { alerts.push({ title, details }) } },
+    '@/lib/supabase/server': server,
+    '@/lib/supabase/admin': { createAdminSupabase: () => db.client },
+    '@/config/org.config': e4Org,
+    '@/config/donations': { DONATIONS_ENABLED: true, DONATIONS_COMING_SOON_BODY: '' },
+    '@/lib/payments/tournament-checkout': lib,
+  }, { STRIPE_SECRET_KEY: 'sk_test' })
+  const post = async (body) => {
+    const res = await route.POST(new Request('https://clwizards.com/api/checkout', { method: 'POST', body: JSON.stringify({ flow: 'tournament', ...body }) }))
+    return { status: res.status, body: await res.json() }
+  }
+  const entry = (athleteId, extra = {}) => ({ athleteId, weight: '52', division: 'Boys 8u', grade: '2nd', ...extra })
+  return { post, entry, sessions, alerts, tables, lib }
+}
+
+test('CLW-ENG-004: checkout refuses signed out, closed, outside-registration and unpriced tournaments, each with its own code', async () => {
+  const signedOut = eng004Checkout({ user: null })
+  const out = await signedOut.post({ tournamentId: E4.T1, entries: [signedOut.entry(E4.K1)] })
+  assert.equal(out.status, 401)
+  assert.equal(out.body.code, 'SIGNED-OUT')
+
+  const h = eng004Checkout()
+  const refused = {}
+  for (const [id, key] of [[E4.T_CLOSED, 'closed'], [E4.T_OUTSIDE, 'outside'], [E4.T_FREE, 'free']]) {
+    refused[key] = await h.post({ tournamentId: id, entries: [h.entry(E4.K1)] })
+    assert.equal(refused[key].status, 400, key)
+    assert.ok(refused[key].body.error, key)
+  }
+  assert.equal(refused.closed.body.code, 'TOURNAMENT-NOT-OPEN')
+  assert.equal(refused.outside.body.code, 'TOURNAMENT-EXTERNAL')
+  assert.equal(refused.free.body.code, 'TOURNAMENT-NO-FEE')
+  assert.equal(new Set(Object.values(refused).map((r) => r.body.error)).size, 3, 'each refusal has its own message')
+  const missing = await h.post({ tournamentId: 'aaaaaaaa-0000-4000-a000-0000000000ff', entries: [h.entry(E4.K1)] })
+  assert.equal(missing.status, 404)
+  const bad = await h.post({ tournamentId: "x'),or(1.eq.1", entries: [h.entry(E4.K1)] })
+  assert.equal(bad.body.code, 'BAD-REQUEST')
+  assert.equal(h.sessions.length, 0)
+  assert.equal(h.tables.tournament_registrations.length, 0)
+  assert.equal(h.tables.tournament_checkouts.length, 0)
+})
+
+test('CLW-ENG-004: checkout refuses wrestlers the caller does not guard, inactive wrestlers, bad weights and entries already paid', async () => {
+  const h = eng004Checkout()
+  const foreign = await h.post({ tournamentId: E4.T1, entries: [h.entry(E4.K1), h.entry(E4.K3)] })
+  assert.equal(foreign.status, 403)
+  assert.equal(foreign.body.code, 'NOT-YOUR-WRESTLER')
+  const inactive = await h.post({ tournamentId: E4.T1, entries: [h.entry(E4.K4)] })
+  assert.equal(inactive.status, 400)
+  assert.equal(inactive.body.code, 'WRESTLER-INACTIVE')
+  for (const weight of ['12', 'heavy', '52.25', '']) {
+    const r = await h.post({ tournamentId: E4.T1, entries: [h.entry(E4.K1, { weight })] })
+    assert.equal(r.body.code, 'WEIGHT-INVALID', weight)
+  }
+  assert.equal((await h.post({ tournamentId: E4.T1, entries: [h.entry(E4.K1, { division: ' ' })] })).body.code, 'DIVISION-INVALID')
+  assert.equal((await h.post({ tournamentId: E4.T1, entries: [h.entry(E4.K1), h.entry(E4.K1)] })).body.code, 'DUPLICATE-WRESTLER')
+  assert.equal(h.sessions.length, 0)
+
+  // A co-parent whose link lists only K1 may pay for K1, not K2.
+  const coParent = eng004Checkout({ user: { id: E4.G1, email: 'coparent@example.com' } })
+  assert.equal((await coParent.post({ tournamentId: E4.T1, entries: [coParent.entry(E4.K2)] })).status, 403)
+  const ok = await coParent.post({ tournamentId: E4.T1, entries: [coParent.entry(E4.K1)] })
+  assert.equal(ok.status, 200)
+  assert.equal(coParent.tables.tournament_registrations[0].parent_id, E4.G1, 'the payer is recorded as the registrant')
+
+  // Paid by card, cash or check, or waived: never charged again (default A5).
+  for (const mark of [{ paid_cents: 2500, payment_method: 'card' }, { paid_cents: 2500, payment_method: 'cash' }, { paid_cents: 0, payment_method: 'waived' }]) {
+    const tables = eng004CheckoutTables()
+    tables.tournament_registrations.push({ id: E4.R1, tournament_id: E4.T1, athlete_id: E4.K1, parent_id: E4.P1, status: 'registered', fee_cents: 2500, ...mark })
+    const paid = eng004Checkout({ tables })
+    const r = await paid.post({ tournamentId: E4.T1, entries: [paid.entry(E4.K2), paid.entry(E4.K1)] })
+    assert.equal(r.status, 400, mark.payment_method)
+    assert.equal(r.body.code, 'ALREADY-PAID')
+    assert.match(r.body.error, /Ava Example is already paid/)
+    assert.equal(paid.sessions.length, 0)
+  }
+  assert.equal(h.lib.entryIsLocked({ paid_cents: 0, payment_method: null }), false)
+  assert.equal(h.lib.entryIsLocked({ paid_cents: 0, payment_method: 'waived' }), true)
+  assert.equal(h.lib.entryIsLocked(null), false)
+})
+
+test('CLW-ENG-004: checkout charges the database fee per wrestler, ignores any amount in the body, and makes one checkout row per session', async () => {
+  const h = eng004Checkout()
+  // Earlier unpaid sign-up (no price locked yet) for K1.
+  h.tables.tournament_registrations.push({ id: E4.R1, tournament_id: E4.T1, athlete_id: E4.K1, parent_id: E4.P1, status: 'registered', fee_cents: null, paid_cents: 0, payment_method: null })
+  const res = await h.post({ tournamentId: E4.T1, entries: [h.entry(E4.K1), h.entry(E4.K2, { weight: '61 lbs', grade: null })], amountCents: 1, amount_cents: 1, unitAmount: 1, returnPath: '//evil.example.com/x' })
+  assert.equal(res.status, 200)
+  assert.equal(res.body.url, 'https://checkout.stripe.com/c/1')
+  const s = h.sessions[0]
+  assert.equal(s.mode, 'payment')
+  assert.equal(s.line_items.length, 1)
+  assert.equal(s.line_items[0].quantity, 2)
+  assert.equal(s.line_items[0].price_data.unit_amount, 2500, 'the price comes from the tournament, never the request')
+  assert.equal(s.line_items[0].price_data.product_data.name, 'CLW tournament entry: Turkey Tussle')
+  assert.equal(s.customer_email, 'payer@example.com')
+  assert.equal(s.success_url, 'https://clwizards.com/tournaments?checkout=success')
+  assert.equal(s.cancel_url, 'https://clwizards.com/tournaments?checkout=cancelled')
+
+  const regs = h.tables.tournament_registrations
+  assert.equal(regs.length, 2, 'the existing sign-up is updated, not duplicated')
+  for (const r of regs) {
+    assert.equal(r.fee_cents, 2500, 'price locked before the session')
+    assert.equal(r.paid_cents, 0)
+    assert.equal(r.payment_method, null)
+    assert.equal(r.status, 'registered')
+    assert.equal(r.parent_id, E4.P1)
+    assert.equal(r.division, 'Boys 8u')
+  }
+  assert.equal(regs.find((r) => r.athlete_id === E4.K2).weight, '61')
+  assert.equal(regs.find((r) => r.athlete_id === E4.K2).grade, null)
+
+  assert.equal(h.tables.tournament_checkouts.length, 1)
+  const c = h.tables.tournament_checkouts[0]
+  assert.deepEqual(plain(s.metadata), { flow: 'tournament', checkout_id: c.id })
+  assert.equal(c.status, 'pending')
+  assert.equal(c.amount_cents, 5000, 'exactly fee x wrestlers: the club absorbs the Stripe fee')
+  assert.equal(c.tournament_name, 'Turkey Tussle')
+  assert.equal(c.payer_id, E4.P1)
+  assert.deepEqual(plain(c.athlete_ids), [E4.K1, E4.K2])
+  assert.deepEqual(plain(c.registration_ids), [E4.R1, regs.find((r) => r.athlete_id === E4.K2).id])
+  assert.equal(c.stripe_checkout_session_id, 'cs_test_1')
+
+  // Starting again (a second tab) makes a second row with its own session.
+  await h.post({ tournamentId: E4.T1, entries: [h.entry(E4.K1)], returnPath: '/tournaments/abc' })
+  assert.equal(h.tables.tournament_checkouts.length, 2)
+  assert.equal(h.tables.tournament_checkouts[1].stripe_checkout_session_id, 'cs_test_2')
+  assert.equal(h.sessions[1].success_url, 'https://clwizards.com/tournaments/abc?checkout=success')
+})
+
+test('CLW-ENG-004: when Stripe refuses, the checkout row is removed and the family keeps an unpaid entry', async () => {
+  const h = eng004Checkout({ stripeFails: true })
+  const res = await h.post({ tournamentId: E4.T1, entries: [h.entry(E4.K1)] })
+  assert.equal(res.status, 500)
+  assert.equal(res.body.code, 'CHECKOUT-FAILED')
+  assert.equal(h.tables.tournament_checkouts.length, 0)
+  assert.equal(h.tables.tournament_registrations.length, 1)
+  assert.equal(h.tables.tournament_registrations[0].paid_cents, 0)
+  assert.equal(h.alerts[0].details.flow, 'tournament')
+})
+
+function eng004PaidTables() {
+  return {
+    tournaments: [{ id: E4.T1, name: 'Turkey Tussle', entry_fee_cents: 2500 }],
+    profiles: [{ id: E4.P1, full_name: 'Pat Example' }],
+    athletes: [{ id: E4.K1, first_name: 'Ava', last_name: 'Example' }, { id: E4.K2, first_name: 'Max', last_name: 'Example' }],
+    tournament_registrations: [
+      { id: E4.R1, tournament_id: E4.T1, athlete_id: E4.K1, parent_id: E4.P1, status: 'registered', fee_cents: 2500, paid_cents: 0, payment_method: null },
+      { id: E4.R2, tournament_id: E4.T1, athlete_id: E4.K2, parent_id: E4.P1, status: 'registered', fee_cents: 2500, paid_cents: 0, payment_method: null },
+    ],
+    tournament_checkouts: [{
+      id: E4.C1, tournament_id: E4.T1, tournament_name: 'Turkey Tussle', payer_id: E4.P1, registration_ids: [E4.R1, E4.R2],
+      athlete_ids: [E4.K1, E4.K2], amount_cents: 5000, net_cents: 0, status: 'pending', stripe_checkout_session_id: 'cs_test_1', stripe_payment_intent_id: null,
+    }],
+    payment_notice_recipients: [{ email: 'treasurer@example.com' }, { email: 'coach@example.com' }],
+    dues_payments: [],
+  }
+}
+
+function eng004Webhook(tables = eng004PaidTables(), dbOptions = {}) {
+  const db = eng004Db(tables, dbOptions)
+  const alerts = [], sends = []
+  class Resend { constructor() { this.emails = { send: async (message) => { sends.push(message); return { error: null } } } } }
+  const notice = load('src/lib/payments/notice.ts', {
+    resend: { Resend }, '@/lib/supabase/admin': { createAdminSupabase: () => db.client }, '@/config/org.config': e4Org, '@/lib/format/money': e4Money,
+  }, { RESEND_API_KEY: 're_test' })
+  const route = load('src/app/api/webhooks/stripe/route.ts', {
+    'next/server': require('next/server'),
+    resend: { Resend },
+    '@/lib/stripe': { getStripeClient: () => ({ webhooks: { constructEvent: (body) => JSON.parse(body) } }) },
+    '@/lib/alerts': { sendAlert: async (title, details) => { alerts.push({ title, details }) } },
+    '@/lib/supabase/admin': { createAdminSupabase: () => db.client },
+    '@/lib/format/money': e4Money,
+    '@/config/org.config': e4Org,
+    '@/lib/payments/notice': notice,
+  }, { STRIPE_WEBHOOK_SECRET: 'whsec_test', RESEND_API_KEY: 're_test' })
+  const send = (type, object) => route.POST(new Request('https://x/api/webhooks/stripe', {
+    method: 'POST', headers: { 'stripe-signature': 'sig' }, body: JSON.stringify({ id: `evt_${type}`, type, data: { object } }),
+  }))
+  const session = (over = {}) => ({
+    id: 'cs_test_1', amount_total: 5000, payment_intent: 'pi_test_1', payment_status: 'paid',
+    customer_details: { email: 'payer@example.com' }, metadata: { flow: 'tournament', checkout_id: E4.C1 }, ...over,
+  })
+  // Notices are plain text to the list; receipts are HTML to the payer.
+  const notices = () => sends.filter((m) => typeof m.text === 'string')
+  const receipts = () => sends.filter((m) => typeof m.html === 'string')
+  return { send, session, notices, receipts, alerts, tables }
+}
+
+test('CLW-ENG-004: a paid checkout marks the entries paid by card and sends one notice and one receipt; the same event again sends nothing', async () => {
+  const h = eng004Webhook()
+  assert.equal((await h.send('checkout.session.completed', h.session())).status, 200)
+  // Stripe redelivers, and a bank-style success event for the same session arrives too.
+  assert.equal((await h.send('checkout.session.completed', h.session())).status, 200)
+  assert.equal((await h.send('checkout.session.async_payment_succeeded', h.session())).status, 200)
+
+  assert.equal(h.notices().length, 1, 'one payment notice')
+  assert.equal(h.receipts().length, 1, 'one receipt')
+  assert.deepEqual(h.alerts, [])
+  const c = h.tables.tournament_checkouts[0]
+  assert.equal(c.status, 'paid')
+  assert.equal(c.stripe_payment_intent_id, 'pi_test_1')
+  for (const r of h.tables.tournament_registrations) {
+    assert.equal(r.paid_cents, 2500)
+    assert.equal(r.payment_method, 'card')
+  }
+
+  const n = h.notices()[0]
+  assert.deepEqual(plain(n.to), ['treasurer@example.com', 'coach@example.com'])
+  assert.equal(n.subject, 'Tournament entry paid: Turkey Tussle ($50.00)')
+  assert.match(n.text, /^Pat Example paid \$50\.00 for 2 tournament entries at Turkey Tussle\.\nWrestlers: Ava Example, Max Example\.\n\nTournament roster: https:\/\/clwizards\.com\/admin\/tournaments\/aaaaaaaa-0000-4000-a000-000000000001$/)
+  assert.doesNotMatch(n.text, /Dues:|donation|sponsor/i)
+  const receipt = h.receipts()[0]
+  assert.deepEqual(plain(receipt.to), ['payer@example.com'])
+  assert.match(receipt.subject, /Tournament entry payment received/)
+  assert.match(receipt.html, /\$50\.00.*Ava Example, Max Example/)
+  assert.doesNotMatch(receipt.html, /donation|tax-deductible|501\(c\)/i)
+  assert.match(receipt.html, /Your entry is paid\./)
+  assert.doesNotMatch(receipt.html, /The club will contact you/)
+})
+
+test('CLW-ENG-004: unpaid bank payments, overpayments, missing entries and a second payment on a paid checkout each alert the club', async () => {
+  const bank = eng004Webhook()
+  await bank.send('checkout.session.completed', bank.session({ payment_status: 'unpaid' }))
+  assert.match(bank.alerts[0].title, /not yet received/)
+  assert.equal(bank.tables.tournament_checkouts[0].status, 'pending')
+  assert.equal(bank.notices().length, 0)
+  await bank.send('checkout.session.async_payment_failed', bank.session({ payment_status: 'unpaid' }))
+  assert.match(bank.alerts[1].title, /bank payment failed/)
+
+  // An admin had already marked one entry cash: the card payment never overwrites it.
+  const tables = eng004PaidTables()
+  Object.assign(tables.tournament_registrations[0], { paid_cents: 2500, payment_method: 'cash' })
+  const over = eng004Webhook(tables)
+  await over.send('checkout.session.completed', over.session())
+  assert.equal(tables.tournament_registrations[0].payment_method, 'cash')
+  const titles = over.alerts.map((a) => a.title)
+  assert.ok(titles.some((t) => /overpaid: refund the extra/.test(t)), 'overpay alert')
+  assert.ok(titles.some((t) => /fewer entries paid/.test(t)), 'marked-lower alert')
+  assert.equal(over.alerts.find((a) => /fewer/.test(a.title)).details.markedPaid, 1)
+  assert.equal(over.notices().length, 1, 'the payment itself is still announced')
+  assert.match(over.receipts()[0].html, /Your entry is paid\./, 'one of two entries was marked by this card')
+
+  // Every entry already marked cash: the receipt still goes out, but never says paid.
+  const allCash = eng004PaidTables()
+  for (const r of allCash.tournament_registrations) Object.assign(r, { paid_cents: 2500, payment_method: 'cash' })
+  const none = eng004Webhook(allCash)
+  await none.send('checkout.session.completed', none.session())
+  assert.equal(none.alerts.find((a) => /fewer/.test(a.title)).details.markedPaid, 0)
+  assert.equal(none.receipts().length, 1)
+  assert.doesNotMatch(none.receipts()[0].html, /Your entry is paid/)
+  assert.match(none.receipts()[0].html, /\$50\.00.*The club will contact you about this entry\./)
+
+  // A second session paid against the same, already paid checkout.
+  const twice = eng004Webhook()
+  await twice.send('checkout.session.completed', twice.session())
+  await twice.send('checkout.session.completed', twice.session({ id: 'cs_test_other', payment_intent: 'pi_test_other' }))
+  assert.equal(twice.alerts.length, 1)
+  assert.match(twice.alerts[0].title, /already paid: refund or reconcile/)
+  assert.equal(twice.notices().length, 1)
+  assert.equal(twice.receipts().length, 1)
+
+  // Charged a different amount than the checkout row says.
+  const odd = eng004Webhook()
+  await odd.send('checkout.session.completed', odd.session({ amount_total: 4000 }))
+  assert.match(odd.alerts[0].title, /amount differs/)
+
+  // No locked price: the database refuses, Stripe retries, and the club is told.
+  const unlocked = eng004PaidTables()
+  unlocked.tournament_registrations[1].fee_cents = null
+  const broken = eng004Webhook(unlocked)
+  const res = await broken.send('checkout.session.completed', broken.session())
+  assert.equal(res.status, 500)
+  assert.match(broken.alerts[0].details.error, /taken but could not be recorded: .*no locked fee/)
+  assert.equal(unlocked.tournament_checkouts[0].status, 'pending')
+  assert.equal(broken.notices().length, 0)
+})
+
+test('CLW-ENG-004: a tournament refund sends a tournament refund notice once, never the donation or sponsorship one', async () => {
+  const h = eng004Webhook()
+  await h.send('checkout.session.completed', h.session())
+  const charge = (refunded) => ({ id: 'ch_test_1', payment_intent: 'pi_test_1', amount: 5000, amount_refunded: refunded, billing_details: { name: 'Pat Example' } })
+
+  // $20 back, then Stripe sends the same refund again.
+  await h.send('charge.refunded', charge(2000))
+  await h.send('charge.refunded', charge(2000))
+  let refunds = h.notices().filter((m) => /^Refund:/.test(m.subject))
+  assert.equal(refunds.length, 1)
+  assert.equal(refunds[0].subject, 'Refund: $20.00 to Pat Example (tournament entry)')
+  assert.match(refunds[0].text, /Partial refund: the entries still show paid/)
+  assert.equal(h.tables.tournament_registrations[0].payment_method, 'card')
+
+  // The rest: the entries go back to payment due.
+  await h.send('charge.refunded', charge(5000))
+  await h.send('charge.refunded', charge(5000))
+  refunds = h.notices().filter((m) => /^Refund:/.test(m.subject))
+  assert.equal(refunds.length, 2)
+  assert.match(refunds[1].text, /refunded: \$30\.00\.\nWrestlers: Ava Example, Max Example\.\nFull refund\.\n2 entries now show payment due\.\n\nTournament roster: https:\/\/clwizards\.com\/admin\/tournaments\//)
+  for (const m of refunds) assert.doesNotMatch(m.text + m.subject, /donation|sponsor|Dues:/i)
+  assert.equal(h.tables.tournament_checkouts[0].status, 'refunded')
+  for (const r of h.tables.tournament_registrations) assert.equal(r.payment_method, null)
+  assert.ok(!h.alerts.some((a) => /no matching dues record/.test(a.title)), 'never the unmatched-refund alert')
+
+  // A refund that matches nothing on the site still takes the old path.
+  await h.send('charge.refunded', { id: 'ch_x', payment_intent: 'pi_unknown', amount: 1000, amount_refunded: 1000 })
+  assert.ok(h.alerts.some((a) => /no matching dues record/.test(a.title)))
+})
+
+test('CLW-ENG-004: the dues notice text is unchanged; tournament notices go to the Payment notices list with a roster link', async () => {
+  const { lib, sends } = paymentNoticeHarness({ list: [{ email: 'treasurer@example.com' }, { email: 'coach@example.com' }] })
+  const rows = [{ status: 'paid', amount_cents: 35000, amount_paid_cents: 35000 }]
+  await lib.sendPaymentNotice(lib.duesPaymentNotice({ parentName: 'Pat Example', wrestlerName: 'Ava Example', paidNowCents: 35000, paidTotalCents: 35000, amountCents: 35000, season: '2026-27', seasonRows: rows }))
+  assert.equal(sends[0].text, 'Pat Example paid $350.00 in season dues for Ava Example.\nPaid in full.\n\n2026-27: 1 of 1 wrestlers paid in full, $350.00 collected.\n\nDues: https://clwizards.com/admin/dues')
+
+  await lib.sendPaymentNotice(lib.tournamentPaymentNotice({ payerName: null, wrestlerNames: ['Ava Example'], entries: 1, tournamentName: 'Turkey Tussle', tournamentId: E4.T1, paidCents: 2500 }))
+  assert.deepEqual(plain(sends[1].to), ['treasurer@example.com', 'coach@example.com'])
+  assert.equal(sends[1].text, `A family paid $25.00 for 1 tournament entry at Turkey Tussle.\nWrestlers: Ava Example.\n\nTournament roster: https://clwizards.com/admin/tournaments/${E4.T1}`)
+  // A tournament deleted since keeps its money record and links to the list.
+  const gone = lib.tournamentRefundNotice({ payerName: 'Pat Example', wrestlerNames: [], tournamentName: 'Old Open', tournamentId: null, refundedCents: 2500, partial: false, entries: { nowDue: 0, paidByOtherCard: 0, markedByAdmin: 0, removed: 1 } })
+  assert.match(gone.lines.join('\n'), /Full refund\.\n1 entry is no longer on the roster\./)
+  const unread = lib.tournamentRefundNotice({ payerName: null, wrestlerNames: [], tournamentName: 'Old Open', tournamentId: null, refundedCents: 2500, partial: false, entries: null })
+  assert.match(unread.lines.join('\n'), /Full refund\. Check the roster for what each entry shows now\./)
+  assert.doesNotMatch(unread.lines.join('\n'), /payment due/)
+  assert.deepEqual(plain(gone.link), { label: 'Tournaments', path: '/admin/tournaments' })
+  assert.doesNotMatch(gone.lines.join(' ') + gone.subject, /donation|sponsor/i)
+})
+
+test('CLW-ENG-004: an unpaid registration on a priced tournament is left off reminder sends; paid, waived and free ones stay on', async () => {
+  const tables = familyTables()
+  tables.tournaments = [{ id: 't1', entry_fee_cents: 2500 }, { id: 't2', entry_fee_cents: null }]
+  tables.tournament_entries = []
+  tables.tournament_registrations = [
+    // t1 (priced): k1 owes, k2 waived, k3 paid by card.
+    { tournament_id: 't1', athlete_id: 'k1', status: 'registered', fee_cents: null, paid_cents: 0, payment_method: null },
+    { tournament_id: 't1', athlete_id: 'k2', status: 'registered', fee_cents: 2500, paid_cents: 0, payment_method: 'waived' },
+    { tournament_id: 't1', athlete_id: 'k3', status: 'confirmed', fee_cents: 2500, paid_cents: 2500, payment_method: 'card' },
+    // t2 (free): an unpaid sign-up still counts, exactly as before.
+    { tournament_id: 't2', athlete_id: 'k1', status: 'registered', fee_cents: null, paid_cents: 0, payment_method: null },
+  ]
+  const db = tableDb(tables)
+  const lib = load('src/lib/comms/recipients.ts', {
+    '@/lib/supabase/admin': { createAdminSupabase: () => db.client },
+    '@/lib/tournament-registration': load('src/lib/tournament-registration.ts', {}),
+  })
+  const priced = await lib.resolveRecipients({ type: 'tournament_registrants', tournamentId: 't1' })
+  // g1 covers only k1, who still owes; g2 covers the waived k2.
+  assert.deepEqual(plain(priced.map((p) => p.id).sort()), ['g2', 'o1', 'o2'])
+  const kids = await lib.recipientWrestlers({ type: 'tournament_registrants', tournamentId: 't1' }, ['o1'])
+  assert.deepEqual(plain(kids.get('o1')), [{ first_name: 'Max', last_name: 'Ray' }])
+  const free = await lib.resolveRecipients({ type: 'tournament_registrants', tournamentId: 't2' })
+  assert.deepEqual(plain(free.map((p) => p.id).sort()), ['g1', 'o1'])
+})
+
+// CLW-QA-002 revision (Nov 20): refund wording from the entries' real state,
+// safe reads before the migrations, the no-entry receipt, parent_id kept on
+// existing rows, and a short Stripe session.
+test('CLW-ENG-004: refunding the second of two paid checkouts on one entry never says payment due', async () => {
+  const C2 = 'eeeeeeee-0000-4000-a000-000000000002'
+  const tables = eng004PaidTables()
+  tables.tournament_checkouts.push({
+    id: C2, tournament_id: E4.T1, tournament_name: 'Turkey Tussle', payer_id: E4.P1, registration_ids: [E4.R1], athlete_ids: [E4.K1],
+    amount_cents: 2500, net_cents: 0, status: 'pending', stripe_checkout_session_id: 'cs_test_2', stripe_payment_intent_id: null,
+  })
+  const h = eng004Webhook(tables)
+  await h.send('checkout.session.completed', h.session())
+  await h.send('checkout.session.completed', h.session({ id: 'cs_test_2', payment_intent: 'pi_test_2', amount_total: 2500, metadata: { flow: 'tournament', checkout_id: C2 } }))
+  assert.ok(h.alerts.some((a) => /overpaid/.test(a.title)), 'two tabs paid for Ava')
+  // The club refunds the duplicate in full after the overpay alert.
+  await h.send('charge.refunded', { id: 'ch_test_2', payment_intent: 'pi_test_2', amount: 2500, amount_refunded: 2500 })
+  const refund = h.notices().find((m) => /^Refund:/.test(m.subject))
+  assert.match(refund.text, /Full refund\.\n1 entry still shows paid: another card payment covers it\.\n\nTournament roster:/)
+  assert.doesNotMatch(refund.text, /payment due/)
+  assert.equal(tables.tournament_registrations[0].payment_method, 'card')
+
+  // A card payment refunded where an admin had marked one entry cash.
+  const cash = eng004PaidTables()
+  Object.assign(cash.tournament_registrations[1], { paid_cents: 2500, payment_method: 'cash' })
+  const c = eng004Webhook(cash)
+  await c.send('checkout.session.completed', c.session())
+  await c.send('charge.refunded', { id: 'ch_test_1', payment_intent: 'pi_test_1', amount: 5000, amount_refunded: 5000 })
+  const mixed = c.notices().find((m) => /^Refund:/.test(m.subject))
+  assert.match(mixed.text, /Full refund\.\n1 entry now shows payment due\.\n1 entry still shows paid: a cash, check or waived mark covers it\./)
+})
+
+test('CLW-ENG-004: before the payment migration, a refund still takes the donation or sponsorship path', async () => {
+  const h = eng004Webhook(eng004PaidTables(), { refundFunctionMissing: true })
+  const res = await h.send('charge.refunded', { id: 'ch_gift', payment_intent: 'pi_gift', amount: 5000, amount_refunded: 5000, billing_details: { name: 'Ann Donor' } })
+  assert.equal(res.status, 200)
+  assert.ok(!h.alerts.some((a) => /handler failed/.test(a.title)), 'a missing function is not an error')
+  assert.ok(h.alerts.some((a) => /no matching dues record/.test(a.title)))
+  const notice = h.notices().find((m) => /^Refund:/.test(m.subject))
+  assert.equal(notice.subject, 'Refund: $50.00 to Ann Donor')
+  assert.match(notice.text, /A donation or sponsorship \(not dues\)/)
+})
+
+test('CLW-ENG-004: reminder recipients fall back to the old lookup when the payment columns are missing', async () => {
+  const tables = familyTables()
+  tables.tournaments = [{ id: 't1', entry_fee_cents: 2500 }]
+  tables.tournament_entries = []
+  tables.tournament_registrations = [{ tournament_id: 't1', athlete_id: 'k1', status: 'registered' }]
+  const base = tableDb(tables)
+  const missingColumn = {
+    eq: () => missingColumn, in: () => missingColumn,
+    then: (resolve, reject) => Promise.resolve({ data: null, error: { code: '42703', message: 'column tournament_registrations.fee_cents does not exist' } }).then(resolve, reject),
+  }
+  const client = { from: (table) => {
+    const b = base.client.from(table)
+    if (table === 'tournament_registrations') {
+      const select = b.select
+      b.select = (cols) => (/fee_cents/.test(cols) ? missingColumn : select(cols))
+    }
+    return b
+  } }
+  const lib = load('src/lib/comms/recipients.ts', {
+    '@/lib/supabase/admin': { createAdminSupabase: () => client },
+    '@/lib/tournament-registration': load('src/lib/tournament-registration.ts', {}),
+  })
+  const recipients = await lib.resolveRecipients({ type: 'tournament_registrants', tournamentId: 't1' })
+  assert.deepEqual(plain(recipients.map((p) => p.id).sort()), ['g1', 'o1'], 'the family is still reached, with no paid filter')
+})
+
+test('CLW-ENG-004: paying never moves an existing entry to the payer, and the Stripe session lasts about 30 minutes', async () => {
+  const tables = eng004CheckoutTables()
+  tables.family_guardians[0].athlete_ids = null // whole-family co-parent
+  tables.tournament_registrations.push({ id: E4.R1, tournament_id: E4.T1, athlete_id: E4.K1, parent_id: E4.P1, status: 'confirmed', fee_cents: null, paid_cents: 0, payment_method: null })
+  const h = eng004Checkout({ user: { id: E4.G1, email: 'coparent@example.com' }, tables })
+  const before = Math.floor(Date.now() / 1000)
+  const res = await h.post({ tournamentId: E4.T1, entries: [h.entry(E4.K1), h.entry(E4.K2)] })
+  assert.equal(res.status, 200)
+  const existing = tables.tournament_registrations.find((r) => r.id === E4.R1)
+  assert.equal(existing.parent_id, E4.P1, 'an existing row keeps its parent_id')
+  assert.equal(existing.status, 'confirmed')
+  assert.equal(existing.fee_cents, 2500)
+  assert.equal(existing.weight, '52')
+  const added = tables.tournament_registrations.find((r) => r.athlete_id === E4.K2)
+  assert.equal(added.parent_id, E4.G1, 'a new row is the payer\'s')
+  assert.equal(tables.tournament_registrations.length, 2)
+  assert.equal(tables.tournament_checkouts[0].payer_id, E4.G1)
+  assert.deepEqual(plain(tables.tournament_checkouts[0].registration_ids), [E4.R1, added.id])
+
+  const expires = h.sessions[0].expires_at
+  assert.ok(expires >= before + 30 * 60, 'never under Stripe\'s 30 minute minimum')
+  assert.ok(expires <= Math.floor(Date.now() / 1000) + 32 * 60, 'about 30 minutes, not Stripe\'s 24 hour default')
+  assert.equal(h.lib.sessionExpiresAt(0), 31 * 60)
+})
+
+test('CLW-ENG-004: an entry withdrawn while its payment was open is registered again by the payment, and the notice says so', async () => {
+  const tables = eng004PaidTables()
+  tables.tournament_registrations[0].status = 'withdrawn'
+  const h = eng004Webhook(tables)
+  await h.send('checkout.session.completed', h.session())
+  await h.send('checkout.session.completed', h.session())
+  const [ava, max] = tables.tournament_registrations
+  assert.equal(ava.status, 'registered', 'paid entries never sit withdrawn')
+  assert.equal(ava.payment_method, 'card')
+  assert.equal(max.status, 'registered')
+  assert.equal(h.notices().length, 1)
+  assert.match(h.notices()[0].text, /\nRe-registered by payment: Ava Example \(withdrawn while the payment was open, now registered again\)\.\n/)
+  assert.doesNotMatch(h.notices()[0].text, /Max Example \(withdrawn/)
+
+  // Nothing withdrawn: no such line.
+  const plainPay = eng004Webhook()
+  await plainPay.send('checkout.session.completed', plainPay.session())
+  assert.doesNotMatch(plainPay.notices()[0].text, /Re-registered/)
+})
+
+// ---- CLW-ENG-005: tournament sessions and tap-to-map for parents and the public Events page ----
+const eng005React = require('react')
+const { renderToStaticMarkup: eng005Render } = require('react-dom/server')
+const ENG005_FILES = ['src/lib/club-calendar.ts', 'src/components/events/ClubCalendar.tsx', 'src/app/(marketing)/events/page.tsx', 'src/app/(portal)/tournaments/page.tsx']
+
+// A Supabase stand-in: records each table read and answers from `tables`
+// (a table set to an Error answers like a missing table: no data, an error).
+function eng005Supabase(tables) {
+  const reads = []
+  return {
+    reads,
+    auth: { getUser: async () => ({ data: { user: { id: 'parent-1' } } }) },
+    from(table) {
+      reads.push(table)
+      const answer = tables[table]
+      const result = answer instanceof Error ? { data: null, error: { message: answer.message } } : { data: answer ?? [], error: null }
+      const q = { then: (resolve, reject) => Promise.resolve(result).then(resolve, reject) }
+      for (const m of ['select', 'eq', 'neq', 'gte', 'in', 'order']) q[m] = () => q
+      return q
+    },
+  }
+}
+const eng005Tournament = (over) => ({
+  id: 't1', name: 'Turkey Tussle', date: '2026-11-21', start_time: '08:00', location: 'Central High School', street_address: null,
+  city: 'Huntley', state: 'IL', status: 'open', external_registration_url: 'https://example.com/reg', external_platform: null,
+  competition_level: null, image_url: null, notes: null, weigh_in_date: null, weigh_in_time: null, weigh_in_location: null, ...over,
+})
+const eng005Sessions = [
+  { id: 's2', tournament_id: 't1', start_time: '12:30', divisions: '12u, 14u', sort_order: 1 },
+  { id: 's1', tournament_id: 't1', start_time: '08:00', divisions: '6u, 8u, 10u', sort_order: 0 },
+]
+
+function eng005EventsPage(tables) {
+  const supabase = eng005Supabase(tables)
+  let calendarProps = null
+  const mod = load('src/app/(marketing)/events/page.tsx', {
+    'next/link': { __esModule: true, default: (p) => eng005React.createElement('a', { href: p.href }, p.children) },
+    '@/lib/page-metadata': { pageMetadata: (m) => m },
+    '@/lib/supabase/server': { createServerSupabase: async () => supabase },
+    '@/lib/chicago-time': { chicagoDateString: () => '2026-11-01' },
+    '@/lib/event-sessions': eventSessionsLib,
+    '@/lib/tournament-sessions': tSessionsLib,
+    '@/lib/maps': mapsLib,
+    '@/lib/club-calendar': clubCalLib,
+    '@/components/events/ClubCalendar': { ClubCalendar: (props) => { calendarProps = props; return null } },
+  })
+  return { supabase, render: async () => { eng005Render(await mod.default()); return plain(calendarProps) } }
+}
+
+test('CLW-ENG-005: calendar entries list tournament sessions before notes, start at the earliest session, and link the venue', () => {
+  const grouped = clubCalLib.groupTournamentSessions(eng005Sessions)
+  assert.deepEqual(plain(grouped.get('t1').map((s) => s.id)), ['s1', 's2'])
+  const extras = new Map([['t1', { sessionLines: ['8:00 AM · 6u, 8u, 10u', '12:30 PM · 12u, 14u'], firstStart: '08:00', mapUrl: 'https://www.google.com/maps/search/?api=1&query=x' }]])
+  const [entry] = plain(clubCalLib.clubCalendarEntries([eng005Tournament({ start_time: '9:00 AM', notes: ' Singlets required. ' })], [], new Map(), extras))
+  assert.equal(entry.start, '2026-11-21T08:00')
+  assert.equal(entry.detail.when, 'Saturday, November 21 · 8:00 AM')
+  assert.deepEqual(entry.detail.lines, ['8:00 AM · 6u, 8u, 10u', '12:30 PM · 12u, 14u', 'Singlets required.'])
+  assert.equal(entry.detail.mapUrl, 'https://www.google.com/maps/search/?api=1&query=x')
+  // No extras: today's single time, and no map key at all.
+  const [plainEntry] = plain(clubCalLib.clubCalendarEntries([eng005Tournament({ start_time: '9:00 AM' })], []))
+  assert.equal(plainEntry.start, '2026-11-21T09:00')
+  assert.deepEqual(plainEntry.detail.lines, [])
+  assert.ok(!('mapUrl' in plainEntry.detail))
+  // A street address joins the location shown in the details box.
+  const [street] = plain(clubCalLib.clubCalendarEntries([eng005Tournament({ street_address: ' 123 Main St ' })], []))
+  assert.equal(street.detail.location, 'Central High School, 123 Main St, Huntley, IL')
+})
+
+test('CLW-ENG-005: the Events page shows each session, keeps one time without sessions, and encodes the map link', async () => {
+  const page = eng005EventsPage({
+    tournaments: [
+      eng005Tournament({ start_time: '08:00', location: 'St. Ann Gym & Annex #2', street_address: '12 Oak Ave' }),
+      eng005Tournament({ id: 't2', name: 'Spring Open', date: '2026-11-28', start_time: '9:00 AM', location: 'North Gym', city: 'Crystal Lake' }),
+    ],
+    club_events: [], event_sessions: [], tournament_sessions: eng005Sessions,
+  })
+  const props = await page.render()
+  const tussle = props.events.find((e) => e.id === 't-t1')
+  assert.equal(tussle.start, '2026-11-21T08:00')
+  assert.deepEqual(tussle.detail.lines, ['8:00 AM · 6u, 8u, 10u', '12:30 PM · 12u, 14u'])
+  // The street wins over the venue name in the map search, and the query is encoded.
+  assert.equal(tussle.detail.mapUrl, 'https://www.google.com/maps/search/?api=1&query=12%20Oak%20Ave%2C%20Huntley%2C%20IL')
+  const spring = props.events.find((e) => e.id === 't-t2')
+  assert.equal(spring.start, '2026-11-28T09:00')
+  assert.deepEqual(spring.detail.lines, [])
+  assert.equal(spring.detail.mapUrl, 'https://www.google.com/maps/search/?api=1&query=North%20Gym%2C%20Crystal%20Lake%2C%20IL')
+  assert.ok(page.supabase.reads.includes('tournament_sessions'))
+  const venueOnly = mapsLib.mapsUrl({ venue: 'St. Ann Gym & Annex #2', city: 'Huntley', state: 'IL' })
+  assert.ok(venueOnly.includes('%26') && venueOnly.includes('%23') && !venueOnly.includes('&Annex'))
+})
+
+test('CLW-ENG-005: the Events page still works before the sessions table exists', async () => {
+  const page = eng005EventsPage({ tournaments: [eng005Tournament({ start_time: '9:00 AM' })], club_events: [], event_sessions: [], tournament_sessions: new Error('relation "public.tournament_sessions" does not exist') })
+  const [entry] = (await page.render()).events
+  assert.equal(entry.start, '2026-11-21T09:00')
+  assert.deepEqual(entry.detail.lines, [])
+})
+
+test('CLW-ENG-005: no admin-only tournament data reaches the public Events page or the parent card', async () => {
+  for (const file of ENG005_FILES) {
+    const src = fs.readFileSync(path.join(__dirname, '..', file), 'utf8')
+    assert.doesNotMatch(src, /tournament_admin_details|club_registrations_url|spots_allotted/, file)
+  }
+  // Even if a tournament row carried admin fields, the calendar passes only its own detail fields.
+  const page = eng005EventsPage({ tournaments: [eng005Tournament({ club_registrations_url: 'https://example.com/club', spots_allotted: 12 })], club_events: [], event_sessions: [], tournament_sessions: [] })
+  const props = await page.render()
+  assert.doesNotMatch(JSON.stringify(props), /club_registrations_url|spots_allotted|example\.com\/club/)
+  assert.ok(!page.supabase.reads.includes('tournament_admin_details'))
+})
+
+function eng005ParentPage(tables) {
+  const supabase = eng005Supabase(tables)
+  const el = (tag) => ({ children, className }) => eng005React.createElement(tag, { className }, children)
+  const mod = load('src/app/(portal)/tournaments/page.tsx', {
+    'next/link': { __esModule: true, default: (p) => eng005React.createElement('a', { href: p.href, 'data-link': 'next' }, p.children) },
+    '@/lib/tournament-status': load('src/lib/tournament-status.ts', {}),
+    '@/lib/supabase/server': { createServerSupabase: async () => supabase },
+    '@/lib/family': { resolveFamilyOwnerIds: async () => ['parent-1'] },
+    '@/lib/chicago-time': { chicagoDateString: () => '2026-11-01' },
+    '@/lib/practice': practiceLib,
+    '@/lib/maps': mapsLib,
+    '@/lib/tournament-sessions': tSessionsLib,
+    '@/lib/club-calendar': clubCalLib,
+    '@/components/ui/badge': { Badge: el('span') },
+    '@/components/ui/button': { Button: ({ children }) => children },
+    '@/components/ui/card': { Card: el('section'), CardContent: el('div'), CardHeader: el('header'), CardTitle: el('h3') },
+    './RegisterControls': { RegisterControls: () => eng005React.createElement('div', null, 'REGISTER-CONTROLS') },
+    '@/components/events/TournamentFlier': { TournamentFlier: () => null },
+  })
+  return { supabase, html: async () => eng005Render(await mod.default()) }
+}
+
+test('CLW-ENG-005: the parent card lists sessions, links the venue to a map, and links Tournament rosters', async () => {
+  const page = eng005ParentPage({
+    tournaments: [
+      eng005Tournament({ street_address: '123 Main St', external_registration_url: null }),
+      eng005Tournament({ id: 't2', name: 'Spring Open', date: '2026-11-28', start_time: '09:30', location: '', city: 'Crystal Lake', status: 'closed' }),
+    ],
+    athletes: [], tournament_sessions: eng005Sessions,
+  })
+  const html = await page.html()
+  assert.match(html, /<a href="\/tournament-rosters" data-link="next">.*Tournament rosters<\/a>/)
+  assert.ok(html.includes('8:00 AM · 6u, 8u, 10u'))
+  assert.ok(html.indexOf('8:00 AM · 6u, 8u, 10u') < html.indexOf('12:30 PM · 12u, 14u'))
+  assert.ok(!html.includes('Starts 8:00 AM'), 'sessions replace the single start time')
+  assert.ok(html.includes('Starts 9:30 AM'), 'no sessions: the single start time as before')
+  const links = [...html.matchAll(/<a href="(https:\/\/www\.google\.com\/maps\/[^"]+)"([^>]*)>([\s\S]*?)<\/a>/g)]
+  assert.equal(links.length, 2)
+  const [tussle, spring] = links
+  assert.equal(tussle[1].replace(/&amp;/g, '&'), 'https://www.google.com/maps/search/?api=1&query=123%20Main%20St%2C%20Huntley%2C%20IL')
+  assert.match(tussle[2], /target="_blank"/)
+  assert.match(tussle[2], /rel="noopener noreferrer"/)
+  assert.match(tussle[2], /min-h-11/)
+  assert.match(tussle[3], /Central High School<\/span><span class="block">123 Main St, Huntley, IL<\/span>/)
+  assert.match(spring[3], /Crystal Lake, IL/)
+  // Parent-facing details are body text: no text-sm or text-xs in the card header and details.
+  const details = html.slice(html.indexOf('<section'), html.indexOf('REGISTER-CONTROLS'))
+  assert.doesNotMatch(details, /text-(xs|sm)\b/)
+  assert.ok(page.supabase.reads.includes('tournament_sessions'))
+  assert.ok(!page.supabase.reads.includes('tournament_admin_details'))
+})
+
+test('CLW-ENG-005: the parent card still shows the single start time before the sessions table exists', async () => {
+  const page = eng005ParentPage({ tournaments: [eng005Tournament({ start_time: '8:00 AM', external_registration_url: null })], athletes: [], tournament_sessions: new Error('relation does not exist') })
+  const html = await page.html()
+  assert.ok(html.includes('Starts 8:00 AM'))
+  assert.ok(html.includes('REGISTER-CONTROLS'), 'the registration block still renders')
+})
+
+// ---- Profile role guard (Nov 20): parents cannot promote themselves ----
+test('only admins or the server can change a profile role, admin level or active status', () => {
+  const sql = require('fs').readFileSync(require('path').join(__dirname, '..', 'supabase/migrations/20261120000000_keep_role_admin_only.sql'), 'utf8')
+  assert.match(sql, /before insert or update of role, admin_scope, is_active on public\.profiles/)
+  assert.match(sql, /auth\.uid\(\) is null or public\.has_role\(auth\.uid\(\), 'admin'\)/)
+  assert.match(sql, /new\.role := old\.role;\s*new\.admin_scope := old\.admin_scope;\s*new\.is_active := old\.is_active;/)
+  assert.match(sql, /new\.role := 'parent';\s*new\.admin_scope := null;/)
+  assert.match(sql, /revoke execute on function public\.keep_role_admin_only\(\) from public, anon, authenticated/)
+})
+
+// ---- CLW-ENG-003: Admin tournament surfaces (B2 sessions, B3 address, B4 cost and paid view, B5 club link, B6 spots) ----
+const eng003AdminLib = load('src/app/admin/tournaments/tournament-admin.ts', {
+  '@/lib/tw-roster': twLib,
+  '@/lib/tournament-registration': tRegLib,
+})
+const ENG003_T = '44444444-4444-4444-a444-444444444444'
+const ENG003_R = '55555555-5555-4555-a555-555555555555'
+
+// A recording stand-in for the Supabase server client: every table call and
+// rpc lands in `log` in order, with its operation, values and filters.
+function eng003Harness({ role = 'admin', tables = {}, rpcError = null, failTable = null } = {}) {
+  const log = []
+  const data = { profiles: [{ id: 'me', role, is_active: true, full_name: 'Coach Test' }], ...tables }
+  const from = (table) => {
+    const call = { kind: 'table', table, op: 'select', values: null, filters: [], onConflict: null }
+    log.push(call)
+    const rows = () => (data[table] ?? []).filter((r) => call.filters.every(([o, k, v]) =>
+      o === 'eq' ? r[k] === v : o === 'gt' ? r[k] > v : o === 'is' ? (r[k] ?? null) === v : o === 'in' ? v.includes(r[k])
+        : o === 'cs' ? Array.isArray(r[k]) && v.every((x) => r[k].includes(x)) : true))
+    const run = () => {
+      if (failTable === table) return { data: null, error: { message: 'boom' } }
+      if (call.op === 'insert') { const row = { id: 'new-id', ...call.values }; (data[table] ??= []).push(row); return { data: [row], error: null } }
+      if (call.op === 'upsert') { (data[table] ??= []).push({ ...call.values }); return { data: [call.values], error: null } }
+      if (call.op === 'update') { const hit = rows(); hit.forEach((r) => Object.assign(r, call.values)); return { data: hit.map((r) => ({ id: r.id })), error: null } }
+      if (call.op === 'delete') { const hit = rows(); data[table] = (data[table] ?? []).filter((r) => !hit.includes(r)); return { data: null, error: null } }
+      return { data: rows(), error: null }
+    }
+    const one = async () => { const r = run(); return { data: Array.isArray(r.data) ? r.data[0] ?? null : r.data, error: r.error } }
+    const b = {
+      select: () => b, order: () => b, limit: () => b,
+      insert: (v) => { call.op = 'insert'; call.values = v; return b },
+      update: (v) => { call.op = 'update'; call.values = v; return b },
+      upsert: (v, o) => { call.op = 'upsert'; call.values = v; call.onConflict = o?.onConflict ?? null; return b },
+      delete: () => { call.op = 'delete'; return b },
+      eq: (k, v) => { call.filters.push(['eq', k, v]); return b },
+      gt: (k, v) => { call.filters.push(['gt', k, v]); return b },
+      is: (k, v) => { call.filters.push(['is', k, v]); return b },
+      in: (k, v) => { call.filters.push(['in', k, v]); return b },
+      contains: (k, v) => { call.filters.push(['cs', k, v]); return b },
+      single: one, maybeSingle: one,
+      then: (resolve, reject) => Promise.resolve(run()).then(resolve, reject),
+    }
+    return b
+  }
+  const client = {
+    from,
+    rpc: async (name, args) => {
+      log.push({ kind: 'rpc', name, args })
+      return rpcError ? { data: null, error: { message: rpcError } } : { data: args.p_sessions.length, error: null }
+    },
+    auth: { getUser: async () => ({ data: { user: { id: 'me' } } }) },
+  }
+  const actions = load('src/app/admin/tournaments/actions.ts', {
+    'next/cache': { revalidatePath: () => {} },
+    '@/lib/supabase/server': { createServerSupabase: async () => client },
+    '@/config/org.config': { ORG: { practiceGroups: ['Group 1', 'Group 2'] } },
+    '@/lib/tournament-sessions': tSessionsLib,
+    '@/lib/tournament-registration': tRegLib,
+    './tournament-admin': eng003AdminLib,
+  })
+  const writes = () => log.filter((c) => c.kind === 'rpc' || c.op !== 'select')
+  return { actions, log, data, writes }
+}
+
+const eng003Form = (extra = {}) => ({
+  name: 'Made Up Open', date: '2026-12-12', location: 'Big Gym', city: 'Crystal Lake', state: 'il', status: 'open',
+  sessions: [{ start_time: '09:00', divisions: '' }], practice_groups: [], ...extra,
+})
+const ENG003_ADMIN_ONLY_KEYS = ['club_registrations_url', 'spots_allotted', 'entry_fee', 'sessions']
+
+test('CLW-ENG-003: saving a tournament converts dollars to cents and keeps the club link and spots out of the tournaments row', async () => {
+  const h = eng003Harness()
+  const res = await h.actions.createTournament(eng003Form({
+    street_address: ' 100 Main St ',
+    entry_fee: '$25.50',
+    club_registrations_url: 'https://www.trackwrestling.com/tw/club.jsp?tournamentGroupId=77&twSessionId=abc123',
+    spots_allotted: '12',
+    sessions: [{ start_time: '13:30', divisions: 'Novice, Senior' }, { start_time: '08:00', divisions: 'Tots, Bantam' }, { start_time: '', divisions: '' }],
+  }))
+  assert.deepEqual(plain(res), { ok: true, id: 'new-id' })
+  const insert = h.log.find((c) => c.table === 'tournaments' && c.op === 'insert')
+  assert.equal(insert.values.entry_fee_cents, 2550)
+  assert.equal(insert.values.street_address, '100 Main St')
+  assert.equal(insert.values.state, 'IL')
+  assert.equal(insert.values.start_time, '08:00', 'start_time is the earliest session')
+  for (const key of ENG003_ADMIN_ONLY_KEYS) assert.equal(key in insert.values, false, `${key} is not a tournaments column`)
+  assert.doesNotMatch(JSON.stringify(insert.values), /trackwrestling|twSessionId|"12"/, 'no admin-only value in the public row')
+
+  // Sessions: saved after the tournament row, sorted by time, through the RPC.
+  const order = h.writes().map((c) => (c.kind === 'rpc' ? `rpc:${c.name}` : `${c.op}:${c.table}`))
+  assert.deepEqual(order, ['insert:tournaments', 'rpc:replace_tournament_sessions', 'upsert:tournament_admin_details'])
+  const rpc = h.log.find((c) => c.kind === 'rpc')
+  assert.deepEqual(plain(rpc.args), {
+    p_tournament: 'new-id',
+    p_sessions: [{ start_time: '08:00', divisions: 'Tots, Bantam' }, { start_time: '13:30', divisions: 'Novice, Senior' }],
+  })
+  // Club link (cleaned of the copier's session code) and spots go to the admin-only table.
+  const upsert = h.log.find((c) => c.op === 'upsert')
+  assert.equal(upsert.onConflict, 'tournament_id')
+  assert.deepEqual(plain(upsert.values), {
+    tournament_id: 'new-id',
+    club_registrations_url: 'https://www.trackwrestling.com/tw/club.jsp?tournamentGroupId=77',
+    spots_allotted: 12,
+    updated_by: 'me',
+  })
+
+  // Edit: same split; blank admin fields clear the admin row; one session with
+  // blank divisions behaves like the old single start time.
+  const e = eng003Harness()
+  const upd = await e.actions.updateTournament(ENG003_T, eng003Form({ entry_fee: '', club_registrations_url: ' ', spots_allotted: '' }))
+  assert.equal(upd.ok, true)
+  const update = e.log.find((c) => c.table === 'tournaments' && c.op === 'update')
+  assert.equal(update.values.entry_fee_cents, null)
+  assert.equal(update.values.start_time, '09:00')
+  for (const key of ENG003_ADMIN_ONLY_KEYS) assert.equal(key in update.values, false, `${key} is not a tournaments column`)
+  assert.deepEqual(plain(e.log.find((c) => c.kind === 'rpc').args.p_sessions), [{ start_time: '09:00', divisions: null }])
+  const del = e.log.find((c) => c.table === 'tournament_admin_details')
+  assert.equal(del.op, 'delete')
+  assert.deepEqual(del.filters, [['eq', 'tournament_id', ENG003_T]])
+
+  // An edit that clears every session clears the start time and the session rows.
+  const c = eng003Harness()
+  await c.actions.updateTournament(ENG003_T, eng003Form({ sessions: [{ start_time: '', divisions: ' ' }] }))
+  assert.equal(c.log.find((x) => x.op === 'update').values.start_time, null)
+  assert.deepEqual(plain(c.log.find((x) => x.kind === 'rpc').args.p_sessions), [])
+})
+
+test('CLW-ENG-003: bad cost, spots, link or sessions are refused before anything is written', async () => {
+  const cases = [
+    [{ entry_fee: 'abc' }, /amount/],
+    [{ entry_fee: '0.50' }, /between \$1 and \$1,000/],
+    [{ entry_fee: '1000.01' }, /between \$1 and \$1,000/],
+    [{ spots_allotted: '501' }, /1 to 500/],
+    [{ spots_allotted: '2.5' }, /whole number/],
+    [{ club_registrations_url: 'http://www.trackwrestling.com/x' }, /https:\/\//],
+    [{ club_registrations_url: 'not a link' }, /https:\/\//],
+    [{ sessions: [{ start_time: '25:00', divisions: '' }] }, /start time/],
+    [{ sessions: Array.from({ length: 6 }, (_, i) => ({ start_time: `0${i + 1}:00`, divisions: '' })) }, /at most 5/],
+    [{ street_address: 'x'.repeat(201) }, /200 characters/],
+  ]
+  for (const [extra, message] of cases) {
+    const h = eng003Harness()
+    const res = await h.actions.createTournament(eng003Form(extra))
+    assert.equal(res.ok, false, JSON.stringify(extra).slice(0, 60))
+    assert.match(res.error, message)
+    assert.deepEqual(h.writes(), [], 'nothing written')
+  }
+})
+
+test('CLW-ENG-003: a sessions save that fails is shown, and the new tournament id comes back so a retry edits it', async () => {
+  const h = eng003Harness({ rpcError: 'Bad session list' })
+  const res = await h.actions.createTournament(eng003Form({ spots_allotted: '8' }))
+  assert.equal(res.ok, false)
+  assert.equal(res.id, 'new-id')
+  assert.match(res.error, /tournament saved, but: The sessions did not save \(Bad session list\)/)
+  assert.equal(h.log.filter((c) => c.op === 'upsert').length, 1, 'admin details still attempted')
+  // A new tournament with no sessions does not call the RPC at all.
+  const none = eng003Harness()
+  await none.actions.createTournament(eng003Form({ sessions: [] }))
+  assert.equal(none.log.some((c) => c.kind === 'rpc'), false)
+})
+
+test('CLW-ENG-003: non-admins are refused by every admin tournament action, including the admin-details upsert', async () => {
+  for (const role of ['parent', 'staff']) {
+    const h = eng003Harness({ role, tables: { tournament_registrations: [{ id: ENG003_R, tournament_id: ENG003_T, status: 'registered', fee_cents: null, paid_cents: 0, payment_method: null }] } })
+    const form = eng003Form({ club_registrations_url: 'https://www.trackwrestling.com/x', spots_allotted: '10' })
+    for (const res of [
+      await h.actions.createTournament(form),
+      await h.actions.updateTournament(ENG003_T, form),
+      await h.actions.deleteTournament(ENG003_T),
+      await h.actions.markRegistrationPaid(ENG003_R, 'cash'),
+      await h.actions.waiveRegistrationFee(ENG003_R),
+      await h.actions.clearManualPayment(ENG003_R),
+    ]) assert.deepEqual(plain(res), { ok: false, error: 'Admin access required.' })
+    assert.deepEqual(h.writes(), [], `${role}: nothing written`)
+    assert.ok(h.log.every((c) => c.table === 'profiles'), `${role}: only the role check ran`)
+  }
+  // An inactive admin is refused too.
+  const gone = eng003Harness()
+  gone.data.profiles[0].is_active = false
+  assert.equal((await gone.actions.updateTournament(ENG003_T, eng003Form())).ok, false)
+})
+
+test('CLW-ENG-003: delete refuses a tournament with a paid registration', async () => {
+  const paid = eng003Harness({ tables: { tournament_registrations: [
+    { id: 'r1', tournament_id: ENG003_T, paid_cents: 0 },
+    { id: 'r2', tournament_id: ENG003_T, paid_cents: 2500 },
+  ] } })
+  const res = await paid.actions.deleteTournament(ENG003_T)
+  assert.equal(res.ok, false)
+  assert.match(res.error, /paid for this tournament, so it cannot be deleted/)
+  assert.equal(paid.log.some((c) => c.table === 'tournaments' && c.op === 'delete'), false)
+  const check = paid.log.find((c) => c.table === 'tournament_registrations')
+  assert.deepEqual(check.filters, [['eq', 'tournament_id', ENG003_T], ['gt', 'paid_cents', 0]])
+
+  // Unpaid or waived rows only: the delete goes ahead.
+  const unpaid = eng003Harness({ tables: { tournament_registrations: [{ id: 'r1', tournament_id: ENG003_T, paid_cents: 0, payment_method: 'waived' }], tournaments: [{ id: ENG003_T }] } })
+  assert.equal((await unpaid.actions.deleteTournament(ENG003_T)).ok, true)
+  assert.equal(unpaid.data.tournaments.length, 0)
+
+  // If the check itself fails, nothing is deleted.
+  const broken = eng003Harness({ failTable: 'tournament_registrations', tables: { tournaments: [{ id: ENG003_T }] } })
+  assert.equal((await broken.actions.deleteTournament(ENG003_T)).ok, false)
+  assert.equal(broken.data.tournaments.length, 1)
+})
+
+test('CLW-ENG-003: admins mark a due entry paid by cash or check, or waive it, through their own client', async () => {
+  const reg = (extra = {}) => ({ id: ENG003_R, tournament_id: ENG003_T, status: 'registered', fee_cents: null, paid_cents: 0, payment_method: null, ...extra })
+  const harness = (r, fee = 2500) => eng003Harness({ tables: { tournament_registrations: [r], tournaments: [{ id: ENG003_T, entry_fee_cents: fee }] } })
+
+  const cash = harness(reg())
+  assert.equal((await cash.actions.markRegistrationPaid(ENG003_R, 'cash')).ok, true)
+  const u = cash.log.find((c) => c.op === 'update')
+  assert.equal(u.table, 'tournament_registrations')
+  assert.deepEqual(Object.keys(u.values).sort(), ['fee_cents', 'paid_at', 'paid_cents', 'payment_method'])
+  assert.equal(u.values.fee_cents, 2500, 'locks the effective fee')
+  assert.equal(u.values.paid_cents, 2500)
+  assert.equal(u.values.payment_method, 'cash')
+  assert.match(u.values.paid_at, /^\d{4}-\d\d-\d\dT/)
+  // Only if the row is still as it was read.
+  assert.deepEqual(u.filters, [['eq', 'id', ENG003_R], ['eq', 'paid_cents', 0], ['is', 'payment_method', null]])
+
+  const check = harness(reg({ fee_cents: 3000 }))
+  await check.actions.markRegistrationPaid(ENG003_R, 'check')
+  assert.equal(check.log.find((c) => c.op === 'update').values.paid_cents, 3000, 'a locked fee wins over the tournament fee')
+
+  const waive = harness(reg())
+  assert.equal((await waive.actions.waiveRegistrationFee(ENG003_R)).ok, true)
+  const w = waive.log.find((c) => c.op === 'update').values
+  assert.equal(w.payment_method, 'waived')
+  assert.equal('paid_cents' in w, false, 'waiving records no money')
+  assert.ok(w.paid_at)
+
+  const refusals = [
+    [reg({ paid_cents: 2500, payment_method: 'card', fee_cents: 2500 }), 2500, 'cash', /already paid/],
+    [reg({ payment_method: 'waived' }), 2500, 'check', /already waived/],
+    [reg({ status: 'withdrawn' }), 2500, 'cash', /withdrawn/],
+    [reg(), null, 'cash', /no cost/],
+    [reg(), 2500, 'card', /cash or check/],
+  ]
+  for (const [r, fee, method, message] of refusals) {
+    const h = harness(r, fee)
+    const res = await h.actions.markRegistrationPaid(ENG003_R, method)
+    assert.equal(res.ok, false)
+    assert.match(res.error, message)
+    assert.deepEqual(h.writes(), [])
+  }
+  const bad = harness(reg())
+  assert.equal((await bad.actions.waiveRegistrationFee('not-a-uuid')).ok, false)
+  assert.deepEqual(bad.writes(), [])
+})
+
+test('CLW-ENG-003: spots count each wrestler once across the TrackWrestling list and paid site registrations', () => {
+  const entries = [{ athlete_id: 'k1' }, { athlete_id: 'k2' }, { athlete_id: null }]
+  const regs = [
+    { athlete_id: 'k1', status: 'registered', fee_cents: 2500, paid_cents: 2500, payment_method: 'card' }, // also on TrackWrestling
+    { athlete_id: 'k3', status: 'registered', fee_cents: null, paid_cents: 0, payment_method: null }, // due: not counted
+    { athlete_id: 'k4', status: 'confirmed', fee_cents: null, paid_cents: 0, payment_method: 'waived' },
+    { athlete_id: 'k5', status: 'withdrawn', fee_cents: 2500, paid_cents: 2500, payment_method: 'cash' },
+  ]
+  const filled = tSpotsLib.distinctRegisteredCount(entries, regs, 2500)
+  assert.equal(filled, 4) // k1, k2, k4 and the unmatched row
+  assert.equal(tSpotsLib.spotsLine(filled, 3), '4 of 3 spots filled (1 over)')
+  assert.equal(tSpotsLib.distinctRegisteredCount(entries, regs, null), 5, 'no tournament fee: the unlocked row is free')
+  // Both admin pages count with the tournament's entry fee, the same rule as the family roster.
+  for (const file of ['src/app/admin/tournaments/page.tsx', 'src/app/admin/tournaments/[id]/page.tsx']) {
+    const src = fs.readFileSync(path.join(__dirname, '..', file), 'utf8')
+    assert.match(src, /distinctRegisteredCount\(entries, \w+, t\.entry_fee_cents\)/, file)
+    assert.match(src, /spotsLine\(filled, /, file)
+  }
+})
+
+test('CLW-ENG-003: form helpers read sessions, cost, link and spots the way admins type them', () => {
+  const L = eng003AdminLib
+  assert.equal(L.toSessionTime('08:00'), '08:00')
+  assert.equal(L.toSessionTime('8:00 AM'), '08:00')
+  assert.equal(L.toSessionTime('12:30 pm'), '12:30')
+  assert.equal(L.toSessionTime('12:15 AM'), '00:15')
+  assert.equal(L.toSessionTime('17:45:00'), '17:45')
+  assert.equal(L.toSessionTime('noon'), '')
+  assert.equal(L.toSessionTime(null), '')
+  assert.equal(L.toSessionTime('13:00 PM'), '')
+  assert.equal(L.centsToDollarInput(2500), '25')
+  assert.equal(L.centsToDollarInput(2550), '25.50')
+  assert.equal(L.centsToDollarInput(null), '')
+  assert.deepEqual(plain(L.parseEntryFee(' ')), { ok: true, cents: null })
+  assert.deepEqual(plain(L.parseEntryFee('$1,000')), { ok: true, cents: 100000 })
+  assert.deepEqual(plain(L.parseEntryFee('1')), { ok: true, cents: 100 })
+  assert.equal(L.parseEntryFee('0').ok, false)
+  assert.deepEqual(plain(L.parseSpots('')), { ok: true, spots: null })
+  assert.deepEqual(plain(L.parseSpots(' 500 ')), { ok: true, spots: 500 })
+  assert.equal(L.parseSpots('0').ok, false)
+  assert.equal(L.parseSpots('-3').ok, false)
+  assert.deepEqual(plain(L.parseClubLink('')), { ok: true, url: null })
+  assert.deepEqual(plain(L.parseClubLink('https://example.com/club')), { ok: true, url: 'https://example.com/club' })
+  assert.equal(L.parseClubLink('https://example.com/' + 'x'.repeat(500)).ok, false)
+})
+
+test('CLW-ENG-003: roster payment labels and the spreadsheet include site registrations with a Source column', () => {
+  const L = eng003AdminLib
+  assert.equal(L.paymentLabel('paid', 'card'), 'Paid by card')
+  assert.equal(L.paymentLabel('paid', 'cash'), 'Paid by cash')
+  assert.equal(L.paymentLabel('paid', 'check'), 'Paid by check')
+  assert.equal(L.paymentLabel('waived', 'waived'), 'Waived')
+  assert.equal(L.paymentLabel('due', null), 'Payment due')
+  assert.equal(L.paymentLabel('free', null), 'Free')
+  const csv = L.combinedRosterCsv({ name: 'Classic, Winter', date: '2026-12-12' }, [
+    { source: 'trackwrestling', division: 'Boys 8u', weight: '52', wrestler: 'Axel Ray', externalName: 'Axel Ray (2nd)', paid: 'No' },
+    { source: 'site', division: null, weight: '60', wrestler: '=Evil Kid', externalName: null, paid: 'Payment due' },
+  ]).split('\n')
+  assert.equal(csv[0], 'Tournament,Date,Division,Weight,Wrestler,Name on TrackWrestling,Paid,Source')
+  assert.equal(csv[1], '"Classic, Winter",2026-12-12,Boys 8u,52,Axel Ray,Axel Ray (2nd),No,TrackWrestling')
+  assert.equal(csv[2], `"Classic, Winter",2026-12-12,,60,'=Evil Kid,,Payment due,Our site`)
+  // The roster page passes site rows to the print view and the spreadsheet.
+  const page = fs.readFileSync(path.join(__dirname, '..', 'src/app/admin/tournaments/[id]/page.tsx'), 'utf8')
+  assert.match(page, /source: 'site' as const/)
+  assert.match(page, /<RosterTools tournament=\{\{ name: t\.name, date: t\.date \}\} rows=\{rosterRows\} \/>/)
+  assert.match(page, /\{rosterRows\.map\(\(r, i\) =>/, 'print view lists both sources')
+  assert.match(page, /Open club registrations on TrackWrestling/)
+  assert.match(page, /href=\{clubUrl\}\s*target="_blank"\s*rel="noopener noreferrer"\s*className="[^"]*min-h-11/, 'club link opens a new tab with a 44px tap target')
+})
+
+test('CLW-ENG-003: the admin tournament files never fetch TrackWrestling and have no text-xs', () => {
+  const dir = path.join(__dirname, '..', 'src', 'app', 'admin', 'tournaments')
+  const files = ['TournamentDialog.tsx', 'actions.ts', 'page.tsx', 'DeleteTournamentButton.tsx', 'tournament-admin.ts', '[id]/page.tsx', '[id]/RosterTools.tsx', '[id]/SitePaymentActions.tsx']
+  for (const f of files) {
+    const src = fs.readFileSync(path.join(dir, f), 'utf8')
+    assert.doesNotMatch(src, /\bfetch\s*\(/, `${f}: no fetch (the site never fetches TrackWrestling)`)
+    assert.doesNotMatch(src, /\btext-xs\b/, `${f}: no text-xs`)
+  }
+  // The dialog writes the admin-only fields only through the server action.
+  const dialog = fs.readFileSync(path.join(dir, 'TournamentDialog.tsx'), 'utf8')
+  assert.doesNotMatch(dialog, /\.from\('(tournaments|tournament_admin_details|tournament_sessions)'\)/)
+  assert.match(dialog, /placeholder="e\.g\. Tots, Bantam, Intermediate"/)
+  assert.match(dialog, /Add a session/)
+})
+
+// CLW-QA-002 revision: delete guard for open or paid card checkouts, Clear payment, copy fixes.
+test('CLW-ENG-003: delete refuses while a family is paying by card (pending under 1 hour) or has paid', async () => {
+  const hoursAgo = (h) => new Date(Date.now() - h * 3600 * 1000).toISOString()
+  const run = async (checkouts, opts = {}) => {
+    const h = eng003Harness({ ...opts, tables: { tournaments: [{ id: ENG003_T }], tournament_registrations: [], tournament_checkouts: checkouts } })
+    return { h, res: await h.actions.deleteTournament(ENG003_T) }
+  }
+  const co = (status, created_at, tournament_id = ENG003_T) => ({ id: `c-${status}-${created_at}`, tournament_id, status, created_at })
+
+  // Sessions expire after 31 minutes (CLW-ENG-004), so a pending checkout blocks for 1 hour.
+  for (const rows of [[co('pending', hoursAgo(0.1))], [co('pending', hoursAgo(0.9))], [co('paid', hoursAgo(100))], [co('partially_refunded', hoursAgo(100))]]) {
+    const { h, res } = await run(rows)
+    assert.equal(res.ok, false, rows[0].status)
+    assert.match(res.error, /paying for this tournament right now, or has paid\. Set its status to Cancelled instead/)
+    assert.equal(h.data.tournaments.length, 1, 'not deleted')
+    const read = h.log.find((c) => c.table === 'tournament_checkouts')
+    assert.deepEqual(plain(read.filters), [['eq', 'tournament_id', ENG003_T], ['in', 'status', ['pending', 'paid', 'partially_refunded']]])
+  }
+  // An expired pending checkout, a refunded one, or another tournament's: the delete goes ahead.
+  for (const rows of [[co('pending', hoursAgo(1.1))], [co('pending', hoursAgo(25))], [co('refunded', hoursAgo(0.1))], [co('paid', hoursAgo(0.1), 'other')]]) {
+    const { h, res } = await run(rows)
+    assert.equal(res.ok, true, JSON.stringify(rows))
+    assert.equal(h.data.tournaments.length, 0)
+  }
+  // The checkout read fails: nothing is deleted.
+  const { h, res } = await run([], { failTable: 'tournament_checkouts' })
+  assert.equal(res.ok, false)
+  assert.match(res.error, /Could not check/)
+  assert.equal(h.data.tournaments.length, 1)
+})
+
+test('CLW-ENG-003: Clear payment undoes a cash, check or waived mark, never a card payment, and leaves a note', async () => {
+  const reg = (extra = {}) => ({ id: ENG003_R, tournament_id: ENG003_T, status: 'registered', fee_cents: 2500, paid_cents: 2500, payment_method: 'cash', payment_note: null, ...extra })
+  const harness = (r, checkouts = [], opts = {}) => eng003Harness({ ...opts, tables: { tournament_registrations: [r], tournament_checkouts: checkouts } })
+
+  const cash = harness(reg())
+  assert.equal((await cash.actions.clearManualPayment(ENG003_R)).ok, true)
+  const u = cash.log.find((c) => c.op === 'update')
+  assert.equal(u.table, 'tournament_registrations')
+  assert.deepEqual(Object.keys(u.values).sort(), ['paid_at', 'paid_cents', 'payment_method', 'payment_note'], 'fee_cents stays locked')
+  assert.equal(u.values.paid_cents, 0)
+  assert.equal(u.values.paid_at, null)
+  assert.equal(u.values.payment_method, null)
+  assert.match(u.values.payment_note, /^Cleared cash mark by Coach Test on \d{4}-\d\d-\d\d\.$/)
+  assert.deepEqual(u.filters, [['eq', 'id', ENG003_R], ['eq', 'paid_cents', 2500], ['eq', 'payment_method', 'cash']], 'only if unchanged since read')
+  const cover = cash.log.find((c) => c.table === 'tournament_checkouts')
+  assert.deepEqual(plain(cover.filters), [['cs', 'registration_ids', [ENG003_R]], ['in', 'status', ['paid', 'partially_refunded']]])
+
+  // A waived mark clears too; an older note is kept after the trace, within 200 characters.
+  const waived = harness(reg({ paid_cents: 0, payment_method: 'waived', payment_note: 'x'.repeat(250) }))
+  assert.equal((await waived.actions.clearManualPayment(ENG003_R)).ok, true)
+  const note = waived.log.find((c) => c.op === 'update').values.payment_note
+  assert.match(note, /^Cleared waived mark by Coach Test on /)
+  assert.equal(note.length, 200)
+
+  const refusals = [
+    [reg({ payment_method: 'card' }), [], /refund in Stripe/],
+    [reg({ payment_method: null, paid_cents: 0 }), [], /no cash, check or waived mark/],
+    [reg({ payment_method: 'check' }), [{ id: 'c1', registration_ids: [ENG003_R], status: 'paid' }], /card payment also covers this entry/],
+    [reg(), [{ id: 'c1', registration_ids: ['x', ENG003_R], status: 'partially_refunded' }], /card payment also covers this entry/],
+  ]
+  for (const [r, checkouts, message] of refusals) {
+    const h = harness(r, checkouts)
+    const res = await h.actions.clearManualPayment(ENG003_R)
+    assert.equal(res.ok, false)
+    assert.match(res.error, message)
+    assert.deepEqual(h.writes(), [])
+  }
+  // A refunded checkout does not block; a failed checkout read does.
+  assert.equal((await harness(reg(), [{ id: 'c1', registration_ids: [ENG003_R], status: 'refunded' }]).actions.clearManualPayment(ENG003_R)).ok, true)
+  const broken = harness(reg(), [], { failTable: 'tournament_checkouts' })
+  assert.equal((await broken.actions.clearManualPayment(ENG003_R)).ok, false)
+  assert.deepEqual(broken.writes(), [])
+  assert.equal((await harness(reg()).actions.clearManualPayment('not-a-uuid')).ok, false)
+
+  // The roster offers Clear payment only for manual marks, with a text-base confirm.
+  const page = fs.readFileSync(path.join(__dirname, '..', 'src/app/admin/tournaments/[id]/page.tsx'), 'utf8')
+  assert.match(page, /manualMark: r\.payment_method === 'cash' \|\| r\.payment_method === 'check' \|\| r\.payment_method === 'waived'/)
+  const ui = fs.readFileSync(path.join(__dirname, '..', 'src/app/admin/tournaments/[id]/SitePaymentActions.tsx'), 'utf8')
+  assert.equal((ui.match(/<AlertDialogDescription className="text-base">/g) || []).length, 2)
+})
+
+test('CLW-ENG-003: delete dialog copy is text-base and the competition level help has no em dash', () => {
+  const dir = path.join(__dirname, '..', 'src', 'app', 'admin', 'tournaments')
+  assert.match(fs.readFileSync(path.join(dir, 'DeleteTournamentButton.tsx'), 'utf8'), /<AlertDialogDescription className="text-base">/)
+  const dialog = fs.readFileSync(path.join(dir, 'TournamentDialog.tsx'), 'utf8')
+  assert.match(dialog, /A difficulty grade so parents can judge readiness\. Every eligible group can still sign up\./)
+  for (const f of ['TournamentDialog.tsx', 'DeleteTournamentButton.tsx', 'actions.ts', 'tournament-admin.ts', '[id]/SitePaymentActions.tsx']) {
+    assert.doesNotMatch(fs.readFileSync(path.join(dir, f), 'utf8'), /[\u2013\u2014]/, `${f}: no em or en dash`)
+  }
+})
+
+// ---- CLW-ENG-006: Parent "Tournament rosters" page, own kids only (B7) ----
+const ENG006_PAGE = 'src/app/(portal)/tournament-rosters/page.tsx'
+const eng006Source = (relative) => fs.readFileSync(path.join(__dirname, '..', relative), 'utf8')
+function eng006Render(rpcResult) {
+  const { renderToStaticMarkup } = require('react-dom/server')
+  const React = require('react')
+  const calls = { rpc: [], from: [] }
+  // Made-up rows only. A stranger's TrackWrestling name sits in a fake table the page must never read.
+  const strangerEntries = [{ tournament_id: 't-1', athlete_id: null, external_name: 'Stranger Kid Outsider' }]
+  const supabase = {
+    rpc: async (name, args) => { calls.rpc.push([name, args]); return rpcResult },
+    from: (table) => { calls.from.push(table); return { select: async () => ({ data: table === 'tournament_entries' ? strangerEntries : [], error: null }) } },
+  }
+  const page = load(ENG006_PAGE, {
+    'next/link': { __esModule: true, default: ({ href, children, ...rest }) => React.createElement('a', { href, ...rest }, children) },
+    '@/lib/supabase/server': { createServerSupabase: async () => supabase },
+    '@/lib/chicago-time': {
+      chicagoDateString: () => '2026-11-20',
+      chicagoDatePlusDays: (days) => new Date(Date.parse('2026-11-20T12:00:00Z') + days * 86400000).toISOString().slice(0, 10),
+    },
+    '@/lib/maps': load('src/lib/maps.ts', {}),
+  })
+  return { calls, page, html: async () => renderToStaticMarkup(await page.default()) }
+}
+const eng006Row = (over) => ({
+  tournament_id: 't-1', tournament_name: 'Example Winter Open', date: '2026-11-21', location: 'Example High School', city: 'Huntley', state: 'IL', street_address: null,
+  athlete_id: 'kid-a', athlete_first_name: 'Avery', athlete_last_name: 'Example', source: 'site', division: 'Boys 10U', weight: '67', registration_state: 'due', ...over,
+})
+
+test('CLW-ENG-006: the rosters page shows only the rows the roster function returns, grouped Upcoming and Recent', async () => {
+  const rows = [
+    eng006Row({}),
+    // The same wrestler also matched from a TrackWrestling paste: shown once, with both labels.
+    eng006Row({ source: 'trackwrestling', division: null, weight: null, registration_state: null }),
+    eng006Row({ athlete_id: 'kid-b', athlete_first_name: 'Blake', source: 'trackwrestling', division: null, weight: null, registration_state: null }),
+    eng006Row({ tournament_id: 't-2', tournament_name: 'Example Fall Classic', date: '2026-11-10', location: 'North Gym', street_address: '12 Example Ave', athlete_id: 'kid-b', athlete_first_name: 'Blake', division: 'Girls 8U', weight: '52', registration_state: 'paid' }),
+    // Older than 30 days (the database's day can run ahead of Chicago's): dropped.
+    eng006Row({ tournament_id: 't-3', tournament_name: 'Example Old Duals', date: '2026-10-01' }),
+  ]
+  const r = eng006Render({ data: rows, error: null })
+  const html = await r.html()
+  assert.deepEqual(r.calls.rpc, [['family_tournament_roster', undefined]])
+  assert.deepEqual(r.calls.from, [], 'no direct table reads')
+  assert.equal((html.match(/Avery Example/g) || []).length, 1, 'one line per wrestler per tournament')
+  assert.equal((html.match(/Blake Example/g) || []).length, 2)
+  assert.doesNotMatch(html, /Stranger Kid Outsider/)
+  assert.doesNotMatch(html, /Example Old Duals/)
+  const upcoming = html.indexOf('>Upcoming<'), recent = html.indexOf('>Recent<')
+  assert.ok(upcoming > -1 && recent > upcoming, 'Upcoming then Recent')
+  assert.ok(html.indexOf('Example Winter Open') > upcoming && html.indexOf('Example Winter Open') < recent)
+  assert.ok(html.indexOf('Example Fall Classic') > recent)
+  assert.match(html, /Registered on the club site/)
+  assert.match(html, /Registered on TrackWrestling/)
+  // Division and weight come only from the family's own site registration (A7).
+  assert.match(html, /Division: Boys 10U · Weight: 67/)
+  assert.match(html, /Division: Girls 8U · Weight: 52/)
+  assert.equal((html.match(/Division:/g) || []).length, 2)
+  assert.match(html, /Payment due/)
+  assert.match(html, />Paid</)
+  // The venue is a Google Maps link; the street wins when there is one.
+  assert.ok(html.includes('href="https://www.google.com/maps/search/?api=1&amp;query=Example%20High%20School%2C%20Huntley%2C%20IL"'))
+  assert.ok(html.includes('query=12%20Example%20Ave%2C%20Huntley%2C%20IL'))
+  assert.match(html, /target="_blank" rel="noopener noreferrer"/)
+})
+
+test('CLW-ENG-006: no rows (including an admin in parent view) or a missing roster function shows the plain empty state', async () => {
+  for (const result of [
+    { data: [], error: null },
+    { data: null, error: { code: 'PGRST202', message: 'Could not find the function public.family_tournament_roster' } },
+    { data: null, error: { code: '42883', message: 'function does not exist' } },
+  ]) {
+    const html = await eng006Render(result).html()
+    assert.match(html, /No tournaments yet/, JSON.stringify(result.error))
+    assert.match(html, /href="\/tournaments"[^>]*>See tournaments</)
+    assert.doesNotMatch(html, /Upcoming|couldn/)
+    assert.doesNotMatch(html, /Could not find|does not exist/)
+  }
+  const failed = await eng006Render({ data: null, error: { code: '57014', message: 'canceling statement due to statement timeout' } }).html()
+  assert.match(failed, /We couldn&#x27;t load your tournament rosters just now/)
+  assert.doesNotMatch(failed, /statement timeout|No tournaments yet/)
+})
+
+test('CLW-ENG-006: the page reads only through the roster function, never the roster tables or the admin client', () => {
+  const src = eng006Source(ENG006_PAGE)
+  assert.match(src, /supabase\.rpc\('family_tournament_roster'\)/)
+  assert.match(src, /from '@\/lib\/supabase\/server'/)
+  assert.doesNotMatch(src, /tournament_entries|tournament_registrations|\.from\(/)
+  assert.doesNotMatch(src, /createAdminSupabase|@\/lib\/supabase\/admin|SERVICE_ROLE/)
+  assert.doesNotMatch(src, /external_name/)
+  assert.doesNotMatch(src, /\btext-xs\b/)
+  assert.doesNotMatch(src, /\u2014|\u2013/, 'no em or en dashes')
+})
+
+test('CLW-ENG-006: middleware sends signed-out visitors to log in and lets parents and full admins in', async () => {
+  const next = require('next/server')
+  const visit = async (session, url) => {
+    const mod = load('src/middleware.ts', {
+      'next/server': next,
+      '@/lib/auth/session': { getSessionRole: async () => session, homeForRole: (r) => (r === 'admin' ? '/admin' : '/dashboard') },
+      '@/lib/supabase/middleware': { getSupabaseAndResponse: async () => ({ supabase: {}, response: next.NextResponse.next() }) },
+      '@/lib/auth/incident-policy': incidentPolicy,
+      '@/lib/auth/incidents': { linkAttemptId: async () => null, reportParentAuthFailure: async () => {} },
+    })
+    const res = await mod.middleware(new next.NextRequest('https://www.clwizards.com' + url), { waitUntil: () => {} })
+    const to = res.headers.get('location')
+    return { mod, to: to ? new URL(to) : null }
+  }
+  const signedOut = await visit({ user: null, role: null, onboardingCompleted: false, sessionError: null }, '/tournament-rosters')
+  assert.equal(signedOut.to.pathname, '/login')
+  assert.equal(signedOut.to.searchParams.get('redirectTo'), '/tournament-rosters')
+  assert.ok(signedOut.mod.config.matcher.includes('/tournament-rosters/:path*'))
+  const as = (role, adminScope, onboardingCompleted = true) => ({ user: { id: 'u' }, role, adminScope, onboardingCompleted, sessionError: null })
+  assert.equal((await visit(as('parent', null), '/tournament-rosters')).to, null)
+  assert.equal((await visit(as('admin', 'full'), '/tournament-rosters')).to, null)
+  assert.equal((await visit(as('admin', 'limited'), '/tournament-rosters')).to.pathname, '/admin')
+  assert.equal((await visit(as('staff', null), '/tournament-rosters')).to.pathname, '/dashboard')
+  assert.equal((await visit(as('parent', null, false), '/tournament-rosters')).to.pathname, '/onboarding')
+})
+
+test('CLW-ENG-006: desktop nav, dashboard tile, robots and the layout sweep list the page; the mobile tab bar is unchanged', () => {
+  assert.match(eng006Source('src/app/(portal)/layout.tsx'), /href: '\/tournament-rosters', label: 'Tournament rosters'/)
+  assert.match(eng006Source('src/app/(portal)/dashboard/page.tsx'), /href: '\/tournament-rosters', label: 'Tournament rosters'/)
+  const tabs = /const TABS = \[([\s\S]*?)\n\]/.exec(eng006Source('src/components/layout/MobileTabBar.tsx'))[1]
+  assert.deepEqual([...tabs.matchAll(/href: '([^']+)'/g)].map((m) => m[1]), ['/dashboard', '/athletes', '/tournaments', '/dues', '/profile'])
+  const robots = load('src/app/robots.ts', { '@/config/org.config': { ORG: { domain: 'example.com' } } })
+  assert.ok(robots.default().rules.disallow.includes('/tournament-rosters'))
+  const sweep = eng006Source('.claude/skills/wizards-request/qa/layout-sweep.cjs')
+  assert.match(/const PARENT = \[[^\n]*\]/.exec(sweep)[0], /'\/tournament-rosters'/)
+  const mock = eng006Source('.claude/skills/wizards-request/qa/mock.cjs')
+  new vm.Script(mock) // parses
+  const blocks = mock.match(/\/\/ ---- CLW-ENG-006[\s\S]*?\/\/ ---- end CLW-ENG-006 ----/g) || []
+  assert.equal(blocks.length, 2, 'rows block and rpc handler block')
+  assert.match(blocks[1], /fn === 'family_tournament_roster'/)
+  assert.doesNotMatch(blocks.join('\n'), /@[a-z0-9-]+\.[a-z]/i, 'no email addresses')
+})
+
+// ---- CLW-ENG-007: parent register and pay screen, and withdraw rules ----
+// Made-up people only. The Supabase stand-in models the row-level security the
+// actions run under: athletes are visible only to someone who guards them,
+// a registration write for an unguarded wrestler is refused (42501), and an
+// update the database will not allow matches 0 rows.
+const e7React = require('react')
+const { renderToStaticMarkup: e7Render } = require('react-dom/server')
+const E7 = {
+  T_FREE: 'f7000000-0000-4000-a000-000000000001',
+  T_PAID: 'f7000000-0000-4000-a000-000000000002',
+  OWNER: 'f7000000-0000-4000-b000-000000000001',
+  LIMITED: 'f7000000-0000-4000-b000-000000000002',
+  WHOLE: 'f7000000-0000-4000-b000-000000000003',
+  STRANGER: 'f7000000-0000-4000-b000-000000000004',
+  K1: 'f7000000-0000-4000-c000-000000000001',
+  K2: 'f7000000-0000-4000-c000-000000000002',
+  R1: 'f7000000-0000-4000-d000-000000000001',
+  R2: 'f7000000-0000-4000-d000-000000000002',
+}
+const e7MoneyLib = load('src/lib/format/money.ts', {})
+
+function e7Db(userId, seed = {}, fail = {}) {
+  const tables = {
+    tournaments: [
+      { id: E7.T_FREE, status: 'open', external_registration_url: null, entry_fee_cents: null },
+      { id: E7.T_PAID, status: 'open', external_registration_url: null, entry_fee_cents: 4000 },
+    ],
+    athletes: [
+      { id: E7.K1, parent_id: E7.OWNER },
+      { id: E7.K2, parent_id: E7.OWNER },
+    ],
+    // One co-parent linked to K1 only (club-locked), one to the whole family.
+    family_guardians: [
+      { owner_id: E7.OWNER, guardian_id: E7.LIMITED, athlete_ids: [E7.K1], locked: true },
+      { owner_id: E7.OWNER, guardian_id: E7.WHOLE, athlete_ids: null, locked: false },
+    ],
+    tournament_registrations: [],
+    ...seed,
+  }
+  const guards = (athleteId) => {
+    const a = tables.athletes.find((x) => x.id === athleteId)
+    if (!a) return false
+    return a.parent_id === userId || tables.family_guardians.some((g) => g.owner_id === a.parent_id && g.guardian_id === userId && (g.athlete_ids === null || g.athlete_ids.includes(a.id)))
+  }
+  const writes = []
+  const from = (table) => {
+    const filters = []
+    let op = 'select', values = null, conflict = null
+    const list = () => (tables[table] ??= [])
+    const matches = (r) => filters.every(([o, k, v]) => (o === 'eq' ? r[k] === v : o === 'in' ? v.includes(r[k]) : o === 'is' ? (r[k] ?? null) === v : true))
+    const visible = (r) => (table === 'athletes' || table === 'tournament_registrations' ? guards(r.athlete_id ?? r.id) : table === 'family_guardians' ? r.guardian_id === userId : true)
+    const run = () => {
+      if (op === 'upsert') {
+        writes.push({ table, op, values: plain(values), conflict })
+        if (fail.upsert) return { data: null, error: fail.upsert }
+        if (values.some((v) => !guards(v.athlete_id))) return { data: null, error: { code: '42501', message: 'new row violates row-level security policy for table "tournament_registrations"' } }
+        if (fail.upsertZero) return { data: [], error: null }
+        const keys = conflict.split(',')
+        const out = values.map((v) => {
+          const row = list().find((r) => keys.every((k) => r[k] === v[k]))
+          if (row) return Object.assign(row, v)
+          const added = { id: `reg-${list().length + 1}`, paid_cents: 0, payment_method: null, fee_cents: null, ...v }
+          list().push(added)
+          return added
+        })
+        return { data: out.map((r) => ({ id: r.id })), error: null }
+      }
+      if (op === 'update') {
+        writes.push({ table, op, values: plain(values), filters: plain(filters) })
+        if (fail.update) return { data: null, error: fail.update }
+        const hit = fail.updateZero ? [] : list().filter((r) => visible(r) && matches(r))
+        hit.forEach((r) => Object.assign(r, values))
+        return { data: hit.map((r) => ({ id: r.id })), error: null }
+      }
+      if (fail.read === table) return { data: null, error: { message: 'read failed' } }
+      return { data: list().filter((r) => visible(r) && matches(r)).map((r) => ({ ...r })), error: null }
+    }
+    const one = async () => { const r = run(); return { data: r.data?.[0] ?? null, error: r.error } }
+    const b = {
+      select: () => b,
+      upsert: (v, o) => { op = 'upsert'; values = v; conflict = o.onConflict; return b },
+      update: (v) => { op = 'update'; values = v; return b },
+      eq: (k, v) => { filters.push(['eq', k, v]); return b },
+      in: (k, v) => { filters.push(['in', k, v]); return b },
+      is: (k, v) => { filters.push(['is', k, v]); return b },
+      order: () => b, maybeSingle: one, single: one,
+      then: (resolve, reject) => Promise.resolve(run()).then(resolve, reject),
+    }
+    return b
+  }
+  return { tables, writes, client: { auth: { getUser: async () => ({ data: { user: userId ? { id: userId } : null } }) }, from } }
+}
+
+function e7Actions(db) {
+  const server = { createServerSupabase: async () => db.client }
+  const checkoutLib = load('src/lib/payments/tournament-checkout.ts', {
+    '@/lib/supabase/server': server,
+    '@/lib/supabase/admin': { createAdminSupabase: () => { throw new Error('the portal actions never use the service role') } },
+    '@/config/org.config': { ORG: { shortName: 'CLW' } },
+    '@/lib/tournament-registration': tRegLib,
+  })
+  const revalidated = []
+  const mod = load('src/app/(portal)/tournaments/actions.ts', {
+    'next/cache': { revalidatePath: (p) => revalidated.push(p) },
+    '@/lib/supabase/server': server,
+    '@/lib/payments/tournament-checkout': checkoutLib,
+  })
+  return { ...mod, revalidated, checkoutLib }
+}
+
+const e7Stub = (tag) => ({ children, className, ...rest }) => e7React.createElement(tag, { className, 'data-variant': rest.variant }, children)
+function e7Form(search = '') {
+  const calls = []
+  const mod = load('src/app/(portal)/tournaments/RegisterAndPayForm.tsx', {
+    'next/navigation': { useRouter: () => ({ refresh: () => {} }), useSearchParams: () => new URLSearchParams(search) },
+    'lucide-react': { CheckCircle2: () => null, Info: () => null },
+    './actions': { withdrawRegistration: async () => ({ ok: true }) },
+    '@/components/ui/button': { Button: e7Stub('button') },
+    '@/components/ui/badge': { Badge: e7Stub('span') },
+    '@/components/ui/input': { Input: (p) => e7React.createElement('input', { id: p.id, value: p.value, readOnly: true, className: p.className }) },
+    '@/lib/checkout-client': { startCheckout: async (body) => { calls.push(body); return { ok: false, message: 'stub' } } },
+    '@/lib/format/money': e7MoneyLib,
+    '@/lib/age-division': ageDivision,
+    '@/lib/tournament-registration': tRegLib,
+  })
+  return { mod, calls }
+}
+
+test('CLW-ENG-007: owners and linked co-parents register a guarded wrestler on a free tournament; anyone else is refused', async () => {
+  // Owner: today's free sign-up, exactly as before.
+  let db = e7Db(E7.OWNER)
+  let actions = e7Actions(db)
+  assert.deepEqual(plain(await actions.registerAthletes({ tournamentId: E7.T_FREE, athleteIds: [E7.K1, E7.K2] })), { ok: true })
+  assert.deepEqual(db.writes[0].values.map((v) => v.status), ['registered', 'registered'])
+  assert.ok(db.writes[0].values.every((v) => v.parent_id === E7.OWNER && Object.keys(v).sort().join() === 'athlete_id,parent_id,status,tournament_id'))
+  assert.equal(db.writes[0].conflict, 'tournament_id,athlete_id')
+  assert.deepEqual(actions.revalidated, ['/tournaments'])
+
+  // Co-parent on a limited (and locked) link: the covered wrestler works...
+  db = e7Db(E7.LIMITED)
+  actions = e7Actions(db)
+  assert.deepEqual(plain(await actions.registerAthletes({ tournamentId: E7.T_FREE, athleteIds: [E7.K1] })), { ok: true })
+  assert.equal(db.tables.tournament_registrations[0].athlete_id, E7.K1)
+  // ...the uncovered one is refused before any write.
+  db = e7Db(E7.LIMITED)
+  actions = e7Actions(db)
+  const refused = plain(await actions.registerAthletes({ tournamentId: E7.T_FREE, athleteIds: [E7.K2] }))
+  assert.deepEqual(refused, { ok: false, error: 'One or more athletes are not on your roster.' })
+  assert.equal(db.writes.length, 0)
+
+  // A whole-family co-parent covers every wrestler (this used to fail: the action only accepted parent_id = me).
+  db = e7Db(E7.WHOLE)
+  actions = e7Actions(db)
+  assert.deepEqual(plain(await actions.registerAthletes({ tournamentId: E7.T_FREE, athleteIds: [E7.K1, E7.K2] })), { ok: true })
+
+  // A stranger is refused.
+  db = e7Db(E7.STRANGER)
+  assert.equal((await e7Actions(db).registerAthletes({ tournamentId: E7.T_FREE, athleteIds: [E7.K1] })).ok, false)
+  assert.equal(db.writes.length, 0)
+
+  // A tournament with a cost goes through Register and pay, never the free action.
+  db = e7Db(E7.OWNER)
+  const priced = plain(await e7Actions(db).registerAthletes({ tournamentId: E7.T_PAID, athleteIds: [E7.K1] }))
+  assert.equal(priced.ok, false)
+  assert.match(priced.error, /takes payment/)
+  assert.equal(db.writes.length, 0)
+})
+
+test('CLW-ENG-007: register handles a permission-denied write and a write that saved nothing', async () => {
+  let db = e7Db(E7.OWNER, {}, { upsert: { code: '42501', message: 'new row violates row-level security policy' } })
+  assert.deepEqual(plain(await e7Actions(db).registerAthletes({ tournamentId: E7.T_FREE, athleteIds: [E7.K1] })), { ok: false, error: 'One or more athletes are not on your roster.' })
+  db = e7Db(E7.OWNER, {}, { upsertZero: true })
+  const zero = plain(await e7Actions(db).registerAthletes({ tournamentId: E7.T_FREE, athleteIds: [E7.K1] }))
+  assert.equal(zero.ok, false)
+  assert.match(zero.error, /not saved/)
+  db = e7Db(E7.OWNER, {}, { read: 'athletes' })
+  assert.match((await e7Actions(db).registerAthletes({ tournamentId: E7.T_FREE, athleteIds: [E7.K1] })).error, /Could not check/)
+  assert.equal(db.writes.length, 0)
+})
+
+test('CLW-ENG-007: a paid entry cannot be withdrawn from the portal; an unpaid one can, by the owner or a linked co-parent', async () => {
+  const reg = (id, athlete, over = {}) => ({ id, tournament_id: E7.T_PAID, athlete_id: athlete, parent_id: E7.OWNER, status: 'registered', fee_cents: 4000, paid_cents: 0, payment_method: null, ...over })
+  const A5 = 'Paid entries are withdrawn by the club. Contact the club to change this.'
+  for (const paid of [{ paid_cents: 4000, payment_method: 'card' }, { paid_cents: 4000, payment_method: 'cash' }, { paid_cents: 0, payment_method: 'waived' }, { paid_cents: 1000, payment_method: null }]) {
+    const db = e7Db(E7.OWNER, { tournament_registrations: [reg(E7.R1, E7.K1, paid)] })
+    assert.deepEqual(plain(await e7Actions(db).withdrawRegistration({ registrationId: E7.R1 })), { ok: false, error: A5 }, JSON.stringify(paid))
+    assert.equal(db.writes.length, 0)
+    assert.equal(db.tables.tournament_registrations[0].status, 'registered')
+  }
+  // The refusal uses ENG-004's entryIsLocked, not a copy of it.
+  assert.match(fs.readFileSync(path.join(__dirname, '..', 'src/app/(portal)/tournaments/actions.ts'), 'utf8'), /import \{ entryIsLocked \} from '@\/lib\/payments\/tournament-checkout'/)
+
+  // A co-parent on a limited link withdraws the covered wrestler's unpaid entry
+  // even though the owner created it (the old parent_id filter matched nothing).
+  let db = e7Db(E7.LIMITED, { tournament_registrations: [reg(E7.R1, E7.K1), reg(E7.R2, E7.K2)] })
+  let actions = e7Actions(db)
+  assert.deepEqual(plain(await actions.withdrawRegistration({ registrationId: E7.R1 })), { ok: true })
+  assert.equal(db.tables.tournament_registrations[0].status, 'withdrawn')
+  // The update only matches a row still unpaid, so a payment landing meanwhile is never undone.
+  assert.deepEqual(db.writes[0].filters, [['eq', 'id', E7.R1], ['eq', 'paid_cents', 0], ['is', 'payment_method', null]])
+  assert.ok(!db.writes[0].filters.some(([, k]) => k === 'parent_id'))
+  // The uncovered wrestler's entry is not even visible to them.
+  assert.deepEqual(plain(await actions.withdrawRegistration({ registrationId: E7.R2 })), { ok: false, error: 'Registration not found.' })
+  assert.equal(db.tables.tournament_registrations[1].status, 'registered')
+
+  // 0 rows changed (the database refused quietly, or it became paid) and a permission error both read plainly.
+  db = e7Db(E7.OWNER, { tournament_registrations: [reg(E7.R1, E7.K1)] }, { updateZero: true })
+  assert.match((await e7Actions(db).withdrawRegistration({ registrationId: E7.R1 })).error, /could not be withdrawn/)
+  db = e7Db(E7.OWNER, { tournament_registrations: [reg(E7.R1, E7.K1)] }, { update: { code: '42501', message: 'permission denied for table tournament_registrations' } })
+  assert.deepEqual(plain(await e7Actions(db).withdrawRegistration({ registrationId: E7.R1 })), { ok: false, error: 'One or more athletes are not on your roster.' })
+  db = e7Db(null)
+  assert.deepEqual(plain(await e7Actions(db).withdrawRegistration({ registrationId: E7.R1 })), { ok: false, error: 'Not signed in' })
+})
+
+test('CLW-ENG-007: the checkout request carries no amount, and the total is the fee times the wrestlers picked', () => {
+  const { mod } = e7Form()
+  const body = plain(mod.buildCheckoutBody(E7.T_PAID, [
+    { athleteId: E7.K1, draft: { weight: ' 62 lbs ', division: ' Bantam ', grade: '3rd' } },
+    { athleteId: E7.K2, draft: { weight: '48.5', division: 'Tot', grade: ' ' } },
+  ]))
+  assert.deepEqual(Object.keys(body).sort(), ['entries', 'flow', 'returnPath', 'tournamentId'])
+  assert.deepEqual(body, {
+    flow: 'tournament', tournamentId: E7.T_PAID, returnPath: '/tournaments',
+    entries: [{ athleteId: E7.K1, weight: '62', division: 'Bantam', grade: '3rd' }, { athleteId: E7.K2, weight: '48.5', division: 'Tot' }],
+  })
+  assert.doesNotMatch(JSON.stringify(body), /amount|cents|price|total/i)
+  // The form sends exactly that body and nothing else.
+  const src = fs.readFileSync(path.join(__dirname, '..', 'src/app/(portal)/tournaments/RegisterAndPayForm.tsx'), 'utf8')
+  assert.match(src, /startCheckout\(\s*buildCheckoutBody\(/)
+  assert.equal((src.match(/startCheckout\(/g) || []).length, 1)
+
+  // Total and button text come from ENG-002's checkoutTotal and the database fee.
+  for (const n of [1, 2, 3, 10]) assert.equal(mod.selectionTotal(4000, n), 4000 * n)
+  assert.equal(mod.selectionTotal(4000, 0), null)
+  assert.equal(mod.selectionTotal(4000, 11), null, 'over the per-checkout limit')
+  assert.equal(mod.payButtonLabel(4000, 2), 'Register and pay $80.00')
+  assert.equal(mod.payButtonLabel(2550, 3), 'Register and pay $76.50')
+  assert.equal(mod.payButtonLabel(4000, 0), 'Register and pay')
+
+  // Weight is required and checked with parseWeight; division is required.
+  assert.equal(mod.draftProblem('Kid', { weight: '62', division: 'Bantam', grade: '' }), null)
+  assert.match(mod.draftProblem('Kid', { weight: '', division: 'Bantam', grade: '' }), /Kid's weight/)
+  assert.match(mod.draftProblem('Kid', { weight: '400', division: 'Bantam', grade: '' }), /weight/)
+  assert.match(mod.draftProblem('Kid', { weight: '62', division: '  ', grade: '' }), /division/)
+})
+
+test('CLW-ENG-007: division starts from the age division and grade from the season enrollment, unless the entry already has them', () => {
+  const { mod } = e7Form()
+  const kid = { id: E7.K1, name: 'Kid One', dateOfBirth: '2018-01-08', ageDivision: null, grade: '3rd' }
+  assert.deepEqual(plain(mod.defaultDraft(kid, undefined)), { weight: '', division: 'Bantam', grade: '3rd' })
+  assert.deepEqual(plain(mod.defaultDraft({ ...kid, ageDivision: 'novice' }, undefined)), { weight: '', division: 'Novice', grade: '3rd' })
+  assert.deepEqual(plain(mod.defaultDraft({ ...kid, dateOfBirth: null, grade: null }, undefined)), { weight: '', division: '', grade: '' })
+  // Pay now on an unpaid entry starts from what the family entered before.
+  assert.deepEqual(plain(mod.defaultDraft(kid, { id: E7.R1, status: 'registered', weight: '61', division: 'Boys 8u', grade: '2nd' })), { weight: '61', division: 'Boys 8u', grade: '2nd' })
+})
+
+test('CLW-ENG-007: each wrestler shows Paid, Waived, Payment due with Pay now, Registered (free) or Withdrawn, and the page lock matches the server lock', () => {
+  const { mod } = e7Form()
+  const kids = ['Ann', 'Ben', 'Cal', 'Dee', 'Eve', 'Flo'].map((n, i) => ({ id: `k${i}`, name: `${n} Example`, dateOfBirth: '2017-05-05', ageDivision: null, grade: null }))
+  const regs = {
+    k0: { id: 'r0', status: 'registered', feeCents: 4000, paidCents: 4000, paymentMethod: 'card' },
+    k1: { id: 'r1', status: 'confirmed', feeCents: null, paidCents: 0, paymentMethod: 'waived' },
+    k2: { id: 'r2', status: 'registered', feeCents: null, paidCents: 0, paymentMethod: null, weight: '70' },
+    k3: { id: 'r3', status: 'registered', feeCents: 0, paidCents: 0, paymentMethod: null },
+    k4: { id: 'r4', status: 'withdrawn', feeCents: 4000, paidCents: 0, paymentMethod: null },
+  }
+  const html = e7Render(e7React.createElement(mod.RegisterAndPayForm, { tournamentId: E7.T_PAID, feeCents: 4000, athletes: kids, registrations: regs }))
+  assert.ok(html.includes('Cost per wrestler: <span class="font-semibold text-clw-gold-ink">$40.00</span>'))
+  const row = (name) => html.slice(html.indexOf(name), html.indexOf('</li>', html.indexOf(name)))
+  assert.match(row('Ann Example'), />Paid</)
+  assert.match(row('Ben Example'), />Waived</)
+  // An unlocked fee (null) is judged against the tournament fee: payment due, with Pay now and the price.
+  assert.match(row('Cal Example'), />Payment due</)
+  assert.match(row('Cal Example'), />Pay now \$40\.00</)
+  assert.match(row('Dee Example'), />Registered \(free\)</)
+  assert.match(row('Eve Example'), />Withdrawn</)
+  assert.doesNotMatch(row('Flo Example'), /data-variant="outline"/, 'not registered: no state badge')
+  // Paid and waived entries cannot be picked or withdrawn; the A5 line says why.
+  for (const n of ['Ann', 'Ben']) assert.doesNotMatch(row(`${n} Example`), /type="checkbox"|Withdraw|Pay now/)
+  for (const n of ['Cal', 'Eve', 'Flo']) assert.match(html, new RegExp(`type="checkbox"[^>]*/><span[^>]*>${n} Example`))
+  assert.ok(html.includes(mod.PAID_ENTRY_NOTE))
+  assert.equal(mod.PAID_ENTRY_NOTE, 'Paid entries are withdrawn by the club. Contact the club to change this.')
+  assert.ok(fs.readFileSync(path.join(__dirname, '..', 'src/app/(portal)/tournaments/actions.ts'), 'utf8').includes(`'${mod.PAID_ENTRY_NOTE}'`), 'the server refusal uses the same words')
+  // Nothing picked yet: the button cannot start a checkout.
+  assert.match(html, /<button[^>]*>Register and pay<\/button>/)
+  assert.ok(html.includes('Pick the wrestlers to register.'))
+
+  // The page's lock copy agrees with ENG-004's entryIsLocked on every case.
+  const lib = e7Actions(e7Db(E7.OWNER)).checkoutLib
+  for (const r of [{ paid_cents: 0, payment_method: null }, { paid_cents: 1, payment_method: null }, { paid_cents: 0, payment_method: 'waived' }, { paid_cents: 0, payment_method: 'cash' }, { paid_cents: 4000, payment_method: 'card' }]) {
+    assert.equal(mod.isEntryLocked({ paidCents: r.paid_cents, paymentMethod: r.payment_method }), lib.entryIsLocked(r), JSON.stringify(r))
+  }
+  // Body copy and buttons follow the CLAUDE.md floors: no text-xs, and text-sm only on the state badges.
+  assert.doesNotMatch(html, /text-xs/)
+  for (const m of html.matchAll(/<(\w+)[^>]*class="([^"]*\btext-sm\b[^"]*)"/g)) assert.equal(m[1], 'span', m[0])
+})
+
+test('CLW-ENG-007: back from Stripe, the card says the payment is in or that nothing was charged', () => {
+  const props = { tournamentId: E7.T_PAID, feeCents: 4000, athletes: [{ id: 'k0', name: 'Ann Example', dateOfBirth: null, ageDivision: null, grade: null }], registrations: {} }
+  const ok = e7Form('checkout=success').mod
+  assert.ok(e7Render(e7React.createElement(ok.RegisterAndPayForm, { ...props, showReturnFallback: true })).includes('Payment received. It can take a minute to show here.'))
+  // Only one card carries the message when the browser does not remember which one was paid.
+  assert.ok(!e7Render(e7React.createElement(ok.RegisterAndPayForm, props)).includes('Payment received'))
+  const cancelled = e7Render(e7React.createElement(e7Form('checkout=cancelled').mod.RegisterAndPayForm, { ...props, showReturnFallback: true }))
+  assert.ok(cancelled.includes('nothing was charged'))
+  assert.ok(cancelled.includes('not registered until the entry is paid'))
+  assert.ok(!e7Render(e7React.createElement(e7Form('').mod.RegisterAndPayForm, { ...props, showReturnFallback: true })).includes('role="status"'))
+})
+
+test('CLW-ENG-007: the Tournaments page sends priced in-house tournaments to Register and pay and keeps free and outside ones as they were', async () => {
+  const seen = { pay: [], free: [] }
+  const supabase = eng005Supabase({
+    tournaments: [
+      eng005Tournament({ id: 'tp', name: 'Paid Open', external_registration_url: null, entry_fee_cents: 4000 }),
+      eng005Tournament({ id: 'tf', name: 'Free Duals', external_registration_url: null, entry_fee_cents: null }),
+      eng005Tournament({ id: 'tx', name: 'Outside Classic', external_registration_url: 'https://www.trackwrestling.com/x', entry_fee_cents: 4000 }),
+      eng005Tournament({ id: 'tc', name: 'Closed Cup', external_registration_url: null, entry_fee_cents: 4000, status: 'closed' }),
+    ],
+    athletes: [
+      { id: 'k1', first_name: 'Ann', last_name: 'Example', active: true, date_of_birth: '2018-01-08', age_division: null },
+      { id: 'k2', first_name: 'Old', last_name: 'Example', active: false, date_of_birth: '2012-01-01', age_division: null },
+    ],
+    tournament_registrations: [
+      { id: 'r1', tournament_id: 'tp', athlete_id: 'k1', status: 'registered', fee_cents: 4000, paid_cents: 4000, payment_method: 'card', weight: '62', division: 'Bantam', grade: '3rd' },
+      { id: 'r2', tournament_id: 'tf', athlete_id: 'k1', status: 'registered', fee_cents: null, paid_cents: 0, payment_method: null, weight: null, division: null, grade: null },
+    ],
+    // Newest first, as the page asks: the newest enrollment with a grade wins.
+    season_enrollments: [
+      { athlete_id: 'k1', grade: null, submitted_at: '2026-10-01T00:00:00Z' },
+      { athlete_id: 'k1', grade: ' 3rd ', submitted_at: '2026-09-01T00:00:00Z' },
+      { athlete_id: 'k1', grade: '2nd', submitted_at: '2025-09-01T00:00:00Z' },
+    ],
+    tournament_sessions: [],
+  })
+  const el = (tag) => ({ children, className }) => e7React.createElement(tag, { className }, children)
+  const mod = load('src/app/(portal)/tournaments/page.tsx', {
+    'next/link': { __esModule: true, default: (p) => e7React.createElement('a', { href: p.href }, p.children) },
+    '@/lib/tournament-status': load('src/lib/tournament-status.ts', {}),
+    '@/lib/supabase/server': { createServerSupabase: async () => supabase },
+    '@/lib/family': { resolveFamilyOwnerIds: async () => ['parent-1'] },
+    '@/lib/chicago-time': { chicagoDateString: () => '2026-11-01' },
+    '@/lib/practice': practiceLib,
+    '@/lib/maps': mapsLib,
+    '@/lib/tournament-sessions': tSessionsLib,
+    '@/lib/club-calendar': clubCalLib,
+    '@/components/ui/badge': { Badge: el('span') },
+    '@/components/ui/button': { Button: ({ children }) => children },
+    '@/components/ui/card': { Card: el('section'), CardContent: el('div'), CardHeader: el('header'), CardTitle: el('h3') },
+    './RegisterControls': {
+      RegisterControls: (p) => { seen.free.push(plain(p)); return e7React.createElement('div', null, 'FREE-CONTROLS') },
+      RegisterAndPayForm: (p) => { seen.pay.push(plain(p)); return e7React.createElement('div', null, 'PAY-FORM') },
+    },
+    '@/components/events/TournamentFlier': { TournamentFlier: () => null },
+  })
+  const html = e7Render(await mod.default())
+  assert.equal((html.match(/PAY-FORM/g) || []).length, 1)
+  assert.equal((html.match(/FREE-CONTROLS/g) || []).length, 1)
+  assert.match(html, /href="https:\/\/www\.trackwrestling\.com\/x"/)
+  assert.ok(html.includes('Registration is closed.'))
+  const [pay] = seen.pay
+  assert.equal(pay.tournamentId, 'tp')
+  assert.equal(pay.feeCents, 4000, 'the price shown is the database fee')
+  assert.equal(pay.showReturnFallback, true)
+  assert.deepEqual(pay.athletes, [{ id: 'k1', name: 'Ann Example', dateOfBirth: '2018-01-08', ageDivision: null, grade: '3rd' }], 'active wrestlers only, grade from the newest enrollment that has one')
+  assert.deepEqual(pay.registrations.k1, { id: 'r1', status: 'registered', feeCents: 4000, paidCents: 4000, paymentMethod: 'card', weight: '62', division: 'Bantam', grade: '3rd' })
+  const [free] = seen.free
+  assert.equal(free.tournamentId, 'tf')
+  assert.deepEqual(free.athletes, [{ id: 'k1', name: 'Ann Example' }])
+  assert.equal(free.registrations.k1.id, 'r2')
+  assert.ok(supabase.reads.includes('season_enrollments'))
+})
+
+// ---- CLW-ENG-008: Integration leftovers (roster status, weigh-in text, demo wipe, sweep fixtures, lint ignore) ----
+const eng008Read = (relative) => fs.readFileSync(path.join(__dirname, '..', relative), 'utf8')
+
+test('CLW-ENG-008: family_tournament_roster returns the tournament status from both sources, and the type carries it', () => {
+  const sql = eng001Sql('20261120000004_family_tournament_roster.sql')
+  const returns = /RETURNS TABLE \(([\s\S]*?)\) LANGUAGE/.exec(sql)[1]
+  assert.match(returns, /\n {2}tournament_status TEXT\s*$/, 'last column, so the ORDER BY positions stay the same')
+  assert.match(sql, /ORDER BY 3, 2, 10, 9;/)
+  const body = eng001Body(sql, 'family_tournament_roster')
+  const [site, tw] = body.split(/\bUNION ALL\b/)
+  for (const part of [site, tw]) {
+    const selectList = /SELECT([\s\S]*?)\bFROM\b/.exec(part)[1]
+    assert.match(selectList, /,\s*t\.status\s*$/, 'status is the last selected value')
+  }
+  // Still additive: the migration has not been applied anywhere, so it is edited in place without a DROP.
+  assert.doesNotMatch(eng001Outside(sql), /\bDROP\b/i)
+  const ts = eng008Read('src/types/database.ts')
+  const row = /export type FamilyTournamentRosterRow = \{([\s\S]*?)\n\}/.exec(ts)[1]
+  assert.match(row, /\n {2}tournament_status: Tournament\['status'\]/)
+})
+
+test('CLW-ENG-008: the rosters page shows a text-base Cancelled chip only on cancelled tournaments', async () => {
+  const rows = [
+    eng006Row({ tournament_status: 'open' }),
+    eng006Row({ tournament_id: 't-c', tournament_name: 'Example Snow Duals', date: '2026-11-28', tournament_status: 'cancelled', registration_state: 'paid' }),
+    // A TrackWrestling row for the same cancelled tournament keeps it cancelled (one card).
+    eng006Row({ tournament_id: 't-c', tournament_name: 'Example Snow Duals', date: '2026-11-28', athlete_id: 'kid-b', athlete_first_name: 'Blake', source: 'trackwrestling', division: null, weight: null, registration_state: null, tournament_status: 'cancelled' }),
+  ]
+  const html = await eng006Render({ data: rows, error: null }).html()
+  const chips = html.match(/<span class="[^"]*">Cancelled<\/span>/g) || []
+  assert.equal(chips.length, 1, 'one chip, on the cancelled card only')
+  assert.match(chips[0], /\btext-base\b/)
+  assert.doesNotMatch(chips[0], /\btext-(xs|sm)\b/)
+  const cards = html.split('<article')
+  const open = cards.find((c) => c.includes('Example Winter Open'))
+  const cancelled = cards.find((c) => c.includes('Example Snow Duals'))
+  assert.doesNotMatch(open, />Cancelled</)
+  assert.match(cancelled, />Cancelled</)
+  assert.equal((cancelled.match(/Blake Example/g) || []).length, 1)
+  // Rows without tournament_status read as not cancelled.
+  const legacy = await eng006Render({ data: [eng006Row({})], error: null }).html()
+  assert.doesNotMatch(legacy, />Cancelled</)
+  assert.doesNotMatch(eng008Read(ENG006_PAGE), /\btext-(xs|sm)\b/)
+})
+
+test('CLW-ENG-008: the parent Tournaments weigh-in block reads at text-base', () => {
+  const src = eng008Read('src/app/(portal)/tournaments/page.tsx')
+  const start = src.indexOf('{(t.weigh_in_date || t.weigh_in_time) && (')
+  assert.ok(start > -1, 'weigh-in block found')
+  const block = src.slice(start, src.indexOf('{t.notes &&', start))
+  assert.match(block, /Weigh-ins for \{t\.name\}/)
+  assert.match(block, /className="min-w-0 text-base"/)
+  assert.doesNotMatch(block, /\btext-(xs|sm)\b/)
+})
+
+test('CLW-ENG-008: the demo wipe clears tournament checkouts, sessions and admin details before tournaments', () => {
+  const src = eng008Read('src/lib/demo-seed.ts')
+  const wipe = /async function wipe\(admin: Admin\) \{([\s\S]*?)\n\}/.exec(src)[1]
+  const list = /for \(const table of \[([\s\S]*?)\]\)/.exec(wipe)[1]
+  const tables = [...list.matchAll(/'([a-z_]+)'/g)].map((m) => m[1])
+  const at = (name) => tables.indexOf(name)
+  for (const child of ['tournament_checkouts', 'tournament_sessions', 'tournament_entries', 'tournament_registrations']) {
+    assert.ok(at(child) > -1, `${child} is wiped`)
+    assert.ok(at(child) < at('tournaments'), `${child} before tournaments`)
+  }
+  // Keyed by tournament_id (no id column), so it cannot go through byId; it runs before the list.
+  assert.ok(!tables.includes('tournament_admin_details'))
+  const details = wipe.indexOf(".from('tournament_admin_details' as never).delete().not('tournament_id', 'is', null)")
+  assert.ok(details > -1 && details < wipe.indexOf('for (const table of ['), 'admin details cleared before the table list')
+})
+
+test('CLW-ENG-008: the sweep mock exercises a long street again, plus a cancelled tournament on the rosters page', () => {
+  const mock = eng008Read('.claude/skills/wizards-request/qa/mock.cjs')
+  new vm.Script(mock) // parses
+  const block = /\/\/ ---- CLW-ENG-008:[\s\S]*?\/\/ ---- end CLW-ENG-008 ----/.exec(mock)
+  assert.ok(block, 'delimited CLW-ENG-008 block')
+  // It runs after the CLW-ENG-003 block that set the short street, so the long one wins.
+  assert.ok(block.index > mock.indexOf('// ---- end CLW-ENG-003 ----'))
+  const street = /const ENG008_LONG_STREET = '([^']+)'/.exec(block[0])[1]
+  assert.ok(street.length >= 40, 'a long made-up street')
+  assert.match(block[0], /tables\.tournaments\.find\(\(t\) => t\.id === id\('t', 1\)\)\.street_address = ENG008_LONG_STREET/)
+  assert.match(block[0], /status: 'cancelled'/)
+  // The roster rows carry tournament_status, and one is cancelled.
+  const roster = /function familyTournamentRoster\(\) \{([\s\S]*?)\n\}/.exec(mock)[1]
+  assert.equal((roster.match(/tournament_status: '/g) || []).length, 4)
+  assert.match(roster, /tournament_status: 'cancelled'/)
+  assert.doesNotMatch(block[0], /@[a-z0-9-]+\.[a-z]/i, 'no email addresses')
+})
+
+test('CLW-ENG-008: lint skips agent worktrees, and the QA README covers the Chromium fallback and port overrides', () => {
+  assert.match(eng008Read('eslint.config.mjs'), /ignores: \[[^\]]*'\.claude\/worktrees\/\*\*'/)
+  const readme = eng008Read('.claude/skills/wizards-request/qa/README.md')
+  assert.match(readme, /CHROMIUM_PATH=\$\(ls -d \/opt\/pw-browsers\/chromium-\*\/chrome-linux\*\/chrome \| tail -1\)/)
+  assert.match(readme, /QA_APP_URL=http:\/\/127\.0\.0\.1:3181 QA_MOCK_URL=http:\/\/127\.0\.0\.1:54381/)
+  // The README's names match what the sweep script actually reads.
+  const sweep = eng008Read('.claude/skills/wizards-request/qa/layout-sweep.cjs')
+  for (const name of ['CHROMIUM_PATH', 'QA_APP_URL', 'QA_MOCK_URL']) assert.match(sweep, new RegExp(`process\\.env\\.${name}\\b`))
+  assert.doesNotMatch(readme, /\u2014|\u2013/, 'no em or en dashes')
+})
+
+test('CLW-ENG-008: a co-parent re-registering an existing free entry keeps its parent_id (QA-002 round 2 note 5)', async () => {
+  // The owner registers, then withdraws.
+  const db = e7Db(E7.OWNER)
+  assert.deepEqual(plain(await e7Actions(db).registerAthletes({ tournamentId: E7.T_FREE, athleteIds: [E7.K1] })), { ok: true })
+  const row = db.tables.tournament_registrations[0]
+  assert.equal(row.parent_id, E7.OWNER)
+  row.id = E7.R1 // the fake database's ids are not UUIDs; withdraw validates one
+  assert.deepEqual(plain(await e7Actions(db).withdrawRegistration({ registrationId: row.id })), { ok: true })
+  assert.equal(row.status, 'withdrawn')
+
+  // The whole-family co-parent signs the same wrestler up again, plus a new one, on the same data.
+  const co = e7Db(E7.WHOLE, { tournament_registrations: db.tables.tournament_registrations })
+  assert.deepEqual(plain(await e7Actions(co).registerAthletes({ tournamentId: E7.T_FREE, athleteIds: [E7.K1, E7.K2] })), { ok: true })
+  assert.equal(row.status, 'registered')
+  assert.equal(row.parent_id, E7.OWNER, 'the existing row keeps the owner as parent_id')
+  const reopen = co.writes.find((w) => w.op === 'update')
+  assert.deepEqual(reopen.values, { status: 'registered' }, 'the reopen never writes parent_id')
+  const insert = co.writes.find((w) => w.op === 'upsert')
+  assert.deepEqual(insert.values.map((v) => v.athlete_id), [E7.K2], 'only the new wrestler is inserted')
+  assert.equal(insert.values[0].parent_id, E7.WHOLE, 'a new row is owned by whoever made it')
+  assert.equal(db.tables.tournament_registrations.length, 2)
+
+  // Registered and confirmed rows are left alone: no write at all.
+  const done = e7Db(E7.LIMITED, { tournament_registrations: [
+    { id: 'r-c', tournament_id: E7.T_FREE, athlete_id: E7.K1, parent_id: E7.OWNER, status: 'confirmed', paid_cents: 0, payment_method: null, fee_cents: null },
+  ] })
+  assert.deepEqual(plain(await e7Actions(done).registerAthletes({ tournamentId: E7.T_FREE, athleteIds: [E7.K1] })), { ok: true })
+  assert.equal(done.writes.length, 0)
+  assert.equal(done.tables.tournament_registrations[0].status, 'confirmed')
+
+  // A new row never overwrites one created a moment ago by someone else.
+  const src = eng008Read('src/app/(portal)/tournaments/actions.ts')
+  assert.match(src, /\{ onConflict: 'tournament_id,athlete_id', ignoreDuplicates: true \}/)
+  assert.doesNotMatch(/\.update\(\{[^}]*\}\)/.exec(src.slice(src.indexOf('export async function registerAthletes')))[0], /parent_id/)
+})
+
+// ---- Pay now shows the price the server charges (QA-004, Nov 20) ----
+test('Pay now on an unpaid entry shows the tournament current cost, not an old locked fee', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'src/app/(portal)/tournaments/RegisterAndPayForm.tsx'), 'utf8')
+  assert.match(src, /`Pay now \$\{formatCents\(feeCents\)\}`/)
+  assert.doesNotMatch(src, /Pay now \$\{formatCents\(reg\.feeCents/)
+})

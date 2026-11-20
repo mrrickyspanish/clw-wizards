@@ -112,8 +112,79 @@ export type Tournament = {
   competition_level: string | null
   image_url: string | null
   notes: string | null
+  // Optional street address for the venue's map link (200 characters or less).
+  street_address: string | null
+  // Price per wrestler for paying on the club site, 100 to 100000 cents.
+  // null: the site takes no payment for this tournament.
+  entry_fee_cents: number | null
   created_at: string
   updated_at: string
+}
+
+// One session of a tournament (up to five). Public, like the tournament.
+// tournaments.start_time is kept equal to the earliest session start by the
+// replace_tournament_sessions function.
+export type TournamentSession = {
+  id: string
+  tournament_id: string
+  start_time: string // 'HH:MM' 24-hour
+  divisions: string | null // free text, 120 characters or less
+  sort_order: number
+  created_at: string
+}
+
+// Admin-only details for a tournament (never on the public tournaments
+// table): the club's TrackWrestling club-registrations link and the spots the
+// club was given. Readable and writable by admins only.
+export type TournamentAdminDetails = {
+  tournament_id: string
+  club_registrations_url: string | null // starts with https://
+  spots_allotted: number | null // 1 to 500
+  updated_at: string
+  updated_by: string | null
+}
+
+// One card checkout for one or more registrations. Written only by the
+// server; kept after the tournament is deleted (tournament_id becomes null,
+// tournament_name keeps the name).
+export type TournamentCheckout = {
+  id: string
+  tournament_id: string | null
+  tournament_name: string
+  payer_id: string | null
+  registration_ids: string[]
+  athlete_ids: string[]
+  amount_cents: number
+  // What the card payment still holds after any refund.
+  net_cents: number
+  stripe_checkout_session_id: string | null
+  stripe_payment_intent_id: string | null
+  status: 'pending' | 'paid' | 'partially_refunded' | 'refunded'
+  created_at: string
+  paid_at: string | null
+}
+
+// One row of family_tournament_roster(): a tournament one of the caller's own
+// wrestlers is on, from a site registration or a matched TrackWrestling row.
+export type FamilyTournamentRosterRow = {
+  tournament_id: string
+  tournament_name: string
+  date: string
+  location: string
+  city: string
+  state: string
+  street_address: string | null
+  athlete_id: string
+  athlete_first_name: string
+  athlete_last_name: string
+  source: 'site' | 'trackwrestling'
+  // Site registrations only; always null for TrackWrestling rows.
+  division: string | null
+  weight: string | null
+  // Site registrations only: the payment state. null for TrackWrestling rows.
+  registration_state: 'free' | 'paid' | 'waived' | 'due' | null
+  // The tournament's own status, so a cancelled tournament can be marked.
+  tournament_status: Tournament['status']
 }
 
 // One of our wrestlers on a tournament's TrackWrestling Wrestler List, pasted
@@ -143,6 +214,18 @@ export type TournamentRegistration = {
   registered_at: string
   confirmed_at: string | null
   notes: string | null
+  // What the family entered when registering on the club site.
+  weight: string | null
+  division: string | null
+  grade: string | null
+  // Payment columns: only the server (service role) or an admin can change
+  // these; a database trigger keeps a parent's values out.
+  // fee_cents: the price locked when checkout starts.
+  fee_cents: number | null
+  paid_cents: number
+  paid_at: string | null
+  payment_method: 'card' | 'cash' | 'check' | 'waived' | null
+  payment_note: string | null
 }
 
 export type DuesPayment = {
@@ -591,6 +674,24 @@ export type Database = {
         Update: Partial<TournamentRegistration>
         Relationships: []
       }
+      tournament_sessions: {
+        Row: TournamentSession
+        Insert: Partial<TournamentSession>
+        Update: Partial<TournamentSession>
+        Relationships: []
+      }
+      tournament_admin_details: {
+        Row: TournamentAdminDetails
+        Insert: Partial<TournamentAdminDetails> & { tournament_id: string }
+        Update: Partial<TournamentAdminDetails>
+        Relationships: []
+      }
+      tournament_checkouts: {
+        Row: TournamentCheckout
+        Insert: Partial<TournamentCheckout>
+        Update: Partial<TournamentCheckout>
+        Relationships: []
+      }
       dues_charges: {
         Row: DuesCharge
         Insert: Partial<DuesCharge>
@@ -802,6 +903,49 @@ export type Database = {
       replace_tournament_entries: {
         Args: { p_tournament: string; p_entries: unknown }
         Returns: number
+      }
+      // Admins only. p_sessions: [{ start_time: 'HH:MM', divisions?: string }],
+      // at most 5. Returns how many were saved.
+      replace_tournament_sessions: {
+        Args: { p_tournament: string; p_sessions: unknown }
+        Returns: number
+      }
+      // Server only (revoked from client roles). Applies one card checkout
+      // once; applied is false when Stripe sent it again. Raises when a
+      // registration in the checkout has no locked fee_cents.
+      record_tournament_payment: {
+        Args: { _checkout: string; _session: string; _intent: string | null; _amount: number }
+        Returns: {
+          applied: boolean
+          payer_id: string | null
+          tournament_id: string | null
+          tournament_name: string
+          athlete_ids: string[]
+          amount_cents: number
+          // A registration already showed paid or waived before this payment.
+          overpay: boolean
+          // Not applied, and the checkout was settled under a different
+          // Stripe session: money taken but not recorded.
+          session_mismatch: boolean
+          // Registrations this payment marked paid by card (0 when not applied).
+          registrations_marked: number
+        }[]
+      }
+      // Server only. _net: what the charge still holds after all refunds.
+      record_tournament_refund: {
+        Args: { _intent: string; _net: number }
+        Returns: {
+          found: boolean
+          changed: boolean
+          payer_id: string | null
+          tournament_name: string | null
+          refunded_cents: number | null
+        }[]
+      }
+      // The caller's own wrestlers' tournaments (B7). Signed-in users only.
+      family_tournament_roster: {
+        Args: Record<string, never>
+        Returns: FamilyTournamentRosterRow[]
       }
       claim_parent_auth_incident: {
         Args: { p_id: string }

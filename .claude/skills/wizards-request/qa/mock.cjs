@@ -103,6 +103,24 @@ const tables = {
     { id: id('e', 2), tournament_id: id('t', 1), athlete_id: id('k', 2), external_name: 'Christopher Longname-Example II (6th)', division: 'Boys 12u', weight: '135', grade: '6th', paid: false, submitted: null, source: 'trackwrestling', imported_at: T, imported_by: null },
     { id: id('e', 3), tournament_id: id('t', 1), athlete_id: null, external_name: 'Unmatched Kid With A Very Long Name', division: 'Girls 8u', weight: '68', grade: null, paid: true, submitted: null, source: 'trackwrestling', imported_at: T, imported_by: null },
   ],
+  // ---- CLW-ENG-001: made-up rows for the new tournament tables ----
+  // Sessions: the Turkey Tussle runs in two sessions, one with a long division list.
+  tournament_sessions: [
+    { id: id('h', 1), tournament_id: id('t', 1), start_time: '08:00', divisions: 'Tots, Bantam, Intermediate', sort_order: 0, created_at: T },
+    { id: id('h', 2), tournament_id: id('t', 1), start_time: '13:30', divisions: 'Novice, Senior, and any wrestler moving up a division this season', sort_order: 1, created_at: T },
+  ],
+  // Admin only (the real table has no parent or public access): a club link and spots
+  // on the Turkey Tussle, spots only on the Spring Open.
+  tournament_admin_details: [
+    { tournament_id: id('t', 1), club_registrations_url: 'https://example.com/club-registrations', spots_allotted: 12, updated_at: T, updated_by: ADMIN },
+    { tournament_id: id('t', 3), club_registrations_url: null, spots_allotted: 20, updated_at: T, updated_by: ADMIN },
+  ],
+  // One paid card checkout for two of Pat's wrestlers. The registration ids are made up;
+  // add matching tournament_registrations rows when a page needs them.
+  tournament_checkouts: [
+    { id: id('i', 1), tournament_id: id('t', 1), tournament_name: 'Turkey Tussle Open With A Long Tournament Name', payer_id: PARENT, registration_ids: [id('j', 1), id('j', 2)], athlete_ids: [id('k', 1), id('k', 2)], amount_cents: 5000, net_cents: 5000, stripe_checkout_session_id: 'cs_test_qa_1', stripe_payment_intent_id: 'pi_test_qa_1', status: 'paid', created_at: T, paid_at: T },
+  ],
+  // ---- end CLW-ENG-001 ----
   communication_log: [
     { id: id('l', 1), channel: 'email', comm_type: 'custom', recipient_id: PARENT, recipient_email: 'pat@example.com', recipient_phone: null, tournament_id: null, subject: 'Practice starts Nov 2', body_preview: 'See you there', status: 'sent', sent_at: '2026-10-05T14:00:00Z', external_id: null, blast_id: id('z', 1) },
   ],
@@ -149,6 +167,88 @@ Object.assign(tables.dues_payments.find((d) => d.id === id('m', 4)), { payment_p
 for (const [n, group] of [[20, 'Group 2'], [21, 'Group 3']]) tables.practices.push({ ...base, id: id('p', n), weekday: 2, practice_group: group, start_time: '18:00', end_time: '19:30', location: 'Wizards Facility', notes: 'Regional wrestlers', active: true, starts_on: '2026-11-10', ends_on: '2026-11-10' })
 tables.athletes.find((a) => a.first_name === 'Tina').usa_wrestling_card_number = '1234567890'
 tables.athletes.find((a) => a.first_name === 'Lily').usa_wrestling_card_number = '5550001112'
+// ---- CLW-ENG-005: made-up street addresses for tap-to-map ----
+// A long street on the Turkey Tussle (two sessions above); the Spring Open keeps no
+// sessions and no street, so it shows "Starts" and maps by venue name.
+tables.tournaments.find((t) => t.id === id('t', 1)).street_address = '12345 West Longname Memorial Boulevard, Building C'
+for (const t of tables.tournaments) t.street_address ??= null
+// ---- end CLW-ENG-005 ----
+// ---- CLW-ENG-007: made-up in-house tournaments for Register and pay ----
+// One open with a cost ($40 per wrestler: Tommy paid by card, Tina's entry saved
+// but not paid yet) and one open and free (Tommy registered). Every other
+// tournament has no cost.
+for (const t of tables.tournaments) t.entry_fee_cents ??= null
+tables.tournaments.push(
+  { ...base, id: id('t', 7), name: 'Wizards Winter Classic In-House Tournament', date: '2026-12-12', start_time: '09:00', location: 'Wizards Facility', street_address: null, city: 'Crystal Lake', state: 'IL', status: 'open', external_registration_url: null, competition_level: null, weigh_in_date: null, weigh_in_time: null, weigh_in_location: null, practice_groups: [], notes: null, external_platform: 'internal', image_url: null, entry_fee_cents: 4000 },
+  { ...base, id: id('t', 8), name: 'Holiday Fun Scrimmage', date: '2026-12-19', start_time: '10:00', location: 'Wizards Facility', street_address: null, city: 'Crystal Lake', state: 'IL', status: 'open', external_registration_url: null, competition_level: null, weigh_in_date: null, weigh_in_time: null, weigh_in_location: null, practice_groups: [], notes: null, external_platform: 'internal', image_url: null, entry_fee_cents: null },
+)
+const eng007Reg = (n, t, kid, over) => ({ id: id('j', 70 + n), tournament_id: t, athlete_id: kid, parent_id: PARENT, status: 'registered', registered_at: T, confirmed_at: null, notes: null, weight: null, division: null, grade: null, fee_cents: null, paid_cents: 0, paid_at: null, payment_method: null, payment_note: null, ...over })
+tables.tournament_registrations.push(
+  eng007Reg(1, id('t', 7), id('k', 1), { weight: '62', division: 'Bantam', grade: '3rd', fee_cents: 4000, paid_cents: 4000, paid_at: T, payment_method: 'card' }),
+  eng007Reg(2, id('t', 7), id('k', 2), { weight: '48', division: 'Tot', grade: '3rd', fee_cents: 4000 }),
+  eng007Reg(3, id('t', 8), id('k', 1), {}),
+)
+// ---- end CLW-ENG-007 ----
+
+// ---- CLW-ENG-003: made-up site registrations for the admin roster ----
+// The Turkey Tussle costs $25 a wrestler and has a street address. Its site
+// registrations: Tommy and Tina paid by card (the checkout in the CLW-ENG-001
+// block; Tommy is also on the TrackWrestling list, so he counts once), Lily paid
+// cash, the long-named wrestler is waived, Owen still owes (his cash mark was
+// cleared, so he has a note), and Max withdrew.
+Object.assign(tables.tournaments.find((t) => t.id === id('t', 1)), { entry_fee_cents: 2500, street_address: '100 Example Avenue' })
+for (const [n, kid, parent, status, division, weight, pay] of [
+  [1, id('k', 1), PARENT, 'registered', 'Boys 10u', '67', { fee_cents: 2500, paid_cents: 2500, payment_method: 'card' }],
+  [2, id('k', 2), PARENT, 'registered', 'Girls 6u', '41.5', { fee_cents: 2500, paid_cents: 2500, payment_method: 'card' }],
+  [3, id('k', 5), PARENT3, 'registered', 'Boys 10u', '72', { fee_cents: 2500, payment_note: 'Cleared cash mark by Coach Test on 2026-11-20.' }],
+  [4, id('k', 6), PARENT3, 'confirmed', 'Boys 12u Intermediate and Advanced Combined Bracket', '95', { fee_cents: 2500, payment_method: 'waived' }],
+  [5, id('k', 4), PARENT2, 'registered', 'Girls 14u', '110', { fee_cents: 2500, paid_cents: 2500, payment_method: 'cash' }],
+  [6, id('k', 3), PARENT2, 'withdrawn', 'Boys 12u', '88', {}],
+]) {
+  tables.tournament_registrations.push({
+    id: id('j', n), tournament_id: id('t', 1), athlete_id: kid, parent_id: parent, status, registered_at: T, confirmed_at: null, notes: null,
+    weight, division, grade: null, fee_cents: null, paid_cents: 0, paid_at: pay.payment_method ? T : null, payment_method: null, payment_note: null, ...pay,
+  })
+}
+// ---- end CLW-ENG-003 ----
+
+// ---- CLW-ENG-006: family_tournament_roster() rows for the parent Tournament rosters page ----
+// Pat Parent's two kids only (the real function returns just the caller's own wrestlers).
+// The admin login guards no wrestlers, so it gets no rows (the empty state).
+// Dates move with the clock so Upcoming and Recent (last 30 days) always both show.
+const rosterDay = (days) => new Date(Date.now() + days * 86400000).toISOString().slice(0, 10)
+function familyTournamentRoster() {
+  if (as !== 'parent') return []
+  const tw = (t, kid, first) => ({ ...t, athlete_id: kid, athlete_first_name: first, athlete_last_name: 'Parent', source: 'trackwrestling', division: null, weight: null, registration_state: null })
+  const site = (t, kid, first, division, weight, registration_state) => ({ ...t, athlete_id: kid, athlete_first_name: first, athlete_last_name: 'Parent', source: 'site', division, weight, registration_state })
+  const tussle = { tournament_id: id('t', 1), tournament_name: 'Turkey Tussle Open With A Long Tournament Name', date: rosterDay(1), location: 'Central High School', city: 'Huntley', state: 'IL', street_address: null, tournament_status: 'open' }
+  const duals = { tournament_id: id('t', 2), tournament_name: 'Holiday Duals', date: rosterDay(15), location: '', city: 'Crystal Lake', state: 'IL', street_address: null, tournament_status: 'closed' }
+  const fall = { tournament_id: id('t', 9), tournament_name: 'Fall Classic At The Very Long Named Fieldhouse Invitational', date: rosterDay(-10), location: 'Northwest Regional Athletic Fieldhouse Annex', city: 'Crystal Lake', state: 'IL', street_address: '1234 Example Boulevard', tournament_status: 'closed' }
+  // CLW-ENG-008: a cancelled tournament (the CLW-ENG-008 block adds it to tournaments) gets a Cancelled chip.
+  const snowed = { tournament_id: id('t', 10), tournament_name: 'Snowed Out Saturday Duals', date: rosterDay(8), location: 'Prairie Ridge Fieldhouse', city: 'Crystal Lake', state: 'IL', street_address: ENG008_LONG_STREET, tournament_status: 'cancelled' }
+  return [
+    // Tommy is on both the club site and the TrackWrestling paste: the page shows him once.
+    site(tussle, id('k', 1), 'Tommy', 'Boys 10U', '67', 'due'),
+    tw(tussle, id('k', 1), 'Tommy'),
+    tw(tussle, id('k', 2), 'Tina'),
+    site(duals, id('k', 2), 'Tina', 'Girls Novice and any wrestler moving up a division this season', '52', 'paid'),
+    site(fall, id('k', 1), 'Tommy', 'Boys 10U', '65', 'waived'),
+    tw(fall, id('k', 2), 'Tina'),
+    site(snowed, id('k', 1), 'Tommy', 'Boys 10U', '66', 'paid'),
+  ]
+}
+// ---- end CLW-ENG-006 ----
+
+// ---- CLW-ENG-008: long street and a cancelled tournament for the sweep ----
+// The CLW-ENG-003 block replaced the Turkey Tussle's long street (CLW-ENG-005)
+// with a short one, so no page swept a long address any more (CLW-QA-003). Put
+// the long street back on the Turkey Tussle (parent Tournaments, public Events,
+// admin) and give it to a new cancelled tournament too, which the parent
+// Tournaments page, Events and the rosters page (Cancelled chip) all show.
+const ENG008_LONG_STREET = '12345 West Longname Memorial Boulevard, Building C'
+tables.tournaments.find((t) => t.id === id('t', 1)).street_address = ENG008_LONG_STREET
+tables.tournaments.push({ ...base, id: id('t', 10), name: 'Snowed Out Saturday Duals', date: '2026-11-28', start_time: '09:00', location: 'Prairie Ridge Fieldhouse', street_address: ENG008_LONG_STREET, city: 'Crystal Lake', state: 'IL', status: 'cancelled', external_registration_url: null, competition_level: null, weigh_in_date: '2026-11-27', weigh_in_time: '18:30', weigh_in_location: 'Prairie Ridge Fieldhouse, Auxiliary Gym Entrance on the North Side', practice_groups: [], notes: null, external_platform: null, image_url: null, entry_fee_cents: null })
+// ---- end CLW-ENG-008 ----
 
 const user = () => {
   const uid = as === 'admin' ? ADMIN : PARENT
@@ -258,6 +358,9 @@ http.createServer((req, res) => {
     const rpc = u.pathname.match(/^\/rest\/v1\/rpc\/(\w+)/)
     if (rpc) {
       const fn = rpc[1]
+      // ---- CLW-ENG-006 ----
+      if (fn === 'family_tournament_roster') return res.end(JSON.stringify(familyTournamentRoster()))
+      // ---- end CLW-ENG-006 ----
       const yes = ['has_role', 'manages_athlete', 'guards_athlete', 'is_full_admin']
       return res.end(JSON.stringify(yes.includes(fn) ? (fn === 'has_role' ? as === 'admin' : true) : fn === 'family_link_names' ? [] : null))
     }

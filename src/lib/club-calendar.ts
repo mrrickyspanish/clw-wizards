@@ -33,7 +33,30 @@ type Entry = {
     registerUrl: string | null
     // A tournament's flier: a picture or a link (PDF, the event's page).
     flierUrl?: string | null
+    // Google Maps link for the location (B3): the location is tappable when set.
+    mapUrl?: string | null
   }
+}
+
+// What the page works out for a tournament from its sessions and address
+// (src/lib/tournament-sessions.ts, src/lib/maps.ts). Passed in, so this file
+// stays free of other imports.
+export type TournamentCalendarExtra = {
+  // One line per session, earliest first: "8:00 AM · 6u, 8u, 10u".
+  sessionLines: string[]
+  // The earliest session start ('HH:MM'), or null with no sessions.
+  firstStart: string | null
+  mapUrl: string | null
+}
+
+/** Tournament sessions grouped by tournament, in session order (sort_order, then start time). */
+export function groupTournamentSessions<T extends { tournament_id: string; start_time: string; sort_order: number }>(
+  rows: T[]
+): Map<string, T[]> {
+  const map = new Map<string, T[]>()
+  const sorted = [...rows].sort((a, b) => a.sort_order - b.sort_order || a.start_time.localeCompare(b.start_time))
+  for (const row of sorted) map.set(row.tournament_id, [...(map.get(row.tournament_id) ?? []), row])
+  return map
 }
 
 /** '8:00 AM', '8 am', '08:00' or '08:00:00' -> '08:00'; anything else -> null. */
@@ -78,25 +101,30 @@ function entry(id: string, title: string, date: string, time: string | null, col
 }
 
 export function clubCalendarEntries(
-  tournaments: Pick<
+  tournaments: (Pick<
     Tournament,
     'id' | 'name' | 'date' | 'start_time' | 'location' | 'city' | 'state' | 'status' | 'external_registration_url' | 'competition_level' | 'image_url' | 'notes'
-  >[],
+  > & { street_address?: string | null })[],
   clubEvents: Pick<ClubEvent, 'id' | 'title' | 'date' | 'start_time' | 'location' | 'event_type' | 'practice_group'>[],
-  sessionLines: Map<string, string[]> = new Map()
+  sessionLines: Map<string, string[]> = new Map(),
+  tournamentExtras: Map<string, TournamentCalendarExtra> = new Map()
 ): Entry[] {
   return [
-    ...tournaments.map((t) =>
-      entry(`t-${t.id}`, t.name, t.date, t.start_time, EVENT_COLORS.tournament, {
+    ...tournaments.map((t) => {
+      const extra = tournamentExtras.get(t.id)
+      const place = [t.city, t.state].filter(Boolean).join(', ')
+      const street = t.street_address?.trim()
+      return entry(`t-${t.id}`, t.name, t.date, extra?.firstStart ?? t.start_time, EVENT_COLORS.tournament, {
         label: KIND_LABELS.tournament,
-        location: t.location || [t.city, t.state].filter(Boolean).join(', ') || null,
-        // Weigh-in stays off: it is for families, in the parent portal.
-        lines: t.notes?.trim() ? [t.notes.trim()] : [],
+        location: street ? [t.location?.trim(), street, place].filter(Boolean).join(', ') : t.location || place || null,
+        // Sessions first, then notes. Weigh-in stays off: it is for families, in the parent portal.
+        lines: [...(extra?.sessionLines ?? []), ...(t.notes?.trim() ? [t.notes.trim()] : [])],
         tags: [...(t.competition_level ? [t.competition_level] : []), ...(t.status === 'not_open' ? ['Registration not open yet'] : [])],
         registerUrl: t.status === 'open' ? t.external_registration_url || '/login' : null,
         flierUrl: t.image_url,
+        ...(extra?.mapUrl ? { mapUrl: extra.mapUrl } : {}),
       })
-    ),
+    }),
     ...clubEvents.map((e) => {
       const registration = e.event_type === 'season_registration'
       const lines = sessionLines.get(e.id) ?? []

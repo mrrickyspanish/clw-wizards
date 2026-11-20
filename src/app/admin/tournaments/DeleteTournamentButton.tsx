@@ -46,9 +46,10 @@ export function DeleteTournamentButton({ id, name }: { id: string; name: string 
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Delete “{name}”?</AlertDialogTitle>
-          <AlertDialogDescription>
+          <AlertDialogDescription className="text-base">
             This permanently removes the tournament and is not reversible. Athlete registrations tied to it will also
-            be removed. Consider setting the status to “Cancelled” instead if you want to keep the record.
+            be removed. Consider setting the status to “Cancelled” instead if you want to keep the record. A
+            tournament families have paid for, or are paying for right now, cannot be deleted.
             {error && <span className="mt-2 block text-red-400">{error}</span>}
           </AlertDialogDescription>
         </AlertDialogHeader>

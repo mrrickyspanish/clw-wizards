@@ -47,7 +47,18 @@ export async function wipe(admin: Admin) {
     const { error } = await admin.from(table as never).delete().not('id', 'is', null)
     if (error) throw new Error(`clearing ${table}: ${error.message}`)
   }
+  // tournament_admin_details is keyed by tournament_id (no id column). It and
+  // tournament_sessions cascade from tournaments anyway; clearing them first
+  // keeps the order explicit. tournament_checkouts does not cascade (money rows
+  // survive a tournament delete with tournament_id set to NULL), so it must be
+  // listed or demo checkouts outlive every reset.
+  {
+    const { error } = await admin.from('tournament_admin_details' as never).delete().not('tournament_id', 'is', null)
+    if (error) throw new Error(`clearing tournament_admin_details: ${error.message}`)
+  }
   for (const table of [
+    'tournament_checkouts',
+    'tournament_sessions',
     'tournament_entries',
     'tournament_registrations',
     'disclosure_acceptances',

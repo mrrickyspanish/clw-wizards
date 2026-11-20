@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { ReadOnlyBanner } from '@/components/demo/ReadOnlyBanner'
 import Link from 'next/link'
-import { Eye, LayoutDashboard, Users, FolderOpen, HandCoins, Trophy, User, UsersRound } from 'lucide-react'
+import { ClipboardList, Eye, LayoutDashboard, Users, FolderOpen, HandCoins, Trophy, User, UsersRound } from 'lucide-react'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 
@@ -15,6 +15,8 @@ const PORTAL_NAV: NavItem[] = [
   { href: '/dashboard', label: 'Home', icon: <LayoutDashboard className="w-4 h-4" /> },
   { href: '/athletes', label: 'My Athletes', icon: <Users className="w-4 h-4" /> },
   { href: '/tournaments', label: 'Tournaments', icon: <Trophy className="w-4 h-4" /> },
+  // Desktop only: the 5-slot mobile tab bar stays as it is (A10); phones reach it from the dashboard.
+  { href: '/tournament-rosters', label: 'Tournament rosters', icon: <ClipboardList className="w-4 h-4" /> },
   { href: '/dues', label: 'Dues', icon: <HandCoins className="w-4 h-4" /> },
   { href: '/documents', label: 'Documents', icon: <FolderOpen className="w-4 h-4" /> },
   { href: '/family', label: 'Family', icon: <UsersRound className="w-4 h-4" /> },

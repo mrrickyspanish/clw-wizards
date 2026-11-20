@@ -7,15 +7,21 @@ import { ORG } from '@/config/org.config'
 /**
  * Payment notices: one short email to the people on the "Payment notices"
  * list (Admin -> Communications) every time money moves through Stripe --
- * dues, donations, sponsorships, renewals, and the ones a treasurer most needs
- * to see: refunds, disputes and failed recurring cards. Names and amounts
- * only; never card details.
+ * dues, tournament entries, donations, sponsorships, renewals, and the ones a
+ * treasurer most needs to see: refunds, disputes and failed recurring cards.
+ * Names and amounts only; never card details.
  *
  * A notice must never fail or repeat a payment: callers send it only after
  * the payment is recorded, and every error here is caught and logged.
  */
 
-export type PaymentNotice = { subject: string; lines: (string | null | undefined)[] }
+export type PaymentNotice = {
+  subject: string
+  lines: (string | null | undefined)[]
+  // The admin page the email ends with. Without one it ends with the Dues
+  // page, as every notice did before tournament payments.
+  link?: { label: string; path: string }
+}
 
 /** The list's addresses. An empty or unreadable list falls back to the club contact. */
 export async function paymentNoticeRecipients(): Promise<string[]> {
@@ -39,7 +45,8 @@ export async function sendPaymentNotice(notice: PaymentNotice): Promise<void> {
     if (!key) return
     const to = await paymentNoticeRecipients()
     const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? `https://${ORG.domain}`).replace(/\/$/, '')
-    const text = [...notice.lines.filter((line): line is string => line != null), '', `Dues: ${siteUrl}/admin/dues`].join('\n')
+    const link = notice.link ?? { label: 'Dues', path: '/admin/dues' }
+    const text = [...notice.lines.filter((line): line is string => line != null), '', `${link.label}: ${siteUrl}${link.path}`].join('\n')
     const resend = new Resend(key)
     const send = () =>
       resend.emails.send({
@@ -132,4 +139,103 @@ export function moneyOutNotice(f: {
         ? `${who} disputed a ${amount} payment with their bank. Stripe will ask the club for evidence; respond in the Stripe dashboard before the deadline.`
         : `${who}'s recurring ${amount} payment did not go through. Stripe will retry the card over the next few weeks.`
   return { subject, lines: [first, f.detail ?? null] }
+}
+
+/** The admin roster for a tournament, or the tournaments list once it was deleted. */
+function tournamentLink(tournamentId: string | null): { label: string; path: string } {
+  return tournamentId
+    ? { label: 'Tournament roster', path: `/admin/tournaments/${tournamentId}` }
+    : { label: 'Tournaments', path: '/admin/tournaments' }
+}
+
+function wrestlerList(names: string[]): string {
+  return names.length ? names.join(', ') : 'their wrestlers'
+}
+
+/** A family paid tournament entries on the club site. Never says donation or sponsorship. */
+export function tournamentPaymentNotice(f: {
+  payerName: string | null
+  wrestlerNames: string[]
+  entries: number
+  tournamentName: string
+  tournamentId: string | null
+  paidCents: number
+  // Wrestlers whose entry the family had withdrawn while the payment was
+  // open; the payment put them back on the list.
+  reregisteredNames?: string[]
+}): PaymentNotice {
+  const entries = f.entries === 1 ? '1 tournament entry' : `${f.entries} tournament entries`
+  const back = f.reregisteredNames ?? []
+  return {
+    subject: `Tournament entry paid: ${f.tournamentName} (${formatCents(f.paidCents)})`,
+    lines: [
+      `${f.payerName ?? 'A family'} paid ${formatCents(f.paidCents)} for ${entries} at ${f.tournamentName}.`,
+      `Wrestlers: ${wrestlerList(f.wrestlerNames)}.`,
+      back.length
+        ? `Re-registered by payment: ${back.join(', ')} (withdrawn while the payment was open, now registered again).`
+        : null,
+    ],
+    link: tournamentLink(f.tournamentId),
+  }
+}
+
+/**
+ * What the refunded checkout's entries show after the refund, read back from
+ * the registrations (a full refund clears a card payment only when nothing
+ * else covers the entry).
+ */
+export type TournamentRefundEntries = {
+  // No payment and no mark left: the entry shows payment due.
+  nowDue: number
+  // Still paid by card: another card checkout covers it.
+  paidByOtherCard: number
+  // Still covered by an admin's cash, check or waived mark.
+  markedByAdmin: number
+  // Listed on the checkout but no longer on the roster.
+  removed: number
+}
+
+function entryCount(n: number) {
+  return n === 1 ? '1 entry' : `${n} entries`
+}
+
+/** A tournament entry payment was refunded in Stripe. Never says donation or sponsorship. */
+export function tournamentRefundNotice(f: {
+  payerName: string | null
+  wrestlerNames: string[]
+  tournamentName: string
+  tournamentId: string | null
+  refundedCents: number
+  // Some of the charge is still held: Stripe refunded only part of it.
+  partial: boolean
+  // null when the entries could not be read back.
+  entries: TournamentRefundEntries | null
+}): PaymentNotice {
+  const who = f.payerName ?? 'a family'
+  const amount = formatCents(f.refundedCents)
+  const e = f.entries
+  const state = f.partial
+    ? ['Partial refund: the entries still show paid. Adjust them on the roster if needed.']
+    : !e
+      ? ['Full refund. Check the roster for what each entry shows now.']
+      : [
+        'Full refund.',
+        e.nowDue ? `${entryCount(e.nowDue)} now ${e.nowDue === 1 ? 'shows' : 'show'} payment due.` : null,
+        e.paidByOtherCard
+          ? `${entryCount(e.paidByOtherCard)} still ${e.paidByOtherCard === 1 ? 'shows' : 'show'} paid: another card payment covers ${e.paidByOtherCard === 1 ? 'it' : 'them'}.`
+          : null,
+        e.markedByAdmin
+          ? `${entryCount(e.markedByAdmin)} still ${e.markedByAdmin === 1 ? 'shows' : 'show'} paid: a cash, check or waived mark covers ${e.markedByAdmin === 1 ? 'it' : 'them'}.`
+          : null,
+        e.removed ? `${entryCount(e.removed)} ${e.removed === 1 ? 'is' : 'are'} no longer on the roster.` : null,
+      ]
+  return {
+    subject: `Refund: ${amount} to ${who} (tournament entry)`,
+    lines: [
+      `A tournament entry payment from ${who} for ${f.tournamentName} was refunded: ${amount}.`,
+      `Wrestlers: ${wrestlerList(f.wrestlerNames)}.`,
+      ...state.filter((line): line is string => line != null),
+    ],
+    link: tournamentLink(f.tournamentId),
+  }
 }

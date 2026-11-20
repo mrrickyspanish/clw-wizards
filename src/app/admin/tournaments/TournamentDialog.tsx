@@ -3,12 +3,14 @@
 import { flierKind } from '@/lib/flier'
 import { useRef, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Pencil, Upload } from 'lucide-react'
+import { Plus, Pencil, Upload, X } from 'lucide-react'
 
-import type { Tournament } from '@/types/database'
+import type { Tournament, TournamentAdminDetails, TournamentSession } from '@/types/database'
 import { ORG } from '@/config/org.config'
 import { createBrowserSupabase } from '@/lib/supabase/browser'
+import { MAX_TOURNAMENT_SESSIONS, isSessionTime, normalizeSessions } from '@/lib/tournament-sessions'
 import { createTournament, updateTournament, type TournamentInput } from './actions'
+import { centsToDollarInput, toSessionTime } from './tournament-admin'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -39,13 +41,37 @@ function safeName(name: string) {
   return name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-80)
 }
 
-export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
+type SessionRow = { key: number; start_time: string; divisions: string }
+
+export function TournamentDialog({
+  tournament,
+  sessions,
+  adminDetails,
+}: {
+  tournament?: Tournament
+  // This tournament's sessions (B2). None yet: Session 1 starts from start_time.
+  sessions?: Pick<TournamentSession, 'start_time' | 'divisions' | 'sort_order'>[]
+  // Admin-only club link and spots (B5, B6), from tournament_admin_details.
+  adminDetails?: Pick<TournamentAdminDetails, 'club_registrations_url' | 'spots_allotted'> | null
+}) {
   const router = useRouter()
+  // A new tournament whose sessions or admin details failed to save is saved
+  // again as an edit, so a retry never creates a second tournament.
+  const [savedId, setSavedId] = useState<string | null>(null)
+  const editId = tournament?.id ?? savedId
   const isEdit = Boolean(tournament)
 
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [sessionError, setSessionError] = useState<string | null>(null)
+
+  const keyRef = useRef(0)
+  const sessionRows = (): SessionRow[] => {
+    const saved = [...(sessions ?? [])].sort((a, b) => a.sort_order - b.sort_order)
+    if (saved.length) return saved.map((s) => ({ key: ++keyRef.current, start_time: s.start_time, divisions: s.divisions ?? '' }))
+    return [{ key: ++keyRef.current, start_time: toSessionTime(tournament?.start_time), divisions: '' }]
+  }
 
   const [name, setName] = useState(tournament?.name ?? '')
   const [date, setDate] = useState(tournament?.date ?? '')
@@ -53,7 +79,11 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
   const [city, setCity] = useState(tournament?.city ?? '')
   const [state, setState] = useState(tournament?.state ?? 'IL')
   const [status, setStatus] = useState<Tournament['status']>(tournament?.status ?? 'open')
-  const [startTime, setStartTime] = useState(tournament?.start_time ?? '')
+  const [sessionList, setSessionList] = useState<SessionRow[]>(sessionRows)
+  const [streetAddress, setStreetAddress] = useState(tournament?.street_address ?? '')
+  const [entryFee, setEntryFee] = useState(centsToDollarInput(tournament?.entry_fee_cents))
+  const [clubLink, setClubLink] = useState(adminDetails?.club_registrations_url ?? '')
+  const [spots, setSpots] = useState(adminDetails?.spots_allotted ? String(adminDetails.spots_allotted) : '')
   const [weighInDate, setWeighInDate] = useState(tournament?.weigh_in_date ?? '')
   const [weighInTime, setWeighInTime] = useState(tournament?.weigh_in_time ?? '')
   const [weighInLocation, setWeighInLocation] = useState(tournament?.weigh_in_location ?? '')
@@ -93,19 +123,39 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
     setGroups((prev) => (checked ? [...prev, group] : prev.filter((g) => g !== group)))
   }
 
+  function updateSession(key: number, field: 'start_time' | 'divisions', value: string) {
+    setSessionList((prev) => prev.map((s) => (s.key === key ? { ...s, [field]: value } : s)))
+  }
+
+  function addSession() {
+    setSessionList((prev) =>
+      prev.length >= MAX_TOURNAMENT_SESSIONS ? prev : [...prev, { key: ++keyRef.current, start_time: '', divisions: '' }]
+    )
+  }
+
+  function removeSession(key: number) {
+    setSessionList((prev) => (prev.length > 1 ? prev.filter((s) => s.key !== key) : prev))
+  }
+
   // Reset fields to the source values each time the dialog opens, so a create
   // form doesn't retain the previous entry and an edit form reflects the latest
   // saved values.
   function handleOpenChange(next: boolean) {
     if (next) {
       setError(null)
+      setSessionError(null)
+      setSavedId(null)
       setName(tournament?.name ?? '')
       setDate(tournament?.date ?? '')
       setLocation(tournament?.location ?? '')
       setCity(tournament?.city ?? '')
       setState(tournament?.state ?? 'IL')
       setStatus(tournament?.status ?? 'open')
-      setStartTime(tournament?.start_time ?? '')
+      setSessionList(sessionRows())
+      setStreetAddress(tournament?.street_address ?? '')
+      setEntryFee(centsToDollarInput(tournament?.entry_fee_cents))
+      setClubLink(adminDetails?.club_registrations_url ?? '')
+      setSpots(adminDetails?.spots_allotted ? String(adminDetails.spots_allotted) : '')
       setWeighInDate(tournament?.weigh_in_date ?? '')
       setWeighInTime(tournament?.weigh_in_time ?? '')
       setWeighInLocation(tournament?.weigh_in_location ?? '')
@@ -122,6 +172,17 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
+    setSessionError(null)
+
+    const drafts = sessionList.map((s) => ({ start_time: s.start_time, divisions: s.divisions }))
+    // Name the session by the number shown on screen (normalizeSessions counts
+    // after dropping blank rows, so its number can differ).
+    const missing = drafts.findIndex((d) => (d.start_time.trim() || d.divisions.trim()) && !isSessionTime(d.start_time.trim()))
+    const checked = normalizeSessions(drafts)
+    if (missing >= 0 || !checked.ok) {
+      setSessionError(missing >= 0 ? `Session ${missing + 1} needs a start time.` : checked.ok ? null : checked.error)
+      return
+    }
     setLoading(true)
 
     const values: TournamentInput = {
@@ -131,7 +192,8 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
       city,
       state,
       status,
-      start_time: startTime,
+      sessions: drafts,
+      street_address: streetAddress,
       weigh_in_date: weighInDate,
       weigh_in_time: weighInTime,
       weigh_in_location: weighInLocation,
@@ -141,15 +203,17 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
       competition_level: competitionLevel,
       image_url: imageUrl,
       notes,
+      entry_fee: entryFee,
+      club_registrations_url: clubLink,
+      spots_allotted: spots,
     }
 
-    const result = isEdit
-      ? await updateTournament(tournament!.id, values)
-      : await createTournament(values)
+    const result = editId ? await updateTournament(editId, values) : await createTournament(values)
 
     setLoading(false)
 
     if (!result.ok) {
+      if (result.id) setSavedId(result.id)
       setError(result.error)
       return
     }
@@ -197,15 +261,80 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
               <Label htmlFor="date">Date</Label>
               <Input id="date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
-            <div className="min-w-0 space-y-2">
-              <Label htmlFor="start_time">Start time</Label>
-              <Input id="start_time" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
-            </div>
           </div>
+
+          <fieldset className="space-y-3">
+            <legend className="mb-2 text-sm font-medium leading-none">Sessions</legend>
+            <p className="text-base text-clw-gray">
+              One session is the usual. Add more when divisions start at different times.
+            </p>
+            {sessionList.map((s, i) => (
+              <div key={s.key} className="space-y-3 rounded-xl border border-clw-gold/15 p-3">
+                <div className="flex min-h-11 items-center justify-between gap-2">
+                  <span className="text-base font-medium text-clw-white">Session {i + 1}</span>
+                  {i > 0 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-clw-gray hover:text-red-400"
+                      onClick={() => removeSession(s.key)}
+                    >
+                      <X className="h-4 w-4" /> Remove<span className="sr-only"> session {i + 1}</span>
+                    </Button>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-[10rem_minmax(0,1fr)]">
+                  <div className="min-w-0 space-y-2">
+                    <Label htmlFor={`session-${s.key}-time`}>Time</Label>
+                    <Input
+                      id={`session-${s.key}-time`}
+                      type="time"
+                      value={s.start_time}
+                      onChange={(e) => updateSession(s.key, 'start_time', e.target.value)}
+                    />
+                  </div>
+                  <div className="min-w-0 space-y-2">
+                    <Label htmlFor={`session-${s.key}-divisions`}>Divisions</Label>
+                    <Input
+                      id={`session-${s.key}-divisions`}
+                      placeholder="e.g. Tots, Bantam, Intermediate"
+                      maxLength={120}
+                      value={s.divisions}
+                      onChange={(e) => updateSession(s.key, 'divisions', e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            {sessionList.length < MAX_TOURNAMENT_SESSIONS && (
+              <Button type="button" variant="outline" size="sm" onClick={addSession}>
+                <Plus className="h-4 w-4" /> Add a session
+              </Button>
+            )}
+            {sessionError && (
+              <p role="alert" className="text-base text-red-400">
+                {sessionError}
+              </p>
+            )}
+          </fieldset>
 
           <div className="space-y-2">
             <Label htmlFor="location">Location / venue</Label>
             <Input id="location" required value={location} onChange={(e) => setLocation(e.target.value)} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="street_address">Street address</Label>
+            <Input
+              id="street_address"
+              placeholder="Optional, e.g. 100 Main St"
+              maxLength={200}
+              autoComplete="off"
+              value={streetAddress}
+              onChange={(e) => setStreetAddress(e.target.value)}
+            />
+            <p className="text-base text-clw-gray">Optional. Families tap the venue to get directions to this address.</p>
           </div>
 
           <div className="grid grid-cols-3 gap-4">
@@ -296,6 +425,25 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="entry_fee">Cost per wrestler</Label>
+            <div className="relative">
+              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-base text-clw-gray">$</span>
+              <Input
+                id="entry_fee"
+                inputMode="decimal"
+                placeholder="Blank if families do not pay on our site"
+                className="pl-7"
+                value={entryFee}
+                onChange={(e) => setEntryFee(e.target.value)}
+              />
+            </div>
+            <p className="text-base text-clw-gray">
+              Families pay this online on our site only when the tournament has no external registration URL. Leave it
+              blank for free tournaments or ones families pay for elsewhere.
+            </p>
+          </div>
+
+          <div className="space-y-2">
             <Label>Eligible practice groups</Label>
             <p className="text-sm text-clw-gray">Leave all unchecked to make it open to every group.</p>
             <div className="grid grid-cols-2 gap-2">
@@ -326,7 +474,7 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
               <option value="Elite / Invite-only" />
             </datalist>
             <p className="text-sm text-clw-gray">
-              A difficulty grade so parents can judge readiness — every eligible group can still sign up.
+              A difficulty grade so parents can judge readiness. Every eligible group can still sign up.
             </p>
           </div>
 
@@ -351,7 +499,7 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
                   )}
                   <button
                     type="button"
-                    className="text-sm text-clw-gray underline hover:text-clw-gold"
+                    className="min-h-11 min-w-11 px-2 text-sm text-clw-gray underline hover:text-clw-gold"
                     onClick={() => setImageUrl('')}
                   >
                     Remove
@@ -377,6 +525,38 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
             <Label htmlFor="notes">Notes</Label>
             <Textarea id="notes" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
+
+          <fieldset className="space-y-4 rounded-xl border border-clw-gold/20 bg-clw-gold/5 p-4">
+            <legend className="px-1 font-cond text-sm uppercase tracking-[0.16em] text-clw-gold">Admins only</legend>
+            <p className="text-base text-clw-gray">Families and visitors never see these.</p>
+            <div className="space-y-2">
+              <Label htmlFor="club_registrations_url">TrackWrestling club registrations link</Label>
+              <Input
+                id="club_registrations_url"
+                type="url"
+                placeholder="https://www.trackwrestling.com/..."
+                value={clubLink}
+                onChange={(e) => setClubLink(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="spots_allotted">Number of spots</Label>
+              <Input
+                id="spots_allotted"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={500}
+                step={1}
+                placeholder="Blank if there is no limit"
+                value={spots}
+                onChange={(e) => setSpots(e.target.value)}
+              />
+              <p className="text-base text-clw-gray">
+                Shows as &quot;5 of 12 spots filled&quot; on the tournament list and roster. It does not stop sign-ups.
+              </p>
+            </div>
+          </fieldset>
 
           <DialogFooter>
             <Button type="submit" disabled={loading}>
