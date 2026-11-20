@@ -167,6 +167,12 @@ Object.assign(tables.dues_payments.find((d) => d.id === id('m', 4)), { payment_p
 for (const [n, group] of [[20, 'Group 2'], [21, 'Group 3']]) tables.practices.push({ ...base, id: id('p', n), weekday: 2, practice_group: group, start_time: '18:00', end_time: '19:30', location: 'Wizards Facility', notes: 'Regional wrestlers', active: true, starts_on: '2026-11-10', ends_on: '2026-11-10' })
 tables.athletes.find((a) => a.first_name === 'Tina').usa_wrestling_card_number = '1234567890'
 tables.athletes.find((a) => a.first_name === 'Lily').usa_wrestling_card_number = '5550001112'
+// ---- CLW-ENG-005: made-up street addresses for tap-to-map ----
+// A long street on the Turkey Tussle (two sessions above); the Spring Open keeps no
+// sessions and no street, so it shows "Starts" and maps by venue name.
+tables.tournaments.find((t) => t.id === id('t', 1)).street_address = '12345 West Longname Memorial Boulevard, Building C'
+for (const t of tables.tournaments) t.street_address ??= null
+// ---- end CLW-ENG-005 ----
 
 const user = () => {
   const uid = as === 'admin' ? ADMIN : PARENT

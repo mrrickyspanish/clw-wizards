@@ -4136,3 +4136,172 @@ test('CLW-ENG-001: the QA mock has made-up rows for the three new tables', () =>
   }
   assert.doesNotMatch(block[0], /@(?!example\.com)[a-z0-9-]+\.[a-z]/i, 'no real email addresses')
 })
+
+// ---- CLW-ENG-005: tournament sessions and tap-to-map for parents and the public Events page ----
+const eng005React = require('react')
+const { renderToStaticMarkup: eng005Render } = require('react-dom/server')
+const ENG005_FILES = ['src/lib/club-calendar.ts', 'src/components/events/ClubCalendar.tsx', 'src/app/(marketing)/events/page.tsx', 'src/app/(portal)/tournaments/page.tsx']
+
+// A Supabase stand-in: records each table read and answers from `tables`
+// (a table set to an Error answers like a missing table: no data, an error).
+function eng005Supabase(tables) {
+  const reads = []
+  return {
+    reads,
+    auth: { getUser: async () => ({ data: { user: { id: 'parent-1' } } }) },
+    from(table) {
+      reads.push(table)
+      const answer = tables[table]
+      const result = answer instanceof Error ? { data: null, error: { message: answer.message } } : { data: answer ?? [], error: null }
+      const q = { then: (resolve, reject) => Promise.resolve(result).then(resolve, reject) }
+      for (const m of ['select', 'eq', 'neq', 'gte', 'in', 'order']) q[m] = () => q
+      return q
+    },
+  }
+}
+const eng005Tournament = (over) => ({
+  id: 't1', name: 'Turkey Tussle', date: '2026-11-21', start_time: '08:00', location: 'Central High School', street_address: null,
+  city: 'Huntley', state: 'IL', status: 'open', external_registration_url: 'https://example.com/reg', external_platform: null,
+  competition_level: null, image_url: null, notes: null, weigh_in_date: null, weigh_in_time: null, weigh_in_location: null, ...over,
+})
+const eng005Sessions = [
+  { id: 's2', tournament_id: 't1', start_time: '12:30', divisions: '12u, 14u', sort_order: 1 },
+  { id: 's1', tournament_id: 't1', start_time: '08:00', divisions: '6u, 8u, 10u', sort_order: 0 },
+]
+
+function eng005EventsPage(tables) {
+  const supabase = eng005Supabase(tables)
+  let calendarProps = null
+  const mod = load('src/app/(marketing)/events/page.tsx', {
+    'next/link': { __esModule: true, default: (p) => eng005React.createElement('a', { href: p.href }, p.children) },
+    '@/lib/page-metadata': { pageMetadata: (m) => m },
+    '@/lib/supabase/server': { createServerSupabase: async () => supabase },
+    '@/lib/chicago-time': { chicagoDateString: () => '2026-11-01' },
+    '@/lib/event-sessions': eventSessionsLib,
+    '@/lib/tournament-sessions': tSessionsLib,
+    '@/lib/maps': mapsLib,
+    '@/lib/club-calendar': clubCalLib,
+    '@/components/events/ClubCalendar': { ClubCalendar: (props) => { calendarProps = props; return null } },
+  })
+  return { supabase, render: async () => { eng005Render(await mod.default()); return plain(calendarProps) } }
+}
+
+test('CLW-ENG-005: calendar entries list tournament sessions before notes, start at the earliest session, and link the venue', () => {
+  const grouped = clubCalLib.groupTournamentSessions(eng005Sessions)
+  assert.deepEqual(plain(grouped.get('t1').map((s) => s.id)), ['s1', 's2'])
+  const extras = new Map([['t1', { sessionLines: ['8:00 AM · 6u, 8u, 10u', '12:30 PM · 12u, 14u'], firstStart: '08:00', mapUrl: 'https://www.google.com/maps/search/?api=1&query=x' }]])
+  const [entry] = plain(clubCalLib.clubCalendarEntries([eng005Tournament({ start_time: '9:00 AM', notes: ' Singlets required. ' })], [], new Map(), extras))
+  assert.equal(entry.start, '2026-11-21T08:00')
+  assert.equal(entry.detail.when, 'Saturday, November 21 · 8:00 AM')
+  assert.deepEqual(entry.detail.lines, ['8:00 AM · 6u, 8u, 10u', '12:30 PM · 12u, 14u', 'Singlets required.'])
+  assert.equal(entry.detail.mapUrl, 'https://www.google.com/maps/search/?api=1&query=x')
+  // No extras: today's single time, and no map key at all.
+  const [plainEntry] = plain(clubCalLib.clubCalendarEntries([eng005Tournament({ start_time: '9:00 AM' })], []))
+  assert.equal(plainEntry.start, '2026-11-21T09:00')
+  assert.deepEqual(plainEntry.detail.lines, [])
+  assert.ok(!('mapUrl' in plainEntry.detail))
+  // A street address joins the location shown in the details box.
+  const [street] = plain(clubCalLib.clubCalendarEntries([eng005Tournament({ street_address: ' 123 Main St ' })], []))
+  assert.equal(street.detail.location, 'Central High School, 123 Main St, Huntley, IL')
+})
+
+test('CLW-ENG-005: the Events page shows each session, keeps one time without sessions, and encodes the map link', async () => {
+  const page = eng005EventsPage({
+    tournaments: [
+      eng005Tournament({ start_time: '08:00', location: 'St. Ann Gym & Annex #2', street_address: '12 Oak Ave' }),
+      eng005Tournament({ id: 't2', name: 'Spring Open', date: '2026-11-28', start_time: '9:00 AM', location: 'North Gym', city: 'Crystal Lake' }),
+    ],
+    club_events: [], event_sessions: [], tournament_sessions: eng005Sessions,
+  })
+  const props = await page.render()
+  const tussle = props.events.find((e) => e.id === 't-t1')
+  assert.equal(tussle.start, '2026-11-21T08:00')
+  assert.deepEqual(tussle.detail.lines, ['8:00 AM · 6u, 8u, 10u', '12:30 PM · 12u, 14u'])
+  // The street wins over the venue name in the map search, and the query is encoded.
+  assert.equal(tussle.detail.mapUrl, 'https://www.google.com/maps/search/?api=1&query=12%20Oak%20Ave%2C%20Huntley%2C%20IL')
+  const spring = props.events.find((e) => e.id === 't-t2')
+  assert.equal(spring.start, '2026-11-28T09:00')
+  assert.deepEqual(spring.detail.lines, [])
+  assert.equal(spring.detail.mapUrl, 'https://www.google.com/maps/search/?api=1&query=North%20Gym%2C%20Crystal%20Lake%2C%20IL')
+  assert.ok(page.supabase.reads.includes('tournament_sessions'))
+  const venueOnly = mapsLib.mapsUrl({ venue: 'St. Ann Gym & Annex #2', city: 'Huntley', state: 'IL' })
+  assert.ok(venueOnly.includes('%26') && venueOnly.includes('%23') && !venueOnly.includes('&Annex'))
+})
+
+test('CLW-ENG-005: the Events page still works before the sessions table exists', async () => {
+  const page = eng005EventsPage({ tournaments: [eng005Tournament({ start_time: '9:00 AM' })], club_events: [], event_sessions: [], tournament_sessions: new Error('relation "public.tournament_sessions" does not exist') })
+  const [entry] = (await page.render()).events
+  assert.equal(entry.start, '2026-11-21T09:00')
+  assert.deepEqual(entry.detail.lines, [])
+})
+
+test('CLW-ENG-005: no admin-only tournament data reaches the public Events page or the parent card', async () => {
+  for (const file of ENG005_FILES) {
+    const src = fs.readFileSync(path.join(__dirname, '..', file), 'utf8')
+    assert.doesNotMatch(src, /tournament_admin_details|club_registrations_url|spots_allotted/, file)
+  }
+  // Even if a tournament row carried admin fields, the calendar passes only its own detail fields.
+  const page = eng005EventsPage({ tournaments: [eng005Tournament({ club_registrations_url: 'https://example.com/club', spots_allotted: 12 })], club_events: [], event_sessions: [], tournament_sessions: [] })
+  const props = await page.render()
+  assert.doesNotMatch(JSON.stringify(props), /club_registrations_url|spots_allotted|example\.com\/club/)
+  assert.ok(!page.supabase.reads.includes('tournament_admin_details'))
+})
+
+function eng005ParentPage(tables) {
+  const supabase = eng005Supabase(tables)
+  const el = (tag) => ({ children, className }) => eng005React.createElement(tag, { className }, children)
+  const mod = load('src/app/(portal)/tournaments/page.tsx', {
+    'next/link': { __esModule: true, default: (p) => eng005React.createElement('a', { href: p.href, 'data-link': 'next' }, p.children) },
+    '@/lib/tournament-status': load('src/lib/tournament-status.ts', {}),
+    '@/lib/supabase/server': { createServerSupabase: async () => supabase },
+    '@/lib/family': { resolveFamilyOwnerIds: async () => ['parent-1'] },
+    '@/lib/chicago-time': { chicagoDateString: () => '2026-11-01' },
+    '@/lib/practice': practiceLib,
+    '@/lib/maps': mapsLib,
+    '@/lib/tournament-sessions': tSessionsLib,
+    '@/lib/club-calendar': clubCalLib,
+    '@/components/ui/badge': { Badge: el('span') },
+    '@/components/ui/button': { Button: ({ children }) => children },
+    '@/components/ui/card': { Card: el('section'), CardContent: el('div'), CardHeader: el('header'), CardTitle: el('h3') },
+    './RegisterControls': { RegisterControls: () => eng005React.createElement('div', null, 'REGISTER-CONTROLS') },
+    '@/components/events/TournamentFlier': { TournamentFlier: () => null },
+  })
+  return { supabase, html: async () => eng005Render(await mod.default()) }
+}
+
+test('CLW-ENG-005: the parent card lists sessions, links the venue to a map, and links Tournament rosters', async () => {
+  const page = eng005ParentPage({
+    tournaments: [
+      eng005Tournament({ street_address: '123 Main St', external_registration_url: null }),
+      eng005Tournament({ id: 't2', name: 'Spring Open', date: '2026-11-28', start_time: '09:30', location: '', city: 'Crystal Lake', status: 'closed' }),
+    ],
+    athletes: [], tournament_sessions: eng005Sessions,
+  })
+  const html = await page.html()
+  assert.match(html, /<a href="\/tournament-rosters" data-link="next">.*Tournament rosters<\/a>/)
+  assert.ok(html.includes('8:00 AM · 6u, 8u, 10u'))
+  assert.ok(html.indexOf('8:00 AM · 6u, 8u, 10u') < html.indexOf('12:30 PM · 12u, 14u'))
+  assert.ok(!html.includes('Starts 8:00 AM'), 'sessions replace the single start time')
+  assert.ok(html.includes('Starts 9:30 AM'), 'no sessions: the single start time as before')
+  const links = [...html.matchAll(/<a href="(https:\/\/www\.google\.com\/maps\/[^"]+)"([^>]*)>([\s\S]*?)<\/a>/g)]
+  assert.equal(links.length, 2)
+  const [tussle, spring] = links
+  assert.equal(tussle[1].replace(/&amp;/g, '&'), 'https://www.google.com/maps/search/?api=1&query=123%20Main%20St%2C%20Huntley%2C%20IL')
+  assert.match(tussle[2], /target="_blank"/)
+  assert.match(tussle[2], /rel="noopener noreferrer"/)
+  assert.match(tussle[2], /min-h-11/)
+  assert.match(tussle[3], /Central High School<\/span><span class="block">123 Main St, Huntley, IL<\/span>/)
+  assert.match(spring[3], /Crystal Lake, IL/)
+  // Parent-facing details are body text: no text-sm or text-xs in the card header and details.
+  const details = html.slice(html.indexOf('<section'), html.indexOf('REGISTER-CONTROLS'))
+  assert.doesNotMatch(details, /text-(xs|sm)\b/)
+  assert.ok(page.supabase.reads.includes('tournament_sessions'))
+  assert.ok(!page.supabase.reads.includes('tournament_admin_details'))
+})
+
+test('CLW-ENG-005: the parent card still shows the single start time before the sessions table exists', async () => {
+  const page = eng005ParentPage({ tournaments: [eng005Tournament({ start_time: '8:00 AM', external_registration_url: null })], athletes: [], tournament_sessions: new Error('relation does not exist') })
+  const html = await page.html()
+  assert.ok(html.includes('Starts 8:00 AM'))
+  assert.ok(html.includes('REGISTER-CONTROLS'), 'the registration block still renders')
+})

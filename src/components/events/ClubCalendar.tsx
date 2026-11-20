@@ -42,6 +42,8 @@ export type CalendarEntry = {
     tags: string[]
     registerUrl: string | null
     flierUrl?: string | null
+    // Google Maps link: the location opens a map in a new tab when set.
+    mapUrl?: string | null
   }
 }
 
@@ -147,11 +149,24 @@ export function ClubCalendar({
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-3 text-base text-clw-gray">
-                {detail.location && (
+                {detail.location && detail.mapUrl ? (
+                  <a
+                    href={detail.mapUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex min-h-11 items-center gap-2 text-clw-white underline decoration-clw-gold/50 underline-offset-4 hover:decoration-clw-gold"
+                  >
+                    <MapPin className="h-4 w-4 shrink-0 text-clw-gold" />
+                    <span className="min-w-0 break-words">
+                      {detail.location}
+                      <span className="sr-only"> (opens a map in a new tab)</span>
+                    </span>
+                  </a>
+                ) : detail.location ? (
                   <p className="flex items-start gap-2">
                     <MapPin className="mt-1 h-4 w-4 shrink-0 text-clw-gold" /> {detail.location}
                   </p>
-                )}
+                ) : null}
                 {detail.tags.length > 0 && <p className="text-clw-white">{detail.tags.join(' · ')}</p>}
                 {detail.lines.length > 0 && (
                   <ul className="space-y-1">
