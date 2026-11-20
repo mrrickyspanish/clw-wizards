@@ -137,10 +137,22 @@ export async function middleware(req: NextRequest, event: NextFetchEvent) {
 
   // Church demo staff roles (SBC, Nov 20): each sample login reaches only its
   // own areas; anything else goes to that role's home page.
-  const churchRole = isAdminPath ? churchRoleFor(user.email) : null
+  // Any signed-in path, so staff can't reach the member pages (/dashboard) by address either.
+  const churchRole = churchRoleFor(user.email)
   if (churchRole && !churchAllows(churchRole, pathname)) {
     const redirectUrl = req.nextUrl.clone()
     redirectUrl.pathname = churchRole.home
+    redirectUrl.search = ''
+    return NextResponse.redirect(redirectUrl)
+  }
+
+  // Church demo members: Documents and Household are hidden (UX scrub callout 1),
+  // by address too.
+  // Same test as CHURCH_READ_ONLY, inline so middleware keeps its small import list.
+  const churchDemo = process.env.NEXT_PUBLIC_DEMO_MODE === '1' && process.env.NEXT_PUBLIC_DEMO_FLAVOR === 'church'
+  if (churchDemo && role === 'parent' && matchesPrefix(pathname, ['/documents', '/family'])) {
+    const redirectUrl = req.nextUrl.clone()
+    redirectUrl.pathname = '/dashboard'
     redirectUrl.search = ''
     return NextResponse.redirect(redirectUrl)
   }
@@ -156,6 +168,7 @@ export const config = {
     '/dashboard/:path*',
     '/athletes/:path*',
     '/documents/:path*',
+    '/family/:path*',
     '/dues/:path*',
     '/tournaments/:path*',
     '/registration/:path*',

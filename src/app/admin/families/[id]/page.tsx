@@ -328,6 +328,7 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
         </CardContent>
       </Card>
 
+      {canEditPeople && (
       <Card className="mb-6 border-clw-gold/10 bg-clw-black">
         <CardHeader>
           <CardTitle className="text-sm font-medium text-clw-gray">
@@ -353,6 +354,7 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
           />
         </CardContent>
       </Card>
+      )}
 
       {guardians.length > 0 && (
         <Card className="mb-6 border-clw-gold/10 bg-clw-black">
@@ -418,11 +420,13 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
 
                 <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-clw-gold/10 pt-4">
                   {canEditPeople && <ParentDialog parent={guardian} relationship="co-guardian" familyId={parent.id} />}
-                  <FamilyActiveToggle
-                    parentId={guardian.id}
-                    isActive={guardian.is_active}
-                    familyId={parent.id}
-                  />
+                  {canEditPeople && (
+                    <FamilyActiveToggle
+                      parentId={guardian.id}
+                      isActive={guardian.is_active}
+                      familyId={parent.id}
+                    />
+                  )}
                 </div>
               </div>
             ))}
@@ -687,6 +691,7 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
       </details>
 
       {/* Account actions live at the bottom, away from everyday edits. */}
+      {canEditPeople && (
       <section className="mt-10 border-t border-clw-gold/10 pt-6">
         <h2 className="text-lg font-display text-clw-white">Account</h2>
         <p className="mb-4 mt-1 text-base text-clw-gray">
@@ -697,6 +702,7 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
           {viewerIsFullAdmin && <DeleteFamilyButton parentId={parent.id} fullWidth />}
         </div>
       </section>
+      )}
     </div>
   )
 }
