@@ -13,8 +13,11 @@
 -- not). There is no admin bypass: an admin sees only wrestlers they guard.
 -- Covers tournaments from 30 days ago onward.
 --
--- registration_state is the site registration's payment state: 'free' (no
--- price), 'paid', 'waived' or 'due'. It is NULL for TrackWrestling rows.
+-- registration_state is the site registration's payment state, checked in
+-- this order: 'waived'; 'free' when the effective fee (the registration's
+-- locked fee_cents, else the tournament's entry_fee_cents) is missing or 0;
+-- 'paid' when paid_cents covers it; otherwise 'due'. src/lib's
+-- registrationPaymentState uses the same order. NULL for TrackWrestling rows.
 
 CREATE OR REPLACE FUNCTION public.family_tournament_roster()
 RETURNS TABLE (
@@ -38,7 +41,7 @@ RETURNS TABLE (
     'site'::TEXT, r.division, r.weight,
     CASE
       WHEN r.payment_method = 'waived' THEN 'waived'
-      WHEN coalesce(r.fee_cents, t.entry_fee_cents) IS NULL THEN 'free'
+      WHEN coalesce(r.fee_cents, t.entry_fee_cents, 0) = 0 THEN 'free'
       WHEN r.paid_cents >= coalesce(r.fee_cents, t.entry_fee_cents) THEN 'paid'
       ELSE 'due'
     END

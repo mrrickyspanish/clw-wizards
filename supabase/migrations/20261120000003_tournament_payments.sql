@@ -74,6 +74,9 @@ BEGIN
 END;
 $$;
 
+-- Runs only as a trigger; nobody calls it directly.
+REVOKE EXECUTE ON FUNCTION public.keep_registration_payment_server_only() FROM PUBLIC, anon, authenticated;
+
 CREATE TRIGGER keep_registration_payment_server_only
   BEFORE INSERT OR UPDATE ON public.tournament_registrations
   FOR EACH ROW EXECUTE FUNCTION public.keep_registration_payment_server_only();
@@ -111,19 +114,31 @@ CREATE POLICY "payer_read_own_tournament_checkouts" ON public.tournament_checkou
 REVOKE ALL ON TABLE public.tournament_checkouts FROM anon;
 
 -- Applies one card payment, once per checkout however often Stripe sends it.
--- The overpay flag is true when any of the checkout's registrations already
--- showed paid (card, cash, check or waived) before this payment, so the
--- webhook can tell the club to look at it.
+-- The server locks fee_cents on every registration before checkout starts, so
+-- a registration with no fee_cents is a server bug: it raises rather than
+-- marking a row "card" with nothing paid.
+-- Returned flags for the webhook:
+--   overpay              any of the checkout's registrations already showed
+--                        paid (card, cash, check or waived) before this
+--                        payment, so the club should look at it.
+--   session_mismatch     the checkout was already settled under a DIFFERENT
+--                        Stripe session: money taken but not recorded here.
+--   registrations_marked how many registrations this payment marked paid by
+--                        card (fewer than the checkout lists when some were
+--                        deleted before payment or carry a cash, check or
+--                        waived mark, which a card payment never overwrites).
 CREATE OR REPLACE FUNCTION public.record_tournament_payment(
   _checkout UUID, _session TEXT, _intent TEXT, _amount INTEGER
 ) RETURNS TABLE (
   applied BOOLEAN, payer_id UUID, tournament_id UUID, tournament_name TEXT,
-  athlete_ids UUID[], amount_cents INTEGER, overpay BOOLEAN
+  athlete_ids UUID[], amount_cents INTEGER, overpay BOOLEAN,
+  session_mismatch BOOLEAN, registrations_marked INTEGER
 ) LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 #variable_conflict use_column
 DECLARE
   v public.tournament_checkouts%ROWTYPE;
   v_overpay BOOLEAN;
+  v_marked INTEGER;
 BEGIN
   IF _amount IS NULL OR _amount <= 0 THEN
     RAISE EXCEPTION 'Invalid payment amount for tournament checkout %', _checkout;
@@ -134,9 +149,17 @@ BEGIN
   END IF;
 
   IF v.status <> 'pending' THEN
-    -- Already counted: Stripe sent this payment again.
-    RETURN QUERY SELECT FALSE, v.payer_id, v.tournament_id, v.tournament_name, v.athlete_ids, v.amount_cents, FALSE;
+    -- Already counted: Stripe sent this payment again (or, when the session
+    -- differs, a second payment arrived for a settled checkout).
+    RETURN QUERY SELECT FALSE, v.payer_id, v.tournament_id, v.tournament_name, v.athlete_ids, v.amount_cents, FALSE,
+      (v.stripe_checkout_session_id IS DISTINCT FROM _session), 0;
     RETURN;
+  END IF;
+
+  PERFORM 1 FROM public.tournament_registrations r
+  WHERE r.id = ANY (v.registration_ids) AND r.fee_cents IS NULL;
+  IF FOUND THEN
+    RAISE EXCEPTION 'Tournament checkout % has a registration with no locked fee', _checkout;
   END IF;
 
   SELECT coalesce(bool_or(r.paid_cents > 0 OR r.payment_method IS NOT NULL), FALSE) INTO v_overpay
@@ -151,13 +174,17 @@ BEGIN
     paid_at = now()
   WHERE c.id = v.id;
 
+  -- A cash, check or waived mark stays as the admin set it; overpay alerts.
   UPDATE public.tournament_registrations r SET
-    paid_cents = coalesce(r.fee_cents, r.paid_cents),
+    paid_cents = r.fee_cents,
     paid_at = now(),
     payment_method = 'card'
-  WHERE r.id = ANY (v.registration_ids);
+  WHERE r.id = ANY (v.registration_ids)
+    AND (r.payment_method IS NULL OR r.payment_method = 'card');
+  GET DIAGNOSTICS v_marked = ROW_COUNT;
 
-  RETURN QUERY SELECT TRUE, v.payer_id, v.tournament_id, v.tournament_name, v.athlete_ids, v.amount_cents, v_overpay;
+  RETURN QUERY SELECT TRUE, v.payer_id, v.tournament_id, v.tournament_name, v.athlete_ids, v.amount_cents, v_overpay,
+    FALSE, v_marked;
 END;
 $$;
 
@@ -199,12 +226,17 @@ BEGIN
 
   IF v_net = 0 THEN
     -- Only the card payment is undone; a cash, check or waived mark an admin
-    -- added since stays.
+    -- added since stays, and so does a registration another card checkout
+    -- still pays for (the club refunded a duplicate payment).
     UPDATE public.tournament_registrations r SET
       paid_cents = 0,
       paid_at = NULL,
       payment_method = NULL
-    WHERE r.id = ANY (v.registration_ids) AND r.payment_method = 'card';
+    WHERE r.id = ANY (v.registration_ids) AND r.payment_method = 'card'
+      AND NOT EXISTS (
+        SELECT 1 FROM public.tournament_checkouts c2
+        WHERE c2.id <> v.id AND c2.status IN ('paid', 'partially_refunded') AND r.id = ANY (c2.registration_ids)
+      );
   END IF;
 
   RETURN QUERY SELECT TRUE, TRUE, v.payer_id, v.tournament_name, v_delta;
