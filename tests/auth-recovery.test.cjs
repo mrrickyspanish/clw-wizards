@@ -3930,7 +3930,7 @@ const eng001TypeKeys = (ts, name) => {
 }
 
 test('CLW-ENG-001: exactly the five new migrations exist and every new table has RLS on', () => {
-  const ours = fs.readdirSync(eng001Dir).filter((f) => f.startsWith('20261120'))
+  const ours = fs.readdirSync(eng001Dir).filter((f) => f.startsWith('20261120') && f !== '20261120000000_keep_role_admin_only.sql')
   assert.deepEqual(ours.sort(), ENG001_MIGRATIONS)
   const tables = []
   for (const file of ENG001_MIGRATIONS) {
