@@ -100,6 +100,24 @@ source keeps the club's words.
     creative-eye-agent-os `evidence/2026-11-16-ai-sample-photography.md`). No
     real concert frames: the recap still needs PR ministry sign-off.
   - The Page Editor login exists only after a church reset at `/demo-reset`.
+- **UX scrub (Nov 20, RJ approved all three callouts):**
+  - Hidden in the church build: Overview (`/admin`), Sign-ups, To review,
+    Community Partners, Website content and the admin's Member view
+    (`CHURCH_HIDDEN` in `demo-roles.ts`), plus member Documents and Household
+    (`CHURCH_PORTAL_HIDDEN` in `src/app/(portal)/layout.tsx`).
+  - Each role's menu order and landing page come from `menu` and `home` in
+    `demo-roles.ts`: Church Admin and Ministry Admin land on Pages, Ministry
+    Staff on Meetings & Events.
+  - Giving is gifts received only, for both the Giving Admin
+    (`ChurchGiving` in `src/app/admin/dues/page.tsx`) and members
+    (`ChurchMemberGiving` in `src/app/(portal)/dues/page.tsx`). No balances,
+    pledges or due dates. Fund names are sample labels.
+  - Role names show in the sidebar, phone menu and read-only banner.
+  - "Participant" now reads "household member" (or "People" as a heading) in
+    `demo-church.mjs`. Other church-only wording is behind `CHURCH_READ_ONLY`
+    in the page itself, so the club build is unchanged.
+  - Full findings: creative-eye-agent-os
+    `projects/sbc-digital-platform/reviews/UX-scrub-staff-demo-2026-11-20.md`.
 - **Open:** nothing known.
   - Fixed (Nov 20): a Ministry Admin opening another household by a direct
     `/admin/families/<id>` address now gets 404, matching the Members list.
