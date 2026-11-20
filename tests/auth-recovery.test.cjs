@@ -3577,6 +3577,19 @@ test('a tournament that is not open yet reads that way, with no Register anywher
   assert.deepEqual(entry.detail.tags, ['Novice', 'Registration not open yet'])
 })
 
+// Register button names the site, never the raw platform word (Nov 20).
+test('the outside Register button names the site from its link, never "other"', () => {
+  const lib = load('src/lib/tournament-status.ts', {})
+  assert.equal(lib.registerButtonLabel('other', 'https://www.usabracketing.com/events/abc'), 'Register on USA Bracketing')
+  assert.equal(lib.registerButtonLabel(null, 'https://www.trackwrestling.com/registration/TW_Register.jsp?x=1'), 'Register on TrackWrestling')
+  assert.equal(lib.registerButtonLabel('trackwrestling', 'https://www.trackwrestling.com/x'), 'Register on TrackWrestling')
+  assert.equal(lib.registerButtonLabel(null, 'https://abc.zite.so/form'), 'Register online')
+  assert.equal(lib.registerButtonLabel('internal', 'https://example.com/reg'), 'Register online')
+  assert.equal(lib.registerButtonLabel('other', 'not a link'), 'Register online')
+  assert.equal(lib.registerButtonLabel('flowrestling', 'https://example.com/reg'), 'Register on FloWrestling')
+  assert.equal(lib.registerButtonLabel('other', 'https://fakeusabracketing.com/x'), 'Register online')
+})
+
 // Paste from TrackWrestling (Tyler, Nov 13). Made-up names only.
 const twLib = load('src/lib/tw-roster.ts', {})
 const TW_PASTE = [

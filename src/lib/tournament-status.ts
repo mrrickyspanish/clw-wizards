@@ -14,3 +14,28 @@ export function registrationLine(status: Tournament['status']): string {
   if (status === 'cancelled') return 'This tournament is cancelled.'
   return 'Registration is closed.'
 }
+
+// Where an outside Register link goes, by its web address. The platform setting
+// alone can be Other, Internal or blank, which used to print as "Register on
+// other" (Nov 20: Capture the Eagle, Wilbur Borrero, Spartan 300).
+const REGISTER_SITES: [RegExp, string][] = [
+  [/(^|\.)trackwrestling\.com$/, 'TrackWrestling'],
+  [/(^|\.)usabracketing\.com$/, 'USA Bracketing'],
+  [/(^|\.)flowrestling\.org$/, 'FloWrestling'],
+]
+const PLATFORM_NAMES: Partial<Record<NonNullable<Tournament['external_platform']>, string>> = {
+  trackwrestling: 'TrackWrestling',
+  flowrestling: 'FloWrestling',
+}
+
+/** The text on a tournament's outside Register button. */
+export function registerButtonLabel(platform: Tournament['external_platform'], url: string | null): string {
+  let host = ''
+  try {
+    host = url ? new URL(url).hostname.toLowerCase() : ''
+  } catch {
+    host = ''
+  }
+  const site = REGISTER_SITES.find(([rx]) => rx.test(host))?.[1] ?? (platform ? PLATFORM_NAMES[platform] : undefined)
+  return site ? `Register on ${site}` : 'Register online'
+}
