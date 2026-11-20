@@ -5168,7 +5168,7 @@ test('CLW-ENG-003: the admin tournament files never fetch TrackWrestling and hav
 })
 
 // CLW-QA-002 revision: delete guard for open or paid card checkouts, Clear payment, copy fixes.
-test('CLW-ENG-003: delete refuses while a family is paying by card (pending under 24 hours) or has paid', async () => {
+test('CLW-ENG-003: delete refuses while a family is paying by card (pending under 1 hour) or has paid', async () => {
   const hoursAgo = (h) => new Date(Date.now() - h * 3600 * 1000).toISOString()
   const run = async (checkouts, opts = {}) => {
     const h = eng003Harness({ ...opts, tables: { tournaments: [{ id: ENG003_T }], tournament_registrations: [], tournament_checkouts: checkouts } })
@@ -5176,7 +5176,8 @@ test('CLW-ENG-003: delete refuses while a family is paying by card (pending unde
   }
   const co = (status, created_at, tournament_id = ENG003_T) => ({ id: `c-${status}-${created_at}`, tournament_id, status, created_at })
 
-  for (const rows of [[co('pending', hoursAgo(1))], [co('paid', hoursAgo(100))], [co('partially_refunded', hoursAgo(100))]]) {
+  // Sessions expire after 31 minutes (CLW-ENG-004), so a pending checkout blocks for 1 hour.
+  for (const rows of [[co('pending', hoursAgo(0.1))], [co('pending', hoursAgo(0.9))], [co('paid', hoursAgo(100))], [co('partially_refunded', hoursAgo(100))]]) {
     const { h, res } = await run(rows)
     assert.equal(res.ok, false, rows[0].status)
     assert.match(res.error, /paying for this tournament right now, or has paid\. Set its status to Cancelled instead/)
@@ -5185,7 +5186,7 @@ test('CLW-ENG-003: delete refuses while a family is paying by card (pending unde
     assert.deepEqual(plain(read.filters), [['eq', 'tournament_id', ENG003_T], ['in', 'status', ['pending', 'paid', 'partially_refunded']]])
   }
   // An expired pending checkout, a refunded one, or another tournament's: the delete goes ahead.
-  for (const rows of [[co('pending', hoursAgo(25))], [co('refunded', hoursAgo(1))], [co('paid', hoursAgo(1), 'other')]]) {
+  for (const rows of [[co('pending', hoursAgo(1.1))], [co('pending', hoursAgo(25))], [co('refunded', hoursAgo(0.1))], [co('paid', hoursAgo(0.1), 'other')]]) {
     const { h, res } = await run(rows)
     assert.equal(res.ok, true, JSON.stringify(rows))
     assert.equal(h.data.tournaments.length, 0)

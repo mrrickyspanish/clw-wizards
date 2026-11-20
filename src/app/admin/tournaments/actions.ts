@@ -220,9 +220,9 @@ export async function deleteTournament(id: string): Promise<ActionResult> {
     }
   }
 
-  // A family may be paying right now (Stripe keeps a checkout open for up to
-  // 24 hours) or has paid by card. Deleting would leave that money pointing at
-  // nothing, so keep the tournament.
+  // A family may be paying right now (an open checkout, see CHECKOUT_OPEN_MS)
+  // or has paid by card. Deleting would leave that money pointing at nothing,
+  // so keep the tournament.
   const { data: checkouts, error: checkoutError } = await supabase
     .from('tournament_checkouts')
     .select('id, status, created_at')
@@ -245,8 +245,10 @@ export async function deleteTournament(id: string): Promise<ActionResult> {
   return { ok: true }
 }
 
-// Stripe's default checkout session lifetime.
-const CHECKOUT_OPEN_MS = 24 * 60 * 60 * 1000
+// How long a pending card checkout blocks a delete. Tournament checkout
+// sessions expire after 31 minutes (CLW-ENG-004); one hour leaves margin for
+// a late webhook. Paid and partially refunded checkouts always block.
+const CHECKOUT_OPEN_MS = 60 * 60 * 1000
 
 // "Mark paid (cash or check)" and "Waive fee" on the roster page (B4). The
 // admin's own client writes the payment columns; the database trigger lets an
