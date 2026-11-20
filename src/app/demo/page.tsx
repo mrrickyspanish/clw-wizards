@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Eye } from 'lucide-react'
+import { ChevronRight, Eye } from 'lucide-react'
 
 import { ORG } from '@/config/org.config'
 import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
@@ -27,6 +27,9 @@ function ViewButton({ as, label, can, cannot }: { as: string; label: string; can
           <span className="font-semibold text-clw-gold">Can&apos;t:</span> {cannot}
         </span>
       )}
+      <span className="mt-3 inline-flex items-center gap-1 text-base font-semibold text-clw-gold">
+        Open this view <ChevronRight className="h-4 w-4" aria-hidden="true" />
+      </span>
     </Link>
   )
 }

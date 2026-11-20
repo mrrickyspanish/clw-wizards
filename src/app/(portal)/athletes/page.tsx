@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Plus, UserPlus } from 'lucide-react'
+import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { resolveFamilyOwnerIds } from '@/lib/family'
@@ -114,8 +115,9 @@ export default async function AthletesPage() {
                   value={`${formatDate(a.date_of_birth)} (age ${ageFromDob(a.date_of_birth)})`}
                 />
                 <Detail label="Weight class" value={a.weight_class} />
-                <Detail label="Shirt size" value={a.shirt_size} />
-                <Detail label="USA Wrestling card #" value={a.usa_wrestling_card_number} />
+                {/* Church demo (UX scrub F07): no shirt sizes or check numbers on household members. */}
+                {!CHURCH_READ_ONLY && <Detail label="Shirt size" value={a.shirt_size} />}
+                {!CHURCH_READ_ONLY && <Detail label="USA Wrestling card #" value={a.usa_wrestling_card_number} />}
               </dl>
             </CardContent>
           </Card>
@@ -123,8 +125,12 @@ export default async function AthletesPage() {
       </div>
 
       {rows.length > 0 && (
-        <p className="text-xs text-clw-gray/70">
-          Need to edit a wrestler&apos;s details? Contact a club admin. Self-service editing is coming in a follow-up build.
+        <p className="text-sm text-clw-gray">
+          {CHURCH_READ_ONLY ? (
+            <>Need to change someone&apos;s details? Contact the church office.</>
+          ) : (
+            <>Need to edit a wrestler&apos;s details? Contact a club admin. Self-service editing is coming in a follow-up build.</>
+          )}
         </p>
       )}
     </div>

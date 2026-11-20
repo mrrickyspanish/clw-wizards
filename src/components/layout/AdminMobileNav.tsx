@@ -15,6 +15,7 @@ import { Eye,
   Megaphone,
   Menu,
   ShieldCheck,
+  MapIcon,
   Trophy,
   Users,
 } from 'lucide-react'
@@ -39,7 +40,7 @@ const ADMIN_ITEMS = [
   { href: '/admin/families', label: 'Families', icon: Users },
   { href: '/admin/registrations', label: 'Registrations', icon: ClipboardCheck },
   { href: '/admin/review', label: 'To review', icon: Inbox },
-  { href: '/admin/tournaments', label: 'Tournaments', icon: Trophy },
+  { href: '/admin/tournaments', label: 'Tournaments', icon: CHURCH_READ_ONLY ? MapIcon : Trophy },
   { href: '/admin/practices', label: 'Practices & Events', icon: CalendarClock },
   { href: '/admin/dues', label: 'Dues', icon: HandCoins },
   { href: '/admin/sponsors', label: 'Sponsors', icon: Handshake },
@@ -57,18 +58,24 @@ export function AdminMobileNav({
   isFullAdmin,
   reviewCount = 0,
   allowedHrefs,
+  staffLabel,
 }: {
   userName: string | null
   role: string | null
   isFullAdmin: boolean
   /** Uploads waiting on the To review page, shown as a badge. */
   reviewCount?: number
-  /** Church demo roles: only these menu items. */
+  /** Church demo roles: only these menu items, in this order. */
   allowedHrefs?: string[]
+  /** Church demo: "Staff" instead of "Admin" in the header and drawer. */
+  staffLabel?: string
 }) {
   const pathname = usePathname()
   const router = useRouter()
-  const items = ADMIN_ITEMS.filter((item) => (isFullAdmin || !item.fullOnly) && (!allowedHrefs || allowedHrefs.includes(item.href)))
+  const items = allowedHrefs
+    ? allowedHrefs.flatMap((href) => ADMIN_ITEMS.filter((item) => item.href === href))
+    : ADMIN_ITEMS.filter((item) => isFullAdmin || !item.fullOnly)
+  const area = staffLabel ?? 'Admin'
 
   async function handleSignOut() {
     const supabase = createBrowserSupabase()
@@ -104,8 +111,10 @@ export function AdminMobileNav({
         </div>
         <SheetContent side="left" className="flex w-[88vw] max-w-sm flex-col border-clw-gold/15 bg-clw-black p-0 text-clw-white">
           <SheetHeader className="border-b border-clw-gold/10 px-5 pb-5 pt-6 text-left">
-            <SheetTitle className="font-display text-2xl tracking-wide text-clw-gold">{ORG.shortName} Admin</SheetTitle>
-            <SheetDescription className="text-clw-gray">Manage club families, events, payments, and communications.</SheetDescription>
+            <SheetTitle className="font-display text-2xl tracking-wide text-clw-gold">{ORG.shortName} {area}</SheetTitle>
+            <SheetDescription className="text-clw-gray">
+              {staffLabel ? `${ORG.name} staff dashboard` : 'Manage club families, events, payments, and communications.'}
+            </SheetDescription>
           </SheetHeader>
 
           <nav className="flex-1 space-y-1 overflow-y-auto p-4">
@@ -141,7 +150,7 @@ export function AdminMobileNav({
             <div className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-clw-black-2 px-4 py-3">
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-clw-white">{userName ?? 'Admin user'}</p>
-                <p className="text-sm capitalize text-clw-gray">{role ?? 'admin'}</p>
+                <p className={cn('text-sm text-clw-gray', !staffLabel && 'capitalize')}>{role ?? 'admin'}</p>
               </div>
               <ThemeToggle />
             </div>
@@ -159,7 +168,7 @@ export function AdminMobileNav({
 
       <Link href="/admin" className="inline-flex min-h-11 items-center font-display text-2xl tracking-wide text-clw-gold">
         {ORG.shortName}
-        <span className="ml-2 font-body text-sm uppercase tracking-[0.2em] text-clw-gray">Admin</span>
+        <span className="ml-2 font-body text-sm uppercase tracking-[0.2em] text-clw-gray">{area}</span>
       </Link>
 
       <div className="h-10 w-10" aria-hidden />

@@ -23,6 +23,7 @@ import { DeletePracticeButton } from './DeletePracticeButton'
 import { CancelDateDialog } from './CancelDateDialog'
 import { EventDialog } from './EventDialog'
 import { DeleteEventButton } from './DeleteEventButton'
+import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
 
 const EVENT_TYPE_LABELS: Record<ClubEvent['event_type'], string> = {
   event: 'Event',
@@ -180,7 +181,7 @@ export default async function AdminPracticesPage() {
           <div>
             <h2 className="text-xl font-display text-clw-gold">Events</h2>
             <p className="text-sm text-clw-gray">
-              Banquets, meetings, fundraisers, and annual season registration all start here.
+              {CHURCH_READ_ONLY ? 'Banquets, conferences, fellowship dinners and other one-time church events.' : 'Banquets, meetings, fundraisers, and annual season registration all start here.'}
             </p>
           </div>
           <EventDialog />

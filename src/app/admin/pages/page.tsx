@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { FilePlus2, Inbox } from 'lucide-react'
+import { ChevronRight, FilePlus2, Inbox } from 'lucide-react'
 
 import { SAMPLE_PAGES, templateFor, type PageStatus } from '@/lib/demo-pages'
 import { pagesAccess, visiblePages } from './access'
@@ -27,7 +27,7 @@ export default async function PagesListPage() {
               ? `You can edit ${ministry}'s pages. Your changes go to a Church Admin for approval before they appear on the website.`
               : mode === 'editor'
                 ? 'Create and edit pages from the church templates. Nothing goes live until a Church Admin approves it.'
-                : 'Every page on the church website. Pages are built from three fixed templates; staff fill them in.'}
+                : 'Every page on the church website. Each page uses one of three templates: Story page, Get Involved page or Announcement. Staff fill in the words and photos.'}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -76,8 +76,13 @@ export default async function PagesListPage() {
             <span>
               <span className={`inline-block rounded-full border px-3 py-1 text-sm font-semibold ${CHIP[p.status]}`}>{p.status}</span>
             </span>
-            <span className="text-sm text-clw-gray">
-              {p.edited} · {p.editedBy}
+            <span className="flex items-center justify-between gap-3 text-sm text-clw-gray">
+              <span>
+                {p.edited} · {p.editedBy}
+              </span>
+              <span className="inline-flex items-center gap-1 text-base font-semibold text-clw-gold">
+                Edit <ChevronRight className="h-4 w-4" aria-hidden="true" />
+              </span>
             </span>
           </Link>
         ))}

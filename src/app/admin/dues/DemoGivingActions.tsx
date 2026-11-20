@@ -70,8 +70,8 @@ export function DemoGivingActions() {
           </div>
         </DialogContent>
       </Dialog>
-      <Button type="button" variant="outline" disabled className="min-h-11">
-        <FileText className="mr-2 h-4 w-4" /> Giving statements: coming for SBC
+      <Button type="button" variant="outline" disabled className="min-h-11 normal-case tracking-normal disabled:opacity-90">
+        <FileText className="mr-2 h-4 w-4" /> Giving statements (coming soon)
       </Button>
     </div>
   )

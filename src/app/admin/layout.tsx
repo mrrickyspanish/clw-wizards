@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { ReadOnlyBanner } from '@/components/demo/ReadOnlyBanner'
-import { churchAllows, churchRoleFor } from '@/lib/demo-roles'
+import { churchAllows, churchMenuOrder, churchRoleFor } from '@/lib/demo-roles'
 import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
 import {
   CalendarClock,
@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
   Megaphone,
   ShieldCheck,
+  MapIcon,
   Trophy,
   Users,
 } from 'lucide-react'
@@ -34,7 +35,7 @@ const ADMIN_NAV: AdminNavItem[] = [
   { href: '/admin/families', label: 'Families', icon: <Users className="w-4 h-4" /> },
   { href: '/admin/registrations', label: 'Registrations', icon: <ClipboardCheck className="w-4 h-4" /> },
   { href: '/admin/review', label: 'To review', icon: <Inbox className="w-4 h-4" /> },
-  { href: '/admin/tournaments', label: 'Tournaments', icon: <Trophy className="w-4 h-4" /> },
+  { href: '/admin/tournaments', label: 'Tournaments', icon: CHURCH_READ_ONLY ? <MapIcon className="w-4 h-4" /> : <Trophy className="w-4 h-4" /> },
   { href: '/admin/practices', label: 'Practices & Events', icon: <CalendarClock className="w-4 h-4" /> },
   { href: '/admin/dues', label: 'Dues', icon: <HandCoins className="w-4 h-4" /> },
   { href: '/admin/sponsors', label: 'Sponsors', icon: <Handshake className="w-4 h-4" /> },
@@ -59,10 +60,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const reviewCount = profile?.role === 'admin' ? (await reviewQueue(supabase)).length : 0
   // Church demo staff roles narrow the menu further (SBC, Nov 20).
   const churchRole = churchRoleFor(auth.user?.email)
-  const navItems: NavItem[] = ADMIN_NAV.filter(
+  const filtered = ADMIN_NAV.filter(
     (item) =>
       (isFullAdmin || !item.fullOnly) && (!item.churchOnly || CHURCH_READ_ONLY) && (!churchRole || churchAllows(churchRole, item.href))
-  ).map((item) => ({
+  )
+  const navItems: NavItem[] = (churchRole ? churchMenuOrder(churchRole, filtered) : filtered).map((item) => ({
     href: item.href,
     label: item.label,
     icon: item.icon,
@@ -71,16 +73,22 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex min-h-[100dvh] bg-clw-black-2 print:bg-white">
-      <DashboardNav title="Admin" items={navItems} userName={profile?.full_name ?? null} role={profile?.role ?? null} />
+      <DashboardNav
+        title={churchRole ? 'Staff' : 'Admin'}
+        items={navItems}
+        userName={profile?.full_name ?? null}
+        role={churchRole ? churchRole.label : (profile?.role ?? null)}
+      />
       <div className="flex min-w-0 flex-1 flex-col">
         <AdminMobileNav
           userName={profile?.full_name ?? null}
-          role={profile?.role ?? null}
+          role={churchRole ? churchRole.label : (profile?.role ?? null)}
+          staffLabel={churchRole ? 'Staff' : undefined}
           isFullAdmin={isFullAdmin}
           reviewCount={reviewCount}
           allowedHrefs={churchRole ? navItems.map((item) => item.href) : undefined}
         />
-        <ReadOnlyBanner />
+        <ReadOnlyBanner roleLabel={churchRole?.label} />
         <main className="min-w-0 flex-1 p-4 md:p-8 print:p-0">{children}</main>
       </div>
     </div>

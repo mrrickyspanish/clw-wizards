@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { FolderOpen, Users, ChevronRight, CalendarDays } from 'lucide-react'
+import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import { ContactPrefsForm } from '../dashboard/ContactPrefsForm'
@@ -53,7 +54,7 @@ export default async function ProfilePage() {
         <div className="min-w-0">
           <p className="truncate font-display text-xl text-clw-white">{profile?.full_name ?? 'Wizard family'}</p>
           <p className="truncate text-sm text-clw-gray">{profile?.email ?? ''}</p>
-          <p className="mt-0.5 text-xs capitalize text-clw-gold-ink">{profile?.role ?? 'parent'}</p>
+          <p className="mt-0.5 text-sm capitalize text-clw-gold-ink">{CHURCH_READ_ONLY ? 'Member' : (profile?.role ?? 'parent')}</p>
         </div>
       </div>
 

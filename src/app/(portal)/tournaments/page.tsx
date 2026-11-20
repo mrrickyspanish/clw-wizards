@@ -1,4 +1,5 @@
 import { ExternalLink, Scale } from 'lucide-react'
+import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
 
 import { registrationLine, TOURNAMENT_STATUS_LABELS } from '@/lib/tournament-status'
 import { createServerSupabase } from '@/lib/supabase/server'
@@ -75,7 +76,7 @@ export default async function TournamentsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-display text-clw-gold-ink">Tournaments</h1>
-        <p className="text-sm text-clw-gray">Browse the schedule and register your wrestlers.</p>
+        <p className="text-base text-clw-gray">{CHURCH_READ_ONLY ? 'See what is coming up and sign up your household.' : 'Browse the schedule and register your wrestlers.'}</p>
       </div>
 
       {error && (
@@ -139,7 +140,7 @@ export default async function TournamentsPage() {
               {t.status === 'open' && t.external_registration_url ? (
                 <Button asChild variant="outline" size="sm" className="h-auto min-h-11 max-w-full whitespace-normal text-left">
                   <a href={t.external_registration_url} target="_blank" rel="noopener noreferrer">
-                    Register on {t.external_platform ?? 'external site'} <ExternalLink className="ml-1.5 h-3 w-3" />
+                    {CHURCH_READ_ONLY ? 'Sign up' : `Register on ${t.external_platform ?? 'external site'}`} <ExternalLink className="ml-1.5 h-3 w-3" />
                   </a>
                 </Button>
               ) : t.status === 'open' ? (

@@ -39,6 +39,7 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { DEMO_MODE } from '@/lib/demo'
+import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
 
 type TournamentOption = { id: string; name: string }
 type ParentOption = { id: string; full_name: string | null; email: string | null }
@@ -709,14 +710,19 @@ export function ComposeForm({
 
       {wantsEmail && (
         <>
+          {/* Church demo (UX scrub F14): one-ministry roles don't get the retreats roundup. */}
+          {!(CHURCH_READ_ONLY && lockedGroup) && (
           <div className="space-y-2">
             <Button type="button" variant="outline" className="h-auto min-h-11 w-full whitespace-normal py-2 sm:w-auto" onClick={draftUpdate} disabled={drafting}>
-              {drafting ? 'Drafting…' : 'Draft tournament update'}
+              {drafting ? 'Drafting…' : CHURCH_READ_ONLY ? 'Draft an upcoming retreats email' : 'Draft tournament update'}
             </Button>
             <p className="text-sm text-clw-gray">
-              Fills in Open and Not open yet tournaments by month, with Register links. Read it over before sending.
+              {CHURCH_READ_ONLY
+                ? 'Fills in the retreats and trips coming up, by month, with sign-up links. Read it over before sending.'
+                : 'Fills in Open and Not open yet tournaments by month, with Register links. Read it over before sending.'}
             </p>
           </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="subject">Subject</Label>

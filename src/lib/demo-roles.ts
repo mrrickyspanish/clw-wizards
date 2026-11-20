@@ -29,6 +29,8 @@ export type ChurchRole = {
   settings: boolean
   /** Pages mock: full (create, publish, review), editor (create and edit drafts) or ministry (own ministry's pages, drafts). */
   pages?: 'full' | 'editor' | 'ministry'
+  /** Menu order (UX scrub, Nov 20): these hrefs first, in this order. */
+  menu?: string[]
 }
 
 export const CHURCH_ROLES: ChurchRole[] = [
@@ -39,12 +41,13 @@ export const CHURCH_ROLES: ChurchRole[] = [
     last: 'Ellis',
     scope: 'full',
     label: 'Church Admin',
-    can: 'Members, ministries, website pages, communications and the admin team, and approving page changes.',
+    can: 'Website pages and approving page changes, communications, members, events, retreats and the admin team.',
     cannot: 'Giving, unless also given the Giving Admin role.',
-    home: '/admin',
+    home: '/admin/pages',
     deny: ['/admin/dues'],
-    settings: true,
+    settings: false,
     pages: 'full',
+    menu: ['/admin/pages', '/admin/communications', '/admin/families', '/admin/practices', '/admin/tournaments', '/admin/team'],
   },
   {
     key: 'comms',
@@ -81,12 +84,13 @@ export const CHURCH_ROLES: ChurchRole[] = [
     label: 'Ministry Admin: Music Ministry',
     can: 'The Music Ministry member list, messages to that ministry, and edits to its page (sent for approval).',
     cannot: 'Other ministries, giving, creating or publishing pages, or the admin team.',
-    home: '/admin/families',
+    home: '/admin/pages',
     allow: ['/admin/families', '/admin/communications', '/admin/pages'],
     deny: ['/admin/pages/new', '/admin/pages/review'],
     group: 'Music Ministry',
     settings: false,
     pages: 'ministry',
+    menu: ['/admin/pages', '/admin/communications', '/admin/families'],
   },
   {
     key: 'notes',
@@ -109,12 +113,13 @@ export const CHURCH_ROLES: ChurchRole[] = [
     last: 'Morgan',
     scope: 'limited',
     label: 'Ministry Staff',
-    can: 'The day-to-day tools: members, sign-ups, meetings, retreats and communications.',
+    can: 'The day-to-day tools: meetings and events, communications, members and retreats.',
     cannot: 'Giving, website content or the admin team.',
-    home: '/admin',
+    home: '/admin/practices',
     // Giving is only for the person responsible for it (SBC, Nov 20).
     deny: ['/admin/dues', '/admin/pages'],
-    settings: true,
+    settings: false,
+    menu: ['/admin/practices', '/admin/communications', '/admin/families', '/admin/tournaments'],
   },
   {
     key: 'editor',
@@ -149,8 +154,23 @@ export function churchRoleFor(email: string | null | undefined): ChurchRole | nu
 
 const under = (pathname: string, prefix: string) => pathname === prefix || pathname.startsWith(`${prefix}/`)
 
+/**
+ * Club-only screens hidden for every church staff role (UX scrub, Nov 20; RJ
+ * approved): sponsor tiers, the old site editor (Pages replaces it), document
+ * review, season sign-ups, the bare overview and the member view.
+ */
+const CHURCH_HIDDEN = ['/admin/registrations', '/admin/review', '/admin/sponsors', '/admin/content', '/dashboard']
+
 /** Whether a demo role may open this page. */
+/** Sort menu hrefs into the role's preferred order. */
+export function churchMenuOrder<T extends { href: string }>(role: ChurchRole, items: T[]): T[] {
+  if (!role.menu) return items
+  const rank = (h: string) => { const i = role.menu!.indexOf(h); return i === -1 ? 99 : i }
+  return [...items].sort((a, b) => rank(a.href) - rank(b.href))
+}
+
 export function churchAllows(role: ChurchRole, pathname: string): boolean {
+  if (pathname === '/admin' || CHURCH_HIDDEN.some((p) => under(pathname, p))) return false
   if (role.deny?.some((p) => under(pathname, p))) return false
   if (role.allow) return role.allow.some((p) => under(pathname, p))
   return true

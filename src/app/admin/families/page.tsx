@@ -16,6 +16,7 @@ import {
 import { AdminSearch } from '../AdminSearch'
 import { matchesSearch } from '@/lib/search'
 import { coveredWrestlers, type CoParentLink } from '@/lib/family'
+import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
 
 export default async function AdminFamiliesPage({
   searchParams,
@@ -99,13 +100,13 @@ export default async function AdminFamiliesPage({
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-display text-clw-gold">Families</h1>
-          <p className="text-sm text-clw-gray">Parent accounts and their registered athletes.</p>
+          <p className="text-base text-clw-gray">{CHURCH_READ_ONLY ? 'Church households and the people in each one.' : 'Parent accounts and their registered athletes.'}</p>
           {churchGroup && <p className="mt-1 text-base font-semibold text-clw-gold">Showing {churchGroup} only.</p>}
         </div>
         <AdminSearch
           initial={query}
           basePath="/admin/families"
-          placeholder="Search parent, wrestler, email…"
+          placeholder={CHURCH_READ_ONLY ? 'Search by name or email' : 'Search parent, wrestler, email…'}
           keep={emptyOnly ? { show: 'empty' } : removedOnly ? { show: 'removed' } : {}}
         />
       </div>
@@ -118,7 +119,7 @@ export default async function AdminFamiliesPage({
           href={`/admin/families?show=empty${query ? `&q=${encodeURIComponent(query)}` : ''}`}
           active={emptyOnly}
         >
-          No wrestlers added ({emptyCount})
+          {CHURCH_READ_ONLY ? 'No one added yet' : 'No wrestlers added'} ({emptyCount})
         </FilterLink>
         <FilterLink
           href={`/admin/families?show=removed${query ? `&q=${encodeURIComponent(query)}` : ''}`}
@@ -186,7 +187,7 @@ export default async function AdminFamiliesPage({
                           ? '—'
                           : null}
                       {coParentOf.length > 0 && (
-                        <span className="block text-sm text-clw-gray">Co-parent: {coParentOf.join(', ')}</span>
+                        <span className="block text-sm text-clw-gray">{CHURCH_READ_ONLY ? 'Shares household with' : 'Co-parent'}: {coParentOf.join(', ')}</span>
                       )}
                     </TableCell>
                     <TableCell>

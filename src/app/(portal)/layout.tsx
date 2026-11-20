@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { ReadOnlyBanner } from '@/components/demo/ReadOnlyBanner'
+import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
 import Link from 'next/link'
 import { Eye, LayoutDashboard, Users, FolderOpen, HandCoins, Trophy, User, UsersRound } from 'lucide-react'
 
@@ -21,6 +22,11 @@ const PORTAL_NAV: NavItem[] = [
   { href: '/profile', label: 'Profile', icon: <User className="w-4 h-4" /> },
 ]
 
+// Church demo (UX scrub, Nov 20; RJ approved): documents (background checks)
+// and co-guardian invites are club concepts, so they leave the member menu.
+const CHURCH_PORTAL_HIDDEN = ['/documents', '/family']
+const portalNav = CHURCH_READ_ONLY ? PORTAL_NAV.filter((i) => !CHURCH_PORTAL_HIDDEN.includes(i.href)) : PORTAL_NAV
+
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createServerSupabase()
   const { data: auth } = await supabase.auth.getUser()
@@ -32,13 +38,13 @@ export default async function PortalLayout({ children }: { children: React.React
     <ThemeScope className="flex min-h-[100dvh] bg-clw-black-2">
       <DashboardNav
         title="Parent Portal"
-        items={PORTAL_NAV}
+        items={portalNav}
         userName={profile?.full_name ?? null}
-        role={profile?.role ?? null}
+        role={CHURCH_READ_ONLY && profile?.role === 'parent' ? 'Member' : (profile?.role ?? null)}
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <MobileTopBar name={profile?.full_name ?? null} />
-        <ReadOnlyBanner />
+        <ReadOnlyBanner roleLabel={CHURCH_READ_ONLY ? 'Member' : undefined} />
         <main className="flex-1 p-4 pb-28 md:p-8 md:pb-8">
           {profile?.role === 'admin' && (
             // An admin looking at the parent pages: say so, and the way back.

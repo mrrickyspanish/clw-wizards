@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { ExternalLink } from 'lucide-react'
+import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
 
 import { TOURNAMENT_STATUS_LABELS } from '@/lib/tournament-status'
 import { createServerSupabase } from '@/lib/supabase/server'
@@ -50,7 +51,9 @@ export default async function AdminTournamentsPage() {
         <div>
           <h1 className="text-2xl font-display text-clw-gold">Tournaments</h1>
           <p className="text-base text-clw-gray">
-            Manage the club tournament schedule. Tap a tournament to see who&apos;s registered.
+            {CHURCH_READ_ONLY
+              ? 'The church retreat and trip schedule. Click one to see who has signed up.'
+              : <>Manage the club tournament schedule. Tap a tournament to see who&apos;s registered.</>}
           </p>
         </div>
         <TournamentDialog />
@@ -78,8 +81,8 @@ export default async function AdminTournamentsPage() {
                 <TableHead className="text-clw-gray">Location</TableHead>
                 <TableHead className="text-clw-gray">Groups</TableHead>
                 <TableHead className="text-clw-gray">Status</TableHead>
-                <TableHead className="text-clw-gray">Wizards</TableHead>
-                <TableHead className="text-clw-gray">Reg.</TableHead>
+                <TableHead className="text-clw-gray">{CHURCH_READ_ONLY ? "Who's going" : 'Wizards'}</TableHead>
+                <TableHead className="text-clw-gray">{CHURCH_READ_ONLY ? 'Sign-up link' : 'Reg.'}</TableHead>
                 <TableHead className="w-[88px] text-right text-clw-gray">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -111,7 +114,7 @@ export default async function AdminTournamentsPage() {
                   </TableCell>
                   <TableCell>
                     <Link href={`/admin/tournaments/${t.id}`} className="whitespace-nowrap text-clw-gold hover:underline">
-                      {registered.get(t.id) ? `${registered.get(t.id)} registered` : 'Add list'}
+                      {registered.get(t.id) ? `${registered.get(t.id)} registered` : CHURCH_READ_ONLY ? 'Add names' : 'Add list'}
                     </Link>
                   </TableCell>
                   <TableCell>
@@ -125,7 +128,7 @@ export default async function AdminTournamentsPage() {
                         Link <ExternalLink className="h-3 w-3" />
                       </a>
                     ) : (
-                      <span className="text-clw-gray/50">—</span>
+                      <span className="text-clw-gray">{CHURCH_READ_ONLY ? 'No link' : '—'}</span>
                     )}
                   </TableCell>
                   <TableCell className="text-right">

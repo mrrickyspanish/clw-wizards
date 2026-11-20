@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Users, Trophy, Wallet, User } from 'lucide-react'
+import { Home, Users, MapIcon, Trophy, Wallet, User } from 'lucide-react'
+import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
 
 const TABS = [
   { href: '/dashboard', label: 'Home', icon: Home },
   { href: '/athletes', label: 'Athletes', icon: Users },
-  { href: '/tournaments', label: 'Events', icon: Trophy },
+  { href: '/tournaments', label: 'Events', icon: CHURCH_READ_ONLY ? MapIcon : Trophy },
   { href: '/dues', label: 'Dues', icon: Wallet },
   { href: '/profile', label: 'Profile', icon: User },
 ]

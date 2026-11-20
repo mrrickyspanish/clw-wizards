@@ -4,6 +4,7 @@ import { flierKind } from '@/lib/flier'
 import { useRef, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Pencil, Upload } from 'lucide-react'
+import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
 
 import type { Tournament } from '@/types/database'
 import { ORG } from '@/config/org.config'
@@ -168,7 +169,7 @@ export function TournamentDialog({ tournament }: { tournament?: Tournament }) {
           </Button>
         ) : (
           <Button>
-            <Plus className="mr-2 h-4 w-4" /> New tournament
+            <Plus className="mr-2 h-4 w-4" /> {CHURCH_READ_ONLY ? 'Add retreat or trip' : 'New tournament'}
           </Button>
         )}
       </DialogTrigger>

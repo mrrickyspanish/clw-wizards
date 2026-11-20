@@ -89,12 +89,17 @@ export default async function AdminDuesPage({ searchParams }: { searchParams: Pr
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-display text-clw-gold">Dues</h1>
-          <p className="text-sm text-clw-gray">
-            Review and update billed amounts, recorded payments, due dates, waivers, and payment plans. Sorted by
-            wrestler last name.
-          </p>
+          {CHURCH_READ_ONLY ? (
+            // Church demo (UX scrub, Nov 20; RJ approved): gifts received, not bills.
+            <p className="text-base text-clw-gray">Gifts received this year, by giver and fund. Only the Giving Admin sees this page.</p>
+          ) : (
+            <p className="text-sm text-clw-gray">
+              Review and update billed amounts, recorded payments, due dates, waivers, and payment plans. Sorted by
+              wrestler last name.
+            </p>
+          )}
         </div>
-        <AdminSearch initial={query} basePath="/admin/dues" placeholder="Search wrestler, parent, email…" />
+        <AdminSearch initial={query} basePath="/admin/dues" placeholder={CHURCH_READ_ONLY ? 'Search giver or email…' : 'Search wrestler, parent, email…'} />
       </div>
       {CHURCH_READ_ONLY && (
         <div className="mb-6">
@@ -111,6 +116,10 @@ export default async function AdminDuesPage({ searchParams }: { searchParams: Pr
         </p>
       )}
 
+      {CHURCH_READ_ONLY ? (
+        <ChurchGiving rows={rows} parentById={parentById} />
+      ) : (
+      <>
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card className="border-clw-gold/10 bg-clw-black">
           <CardHeader>
@@ -209,6 +218,80 @@ export default async function AdminDuesPage({ searchParams }: { searchParams: Pr
           </Table>
         </div>
       )}
+      </>
+      )}
     </div>
   )
 }
+
+// Church demo: gifts received only (no amounts owed, due dates or statuses).
+function ChurchGiving({
+  rows,
+  parentById,
+}: {
+  rows: DuesPayment[]
+  parentById: Map<string, Pick<Profile, "full_name" | "email">>
+}) {
+  const gifts = rows.filter((d) => d.amount_paid_cents > 0)
+  const received = gifts.reduce((sum, d) => sum + d.amount_paid_cents, 0)
+  const givers = new Set(gifts.map((d) => d.parent_id)).size
+  const stat = (label: string, value: string) => (
+    <Card className="border-clw-gold/10 bg-clw-black">
+      <CardHeader>
+        <CardTitle className="text-base font-medium text-clw-gray">{label}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-3xl font-display text-clw-white">{value}</p>
+      </CardContent>
+    </Card>
+  )
+  return (
+    <>
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {stat('Received this year', money(received))}
+        {stat('Gifts', String(gifts.length))}
+        {stat('Givers', String(givers))}
+      </div>
+      {gifts.length === 0 ? (
+        <div className="rounded-md border border-clw-gold/10 bg-clw-black p-10 text-center">
+          <p className="text-base text-clw-gray">No gifts recorded yet.</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-md border border-clw-gold/10 bg-clw-black">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-clw-gold/10 hover:bg-transparent">
+                <TableHead className="text-clw-gray">Giver</TableHead>
+                <TableHead className="text-clw-gray">Fund</TableHead>
+                <TableHead className="text-clw-gray">Gift</TableHead>
+                <TableHead className="text-clw-gray">Date</TableHead>
+                <TableHead className="text-right text-clw-gray">Edit</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {gifts.map((d, i) => {
+                const giver = parentById.get(d.parent_id)
+                return (
+                  <TableRow key={d.id} className="border-clw-gold/10">
+                    <TableCell className="text-base font-medium text-clw-white">
+                      {giver?.full_name ?? 'Giver'}
+                      <span className="block text-sm text-clw-gray">{giver?.email ?? 'No email'}</span>
+                    </TableCell>
+                    <TableCell className="text-base text-clw-gray">{CHURCH_FUNDS[i % CHURCH_FUNDS.length]}</TableCell>
+                    <TableCell className="text-base text-clw-white">{money(d.amount_paid_cents)}</TableCell>
+                    <TableCell className="text-base text-clw-gray">{formatDate(d.due_date)}</TableCell>
+                    <TableCell className="text-right">
+                      <DuesEditDialog dues={d} triggerLabel="Edit" />
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </>
+  )
+}
+
+const CHURCH_FUNDS = ['Tithe', 'Offering', 'Building Fund', 'Missions']
