@@ -3832,10 +3832,29 @@ test('distinctRegisteredCount counts each wrestler once across both sources and 
     { athlete_id: 'a6', status: 'withdrawn', fee_cents: null, paid_cents: 0, payment_method: null },
     { athlete_id: 'a7', status: 'no_show', fee_cents: 2500, paid_cents: 2500, payment_method: 'cash' },
   ]
-  // a1 (both sources, once) + a2 + 2 unmatched + a3 + a4 = 6
-  assert.equal(tSpotsLib.distinctRegisteredCount(entries, registrations), 6)
-  assert.equal(tSpotsLib.distinctRegisteredCount([], []), 0)
-  assert.equal(tSpotsLib.distinctRegisteredCount([{ athlete_id: null }], [{ athlete_id: 'a1', status: 'registered' }]), 2)
+  // Tournament with no in-house fee: a1 (both sources, once) + a2 + 2 unmatched + a3 + a4 = 6
+  assert.equal(tSpotsLib.distinctRegisteredCount(entries, registrations, null), 6)
+  assert.equal(tSpotsLib.distinctRegisteredCount([], [], null), 0)
+  assert.equal(tSpotsLib.distinctRegisteredCount([{ athlete_id: null }], [{ athlete_id: 'a1', status: 'registered' }], null), 2)
+})
+
+test('distinctRegisteredCount judges an unlocked registration (fee_cents null) against the tournament entry fee', () => {
+  const unpaid = { athlete_id: 'a8', status: 'registered', fee_cents: null, paid_cents: 0, payment_method: null }
+  assert.equal(tSpotsLib.distinctRegisteredCount([], [unpaid], 2500), 0)
+  assert.equal(tRegLib.registrationPaymentState({ feeCents: unpaid.fee_cents ?? 2500, paidCents: 0, paymentMethod: null, status: 'registered' }), 'due')
+  assert.equal(tSpotsLib.distinctRegisteredCount([], [unpaid], null), 1)
+  const paidAtCash = { ...unpaid, paid_cents: 2500, payment_method: 'cash' }
+  assert.equal(tSpotsLib.distinctRegisteredCount([], [paidAtCash], 2500), 1)
+  const lockedFree = { ...unpaid, fee_cents: 0 }
+  assert.equal(tSpotsLib.distinctRegisteredCount([], [lockedFree], 2500), 1)
+})
+
+test('payment state matches the roster SQL order: waived before free, and a zero effective fee is free', () => {
+  assert.equal(tRegLib.registrationPaymentState({ feeCents: null, paidCents: 0, paymentMethod: 'waived', status: 'registered' }), 'waived')
+  assert.equal(tRegLib.registrationPaymentState({ feeCents: 0, paidCents: 0, paymentMethod: 'waived', status: 'confirmed' }), 'waived')
+  assert.equal(tRegLib.registrationPaymentState({ feeCents: 0, paidCents: 0, paymentMethod: null, status: 'registered' }), 'free')
+  assert.equal(tRegLib.registrationPaymentState({ feeCents: 0, paidCents: 0, paymentMethod: 'card', status: 'registered' }), 'free')
+  assert.equal(tRegLib.registrationPaymentState({ feeCents: 2500, paidCents: 2500, paymentMethod: 'waived', status: 'withdrawn' }), 'withdrawn')
 })
 
 test('registrationPaymentState and countsAsRegistered', () => {
