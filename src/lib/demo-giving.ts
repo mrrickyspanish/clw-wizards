@@ -1,7 +1,7 @@
 // Church demo (UX scrub, Nov 20): sample fund names for gifts. The demo
 // database has no fund column, so each gift gets a fund from its id. Admin and
 // member pages use this one helper, so a gift shows the same fund on both.
-const CHURCH_FUNDS = ['Tithe', 'Offering', 'Building Fund', 'Missions']
+export const CHURCH_FUNDS = ['Tithe', 'Offering', 'Building Fund', 'Missions']
 
 export function churchFund(id: string) {
   let h = 0

@@ -74,7 +74,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="flex min-h-[100dvh] bg-clw-black-2 print:bg-white">
       <DashboardNav
-        title={churchRole ? 'Staff' : 'Admin'}
+        title={churchRole ? churchRole.label : 'Admin'}
         items={navItems}
         userName={profile?.full_name ?? null}
         role={churchRole ? churchRole.label : (profile?.role ?? null)}

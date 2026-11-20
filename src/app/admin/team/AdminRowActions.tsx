@@ -24,12 +24,15 @@ export function AdminRowActions({
   scope,
   isActive,
   isSelf,
+  church = false,
 }: {
   id: string
   name: string
   scope: AdminScope
   isActive: boolean
   isSelf: boolean
+  /** Church demo: roles, not full/limited, so no Make full; "Remove" for short. */
+  church?: boolean
 }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -58,6 +61,7 @@ export function AdminRowActions({
   return (
     <div className="flex flex-col gap-1 sm:items-end">
       <div className="flex flex-wrap gap-2 sm:flex-nowrap sm:items-center">
+        {!church && (
         <Button
           variant="ghost"
           size="sm"
@@ -67,6 +71,7 @@ export function AdminRowActions({
         >
           {scope === 'full' ? 'Make limited' : 'Make full'}
         </Button>
+        )}
 
         {isActive ? (
           <AlertDialog>
@@ -77,7 +82,7 @@ export function AdminRowActions({
                 disabled={loading}
                 className="text-clw-gray hover:text-red-400 max-sm:flex-1 max-sm:border max-sm:border-clw-gold/20 max-sm:px-3"
               >
-                Remove access
+                {church ? 'Remove' : 'Remove access'}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>

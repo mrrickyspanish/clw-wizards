@@ -94,9 +94,11 @@ export function AdminMobileNav({
             <button
               type="button"
               aria-label={reviewCount > 0 ? `Open admin navigation, ${reviewCount} uploads to review` : 'Open admin navigation'}
-              className="flex h-11 w-11 items-center justify-center rounded-lg border border-clw-gold/20 text-clw-white transition-colors hover:border-clw-gold/50 hover:text-clw-gold"
+              className={`flex h-11 items-center justify-center gap-2 rounded-lg border border-clw-gold/20 text-clw-white transition-colors hover:border-clw-gold/50 hover:text-clw-gold ${staffLabel ? 'px-3 text-base font-semibold' : 'w-11'}`}
             >
               <Menu className="h-5 w-5" />
+              {/* Church demo (UX scrub F25): a word for older staff. */}
+              {staffLabel && <span>Menu</span>}
             </button>
           </SheetTrigger>
           {/* Outside the button, so the badge can sit on its corner without widening it. */}

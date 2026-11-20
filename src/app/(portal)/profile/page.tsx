@@ -23,7 +23,7 @@ const LINKS = [
   { href: '/athletes', label: 'My wrestlers', icon: Users },
   { href: '/schedule', label: 'Weekly schedule', icon: CalendarDays },
   { href: '/documents', label: 'Documents', icon: FolderOpen },
-]
+].filter((l) => !CHURCH_READ_ONLY || l.href !== '/documents')
 
 export default async function ProfilePage() {
   const supabase = await createServerSupabase()

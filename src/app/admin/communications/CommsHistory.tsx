@@ -98,7 +98,9 @@ function formatDateTime(value: string) {
   })
 }
 
-export async function CommsHistory() {
+// Church demo (critic m4, Nov 20): a one-ministry role (Ministry Admin, Note
+// Sender) sees only messages sent wholly to its own ministry's members.
+export async function CommsHistory({ group }: { group?: string } = {}) {
   const supabase = createAdminSupabase()
   const { data } = await supabase
     .from('communication_log')
@@ -107,7 +109,12 @@ export async function CommsHistory() {
     .limit(HISTORY_ROW_LIMIT)
 
   const rows = (data ?? []) as CommunicationLogRow[]
-  const groups = groupRows(rows)
+  let groups = groupRows(rows)
+  if (group) {
+    const { data: people } = await supabase.from('athletes').select('parent_id').eq('practice_group', group)
+    const members = new Set((people ?? []).map((p) => p.parent_id as string))
+    groups = groups.filter((g) => g.rows.length > 0 && g.rows.every((r) => r.recipient_id && members.has(r.recipient_id)))
+  }
 
   const recipientIds = [...new Set(rows.map((r) => r.recipient_id).filter((id): id is string => Boolean(id)))]
   const nameById = new Map<string, string>()

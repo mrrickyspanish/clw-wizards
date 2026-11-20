@@ -17,12 +17,12 @@ export default async function AdminCommunicationsPage({
 }) {
   // ?tab=history opens History, e.g. from the link shown after a send.
   const { tab, audience, tournament } = await searchParams
-  const openTab = tab === 'history' || tab === 'board' || tab === 'payments' || tab === 'uploads' ? tab : 'compose'
   const supabase = await createServerSupabase()
   // Church demo roles (SBC, Nov 20): group roles message only their ministry;
   // the settings tabs are for Church Admin and Ministry Staff.
   const churchRole = await currentChurchRole()
   const showSettings = !churchRole || churchRole.settings
+  const openTab = tab === 'history' || (showSettings && (tab === 'board' || tab === 'payments' || tab === 'uploads')) ? tab : 'compose'
   const [{ data: tournaments }, { data: events }, { data: parents }, { data: boardRows }, { data: paymentRows }, { data: uploadRows }] = await Promise.all([
     supabase.from('tournaments').select('id, name, date').order('date', { ascending: false }),
     // Upcoming club events (not the season registration itself) for the
@@ -95,20 +95,25 @@ export default async function AdminCommunicationsPage({
         </TabsContent>
 
         <TabsContent value="history" className="mt-6 max-w-3xl">
-          <CommsHistory />
+          <CommsHistory group={churchRole?.group} />
         </TabsContent>
 
-        <TabsContent value="board" className="mt-6">
-          <BoardCopyManager recipients={board} />
-        </TabsContent>
+        {/* Critic m3: hidden tabs stay hidden even by address (?tab=payments). */}
+        {showSettings && (
+          <>
+            <TabsContent value="board" className="mt-6">
+              <BoardCopyManager recipients={board} />
+            </TabsContent>
 
-        <TabsContent value="payments" className="mt-6">
-          <BoardCopyManager list="payments" recipients={paymentRows ?? []} />
-        </TabsContent>
+            <TabsContent value="payments" className="mt-6">
+              <BoardCopyManager list="payments" recipients={paymentRows ?? []} />
+            </TabsContent>
 
-        <TabsContent value="uploads" className="mt-6">
-          <BoardCopyManager list="uploads" recipients={uploadRows ?? []} />
-        </TabsContent>
+            <TabsContent value="uploads" className="mt-6">
+              <BoardCopyManager list="uploads" recipients={uploadRows ?? []} />
+            </TabsContent>
+          </>
+        )}
       </Tabs>
     </div>
   )

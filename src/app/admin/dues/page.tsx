@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
-import { DemoGivingActions } from './DemoGivingActions'
+import { ChurchGiftEditDialog, DemoGivingActions } from './DemoGivingActions'
 
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { formatCents } from '@/lib/format/money'
@@ -282,7 +282,7 @@ function ChurchGiving({
                     <TableCell className="text-base text-clw-white">{money(d.amount_paid_cents)}</TableCell>
                     <TableCell className="text-base text-clw-gray">{formatDate(d.due_date)}</TableCell>
                     <TableCell className="text-right">
-                      <DuesEditDialog dues={d} triggerLabel="Edit" />
+                      <ChurchGiftEditDialog id={d.id} giver={giver?.full_name ?? 'Giver'} cents={d.amount_paid_cents} date={d.due_date} />
                     </TableCell>
                   </TableRow>
                 )
@@ -291,6 +291,7 @@ function ChurchGiving({
           </Table>
         </div>
       )}
+      <p className="mt-4 text-sm text-clw-gray">Sample gifts and fund names for the demo. SBC&apos;s real funds are set up at build time.</p>
     </>
   )
 }

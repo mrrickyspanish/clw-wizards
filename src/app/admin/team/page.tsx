@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { isFullAdmin } from '@/lib/auth/admin'
 import type { AdminScope, Profile } from '@/types/database'
+import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
+import { churchRoleFor } from '@/lib/demo-roles'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AdminRowActions } from './AdminRowActions'
@@ -37,8 +39,9 @@ export default async function AdminTeamPage() {
         <div>
           <h1 className="text-2xl font-display text-clw-gold">Admin team</h1>
           <p className="text-base text-clw-gray">
-            Add and manage admin accounts. Full admins can edit the public website and manage the team; limited admins
-            do everything else.
+            {CHURCH_READ_ONLY
+              ? "The people who can sign in to this dashboard. Each person's role decides what they can see."
+              : 'Add and manage admin accounts. Full admins can edit the public website and manage the team; limited admins do everything else.'}
           </p>
         </div>
         <AddAdminDialog />
@@ -61,7 +64,7 @@ export default async function AdminTeamPage() {
               >
                 <div className="min-w-0">
                   <p className="truncate font-medium text-clw-white">{a.full_name ?? 'Unnamed admin'}</p>
-                  <p className="truncate text-sm text-clw-gray">{a.email ?? '—'}</p>
+                  <p className="truncate text-sm text-clw-gray">{a.email ?? (CHURCH_READ_ONLY ? 'No email' : '—')}</p>
                 </div>
                 {/* On a phone: badges on one line, then the actions as a full-width row. */}
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-2">
@@ -72,7 +75,8 @@ export default async function AdminTeamPage() {
                       </Badge>
                     )}
                     <Badge variant="outline" className={`whitespace-nowrap ${SCOPE_STYLES[a.admin_scope ?? 'limited']}`}>
-                      {a.admin_scope === 'full' ? 'Full access' : 'Limited access'}
+                      {/* Church demo (UX scrub F22, callout 3): the role name, not full or limited. */}
+                      {(CHURCH_READ_ONLY && churchRoleFor(a.email)?.label) || (a.admin_scope === 'full' ? 'Full access' : 'Limited access')}
                     </Badge>
                   </div>
                   <AdminRowActions
@@ -81,6 +85,7 @@ export default async function AdminTeamPage() {
                     scope={a.admin_scope ?? 'limited'}
                     isActive={a.is_active}
                     isSelf={a.id === currentUserId}
+                    church={CHURCH_READ_ONLY}
                   />
                 </div>
               </div>

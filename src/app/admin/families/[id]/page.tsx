@@ -38,6 +38,7 @@ import { removeFamilyContactAsAdmin, saveFamilyContactAsAdmin } from '../actions
 import { FamilyContactsManager } from '@/components/family/FamilyContactsManager'
 import { coachInterestMatcher, contactScopeLabel, listFamilyContacts, MAX_FAMILY_CONTACTS } from '@/lib/family-contacts'
 import { COMM_TYPE_LABELS } from '@/lib/comms/labels'
+import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
 
 // How many past messages to show on a family's profile. Older history is
 // still in communication_log if it's ever needed — this is a recent-activity
@@ -127,6 +128,11 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
   // direct /admin/families/<id> route around the list.
   const churchGroup = (await currentChurchRole())?.group
   if (churchGroup && !athletes.some((a) => a.practice_group === churchGroup)) notFound()
+  // Critic M5 (Nov 20): a ministry's admin sees only that ministry's people and
+  // cannot edit or deactivate anyone (its role card says view and message only).
+  const shownAthletes = churchGroup ? athletes.filter((a) => a.practice_group === churchGroup) : athletes
+  const canEditPeople = !churchGroup
+  const none = CHURCH_READ_ONLY ? 'Not added' : '—'
 
   // Each wrestler's newest uploaded birth certificate, to view and verify here.
   const { data: birthCertificateRows } = athletes.length
@@ -290,18 +296,18 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
 
       <div className="mb-6">
         <h1 className="text-2xl font-display text-clw-gold">{parent.full_name ?? 'Unnamed parent'}</h1>
-        <p className="text-sm text-clw-gray">{parent.email ?? '—'}</p>
+        <p className="text-sm text-clw-gray">{parent.email ?? none}</p>
       </div>
 
       <Card className="mb-6 border-clw-gold/10 bg-clw-black">
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-sm font-medium text-clw-gray">Primary parent contact &amp; preferences</CardTitle>
-          <ParentDialog parent={parent} familyId={parent.id} />
+          {canEditPeople && <ParentDialog parent={parent} familyId={parent.id} />}
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
           <div>
             <p className="text-clw-gray/70">Phone</p>
-            <p className="text-clw-white">{parent.phone ?? '—'}</p>
+            <p className="text-clw-white">{parent.phone ?? none}</p>
           </div>
           <div>
             <p className="text-clw-gray/70">SMS opt-in</p>
@@ -361,7 +367,7 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="font-medium text-clw-white">{guardian.full_name ?? 'Unnamed guardian'}</p>
-                    <p className="text-sm text-clw-gray">{guardian.email ?? '—'}</p>
+                    <p className="text-sm text-clw-gray">{guardian.email ?? none}</p>
                   </div>
                   <Badge
                     variant="outline"
@@ -392,7 +398,7 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
                 <div className="mt-4 grid grid-cols-1 gap-3 border-t border-clw-gold/10 pt-4 text-sm sm:grid-cols-2">
                   <div>
                     <p className="text-clw-gray/70">Phone</p>
-                    <p className="text-clw-white">{guardian.phone ?? '—'}</p>
+                    <p className="text-clw-white">{guardian.phone ?? none}</p>
                   </div>
                   <div>
                     <p className="text-clw-gray/70">SMS opt-in</p>
@@ -411,7 +417,7 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
                 </div>
 
                 <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-clw-gold/10 pt-4">
-                  <ParentDialog parent={guardian} relationship="co-guardian" familyId={parent.id} />
+                  {canEditPeople && <ParentDialog parent={guardian} relationship="co-guardian" familyId={parent.id} />}
                   <FamilyActiveToggle
                     parentId={guardian.id}
                     isActive={guardian.is_active}
@@ -436,7 +442,9 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
                   {parent.first_name || parent.full_name || 'This parent'} can see these wrestlers on{' '}
                   <span className="text-clw-white">{family.ownerName}</span>&apos;s family
                   {family.locked
-                    ? ', pay their dues and upload their documents. Set up by the club, so neither parent can remove the other.'
+                    ? CHURCH_READ_ONLY
+                      ? '. Set up by the church office, so neither member can remove the other.'
+                      : ', pay their dues and upload their documents. Set up by the club, so neither parent can remove the other.'
                     : ', and help manage them.'}
                 </p>
                 {family.wrestlers.length === 0 ? (
@@ -493,7 +501,7 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          {athletes.map((athlete) => (
+          {shownAthletes.map((athlete) => (
             <Card key={athlete.id} className="border-clw-gold/10 bg-clw-black">
               <CardHeader className="flex flex-row items-start justify-between space-y-0">
                 <div>
@@ -519,26 +527,33 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
                     <p className="text-clw-gray/70">Practice group</p>
                     <p className="text-clw-white">{athlete.practice_group ?? 'Not assigned'}</p>
                   </div>
-                  <div>
-                    <p className="text-clw-gray/70">Division</p>
-                    <p className="text-clw-white">
-                      {athlete.division === 'girls' ? 'Girls' : athlete.division === 'boys' ? 'Boys' : 'Not set'}
-                    </p>
-                  </div>
+                  {!CHURCH_READ_ONLY && (
+                    <div>
+                      <p className="text-clw-gray/70">Division</p>
+                      <p className="text-clw-white">
+                        {athlete.division === 'girls' ? 'Girls' : athlete.division === 'boys' ? 'Boys' : 'Not set'}
+                      </p>
+                    </div>
+                  )}
                   <div>
                     <p className="text-clw-gray/70">Weight class</p>
-                    <p className="text-clw-white">{athlete.weight_class ?? '—'}</p>
+                    <p className="text-clw-white">{athlete.weight_class ?? none}</p>
                   </div>
-                  <div>
-                    <p className="text-clw-gray/70">Shirt size</p>
-                    <p className="text-clw-white">{athlete.shirt_size ?? '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-clw-gray/70">USAW card</p>
-                    <p className="text-clw-white">{athlete.usa_wrestling_card_number ?? '—'}</p>
-                  </div>
+                  {!CHURCH_READ_ONLY && (
+                    <div>
+                      <p className="text-clw-gray/70">Shirt size</p>
+                      <p className="text-clw-white">{athlete.shirt_size ?? '—'}</p>
+                    </div>
+                  )}
+                  {!CHURCH_READ_ONLY && (
+                    <div>
+                      <p className="text-clw-gray/70">USAW card</p>
+                      <p className="text-clw-white">{athlete.usa_wrestling_card_number ?? '—'}</p>
+                    </div>
+                  )}
                 </div>
-                {season && (
+                {/* Church demo (critic M2): no season, paperwork or card checks on a household member. */}
+                {season && !CHURCH_READ_ONLY && (
                   <SeasonSummary
                     season={season}
                     athlete={athlete}
@@ -552,6 +567,8 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
                     missingAgreements={requiredDisclosures.filter((d) => !signedByAthlete.get(athlete.id)?.has(d.id))}
                   />
                 )}
+                {!CHURCH_READ_ONLY && (
+                  <>
                 <div className="pt-2">
                   <p className="text-clw-gray/70">Birth certificate</p>
                   <div className="mt-1">
@@ -581,8 +598,10 @@ export default async function FamilyDetailPage({ params }: { params: Promise<{ i
                     recordedAt={athlete.birth_certificate_on_file_at}
                   />
                 </div>
+                  </>
+                )}
                 <div className="flex flex-wrap items-center gap-2 pt-2">
-                  <AthleteDialog athlete={athlete} />
+                  {canEditPeople && <AthleteDialog athlete={athlete} />}
                   {viewerIsFullAdmin && athlete.active && (
                     <AddParentLoginDialog
                       ownerId={parent.id}

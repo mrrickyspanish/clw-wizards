@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { UserPlus } from 'lucide-react'
+import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
 
 import type { AdminScope } from '@/types/database'
 import { inviteAdminByEmail } from './actions'
@@ -82,7 +83,7 @@ export function AddAdminDialog() {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button className="w-full text-base sm:w-auto">
-          <UserPlus className="mr-2 h-4 w-4" /> Add admin
+          <UserPlus className="mr-2 h-4 w-4" /> {CHURCH_READ_ONLY ? 'Add a staff member' : 'Add admin'}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">

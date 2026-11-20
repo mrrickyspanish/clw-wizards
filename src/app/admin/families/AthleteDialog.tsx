@@ -30,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
 
 export function AthleteDialog({ athlete }: { athlete: Athlete }) {
   const router = useRouter()
@@ -123,6 +124,7 @@ export function AthleteDialog({ athlete }: { athlete: Athlete }) {
             <Input id="dob" type="date" required value={dob} onChange={(e) => setDob(e.target.value)} />
           </div>
 
+          {!CHURCH_READ_ONLY && (
           <div className="space-y-2">
             <Label>Age division (IKWF)</Label>
             <Select value={ageDivision} onValueChange={setAgeDivision}>
@@ -144,7 +146,9 @@ export function AthleteDialog({ athlete }: { athlete: Athlete }) {
               Picks the session this wrestler is shown at split-session events. Change it only to move a wrestler up.
             </p>
           </div>
+          )}
 
+          {!CHURCH_READ_ONLY && (
           <div className="space-y-2">
             <Label>Boys or girls</Label>
             <Select value={division} onValueChange={setDivision}>
@@ -161,6 +165,7 @@ export function AthleteDialog({ athlete }: { athlete: Athlete }) {
               </SelectContent>
             </Select>
           </div>
+          )}
 
           <div className="space-y-2">
             <Label>Practice group</Label>
@@ -184,16 +189,20 @@ export function AthleteDialog({ athlete }: { athlete: Athlete }) {
               <Label htmlFor="weight_class">Weight class</Label>
               <Input id="weight_class" value={weightClass} onChange={(e) => setWeightClass(e.target.value)} />
             </div>
+            {!CHURCH_READ_ONLY && (
             <div className="space-y-2">
               <Label htmlFor="shirt_size">Shirt size</Label>
               <Input id="shirt_size" value={shirtSize} onChange={(e) => setShirtSize(e.target.value)} />
             </div>
+            )}
           </div>
 
+          {!CHURCH_READ_ONLY && (
           <div className="space-y-2">
             <Label htmlFor="card_number">USA Wrestling card #</Label>
             <Input id="card_number" value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} />
           </div>
+          )}
 
           <label className="flex items-center gap-2 text-sm text-clw-white">
             <Checkbox checked={active} onCheckedChange={(checked) => setActive(checked === true)} />

@@ -184,6 +184,7 @@ function ChurchMemberGiving({ rows }: { rows: DuesPayment[] }) {
         </div>
       )}
       <p className="text-base text-clw-gray">Year-end giving statements will appear here.</p>
+      <p className="text-sm text-clw-gray">Sample gifts and fund names for the demo.</p>
     </div>
   )
 }

@@ -3,6 +3,8 @@ import {
   CalendarDays,
   Users,
   Trophy,
+  MapIcon,
+  HandCoins,
   FolderOpen,
   MapPin,
   ChevronRight,
@@ -143,7 +145,7 @@ export default async function ParentDashboardPage() {
   type Activity = { label: string; date: string }
   const activity: Activity[] = [
     ...((regs ?? []) as { registered_at: string }[]).map((r) => ({ label: 'Registered for an event', date: r.registered_at })),
-    ...((recentDocs ?? []) as { uploaded_at: string; doc_type: string }[]).map((d) => ({
+    ...((CHURCH_READ_ONLY ? [] : recentDocs ?? []) as { uploaded_at: string; doc_type: string }[]).map((d) => ({
       label: `Uploaded ${d.doc_type.replace(/_/g, ' ')}`,
       date: d.uploaded_at,
     })),
@@ -194,17 +196,30 @@ export default async function ParentDashboardPage() {
     )
   }
 
-  const stats = [
-    { href: '/athletes', label: 'Wrestlers', value: String(athleteRows.length), icon: Users },
-    { href: '/tournaments', label: 'Events', value: String(upcoming.length), icon: Trophy },
-    { href: '/documents', label: 'Documents', value: String(docCount ?? 0), icon: FolderOpen },
-  ]
+  // Church demo (UX scrub callout 1, critic M1): no Documents; Giving instead.
+  const stats = CHURCH_READ_ONLY
+    ? [
+        { href: '/athletes', label: 'Household', value: String(athleteRows.length), icon: Users },
+        { href: '/tournaments', label: 'Trips', value: String(upcoming.length), icon: MapIcon },
+        { href: '/dues', label: 'Gifts', value: String((paidDues ?? []).length), icon: HandCoins },
+      ]
+    : [
+        { href: '/athletes', label: 'Wrestlers', value: String(athleteRows.length), icon: Users },
+        { href: '/tournaments', label: 'Events', value: String(upcoming.length), icon: Trophy },
+        { href: '/documents', label: 'Documents', value: String(docCount ?? 0), icon: FolderOpen },
+      ]
 
-  const quickActions = [
-    { href: '/tournaments', label: 'Tournaments', sub: 'Browse upcoming events', icon: Trophy },
-    { href: '/documents', label: 'Documents', sub: 'Upload paperwork', icon: Upload },
-    { href: `mailto:${ORG.contactEmail}`, label: 'Contact', sub: 'Email the club', icon: Mail },
-  ]
+  const quickActions = CHURCH_READ_ONLY
+    ? [
+        { href: '/tournaments', label: 'Retreats & Trips', sub: 'See what is coming up', icon: MapIcon },
+        { href: '/dues', label: 'Giving', sub: 'See your gifts', icon: HandCoins },
+        { href: `mailto:${ORG.contactEmail}`, label: 'Contact', sub: 'Email the church office', icon: Mail },
+      ]
+    : [
+        { href: '/tournaments', label: 'Tournaments', sub: 'Browse upcoming events', icon: Trophy },
+        { href: '/documents', label: 'Documents', sub: 'Upload paperwork', icon: Upload },
+        { href: `mailto:${ORG.contactEmail}`, label: 'Contact', sub: 'Email the club', icon: Mail },
+      ]
 
   return (
     <div className="mx-auto max-w-3xl">
