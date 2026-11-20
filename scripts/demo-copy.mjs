@@ -123,6 +123,10 @@ const CHURCH_RULES = [
   ['No wrestlers added yet', 'No one added yet'],
   ['Add your first wrestler to register for practices and tournaments and to upload their documents.', 'Add the people in your household to sign them up for ministries and retreats.'],
   ['Add wrestler', 'Add household member'],
+  ["Need to edit a wrestler&apos;s details? Contact a club admin.", 'Need to change someone&apos;s details? Contact the church office.'],
+  ["'Back to wrestlers'", "'Back to household members'"],
+  ['>Add a wrestler</h1>', '>Add a household member</h1>'],
+  ['Add the wrestler profile once, then reuse it for season registration and tournaments.', 'Add each person once, then sign them up for ministries and retreats.'],
   // The member sign-up form's season options (stored and checked from this one
   // list, so label and value change together).
   [/Will wrestle [^'"]*?IKWF during the season and IKWF state series/g, 'Will serve every week this season'],
