@@ -146,11 +146,11 @@ export async function middleware(req: NextRequest, event: NextFetchEvent) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  // Church demo members: Documents and Household are hidden (UX scrub callout 1),
-  // by address too.
+  // Church demo members: Documents is hidden (UX scrub callout 1), by address
+  // too. Household (/family) redirects on its own page.
   // Same test as CHURCH_READ_ONLY, inline so middleware keeps its small import list.
   const churchDemo = process.env.NEXT_PUBLIC_DEMO_MODE === '1' && process.env.NEXT_PUBLIC_DEMO_FLAVOR === 'church'
-  if (churchDemo && role === 'parent' && matchesPrefix(pathname, ['/documents', '/family'])) {
+  if (churchDemo && role === 'parent' && matchesPrefix(pathname, ['/documents'])) {
     const redirectUrl = req.nextUrl.clone()
     redirectUrl.pathname = '/dashboard'
     redirectUrl.search = ''
@@ -168,7 +168,6 @@ export const config = {
     '/dashboard/:path*',
     '/athletes/:path*',
     '/documents/:path*',
-    '/family/:path*',
     '/dues/:path*',
     '/tournaments/:path*',
     '/registration/:path*',

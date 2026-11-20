@@ -1,4 +1,7 @@
 import { UsersRound } from 'lucide-react'
+import { redirect } from 'next/navigation'
+
+import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
 
 import { createServerSupabase } from '@/lib/supabase/server'
 import type { FamilyGuardian, FamilyInvite, Profile } from '@/types/database'
@@ -10,6 +13,8 @@ function displayName(p: Pick<Profile, 'full_name' | 'email'> | undefined) {
 }
 
 export default async function FamilyPage() {
+  // Church demo: Household is hidden from members (UX scrub callout 1), by address too.
+  if (CHURCH_READ_ONLY) redirect('/dashboard')
   const supabase = await createServerSupabase()
   const {
     data: { user },
