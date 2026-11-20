@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { ReadOnlyBanner } from '@/components/demo/ReadOnlyBanner'
+import { churchAllows, churchRoleFor } from '@/lib/demo-roles'
 import {
   CalendarClock,
   ClipboardCheck,
@@ -52,7 +53,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const isFullAdmin = profile?.role === 'admin' && profile?.admin_scope === 'full'
   // Uploads waiting on To review, for the menu badge.
   const reviewCount = profile?.role === 'admin' ? (await reviewQueue(supabase)).length : 0
-  const navItems: NavItem[] = ADMIN_NAV.filter((item) => isFullAdmin || !item.fullOnly).map((item) => ({
+  // Church demo staff roles narrow the menu further (SBC, Nov 20).
+  const churchRole = churchRoleFor(auth.user?.email)
+  const navItems: NavItem[] = ADMIN_NAV.filter(
+    (item) => (isFullAdmin || !item.fullOnly) && (!churchRole || churchAllows(churchRole, item.href))
+  ).map((item) => ({
     href: item.href,
     label: item.label,
     icon: item.icon,
@@ -68,6 +73,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           role={profile?.role ?? null}
           isFullAdmin={isFullAdmin}
           reviewCount={reviewCount}
+          allowedHrefs={churchRole ? navItems.map((item) => item.href) : undefined}
         />
         <ReadOnlyBanner />
         <main className="min-w-0 flex-1 p-4 md:p-8 print:p-0">{children}</main>

@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { churchAllows } from '@/lib/demo-roles'
+import { currentChurchRole } from '@/lib/demo-roles-server'
 import { ChevronRight, Inbox, Users, UserSquare2, Trophy, Wallet } from 'lucide-react'
 
 import { createAdminSupabase } from '@/lib/supabase/admin'
@@ -34,6 +36,10 @@ export default async function AdminOverviewPage() {
     },
   ]
 
+  // Church demo roles: no card for a page the role can't open.
+  const churchRole = await currentChurchRole()
+  const shownStats = churchRole ? stats.filter((stat) => churchAllows(churchRole, stat.href)) : stats
+
   return (
     <div>
       <h1 className="mb-6 font-display text-3xl text-clw-gold">Overview</h1>
@@ -51,7 +57,7 @@ export default async function AdminOverviewPage() {
         </Link>
       )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => {
+        {shownStats.map((stat) => {
           const Icon = stat.icon
           return (
             <Link key={stat.label} href={stat.href}>

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { churchAllows, churchRoleFor } from '@/lib/demo-roles'
 import type { NextRequest, NextFetchEvent } from 'next/server'
 import { getSupabaseAndResponse } from '@/lib/supabase/middleware'
 import { getSessionRole, homeForRole } from '@/lib/auth/session'
@@ -131,6 +132,16 @@ export async function middleware(req: NextRequest, event: NextFetchEvent) {
   if (isAdminPath && matchesPrefix(pathname, FULL_ADMIN_PATHS) && adminScope !== 'full') {
     const redirectUrl = req.nextUrl.clone()
     redirectUrl.pathname = '/admin'
+    return NextResponse.redirect(redirectUrl)
+  }
+
+  // Church demo staff roles (SBC, Nov 20): each sample login reaches only its
+  // own areas; anything else goes to that role's home page.
+  const churchRole = isAdminPath ? churchRoleFor(user.email) : null
+  if (churchRole && !churchAllows(churchRole, pathname)) {
+    const redirectUrl = req.nextUrl.clone()
+    redirectUrl.pathname = churchRole.home
+    redirectUrl.search = ''
     return NextResponse.redirect(redirectUrl)
   }
 

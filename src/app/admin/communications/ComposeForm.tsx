@@ -148,6 +148,7 @@ export function ComposeForm({
   queueMissing,
   smsReady,
   initialTournamentId,
+  lockedGroup,
 }: {
   practiceGroups: readonly string[]
   tournaments: TournamentOption[]
@@ -160,14 +161,16 @@ export function ComposeForm({
   smsReady: boolean
   // From a tournament's roster page ("Message these families").
   initialTournamentId?: string
+  // Church demo group roles: every message goes to this one ministry.
+  lockedGroup?: string
 }) {
   const [channel, setChannel] = useState<Channel>('email')
   const [smsText, setSmsText] = useState('')
   const wantsEmail = channel !== 'sms'
   const wantsSms = channel !== 'email'
   const smsFinal = smsText.trim() ? clubSms(smsText) : ''
-  const [audience, setAudience] = useState<AudienceKind>(initialTournamentId ? 'tournament_registrants' : 'all')
-  const [selectedGroups, setSelectedGroups] = useState<string[]>([])
+  const [audience, setAudience] = useState<AudienceKind>(lockedGroup ? 'practice_groups' : initialTournamentId ? 'tournament_registrants' : 'all')
+  const [selectedGroups, setSelectedGroups] = useState<string[]>(lockedGroup ? [lockedGroup] : [])
   const [documents, setDocuments] = useState<MissingDocument[]>([])
   const [tournamentId, setTournamentId] = useState(initialTournamentId ?? tournaments[0]?.id ?? '')
   const [selectedParentIds, setSelectedParentIds] = useState<string[]>([])
@@ -330,7 +333,7 @@ export function ComposeForm({
       setSmsText('')
       setEventId('')
       setPreview(null)
-      setSelectedGroups([])
+      setSelectedGroups(lockedGroup ? [lockedGroup] : [])
       setDocuments([])
       setSelectedParentIds([])
       window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -375,6 +378,14 @@ export function ComposeForm({
         </Alert>
       )}
 
+      {lockedGroup ? (
+        <div className="space-y-2">
+          <Label>Audience</Label>
+          <p className="rounded-md border border-clw-gold/20 bg-clw-black/40 px-3 py-2.5 text-base text-clw-white">
+            Everyone in {lockedGroup}
+          </p>
+        </div>
+      ) : (
       <div className="space-y-2">
         <Label>Audience</Label>
         <Select
@@ -396,6 +407,7 @@ export function ComposeForm({
           </SelectContent>
         </Select>
       </div>
+      )}
 
       {audience === 'coaches' && (
         <p className="text-base text-clw-gray">
@@ -403,7 +415,7 @@ export function ComposeForm({
         </p>
       )}
 
-      {audience === 'practice_groups' && (
+      {audience === 'practice_groups' && !lockedGroup && (
         <div className="space-y-2">
           <Label>Practice groups</Label>
           <div className="grid gap-2 sm:grid-cols-2">

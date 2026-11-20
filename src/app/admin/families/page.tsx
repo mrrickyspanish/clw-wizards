@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { currentChurchRole } from '@/lib/demo-roles-server'
 import { ChevronRight } from 'lucide-react'
 
 import { createAdminSupabase } from '@/lib/supabase/admin'
@@ -28,14 +29,14 @@ export default async function AdminFamiliesPage({
 
   const supabase = createAdminSupabase()
 
-  const [{ data: families, error }, { data: athletes }, { data: linkData }] = await Promise.all([
+  const [{ data: familyRows, error }, { data: athleteRows }, { data: linkData }] = await Promise.all([
     supabase
       .from('profiles')
       .select('id, full_name, email, phone, is_active, sms_opt_in')
       .eq('role', 'parent')
       .order('last_name', { ascending: true })
       .order('first_name', { ascending: true }),
-    supabase.from('athletes').select('id, parent_id, active, first_name, last_name'),
+    supabase.from('athletes').select('id, parent_id, active, first_name, last_name, practice_group'),
     supabase.from('family_guardians').select('guardian_id, owner_id, athlete_ids'),
   ])
   // Families and wrestlers removed from the site, newest first. Missing table
@@ -48,6 +49,13 @@ export default async function AdminFamiliesPage({
   const removed = ((removedData ?? []) as DeletionLogEntry[]).filter((entry) =>
     matchesSearch(query, [entry.family_name, entry.family_email, ...entry.wrestlers.map((w) => w.name)])
   )
+
+  // Church demo group role (SBC, Nov 20): only this ministry's people.
+  const churchGroup = (await currentChurchRole())?.group
+  const athletes = churchGroup ? (athleteRows ?? []).filter((a) => a.practice_group === churchGroup) : athleteRows
+  const families = churchGroup
+    ? (familyRows ?? []).filter((f) => (athletes ?? []).some((a) => a.parent_id === f.id))
+    : familyRows
 
   const countsByParent = new Map<string, { total: number; active: number }>()
   const wrestlerNamesByParent = new Map<string, string[]>()
@@ -92,6 +100,7 @@ export default async function AdminFamiliesPage({
         <div>
           <h1 className="text-2xl font-display text-clw-gold">Families</h1>
           <p className="text-sm text-clw-gray">Parent accounts and their registered athletes.</p>
+          {churchGroup && <p className="mt-1 text-base font-semibold text-clw-gold">Showing {churchGroup} only.</p>}
         </div>
         <AdminSearch
           initial={query}

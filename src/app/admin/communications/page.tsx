@@ -1,4 +1,5 @@
 import { createServerSupabase } from '@/lib/supabase/server'
+import { currentChurchRole } from '@/lib/demo-roles-server'
 import { chicagoDateString } from '@/lib/chicago-time'
 import { ORG } from '@/config/org.config'
 import { commsQueueStatus } from '@/lib/qstash'
@@ -18,6 +19,10 @@ export default async function AdminCommunicationsPage({
   const { tab, audience, tournament } = await searchParams
   const openTab = tab === 'history' || tab === 'board' || tab === 'payments' || tab === 'uploads' ? tab : 'compose'
   const supabase = await createServerSupabase()
+  // Church demo roles (SBC, Nov 20): group roles message only their ministry;
+  // the settings tabs are for Church Admin and Ministry Staff.
+  const churchRole = await currentChurchRole()
+  const showSettings = !churchRole || churchRole.settings
   const [{ data: tournaments }, { data: events }, { data: parents }, { data: boardRows }, { data: paymentRows }, { data: uploadRows }] = await Promise.all([
     supabase.from('tournaments').select('id, name, date').order('date', { ascending: false }),
     // Upcoming club events (not the season registration itself) for the
@@ -60,14 +65,19 @@ export default async function AdminCommunicationsPage({
         <TabsList>
           <TabsTrigger value="compose">Compose</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
-          <TabsTrigger value="board">Board copy</TabsTrigger>
-          <TabsTrigger value="payments">Payment notices</TabsTrigger>
-          <TabsTrigger value="uploads">Upload notices</TabsTrigger>
+          {showSettings && (
+            <>
+              <TabsTrigger value="board">Board copy</TabsTrigger>
+              <TabsTrigger value="payments">Payment notices</TabsTrigger>
+              <TabsTrigger value="uploads">Upload notices</TabsTrigger>
+            </>
+          )}
         </TabsList>
 
         <TabsContent value="compose" className="mt-6">
           <ComposeForm
-            practiceGroups={ORG.practiceGroups}
+            practiceGroups={churchRole?.group ? [churchRole.group] : ORG.practiceGroups}
+            lockedGroup={churchRole?.group}
             tournaments={(tournaments ?? []).map((t) => ({
               id: t.id,
               name: registeredCount.get(t.id) ? `${t.name} (${registeredCount.get(t.id)} registered)` : t.name,

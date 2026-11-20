@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
 import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
-import { DEMO_LOGINS } from '@/lib/demo-seed'
+import { CHURCH_MEMBER_VIEW, CHURCH_ROLES } from '@/lib/demo-roles'
 import { createDemoSetupSupabase } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
@@ -11,16 +11,14 @@ export const dynamic = 'force-dynamic'
 // The server makes a one-time sign-in link for the chosen demo account and
 // uses it straight away, so nobody types or sees a password and no email is
 // sent. Church deployments only; everywhere else this route doesn't exist.
-const VIEWS = {
-  admin: { email: DEMO_LOGINS.admin, home: '/admin' },
-  staff: { email: DEMO_LOGINS.staff, home: '/admin' },
-  member: { email: DEMO_LOGINS.parent, home: '/dashboard' },
-} as const
+const VIEWS: Record<string, { email: string; home: string }> = Object.fromEntries(
+  [...CHURCH_ROLES, CHURCH_MEMBER_VIEW].map((v) => [v.key, { email: v.email, home: v.home }])
+)
 
 export async function GET(req: NextRequest) {
   if (!CHURCH_READ_ONLY) return new NextResponse('Not found', { status: 404 })
-  const as = req.nextUrl.searchParams.get('as') as keyof typeof VIEWS | null
-  const view = as && VIEWS[as]
+  const as = req.nextUrl.searchParams.get('as')
+  const view = as ? VIEWS[as] : undefined
   const back = new URL('/demo?unavailable=1', req.url)
   if (!view) return NextResponse.redirect(back)
 

@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
+import { DemoGivingActions } from './DemoGivingActions'
 
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { formatCents } from '@/lib/format/money'
@@ -94,6 +96,11 @@ export default async function AdminDuesPage({ searchParams }: { searchParams: Pr
         </div>
         <AdminSearch initial={query} basePath="/admin/dues" placeholder="Search wrestler, parent, email…" />
       </div>
+      {CHURCH_READ_ONLY && (
+        <div className="mb-6">
+          <DemoGivingActions />
+        </div>
+      )}
 
       {query && (
         <p className="mb-3 text-base text-clw-gray">

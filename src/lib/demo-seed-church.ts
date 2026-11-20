@@ -1,6 +1,7 @@
 import { createDemoSetupSupabase } from '@/lib/supabase/admin'
 import { DEMO_FLAVOR, DEMO_MODE, demoProblems } from '@/lib/demo'
 import { DEMO_DOMAIN, DEMO_LOGINS, makeLogin, must, wipe, type ResetResult } from '@/lib/demo-seed'
+import { CHURCH_ROLES } from '@/lib/demo-roles'
 
 // The church reskin's starting state (Creative Eye proposal for Second Baptist
 // Church of Elgin, Nov 16). Cosmetic only: the same tables the wrestling club
@@ -67,8 +68,10 @@ export async function resetChurchDemo(password: string): Promise<ResetResult> {
     await wipe(admin)
 
     // Church staff: a full admin and a limited admin.
-    const adminId = await makeLogin(admin, password, { email: DEMO_LOGINS.admin, first: 'Jordan', last: 'Ellis', role: 'admin', scope: 'full' })
-    await makeLogin(admin, password, { email: DEMO_LOGINS.staff, first: 'Taylor', last: 'Morgan', role: 'admin', scope: 'limited' })
+    // Staff: one sample login per church role (SBC, Nov 20; see demo-roles.ts).
+    for (const role of CHURCH_ROLES) {
+      await makeLogin(admin, password, { email: role.email, first: role.first, last: role.last, role: 'admin', scope: role.scope })
+    }
 
     // Members (account holders). parent@ is the demo member login.
     const hill = await makeLogin(admin, password, { email: DEMO_LOGINS.parent, first: 'Renee', last: 'Hill', phone: '5550100201' })
@@ -227,10 +230,9 @@ export async function resetChurchDemo(password: string): Promise<ResetResult> {
       admin.from('page_content').insert(Object.entries(PAGE_CONTENT).map(([key, value]) => ({ key, value })))
     )
 
-    void adminId
     return {
       ok: true,
-      summary: `Church demo reset: 3 member households, ${people.length} ministry participants, 2 staff logins, 4 ministries, 5 sample gifts, 2 retreats.`,
+      summary: `Church demo reset: 3 member households, ${people.length} ministry participants, ${CHURCH_ROLES.length} staff roles, 4 ministries, 5 sample gifts, 2 retreats.`,
     }
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Reset failed.' }

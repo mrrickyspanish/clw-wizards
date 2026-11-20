@@ -52,16 +52,19 @@ export function AdminMobileNav({
   role,
   isFullAdmin,
   reviewCount = 0,
+  allowedHrefs,
 }: {
   userName: string | null
   role: string | null
   isFullAdmin: boolean
   /** Uploads waiting on the To review page, shown as a badge. */
   reviewCount?: number
+  /** Church demo roles: only these menu items. */
+  allowedHrefs?: string[]
 }) {
   const pathname = usePathname()
   const router = useRouter()
-  const items = ADMIN_ITEMS.filter((item) => isFullAdmin || !item.fullOnly)
+  const items = ADMIN_ITEMS.filter((item) => (isFullAdmin || !item.fullOnly) && (!allowedHrefs || allowedHrefs.includes(item.href)))
 
   async function handleSignOut() {
     const supabase = createBrowserSupabase()

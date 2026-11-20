@@ -1,0 +1,135 @@
+import { CHURCH_READ_ONLY } from '@/lib/demo-readonly'
+
+// The church demo's staff roles (SBC proposal, Nov 20: Sharon asked for these
+// by name). Demo-only views, not a permission system: each role is a sample
+// login whose menu and reachable pages are narrowed here, on top of the
+// platform's real full / limited admin split. Everything stays read-only.
+// Pure data, no server imports: the middleware uses it too.
+
+const DOMAIN = 'sbc-demo.example'
+
+export type ChurchRole = {
+  key: string
+  email: string
+  first: string
+  last: string
+  /** The platform's real access level underneath the demo role. */
+  scope: 'full' | 'limited'
+  label: string
+  can: string
+  cannot: string
+  home: string
+  /** Only these /admin areas (and the pages under them). */
+  allow?: string[]
+  /** Every area except these. */
+  deny?: string[]
+  /** A group role sees and messages only this ministry. */
+  group?: string
+  /** Communications settings tabs (board copy, notices). */
+  settings: boolean
+}
+
+export const CHURCH_ROLES: ChurchRole[] = [
+  {
+    key: 'admin',
+    email: `admin@${DOMAIN}`,
+    first: 'Jordan',
+    last: 'Ellis',
+    scope: 'full',
+    label: 'Church Admin',
+    can: 'Members, ministries, website content, communications and the admin team.',
+    cannot: 'Giving, unless also given the Giving Admin role.',
+    home: '/admin',
+    deny: ['/admin/dues'],
+    settings: true,
+  },
+  {
+    key: 'comms',
+    email: `comms@${DOMAIN}`,
+    first: 'Monica',
+    last: 'Price',
+    scope: 'limited',
+    label: 'Communications',
+    can: 'Email or text the whole church, a ministry or specific members.',
+    cannot: 'Website content, the admin team, giving or settings.',
+    home: '/admin/communications',
+    allow: ['/admin/communications'],
+    settings: false,
+  },
+  {
+    key: 'giving',
+    email: `giving@${DOMAIN}`,
+    first: 'Gerald',
+    last: 'Watts',
+    scope: 'limited',
+    label: 'Giving Admin',
+    can: 'Giving records and totals, editing a gift and adding a giver.',
+    cannot: 'Anything outside Giving.',
+    home: '/admin/dues',
+    allow: ['/admin/dues'],
+    settings: false,
+  },
+  {
+    key: 'group',
+    email: `music@${DOMAIN}`,
+    first: 'Andre',
+    last: 'Lewis',
+    scope: 'limited',
+    label: 'Group Admin: Music Ministry',
+    can: 'The Music Ministry member list, and messages to that ministry.',
+    cannot: 'Other ministries, giving, website content or the admin team.',
+    home: '/admin/families',
+    allow: ['/admin/families', '/admin/communications'],
+    group: 'Music Ministry',
+    settings: false,
+  },
+  {
+    key: 'notes',
+    email: `grief@${DOMAIN}`,
+    first: 'Paula',
+    last: 'Reyes',
+    scope: 'limited',
+    label: 'Group Note Sender: Grief & Recovery',
+    can: 'Send notes to the Grief & Recovery group.',
+    cannot: 'Change who is in the group, or anything else.',
+    home: '/admin/communications',
+    allow: ['/admin/communications'],
+    group: 'Grief & Recovery',
+    settings: false,
+  },
+  {
+    key: 'staff',
+    email: `staff@${DOMAIN}`,
+    first: 'Taylor',
+    last: 'Morgan',
+    scope: 'limited',
+    label: 'Ministry Staff',
+    can: 'The day-to-day tools: members, sign-ups, meetings, retreats, giving and communications.',
+    cannot: 'Website content or the admin team.',
+    home: '/admin',
+    settings: true,
+  },
+]
+
+export const CHURCH_MEMBER_VIEW = {
+  key: 'member',
+  email: `parent@${DOMAIN}`,
+  label: 'Member',
+  can: 'What a church member sees when they sign in.',
+  home: '/dashboard',
+}
+
+/** The demo role for a signed-in email, on church deployments only. */
+export function churchRoleFor(email: string | null | undefined): ChurchRole | null {
+  if (!CHURCH_READ_ONLY || !email) return null
+  return CHURCH_ROLES.find((r) => r.email === email.toLowerCase()) ?? null
+}
+
+const under = (pathname: string, prefix: string) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+
+/** Whether a demo role may open this page. */
+export function churchAllows(role: ChurchRole, pathname: string): boolean {
+  if (role.deny?.some((p) => under(pathname, p))) return false
+  if (role.allow) return role.allow.some((p) => under(pathname, p))
+  return true
+}

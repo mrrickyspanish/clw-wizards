@@ -14,6 +14,8 @@ function load(relative, mocks, env = {}, logs = [], fetcher = fetch, globals = {
   mocks['@/lib/auth/incidents'] ??= { registerResetAttempt: async () => {}, linkAttemptId: async () => '11111111-1111-4111-a111-111111111111', requestSourceKey: async () => 'test', reportParentAuthFailure: async () => {} }
   // The Homefield demo switch is off everywhere unless a test turns it on.
   mocks['@/lib/demo'] ??= { DEMO_MODE: false, demoProblems: () => [], scrubDemoEnv: () => [] }
+  // Church demo roles are off outside the church demo.
+  mocks['@/lib/demo-roles'] ??= { churchRoleFor: () => null, churchAllows: () => true }
   mocks['@/lib/auth/report-client'] ??= { authAttempt: () => 'test', reportClientAuthFailure: async () => {}, markAuthNavigation: () => {} }
   if (relative.startsWith('src/app/') || relative === 'src/middleware.ts') mocks['@/lib/auth/incident-policy'] ??= incidentPolicy
   if (relative.startsWith('src/app/')) mocks['@/lib/auth/recovery-errors'] ??= policy
