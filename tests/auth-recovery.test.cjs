@@ -5999,7 +5999,7 @@ test('CLW-ENG-008: lint skips agent worktrees, and the QA README covers the Chro
   // The README's names match what the sweep script actually reads.
   const sweep = eng008Read('.claude/skills/wizards-request/qa/layout-sweep.cjs')
   for (const name of ['CHROMIUM_PATH', 'QA_APP_URL', 'QA_MOCK_URL']) assert.match(sweep, new RegExp(`process\\.env\\.${name}\\b`))
-  assert.doesNotMatch(readme, /—|–/, 'no em or en dashes')
+  assert.doesNotMatch(readme, /\u2014|\u2013/, 'no em or en dashes')
 })
 
 test('CLW-ENG-008: a co-parent re-registering an existing free entry keeps its parent_id (QA-002 round 2 note 5)', async () => {
