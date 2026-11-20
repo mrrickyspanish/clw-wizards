@@ -5,20 +5,22 @@ const b = (s) => Buffer.from(s).toString('base64url'), exp = 4102444800
 const cookieFor = (sub) => 'base64-' + b(JSON.stringify({ access_token: [b('{}'), b(JSON.stringify({ sub, exp })), 's'].join('.'), token_type: 'bearer', expires_in: 3600, expires_at: exp, refresh_token: 'r', user: { id: sub } }))
 const FAM = '00000000-0000-4000-8000-620000000001', KID = '00000000-0000-4000-8000-6b0000000001'
 const ADMIN = ['/admin', '/admin/communications', '/admin/content', '/admin/dues', '/admin/families', `/admin/families/${FAM}`, '/admin/families/00000000-0000-4000-8000-620000000003', '/admin/families/00000000-0000-4000-8000-620000000004', '/admin/families?q=Tommy', '/admin/review', '/admin/review?type=cards', '/admin/review?doc=00000000-0000-4000-8000-640000000002', '/admin/review?doc=11111111-1111-4111-a111-111111111111', '/admin/communications?tab=uploads', '/admin/registrations?q=Tina%20Parent', '/admin/practices', '/admin/registrations', '/admin/sponsors', '/admin/team', '/admin/tournaments', '/admin/tournaments/00000000-0000-4000-8000-740000000001', '/admin/communications?audience=tournament_registrants&tournament=00000000-0000-4000-8000-740000000001']
-const PARENT = ['/dashboard', '/schedule', '/athletes', '/athletes/new', '/documents', '/dues', '/events', '/family', '/profile', '/registration', `/registration/${KID}`, '/tournaments', '/onboarding']
+const PARENT = ['/dashboard', '/schedule', '/athletes', '/athletes/new', '/documents', '/dues', '/events', '/family', '/profile', '/registration', `/registration/${KID}`, '/tournaments', '/tournament-rosters', '/onboarding']
 const PUBLIC = ['/', '/about', '/coaches', '/faq', '/golf-outing', '/join', '/login', '/signup', '/forgot-password', '/partners', '/privacy', '/program', '/schedule', '/sms-terms', '/sponsorship', '/sponsorship/boosters', '/sponsorship/donate', '/sponsorship/sponsor', '/sponsorship/thank-you', '/sponsorship/volunteer', '/staff', '/terms']
+// Ports can be moved so parallel worktrees do not collide (defaults: app 3100, mock 54329).
+const APP = process.env.QA_APP_URL || 'http://127.0.0.1:3100', MOCK = process.env.QA_MOCK_URL || 'http://127.0.0.1:54329'
 const widths = (process.argv[3] || '320,360,390,768').split(',').map(Number)
 ;(async () => {
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox'] })
   let total = 0
   for (const [who, paths] of [['admin', ADMIN], ['parent', PARENT], ['anon', PUBLIC]]) {
-    await fetch('http://127.0.0.1:54329/__as?who=' + (who === 'anon' ? 'parent' : who))
+    await fetch(MOCK + '/__as?who=' + (who === 'anon' ? 'parent' : who))
     for (const width of widths) {
       const ctx = await browser.newContext({ viewport: { width, height: 900 } })
       if (who !== 'anon') await ctx.addCookies([{ name: 'sb-127-auth-token', value: cookieFor(who), domain: '127.0.0.1', path: '/' }])
       const page = await ctx.newPage()
       for (const path of paths) {
-        try { await page.goto('http://127.0.0.1:3100' + path, { waitUntil: 'networkidle', timeout: 20000 }) } catch { console.log('TIMEOUT', path); continue }
+        try { await page.goto(APP + path, { waitUntil: 'networkidle', timeout: 20000 }) } catch { console.log('TIMEOUT', path); continue }
         await page.evaluate(() => document.querySelectorAll('details').forEach((d) => (d.open = true)))
         await page.waitForTimeout(150)
         const issues = await page.evaluate(() => {

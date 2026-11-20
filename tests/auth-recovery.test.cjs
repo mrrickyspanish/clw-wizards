@@ -4150,3 +4150,139 @@ test('CLW-ENG-001: the QA mock has made-up rows for the three new tables', () =>
   }
   assert.doesNotMatch(block[0], /@(?!example\.com)[a-z0-9-]+\.[a-z]/i, 'no real email addresses')
 })
+
+// ---- CLW-ENG-006: Parent "Tournament rosters" page, own kids only (B7) ----
+const ENG006_PAGE = 'src/app/(portal)/tournament-rosters/page.tsx'
+const eng006Source = (relative) => fs.readFileSync(path.join(__dirname, '..', relative), 'utf8')
+function eng006Render(rpcResult) {
+  const { renderToStaticMarkup } = require('react-dom/server')
+  const React = require('react')
+  const calls = { rpc: [], from: [] }
+  // Made-up rows only. A stranger's TrackWrestling name sits in a fake table the page must never read.
+  const strangerEntries = [{ tournament_id: 't-1', athlete_id: null, external_name: 'Stranger Kid Outsider' }]
+  const supabase = {
+    rpc: async (name, args) => { calls.rpc.push([name, args]); return rpcResult },
+    from: (table) => { calls.from.push(table); return { select: async () => ({ data: table === 'tournament_entries' ? strangerEntries : [], error: null }) } },
+  }
+  const page = load(ENG006_PAGE, {
+    'next/link': { __esModule: true, default: ({ href, children, ...rest }) => React.createElement('a', { href, ...rest }, children) },
+    '@/lib/supabase/server': { createServerSupabase: async () => supabase },
+    '@/lib/chicago-time': {
+      chicagoDateString: () => '2026-11-20',
+      chicagoDatePlusDays: (days) => new Date(Date.parse('2026-11-20T12:00:00Z') + days * 86400000).toISOString().slice(0, 10),
+    },
+    '@/lib/maps': load('src/lib/maps.ts', {}),
+  })
+  return { calls, page, html: async () => renderToStaticMarkup(await page.default()) }
+}
+const eng006Row = (over) => ({
+  tournament_id: 't-1', tournament_name: 'Example Winter Open', date: '2026-11-21', location: 'Example High School', city: 'Huntley', state: 'IL', street_address: null,
+  athlete_id: 'kid-a', athlete_first_name: 'Avery', athlete_last_name: 'Example', source: 'site', division: 'Boys 10U', weight: '67', registration_state: 'due', ...over,
+})
+
+test('CLW-ENG-006: the rosters page shows only the rows the roster function returns, grouped Upcoming and Recent', async () => {
+  const rows = [
+    eng006Row({}),
+    // The same wrestler also matched from a TrackWrestling paste: shown once, with both labels.
+    eng006Row({ source: 'trackwrestling', division: null, weight: null, registration_state: null }),
+    eng006Row({ athlete_id: 'kid-b', athlete_first_name: 'Blake', source: 'trackwrestling', division: null, weight: null, registration_state: null }),
+    eng006Row({ tournament_id: 't-2', tournament_name: 'Example Fall Classic', date: '2026-11-10', location: 'North Gym', street_address: '12 Example Ave', athlete_id: 'kid-b', athlete_first_name: 'Blake', division: 'Girls 8U', weight: '52', registration_state: 'paid' }),
+    // Older than 30 days (the database's day can run ahead of Chicago's): dropped.
+    eng006Row({ tournament_id: 't-3', tournament_name: 'Example Old Duals', date: '2026-10-01' }),
+  ]
+  const r = eng006Render({ data: rows, error: null })
+  const html = await r.html()
+  assert.deepEqual(r.calls.rpc, [['family_tournament_roster', undefined]])
+  assert.deepEqual(r.calls.from, [], 'no direct table reads')
+  assert.equal((html.match(/Avery Example/g) || []).length, 1, 'one line per wrestler per tournament')
+  assert.equal((html.match(/Blake Example/g) || []).length, 2)
+  assert.doesNotMatch(html, /Stranger Kid Outsider/)
+  assert.doesNotMatch(html, /Example Old Duals/)
+  const upcoming = html.indexOf('>Upcoming<'), recent = html.indexOf('>Recent<')
+  assert.ok(upcoming > -1 && recent > upcoming, 'Upcoming then Recent')
+  assert.ok(html.indexOf('Example Winter Open') > upcoming && html.indexOf('Example Winter Open') < recent)
+  assert.ok(html.indexOf('Example Fall Classic') > recent)
+  assert.match(html, /Registered on the club site/)
+  assert.match(html, /Registered on TrackWrestling/)
+  // Division and weight come only from the family's own site registration (A7).
+  assert.match(html, /Division: Boys 10U · Weight: 67/)
+  assert.match(html, /Division: Girls 8U · Weight: 52/)
+  assert.equal((html.match(/Division:/g) || []).length, 2)
+  assert.match(html, /Payment due/)
+  assert.match(html, />Paid</)
+  // The venue is a Google Maps link; the street wins when there is one.
+  assert.ok(html.includes('href="https://www.google.com/maps/search/?api=1&amp;query=Example%20High%20School%2C%20Huntley%2C%20IL"'))
+  assert.ok(html.includes('query=12%20Example%20Ave%2C%20Huntley%2C%20IL'))
+  assert.match(html, /target="_blank" rel="noopener noreferrer"/)
+})
+
+test('CLW-ENG-006: no rows (including an admin in parent view) or a missing roster function shows the plain empty state', async () => {
+  for (const result of [
+    { data: [], error: null },
+    { data: null, error: { code: 'PGRST202', message: 'Could not find the function public.family_tournament_roster' } },
+    { data: null, error: { code: '42883', message: 'function does not exist' } },
+  ]) {
+    const html = await eng006Render(result).html()
+    assert.match(html, /No tournaments yet/, JSON.stringify(result.error))
+    assert.match(html, /href="\/tournaments"[^>]*>See tournaments</)
+    assert.doesNotMatch(html, /Upcoming|couldn/)
+    assert.doesNotMatch(html, /Could not find|does not exist/)
+  }
+  const failed = await eng006Render({ data: null, error: { code: '57014', message: 'canceling statement due to statement timeout' } }).html()
+  assert.match(failed, /We couldn&#x27;t load your tournament rosters just now/)
+  assert.doesNotMatch(failed, /statement timeout|No tournaments yet/)
+})
+
+test('CLW-ENG-006: the page reads only through the roster function, never the roster tables or the admin client', () => {
+  const src = eng006Source(ENG006_PAGE)
+  assert.match(src, /supabase\.rpc\('family_tournament_roster'\)/)
+  assert.match(src, /from '@\/lib\/supabase\/server'/)
+  assert.doesNotMatch(src, /tournament_entries|tournament_registrations|\.from\(/)
+  assert.doesNotMatch(src, /createAdminSupabase|@\/lib\/supabase\/admin|SERVICE_ROLE/)
+  assert.doesNotMatch(src, /external_name/)
+  assert.doesNotMatch(src, /\btext-xs\b/)
+  assert.doesNotMatch(src, /\u2014|\u2013/, 'no em or en dashes')
+})
+
+test('CLW-ENG-006: middleware sends signed-out visitors to log in and lets parents and full admins in', async () => {
+  const next = require('next/server')
+  const visit = async (session, url) => {
+    const mod = load('src/middleware.ts', {
+      'next/server': next,
+      '@/lib/auth/session': { getSessionRole: async () => session, homeForRole: (r) => (r === 'admin' ? '/admin' : '/dashboard') },
+      '@/lib/supabase/middleware': { getSupabaseAndResponse: async () => ({ supabase: {}, response: next.NextResponse.next() }) },
+      '@/lib/auth/incident-policy': incidentPolicy,
+      '@/lib/auth/incidents': { linkAttemptId: async () => null, reportParentAuthFailure: async () => {} },
+    })
+    const res = await mod.middleware(new next.NextRequest('https://www.clwizards.com' + url), { waitUntil: () => {} })
+    const to = res.headers.get('location')
+    return { mod, to: to ? new URL(to) : null }
+  }
+  const signedOut = await visit({ user: null, role: null, onboardingCompleted: false, sessionError: null }, '/tournament-rosters')
+  assert.equal(signedOut.to.pathname, '/login')
+  assert.equal(signedOut.to.searchParams.get('redirectTo'), '/tournament-rosters')
+  assert.ok(signedOut.mod.config.matcher.includes('/tournament-rosters/:path*'))
+  const as = (role, adminScope, onboardingCompleted = true) => ({ user: { id: 'u' }, role, adminScope, onboardingCompleted, sessionError: null })
+  assert.equal((await visit(as('parent', null), '/tournament-rosters')).to, null)
+  assert.equal((await visit(as('admin', 'full'), '/tournament-rosters')).to, null)
+  assert.equal((await visit(as('admin', 'limited'), '/tournament-rosters')).to.pathname, '/admin')
+  assert.equal((await visit(as('staff', null), '/tournament-rosters')).to.pathname, '/dashboard')
+  assert.equal((await visit(as('parent', null, false), '/tournament-rosters')).to.pathname, '/onboarding')
+})
+
+test('CLW-ENG-006: desktop nav, dashboard tile, robots and the layout sweep list the page; the mobile tab bar is unchanged', () => {
+  assert.match(eng006Source('src/app/(portal)/layout.tsx'), /href: '\/tournament-rosters', label: 'Tournament rosters'/)
+  assert.match(eng006Source('src/app/(portal)/dashboard/page.tsx'), /href: '\/tournament-rosters', label: 'Tournament rosters'/)
+  const tabs = /const TABS = \[([\s\S]*?)\n\]/.exec(eng006Source('src/components/layout/MobileTabBar.tsx'))[1]
+  assert.deepEqual([...tabs.matchAll(/href: '([^']+)'/g)].map((m) => m[1]), ['/dashboard', '/athletes', '/tournaments', '/dues', '/profile'])
+  const robots = load('src/app/robots.ts', { '@/config/org.config': { ORG: { domain: 'example.com' } } })
+  assert.ok(robots.default().rules.disallow.includes('/tournament-rosters'))
+  const sweep = eng006Source('.claude/skills/wizards-request/qa/layout-sweep.cjs')
+  assert.match(/const PARENT = \[[^\n]*\]/.exec(sweep)[0], /'\/tournament-rosters'/)
+  const mock = eng006Source('.claude/skills/wizards-request/qa/mock.cjs')
+  new vm.Script(mock) // parses
+  const blocks = mock.match(/\/\/ ---- CLW-ENG-006[\s\S]*?\/\/ ---- end CLW-ENG-006 ----/g) || []
+  assert.equal(blocks.length, 2, 'rows block and rpc handler block')
+  assert.match(blocks[1], /fn === 'family_tournament_roster'/)
+  assert.doesNotMatch(blocks.join('\n'), /@[a-z0-9-]+\.[a-z]/i, 'no email addresses')
+})

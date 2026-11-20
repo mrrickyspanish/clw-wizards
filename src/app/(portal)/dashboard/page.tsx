@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import {
   CalendarDays,
+  ClipboardList,
   Users,
   Trophy,
   FolderOpen,
@@ -201,6 +202,7 @@ export default async function ParentDashboardPage() {
 
   const quickActions = [
     { href: '/tournaments', label: 'Tournaments', sub: 'Browse upcoming events', icon: Trophy },
+    { href: '/tournament-rosters', label: 'Tournament rosters', sub: 'See the tournaments your wrestlers are in', icon: ClipboardList },
     { href: '/documents', label: 'Documents', sub: 'Upload paperwork', icon: Upload },
     { href: `mailto:${ORG.contactEmail}`, label: 'Contact', sub: 'Email the club', icon: Mail },
   ]
@@ -417,7 +419,7 @@ export default async function ParentDashboardPage() {
               </span>
               <span className="flex-1">
                 <span className="block font-medium text-clw-white">{a.label}</span>
-                <span className="block text-xs text-clw-gray">{a.sub}</span>
+                <span className="block text-sm text-clw-gray">{a.sub}</span>
               </span>
               <ChevronRight className="h-4 w-4 shrink-0 text-clw-gray" />
             </Link>

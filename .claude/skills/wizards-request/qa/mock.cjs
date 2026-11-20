@@ -168,6 +168,30 @@ for (const [n, group] of [[20, 'Group 2'], [21, 'Group 3']]) tables.practices.pu
 tables.athletes.find((a) => a.first_name === 'Tina').usa_wrestling_card_number = '1234567890'
 tables.athletes.find((a) => a.first_name === 'Lily').usa_wrestling_card_number = '5550001112'
 
+// ---- CLW-ENG-006: family_tournament_roster() rows for the parent Tournament rosters page ----
+// Pat Parent's two kids only (the real function returns just the caller's own wrestlers).
+// The admin login guards no wrestlers, so it gets no rows (the empty state).
+// Dates move with the clock so Upcoming and Recent (last 30 days) always both show.
+const rosterDay = (days) => new Date(Date.now() + days * 86400000).toISOString().slice(0, 10)
+function familyTournamentRoster() {
+  if (as !== 'parent') return []
+  const tw = (t, kid, first) => ({ ...t, athlete_id: kid, athlete_first_name: first, athlete_last_name: 'Parent', source: 'trackwrestling', division: null, weight: null, registration_state: null })
+  const site = (t, kid, first, division, weight, registration_state) => ({ ...t, athlete_id: kid, athlete_first_name: first, athlete_last_name: 'Parent', source: 'site', division, weight, registration_state })
+  const tussle = { tournament_id: id('t', 1), tournament_name: 'Turkey Tussle Open With A Long Tournament Name', date: rosterDay(1), location: 'Central High School', city: 'Huntley', state: 'IL', street_address: null }
+  const duals = { tournament_id: id('t', 2), tournament_name: 'Holiday Duals', date: rosterDay(15), location: '', city: 'Crystal Lake', state: 'IL', street_address: null }
+  const fall = { tournament_id: id('t', 9), tournament_name: 'Fall Classic At The Very Long Named Fieldhouse Invitational', date: rosterDay(-10), location: 'Northwest Regional Athletic Fieldhouse Annex', city: 'Crystal Lake', state: 'IL', street_address: '1234 Example Boulevard' }
+  return [
+    // Tommy is on both the club site and the TrackWrestling paste: the page shows him once.
+    site(tussle, id('k', 1), 'Tommy', 'Boys 10U', '67', 'due'),
+    tw(tussle, id('k', 1), 'Tommy'),
+    tw(tussle, id('k', 2), 'Tina'),
+    site(duals, id('k', 2), 'Tina', 'Girls Novice and any wrestler moving up a division this season', '52', 'paid'),
+    site(fall, id('k', 1), 'Tommy', 'Boys 10U', '65', 'waived'),
+    tw(fall, id('k', 2), 'Tina'),
+  ]
+}
+// ---- end CLW-ENG-006 ----
+
 const user = () => {
   const uid = as === 'admin' ? ADMIN : PARENT
   const email = as === 'admin' ? 'coach@example.com' : 'pat@example.com'
@@ -276,6 +300,9 @@ http.createServer((req, res) => {
     const rpc = u.pathname.match(/^\/rest\/v1\/rpc\/(\w+)/)
     if (rpc) {
       const fn = rpc[1]
+      // ---- CLW-ENG-006 ----
+      if (fn === 'family_tournament_roster') return res.end(JSON.stringify(familyTournamentRoster()))
+      // ---- end CLW-ENG-006 ----
       const yes = ['has_role', 'manages_athlete', 'guards_athlete', 'is_full_admin']
       return res.end(JSON.stringify(yes.includes(fn) ? (fn === 'has_role' ? as === 'admin' : true) : fn === 'family_link_names' ? [] : null))
     }
