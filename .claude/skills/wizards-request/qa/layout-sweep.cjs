@@ -42,6 +42,8 @@ const widths = (process.argv[3] || '320,360,390,768').split(',').map(Number)
           // 2. Off-screen controls or text (not inside a sideways-scroll area).
           for (const el of document.querySelectorAll('button,a,input,select,textarea,h1,h2,h3,p,label,td,th')) {
             if (!visible(el) || inHScroll(el)) continue
+            // Screen-reader-only text is clipped to nothing, so it can't be off screen for a sighted visitor (same exemption as the CLIPPED check).
+            if (el.closest('.sr-only,[class*="screenReaderOnly"]')) continue
             const r = el.getBoundingClientRect()
             if (r.right > vw + 1 && r.left < vw && getComputedStyle(el).position !== 'fixed') out.push(`OFFSCREEN "${label(el)}" right=${Math.round(r.right)} vw=${vw}`)
           }
