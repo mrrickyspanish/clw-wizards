@@ -215,7 +215,7 @@ export const PAGE_TEMPLATES: PageTemplate[] = [
     name: 'Announcement',
     job: 'A card on the home page and events list, with an optional page for the details.',
     bestFor: 'Events, concerts and breakfasts, milestones like the 160th, news and recaps.',
-    thumb: '/images/sbc-pages/concert.jpg',
+    thumb: '/images/sbc-pages/choir-sing.jpg',
     sections: [
       {
         key: 'card',
@@ -358,7 +358,7 @@ const youthValues: PageValues = {
 const musicLive: PageValues = {
   'top.name': 'Music Ministry',
   'top.photo': `${P}/choir.jpg`,
-  'intro.media': `${P}/concert.jpg`,
+  'intro.media': `${P}/choir-sing.jpg`,
   'intro.bold': 'Make a Joyful',
   'intro.italic': 'Noise.',
   'intro.accent': 'Rehearsals every week',
@@ -370,7 +370,7 @@ const musicLive: PageValues = {
   'options.cards': [
     { photo: `${P}/choir.jpg`, title: 'Choral Ensemble', text: 'Anthems and hymns for Sunday worship.' },
     { photo: `${P}/youth-praise.jpg`, title: 'Praise Team', text: 'Leads the opening praise and worship.' },
-    { photo: `${P}/concert.jpg`, title: 'Male Chorus', text: 'The men of SBC in song.' },
+    { photo: `${P}/choir-sing.jpg`, title: 'Male Chorus', text: 'The men of SBC in song.' },
   ],
   'join.heading': 'Come Sing With Us',
   'join.text': 'No audition for most groups. Come to a rehearsal and meet the director.',
@@ -389,7 +389,7 @@ const musicProposed: PageValues = {
 }
 
 const concertValues: PageValues = {
-  'card.photo': `${P}/concert.jpg`,
+  'card.photo': `${P}/choir-sing.jpg`,
   'card.label': '2026 Choir Concert',
   'card.bold': 'Thank You',
   'card.italic': 'for Everything',

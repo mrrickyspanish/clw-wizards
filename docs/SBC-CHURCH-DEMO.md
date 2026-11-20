@@ -95,7 +95,10 @@ source keeps the club's words.
     Page Editor (new role, `pages@sbc-demo.example`) creates and edits drafts;
     Group Admin edits only Music Ministry's page; others have no Pages item.
   - The files are written in church words and are skipped by
-    `scripts/demo-church.mjs`. Photos are in `public/images/sbc-pages/`.
+    `scripts/demo-church.mjs`. Photos are in `public/images/sbc-pages/`: all are
+    AI-generated samples from the SBC preview (job IDs in
+    creative-eye-agent-os `evidence/2026-11-16-ai-sample-photography.md`). No
+    real concert frames: the recap still needs PR ministry sign-off.
   - The Page Editor login exists only after a church reset at `/demo-reset`.
 - **Open:**
   - Known gap: a Group Admin can open other households through a direct

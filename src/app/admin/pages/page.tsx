@@ -82,7 +82,7 @@ export default async function PagesListPage() {
           </Link>
         ))}
       </div>
-      <p className="text-sm text-clw-gray">Sample pages for the demo. Opening one shows the editor; nothing is saved.</p>
+      <p className="text-base text-clw-gray">Sample pages for the demo, with AI-generated sample photos and draft wording for the ministries to confirm. Opening one shows the editor; nothing is saved.</p>
     </div>
   )
 }

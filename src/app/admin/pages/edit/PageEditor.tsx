@@ -146,10 +146,15 @@ export function PageEditor({ template, initial, initialHidden, title, ministry, 
 
   const set = (id: string, v: Value) => setValues((prev) => ({ ...prev, [id]: v }))
   const blocked = (what: string) => setNotice(`${what}: ${READ_ONLY_MESSAGE}`)
+  // Any visible slot over its limit, including fields inside cards and questions, blocks Publish / Submit.
   const tooLong = template.sections.some(
     (s) =>
       !hidden.includes(s.key) &&
-      s.slots.some((slot) => slot.max && typeof values[`${s.key}.${slot.key}`] === 'string' && (values[`${s.key}.${slot.key}`] as string).length > slot.max)
+      s.slots.some((slot) => {
+        const v = values[`${s.key}.${slot.key}`]
+        if (slot.type === 'list') return Array.isArray(v) && v.some((item) => (slot.item ?? []).some((f) => f.max && (item[f.key] ?? '').length > f.max))
+        return Boolean(slot.max) && typeof v === 'string' && v.length > (slot.max as number)
+      })
   )
 
   const actions =
@@ -224,6 +229,7 @@ export function PageEditor({ template, initial, initialHidden, title, ministry, 
                                 <span className="text-base text-clw-gray">Item {i + 1}</span>
                                 <button
                                   type="button"
+                                  aria-label={`Remove ${slot.label.toLowerCase()} item ${i + 1}`}
                                   disabled={items.length <= min}
                                   onClick={() => set(id, items.filter((_, j) => j !== i))}
                                   className="inline-flex items-center gap-1 text-base text-clw-gold disabled:opacity-40"
@@ -279,7 +285,7 @@ export function PageEditor({ template, initial, initialHidden, title, ministry, 
           <div className="max-h-[80vh] overflow-y-auto rounded-2xl">
             <PagePreview template={template} values={values} hidden={hidden} phone={phone} />
           </div>
-          <p className="text-sm text-clw-gray">Fonts, layout and backgrounds come from the template and can&apos;t be changed here.</p>
+          <p className="text-sm text-clw-gray">Fonts, layout and backgrounds come from the template and can&apos;t be changed here. Photos are AI-generated samples.</p>
         </div>
       </div>
     </div>
