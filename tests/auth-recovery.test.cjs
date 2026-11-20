@@ -4226,46 +4226,6 @@ function eng004Db(tables) {
       is: (k, v) => { filters.push(['is', k, v]); return b },
       not: (k) => { filters.push(['notnull', k]); return b },
       order: () => b, limit: () => b, maybeSingle: one, single: one,
-})
-
-// ---- CLW-ENG-003: Admin tournament surfaces (B2 sessions, B3 address, B4 cost and paid view, B5 club link, B6 spots) ----
-const eng003AdminLib = load('src/app/admin/tournaments/tournament-admin.ts', {
-  '@/lib/tw-roster': twLib,
-  '@/lib/tournament-registration': tRegLib,
-})
-const ENG003_T = '44444444-4444-4444-a444-444444444444'
-const ENG003_R = '55555555-5555-4555-a555-555555555555'
-
-// A recording stand-in for the Supabase server client: every table call and
-// rpc lands in `log` in order, with its operation, values and filters.
-function eng003Harness({ role = 'admin', tables = {}, rpcError = null, failTable = null } = {}) {
-  const log = []
-  const data = { profiles: [{ id: 'me', role, is_active: true }], ...tables }
-  const from = (table) => {
-    const call = { kind: 'table', table, op: 'select', values: null, filters: [], onConflict: null }
-    log.push(call)
-    const rows = () => (data[table] ?? []).filter((r) => call.filters.every(([o, k, v]) =>
-      o === 'eq' ? r[k] === v : o === 'gt' ? r[k] > v : o === 'is' ? (r[k] ?? null) === v : o === 'in' ? v.includes(r[k]) : true))
-    const run = () => {
-      if (failTable === table) return { data: null, error: { message: 'boom' } }
-      if (call.op === 'insert') { const row = { id: 'new-id', ...call.values }; (data[table] ??= []).push(row); return { data: [row], error: null } }
-      if (call.op === 'upsert') { (data[table] ??= []).push({ ...call.values }); return { data: [call.values], error: null } }
-      if (call.op === 'update') { const hit = rows(); hit.forEach((r) => Object.assign(r, call.values)); return { data: hit.map((r) => ({ id: r.id })), error: null } }
-      if (call.op === 'delete') { const hit = rows(); data[table] = (data[table] ?? []).filter((r) => !hit.includes(r)); return { data: null, error: null } }
-      return { data: rows(), error: null }
-    }
-    const one = async () => { const r = run(); return { data: Array.isArray(r.data) ? r.data[0] ?? null : r.data, error: r.error } }
-    const b = {
-      select: () => b, order: () => b, limit: () => b,
-      insert: (v) => { call.op = 'insert'; call.values = v; return b },
-      update: (v) => { call.op = 'update'; call.values = v; return b },
-      upsert: (v, o) => { call.op = 'upsert'; call.values = v; call.onConflict = o?.onConflict ?? null; return b },
-      delete: () => { call.op = 'delete'; return b },
-      eq: (k, v) => { call.filters.push(['eq', k, v]); return b },
-      gt: (k, v) => { call.filters.push(['gt', k, v]); return b },
-      is: (k, v) => { call.filters.push(['is', k, v]); return b },
-      in: (k, v) => { call.filters.push(['in', k, v]); return b },
-      single: one, maybeSingle: one,
       then: (resolve, reject) => Promise.resolve(run()).then(resolve, reject),
     }
     return b
@@ -4868,6 +4828,50 @@ test('only admins or the server can change a profile role, admin level or active
   assert.match(sql, /new\.role := old\.role;\s*new\.admin_scope := old\.admin_scope;\s*new\.is_active := old\.is_active;/)
   assert.match(sql, /new\.role := 'parent';\s*new\.admin_scope := null;/)
   assert.match(sql, /revoke execute on function public\.keep_role_admin_only\(\) from public, anon, authenticated/)
+})
+
+// ---- CLW-ENG-003: Admin tournament surfaces (B2 sessions, B3 address, B4 cost and paid view, B5 club link, B6 spots) ----
+const eng003AdminLib = load('src/app/admin/tournaments/tournament-admin.ts', {
+  '@/lib/tw-roster': twLib,
+  '@/lib/tournament-registration': tRegLib,
+})
+const ENG003_T = '44444444-4444-4444-a444-444444444444'
+const ENG003_R = '55555555-5555-4555-a555-555555555555'
+
+// A recording stand-in for the Supabase server client: every table call and
+// rpc lands in `log` in order, with its operation, values and filters.
+function eng003Harness({ role = 'admin', tables = {}, rpcError = null, failTable = null } = {}) {
+  const log = []
+  const data = { profiles: [{ id: 'me', role, is_active: true }], ...tables }
+  const from = (table) => {
+    const call = { kind: 'table', table, op: 'select', values: null, filters: [], onConflict: null }
+    log.push(call)
+    const rows = () => (data[table] ?? []).filter((r) => call.filters.every(([o, k, v]) =>
+      o === 'eq' ? r[k] === v : o === 'gt' ? r[k] > v : o === 'is' ? (r[k] ?? null) === v : o === 'in' ? v.includes(r[k]) : true))
+    const run = () => {
+      if (failTable === table) return { data: null, error: { message: 'boom' } }
+      if (call.op === 'insert') { const row = { id: 'new-id', ...call.values }; (data[table] ??= []).push(row); return { data: [row], error: null } }
+      if (call.op === 'upsert') { (data[table] ??= []).push({ ...call.values }); return { data: [call.values], error: null } }
+      if (call.op === 'update') { const hit = rows(); hit.forEach((r) => Object.assign(r, call.values)); return { data: hit.map((r) => ({ id: r.id })), error: null } }
+      if (call.op === 'delete') { const hit = rows(); data[table] = (data[table] ?? []).filter((r) => !hit.includes(r)); return { data: null, error: null } }
+      return { data: rows(), error: null }
+    }
+    const one = async () => { const r = run(); return { data: Array.isArray(r.data) ? r.data[0] ?? null : r.data, error: r.error } }
+    const b = {
+      select: () => b, order: () => b, limit: () => b,
+      insert: (v) => { call.op = 'insert'; call.values = v; return b },
+      update: (v) => { call.op = 'update'; call.values = v; return b },
+      upsert: (v, o) => { call.op = 'upsert'; call.values = v; call.onConflict = o?.onConflict ?? null; return b },
+      delete: () => { call.op = 'delete'; return b },
+      eq: (k, v) => { call.filters.push(['eq', k, v]); return b },
+      gt: (k, v) => { call.filters.push(['gt', k, v]); return b },
+      is: (k, v) => { call.filters.push(['is', k, v]); return b },
+      in: (k, v) => { call.filters.push(['in', k, v]); return b },
+      single: one, maybeSingle: one,
+      then: (resolve, reject) => Promise.resolve(run()).then(resolve, reject),
+    }
+    return b
+  }
   const client = {
     from,
     rpc: async (name, args) => {
