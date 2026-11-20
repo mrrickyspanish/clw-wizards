@@ -1,6 +1,6 @@
 import { ExternalLink, Scale } from 'lucide-react'
 
-import { registrationLine, TOURNAMENT_STATUS_LABELS } from '@/lib/tournament-status'
+import { registerButtonLabel, registrationLine, TOURNAMENT_STATUS_LABELS } from '@/lib/tournament-status'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { resolveFamilyOwnerIds } from '@/lib/family'
 import { chicagoDateString } from '@/lib/chicago-time'
@@ -139,7 +139,7 @@ export default async function TournamentsPage() {
               {t.status === 'open' && t.external_registration_url ? (
                 <Button asChild variant="outline" size="sm" className="h-auto min-h-11 max-w-full whitespace-normal text-left">
                   <a href={t.external_registration_url} target="_blank" rel="noopener noreferrer">
-                    Register on {t.external_platform ?? 'external site'} <ExternalLink className="ml-1.5 h-3 w-3" />
+                    {registerButtonLabel(t.external_platform, t.external_registration_url)} <ExternalLink className="ml-1.5 h-3 w-3" />
                   </a>
                 </Button>
               ) : t.status === 'open' ? (
