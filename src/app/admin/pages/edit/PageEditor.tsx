@@ -72,6 +72,7 @@ function Field({
             <label className="inline-flex h-11 cursor-pointer items-center rounded-md border border-clw-gold/50 px-4 text-base font-semibold text-clw-gold hover:bg-clw-black-3">
               {slot.type === 'video' ? 'Replace video or photo' : 'Replace photo'}
               <input
+                aria-label={`Replace ${slot.label.toLowerCase()}`}
                 type="file"
                 accept={slot.type === 'video' ? 'image/*,video/*' : 'image/*'}
                 className="sr-only"
@@ -86,7 +87,7 @@ function Field({
           </div>
         </div>
         {slot.type === 'image' ? (
-          <Input aria-label="Photo description for screen readers" placeholder="Describe the photo (required)" className="text-base" defaultValue="" />
+          <Input aria-label="Photo description for screen readers" placeholder="Describe the photo (required before publishing)" className="text-base" defaultValue="" />
         ) : (
           <Input aria-label="YouTube link" placeholder="Or paste a YouTube link" className="text-base" defaultValue="" />
         )}
@@ -204,7 +205,7 @@ export function PageEditor({ template, initial, initialHidden, title, ministry, 
                   {section.optional && (
                     <label className="flex items-center gap-2 text-base text-clw-gray">
                       Show this section
-                      <Switch checked={!off} onCheckedChange={(on) => setHidden((h) => (on ? h.filter((k) => k !== section.key) : [...h, section.key]))} />
+                      <Switch aria-label={`Show the ${section.label} section`} checked={!off} onCheckedChange={(on) => setHidden((h) => (on ? h.filter((k) => k !== section.key) : [...h, section.key]))} />
                     </label>
                   )}
                 </div>
