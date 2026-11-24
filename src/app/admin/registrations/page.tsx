@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { AlertTriangle, CheckCircle2, ChevronDown, Clock3, CreditCard, ExternalLink, FileCheck2, UserPlus, Users } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ChevronDown, Clock3, CreditCard, Download, ExternalLink, FileCheck2, UserPlus, Users } from 'lucide-react'
 
 import { createAdminSupabase } from '@/lib/supabase/admin'
 import { formatCents } from '@/lib/format/money'
@@ -18,6 +18,7 @@ import type {
   SeasonRegistration,
 } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { AthleteDialog } from '../families/AthleteDialog'
 import { ParentDialog } from '../families/ParentDialog'
@@ -240,6 +241,12 @@ export default async function AdminRegistrationsPage({ searchParams }: { searchP
         </div>
         <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:items-end">
           <AdminSearch initial={query} basePath="/admin/registrations" placeholder="Search wrestler, parent, email…" />
+          {/* Every registration this season as a spreadsheet (Tyler, Nov 24). A plain link so the browser downloads it. */}
+          <Button asChild variant="outline" className="min-h-11 text-base">
+            <a href="/admin/registrations/export" download>
+              <Download className="mr-2 h-4 w-4" /> Download spreadsheet
+            </a>
+          </Button>
           <div className="flex flex-wrap gap-x-4 gap-y-1 sm:justify-end">
             {rosterSheetUrl() && (
               <a

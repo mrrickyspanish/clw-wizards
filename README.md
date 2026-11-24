@@ -1,53 +1,23 @@
 # CLW Platform — Crystal Lake Wizards Wrestling Club
 
-Next.js 15 (App Router, TypeScript) platform: public site shell, admin dashboard,
-staff dashboard, and parent portal, backed by Supabase (Postgres + Auth + RLS).
+The public site helps new families find the club. The family portal handles wrestlers, season registration, dues and tournament participation. Staff and administrators manage reviews, rosters and communications. Supabase stores the underlying records and enforces access by role and family relationship.
 
-## Status
+## How a family moves through the club
 
-This build is a **verified-buildable foundation**, not the full 11-week scope from
-the original brief. `npm run build`, `npx tsc --noEmit`, and `npx eslint .` all pass
-clean. What's implemented vs. stubbed is listed below.
+| Workflow | Family action | Staff handoff |
+| --- | --- | --- |
+| Season enrollment | A parent opens the active season and completes the registration for each wrestler they own. | Administrators review submitted records, request changes or approve enrollment. The review shows missing payment, waiver and membership documentation. |
+| Tournament entry | A family selects eligible wrestlers. Club checkout uses the event’s configured fee. Events with external registration follow their external path. | The family roster reconciles club entries with matched TrackWrestling entries. External roster presence and club payment status are tracked separately. |
+| Payments | Families can start checkout for eligible charges. Supporters can donate or sponsor. | Stripe events update the corresponding payment flow, including delayed outcomes and refunds. Starting checkout and recording payment are distinct events. |
+| Communications | Families receive updates for the selected audience. Additional family contacts can receive email. SMS depends on individual opt-in. | Staff compose a message, select recipients and check the blast’s history for successful and failed sends. Scheduled tournament reminders also depend on the family reminder switch. |
 
-### Built
+[Annual registration requirements](docs/annual-registration-form.md) · [Enrollment review](src/app/admin/registrations/page.tsx) · [Family roster](src/app/%28portal%29/tournament-rosters/page.tsx) · [Tournament checkout](src/lib/payments/tournament-checkout.ts) · [Payment events](src/app/api/webhooks/stripe/route.ts) · [Staff communications](src/app/admin/communications/page.tsx)
 
-- **Database**: 10 Supabase migrations (`supabase/migrations/`) — `profiles`
-  (role-based: `admin`/`staff`/`parent`), `athletes`, `tournaments`,
-  `tournament_registrations`, `dues_payments`, `sponsors`, `communication_log`,
-  `athlete_documents`, `donations` — with RLS policies and a `handle_new_user()`
-  trigger that auto-creates a `profiles` row on signup.
-- **Auth**: login, signup (parent self-registration), forgot-password,
-  update-password — `@supabase/ssr` server/browser/middleware clients,
-  role-based redirect via `src/lib/auth/session.ts`.
-- **Access control**: `src/middleware.ts` gates `/admin`, `/staff`, and the
-  parent-portal route group by role, on top of Postgres RLS (defense in depth).
-- **Payments**: unified `/api/checkout` (dues balance, donations, sponsorships)
-  and `/api/webhooks/stripe` — verifies the Stripe signature, branches on
-  `session.metadata.flow`, writes via the service-role client, sends Resend
-  confirmation emails (and a sponsor thank-you letter).
-- **Comms**: `/api/comms/blast` (admin/staff-gated) enqueues a QStash job;
-  `/api/comms/blast-job` (QStash-signature-verified) sends email (Resend) and/or
-  SMS (Twilio, opt-in respected) in batches of 25, logging every send to
-  `communication_log`.
-- **Cron jobs** (`vercel.json`, bearer-token-protected via `CRON_SECRET`):
-  Wednesday tournament reminder, day-before weigh-in SMS alert, Monday open-
-  tournaments digest, Monday dues reminder. All times computed DST-safe in
-  `America/Chicago` (`src/lib/chicago-time.ts`).
-- **Dashboard shells**: `/admin`, `/staff`, and parent `/dashboard` layouts with
-  live counts (active families, open tournaments, outstanding dues) and a
-  shared `DashboardNav` sidebar.
-- **UI**: full shadcn/ui component set (Radix primitives) under
-  `src/components/ui/`.
+## What to check when a family misses a message
 
-### Explicitly deferred (stub pages only — "coming in a follow-up build")
+A queued job means delivery work was accepted. The delivery worker resolves the audience, spaces out sends and groups results by blast ID. Start with the intended recipient and that blast’s provider outcome. Parent login and password recovery issues have a separate reporting path.
 
-- Parent portal: athletes, tournaments, dues, documents detail views.
-- Admin: families, tournaments, dues, sponsors, communications *compose UI*
-  (the comms backend is live; only the compose/send panel is stubbed).
-- Staff: athletes, tournaments roster/check-in views.
-- Public marketing website pages (only a minimal landing page with Sign
-  In / Create Account exists).
-- Sanity CMS schemas (not wired up).
+[Delivery worker](src/app/api/comms/blast-job/route.ts) · [Reminder eligibility](src/app/api/crons/wednesday-reminder/route.ts) · [Parent account alerts](docs/parent-auth-alerts.md)
 
 ## Corrections made vs. the original brief
 

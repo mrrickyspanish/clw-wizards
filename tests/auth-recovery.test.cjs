@@ -6046,3 +6046,124 @@ test('Pay now on an unpaid entry shows the tournament current cost, not an old l
   assert.match(src, /`Pay now \$\{formatCents\(feeCents\)\}`/)
   assert.doesNotMatch(src, /Pay now \$\{formatCents\(reg\.feeCents/)
 })
+
+// ---- Registrations "Download spreadsheet" (Tyler, Nov 24) ----
+// Made-up families only.
+const regExportLib = load('src/lib/registration-export.ts', {})
+const REG_EXPORT_INPUT = () => ({
+  enrollments: [
+    { athlete_id: 'a2', parent_id: 'p1', status: 'approved', submitted_at: '2026-10-02T03:00:00Z', dues_payment_id: 'd1', usa_card_document_id: null, card_override_at: '2026-10-05T00:00:00Z', grade: '3rd', school: 'Maple Elementary', weight_lbs: 61, shirt_size: 'YM', years_experience: 2, season_commitment: 'Full season' },
+    { athlete_id: 'a1', parent_id: 'p1', status: 'changes_requested', submitted_at: null, dues_payment_id: null, usa_card_document_id: null, card_override_at: null, grade: null, school: null, weight_lbs: null, shirt_size: null, years_experience: null, season_commitment: null },
+    { athlete_id: 'a3', parent_id: 'p2', status: 'submitted', submitted_at: '2026-11-01T18:00:00Z', dues_payment_id: 'd2', usa_card_document_id: null, card_override_at: null, grade: '5th', school: '=HYPERLINK("http://evil")', weight_lbs: 80, shirt_size: null, years_experience: 0, season_commitment: null },
+  ],
+  athletes: [
+    { id: 'a1', first_name: 'Zed', last_name: 'Alder', date_of_birth: '2018-01-01', age_division: '8U', practice_group: 'Group 1', shirt_size: null, usa_wrestling_card_number: null, usa_wrestling_card_url: null, birth_certificate_url: null, birth_certificate_on_file: false },
+    { id: 'a2', first_name: 'Amy', last_name: 'Alder', date_of_birth: '2017-05-05', age_division: '10U', practice_group: 'Group 2', shirt_size: 'YS', usa_wrestling_card_number: '  ', usa_wrestling_card_url: null, birth_certificate_url: null, birth_certificate_on_file: true },
+    { id: 'a3', first_name: 'Bo', last_name: 'Birch', date_of_birth: '2015-09-09', age_division: '12U', practice_group: 'Group 3', shirt_size: null, usa_wrestling_card_number: 'SECRET-CARD-123', usa_wrestling_card_url: null, birth_certificate_url: 'x/bc.pdf', birth_certificate_on_file: false },
+  ],
+  parents: [
+    { id: 'p1', full_name: 'Pat Alder', email: 'pat@example.com', phone: '5550100', street_address: '1 Elm St', city: 'Townville', state: 'IL', postal_code: '60000' },
+    { id: 'p2', full_name: 'Sam "Sammy" Birch', email: 'sam@example.com', phone: null, street_address: null, city: null, state: null, postal_code: null },
+  ],
+  dues: [
+    { id: 'd1', amount_cents: 32500, amount_paid_cents: 32500, status: 'paid', payment_plan: false },
+    { id: 'd2', amount_cents: 32500, amount_paid_cents: 10000, status: 'partial', payment_plan: true },
+  ],
+  guardians: [
+    { athlete_id: 'a2', ordinal: 1, name: 'Pat Alder', relationship: 'Mother', phone: '5550100', email: 'pat@example.com', coach_interest: 'No' },
+    { athlete_id: 'a2', ordinal: 2, name: 'Lee Alder', relationship: 'Father', phone: '5550101', email: 'lee@example.com', coach_interest: 'Yes' },
+  ],
+  signatures: [
+    { athlete_id: 'a2', accepted_at: '2026-10-01T12:00:00Z', typed_signature: 'Old Sig' },
+    { athlete_id: 'a2', accepted_at: '2026-10-02T03:30:00Z', typed_signature: 'Pat Alder' },
+  ],
+  cardUploads: new Set(['a1']),
+  birthCertificateUploads: new Set(),
+})
+
+test('registration export: one row per wrestler, sorted by last then first name, with every column', () => {
+  const rows = plain(regExportLib.registrationRows(REG_EXPORT_INPUT()))
+  assert.equal(rows.length, 3)
+  assert.deepEqual(rows.map((r) => `${r[2]} ${r[3]}`), ['Amy Alder', 'Zed Alder', 'Bo Birch'])
+  for (const r of rows) assert.equal(r.length, regExportLib.EXPORT_HEADERS.length)
+  const amy = rows[0]
+  assert.equal(amy[0], 'Approved')
+  assert.equal(amy[1], '2026-10-01', 'submitted date is in club time (late evening Oct 1 in Chicago)')
+  assert.equal(amy[13], 'On file')
+  assert.equal(amy[14], 'Cleared by club', 'a blank card number does not count; the club override does')
+  assert.equal(amy[15], '2026-10-01'); assert.equal(amy[16], 'Pat Alder', 'the newest waiver signature wins')
+  assert.equal(amy[17], '325.00'); assert.equal(amy[18], '325.00'); assert.equal(amy[19], 'Paid')
+  assert.equal(amy[24], '1 Elm St, Townville, IL, 60000')
+  assert.equal(amy[29], 'Lee Alder'); assert.equal(amy[33], 'Yes')
+  const zed = rows[1]
+  assert.equal(zed[0], 'Changes Requested'); assert.equal(zed[14], 'Card uploaded'); assert.equal(zed[13], 'Missing')
+  assert.equal(zed[17], null, 'no dues row means blank money columns')
+  const bo = rows[2]
+  assert.equal(bo[14], 'Number on file'); assert.equal(bo[13], 'Uploaded'); assert.equal(bo[20], 'Yes'); assert.equal(bo[19], 'Partial')
+})
+
+test('registration export never includes a USA card number, and Excel cannot run a cell as a formula', () => {
+  const csv = regExportLib.toCsv(regExportLib.EXPORT_HEADERS, regExportLib.registrationRows(REG_EXPORT_INPUT()))
+  assert.ok(!csv.includes('SECRET-CARD-123'))
+  assert.ok(csv.startsWith('﻿Status,Submitted,First name,Last name'))
+  assert.ok(csv.includes(`"'=HYPERLINK(""http://evil"")"`), 'a value starting with = is neutralized and quoted')
+  assert.ok(csv.includes('"Sam ""Sammy"" Birch"'))
+  assert.equal(csv.split('\r\n').length, 1 + 3 + 1)
+  assert.equal(regExportLib.csvCell('-5'), "'-5")
+  assert.equal(regExportLib.csvCell('@sum'), "'@sum")
+  assert.equal(regExportLib.csvCell(-5), '-5', 'numbers we produce stay numbers')
+  assert.equal(regExportLib.csvCell(null), '')
+  assert.equal(regExportLib.exportFileName('2026-27 Season', new Date('2026-11-24T20:00:00Z')), 'CLW-Wizards-registrations-2026-27-Season-2026-11-24.csv')
+})
+
+test('registration export route: admins only, CSV attachment of the current season, no caching', async () => {
+  const tables = {
+    season_registrations: [{ id: 's1', season_label: '2026-27 Season' }],
+    season_enrollments: REG_EXPORT_INPUT().enrollments.map((e) => ({ ...e, season_registration_id: 's1' })),
+    athletes: REG_EXPORT_INPUT().athletes,
+    profiles: REG_EXPORT_INPUT().parents,
+    dues_payments: REG_EXPORT_INPUT().dues,
+    athlete_guardians: REG_EXPORT_INPUT().guardians,
+    disclosures: [{ id: 'w1' }],
+    athlete_documents: [{ athlete_id: 'a1', doc_type: 'usa_wrestling_card' }],
+    disclosure_acceptances: REG_EXPORT_INPUT().signatures,
+  }
+  const filters = []
+  const adminClient = {
+    from: (table) => {
+      const q = {
+        select: () => q, order: () => q, limit: () => q,
+        eq: (k, v) => { filters.push([table, k, v]); return q },
+        in: () => q,
+        then: (resolve) => resolve({ data: tables[table] ?? [], error: null }),
+      }
+      return q
+    },
+  }
+  const routeFor = (user, role) => load('src/app/admin/registrations/export/route.ts', {
+    '@/lib/supabase/server': { createServerSupabase: async () => ({
+      auth: { getUser: async () => ({ data: { user } }) },
+      from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: role ? { role } : null }) }) }) }),
+    }) },
+    '@/lib/supabase/admin': { createAdminSupabase: () => adminClient },
+    '@/lib/registration-export': regExportLib,
+  })
+  assert.equal((await routeFor(null).GET()).status, 401)
+  assert.equal((await routeFor({ id: 'u1' }, 'parent').GET()).status, 403)
+  const res = await routeFor({ id: 'u2' }, 'admin').GET()
+  assert.equal(res.status, 200)
+  assert.match(res.headers.get('content-type'), /text\/csv/)
+  assert.match(res.headers.get('content-disposition'), /^attachment; filename="CLW-Wizards-registrations-2026-27-Season-\d{4}-\d{2}-\d{2}\.csv"$/)
+  assert.match(res.headers.get('cache-control'), /no-store/)
+  const body = await res.text()
+  assert.equal(body.trim().split('\r\n').length, 4)
+  assert.ok(!body.includes('SECRET-CARD-123'))
+  assert.ok(filters.some(([t, k, v]) => t === 'season_enrollments' && k === 'season_registration_id' && v === 's1'), 'only the current season')
+  assert.ok(filters.some(([t, k, v]) => t === 'disclosure_acceptances' && k === 'season_registration_id' && v === 's1'))
+})
+
+test('Registrations page has the Download spreadsheet button at CTA size', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'src/app/admin/registrations/page.tsx'), 'utf8')
+  assert.match(src, /href="\/admin\/registrations\/export" download/)
+  assert.match(src, /className="min-h-11 text-base"/)
+})
